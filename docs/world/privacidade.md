@@ -1,92 +1,93 @@
-# Habblaud World: o que sai do seu computador
+# Habblaud World: what leaves your computer
 
-O Habblaud World é uma cidade online onde cada Habblaud vira um prédio: quem passa na rua vê, ao vivo, quantos projetos
-e agentes você está rodando e o que cada personagem está fazendo. A regra que guia tudo aqui:
+Habblaud World is an online city where each Habblaud becomes a building: anyone passing on the street sees, live, how
+many projects and agents you are running and what each character is doing. The rule that guides everything here:
 
-> **Com os dados que saem não dá para saber quem você é nem em que trabalha.**
+> **From the data that leaves, there is no way to know who you are or what you work on.**
 
-**Situação hoje:** o World está no ar e vem **ligado por padrão**, apontando para `server.habblaud.com` (ou a
-`HABBLAUD_WORLD_URL` que você definir; veja o README). **Nada sai do computador antes de você criar a conta e entrar**;
-`HABBLAUD_WORLD=0` desliga tudo. Esta página é a lista completa do que pode sair; qualquer mudança nela entra no código
-e nesta página no mesmo pull request.
+**Where things stand today:** World is up and comes **on by default**, pointing at `server.habblaud.com` (or the
+`HABBLAUD_WORLD_URL` you set; see the README). **Nothing leaves the computer before you create the account and sign in**;
+`HABBLAUD_WORLD=0` turns everything off. This page is the full list of what can leave; any change to it goes into the
+code and into this page in the same pull request.
 
-## O que sai: a conta e o personagem
+## What leaves: the account and the character
 
-Ao usar o World, sai do computador, por HTTPS, para o servidor do mundo:
+When you use World, this leaves the computer, over HTTPS, for the world server:
 
-| Sai | Quando | Por quê |
+| Leaves | When | Why |
 | --- | --- | --- |
-| E-mail e senha | No cadastro, ao entrar e ao trocar a senha | Para a conta existir. A senha não fica gravada no computador; no servidor, só um hash (Argon2id) |
-| Nome de jogador (nickname) | No cadastro | É o nome do seu personagem (3 a 20 caracteres, único no mundo, sem diferença de maiúsculas ou acentos): fica reservado para você enquanto a conta espera na lista, e o personagem nasce com ele |
-| Código de 6 dígitos | Ao confirmar o e-mail ou trocar a senha | Provar que o e-mail é seu |
-| Idioma da interface (`pt-BR`, `en`, `es` ou `fr`) | No cadastro | Para os e-mails virem no seu idioma |
-| Aceite dos Termos de Uso (só a versão, `v1`) e o código de convite, se você tiver um | No cadastro | Registrar o aceite; o convite põe a conta no próximo lote da lista de espera |
-| Solução do desafio anti-robô (ALTCHA) | No cadastro, nos pedidos de e-mail e, se o servidor pedir, ao entrar | É só um número calculado pelo seu Habblaud, no lugar de um captcha |
-| Personagem: aparência (cores e estilos), 2 ou 3 traços, a frase de apresentação e, ao trocá-lo, o nome de jogador (ao criar, o nome é o reservado no cadastro: nem vai no pedido) | Ao salvar o personagem | É o que os outros jogadores vão ver |
-| Preferências de visibilidade (ao vivo ou discreto, fechado a visitas, esconder o país, mostrar tokens, placar, compactações) e o aviso por e-mail antes de retirar o prédio por inatividade | Ao salvar | Para o mundo respeitar a sua escolha |
-| Token do dispositivo | Em cada chamada da conta | Provar que é você, sem mandar a senha de novo |
-| Qual dispositivo desconectar | Ao desconectar um | Só o id que o próprio servidor deu ao dispositivo |
-| Pausar e retomar o prédio | Ao clicar em Pausar ou Retomar (`POST /v1/me/building/pause` e `/resume`, só com o token) | Para o prédio apagar na hora para todos e voltar quando você quiser |
-| Sair do mundo | Ao confirmar "Sair do mundo" (`DELETE /v1/me/building`, só com o token) | Para o prédio sair do mundo na hora e o lote ficar livre; a conta e o personagem continuam |
-| Voltar ao mundo | Ao clicar em "Voltar ao mundo" depois de sair (`POST /v1/me/building/join`, só com o token) | Para o servidor aceitar o prédio de novo (um prédio novo, em outro lote) |
-| Excluir a conta | Ao pedir a exclusão e ao digitar o código que chegou por e-mail (`POST /v1/me/delete` e `/v1/me/delete/confirm`, com o token e o código) | Para o servidor apagar a conta: o prédio e o perfil somem do mundo na hora; a conta, os likes, os bloqueios, as denúncias feitas e os dispositivos saem do banco em 7 dias e dos backups em até 30. Aqui, o `world.json` é apagado |
-| Baixar meus dados | Ao clicar em "Baixar meus dados" (`GET /v1/me/export`, só com o token; uma vez por dia) | O servidor devolve, num arquivo JSON, o que guarda da sua conta (inclusive o nome reservado, o país e os IPs do cadastro e do último login); nada novo sai do computador |
-| Versão do Habblaud | Em toda chamada, no cabeçalho `User-Agent` (`Habblaud/1.0.0`) | Compatibilidade e diagnóstico |
+| Email and password | At signup, when signing in and when changing the password | So the account can exist. The password is not stored on the computer; on the server, only a hash (Argon2id) |
+| Player name (nickname) | At signup | It is your character's name (3 to 20 characters, unique in the world, ignoring case and accents): it stays reserved for you while the account waits on the list, and the character is born with it |
+| 6-digit code | When confirming the email or changing the password | To prove the email is yours |
+| Interface language (`pt-BR`, `en`, `es` or `fr`) | At signup | So the emails come in your language |
+| Acceptance of the Terms of Use (only the version, `v1`) and the invite code, if you have one | At signup | To record the acceptance; the invite puts the account in the next batch of the waitlist |
+| Solution to the anti-bot challenge (ALTCHA) | At signup, in the email requests and, if the server asks, when signing in | It is just a number computed by your Habblaud, in place of a captcha |
+| Character: appearance (colors and styles), 2 or 3 traits, the intro phrase and, when changing it, the player name (when creating, the name is the one reserved at signup: it is not even in the request) | When saving the character | It is what the other players will see |
+| Visibility preferences (live or discreet, closed to visitors, hide the country, show tokens, leaderboard, compactions) and the email notice before the building is removed for inactivity | When saving | So the world respects your choice |
+| Device token | On every account call | To prove it is you, without sending the password again |
+| Which device to disconnect | When disconnecting one | Only the id the server itself gave the device |
+| Pause and resume the building | When clicking Pause or Resume (`POST /v1/me/building/pause` and `/resume`, with only the token) | So the building turns off right away for everyone and comes back when you want |
+| Leave the world | When confirming "Leave the world" (`DELETE /v1/me/building`, with only the token) | So the building leaves the world right away and the lot is freed; the account and the character stay |
+| Back to the world | When clicking "Back to the world" after leaving (`POST /v1/me/building/join`, with only the token) | So the server accepts the building again (a new building, on another lot) |
+| Delete the account | When requesting the deletion and when typing the code that arrived by email (`POST /v1/me/delete` and `/v1/me/delete/confirm`, with the token and the code) | So the server deletes the account: the building and the profile disappear from the world right away; the account, the likes, the blocks, the reports made and the devices leave the database in 7 days and the backups within 30. Here, `world.json` is deleted |
+| Download my data | When clicking "Download my data" (`GET /v1/me/export`, with only the token; once a day) | The server returns, in a JSON file, what it keeps about your account (including the reserved name, the country and the IPs of the signup and of the last login); nothing new leaves the computer |
+| Habblaud version | On every call, in the `User-Agent` header (`Habblaud/1.0.0`) | Compatibility and diagnostics |
 
-Enquanto a conta está na lista de espera, o Habblaud aberto pergunta ao servidor do mundo, a cada 30 minutos, se o
-acesso já foi liberado (`GET /v1/me`, só com o token do dispositivo, sem mais nada). Liberado ou fora da conta, para.
+While the account is on the waitlist, the open Habblaud asks the world server, every 30 minutes, whether access has
+been granted (`GET /v1/me`, with only the device token and nothing else). Once granted or signed out, it stops.
 
-O servidor do mundo vê o IP da conexão (como qualquer site). Dele, guarda o **país** (que dá para esconder) e, em claro,
-**dois endereços só**: o IP do cadastro e o IP do último login com senha, para auditoria e prevenção de fraudes. Só a
-equipe de administração vê esses IPs; eles saem no "Baixar meus dados" (`signupIp`, `lastLoginIp` e `lastLoginAt`) e
-são apagados com a conta. O resumo diário por IP que limita tentativas (cadastro, entrada, códigos) continua como era.
-Nenhum outro IP é guardado: nem o da conexão do prédio, nem o dos passeios pela cidade.
+The world server sees the connection's IP (like any website). From it, it keeps the **country** (which you can hide)
+and, in plain text, **only two addresses**: the signup IP and the IP of the last login with a password, for auditing and
+fraud prevention. Only the administration team sees these IPs; they come out in "Download my data" (`signupIp`,
+`lastLoginIp` and `lastLoginAt`) and are deleted with the account. The daily per-IP summary that limits attempts
+(signup, sign-in, codes) stays as it was. No other IP is kept: not the one of the building's connection, nor the one of
+the walks around the city.
 
-## O que sai: o prédio (a lista fechada)
+## What leaves: the building (the closed list)
 
-Com a conta liberada e o personagem criado, o seu Habblaud abre uma conexão (WebSocket, por TLS) com o servidor do
-mundo e o seu prédio entra na cidade. Pela conexão sai **só** isto:
+With the account approved and the character created, your Habblaud opens a connection (WebSocket, over TLS) to the world
+server and your building enters the city. Over the connection **only** this leaves:
 
-| Sai | Como | Por quê |
+| Leaves | How | Why |
 | --- | --- | --- |
-| Primeira mensagem da conexão (`hello`) | O `token` do dispositivo, a `version` do Habblaud, o `build` (`commit` do código em uso e `dirty`, a marca de "cópia modificada") e o `locale` da interface (`pt-BR`, `en`, `es` ou `fr`) | Autenticar, saber se é uma versão oficial e mandar os avisos no seu idioma. O token vai só aqui, nunca na URL; o idioma não vai no pacote do prédio. Nunca o caminho da pasta nem nada da máquina |
-| O pacote do prédio | Ao conectar e, depois, quando o escritório muda: no máximo um a cada 5 segundos, e nada se o pacote não mudou | É o prédio ao vivo |
-| Sinal de vida (`ping`, e o `pong` quando o servidor pergunta) | A cada 30 segundos, sem conteúdo | Para o prédio ficar aceso enquanto o Habblaud está aberto (pausado ou fora do mundo, não acende nada: só mantém a conexão da cena Mundo) |
-| Cena Mundo aberta ou fechada (`view` e `view.off`) | Ao abrir e ao fechar a cidade no navegador, sem conteúdo | Para o servidor mandar o pedaço da cidade em volta do seu personagem só enquanto você olha; com a cena fechada, nada desce |
-| Os passos do seu personagem (`move`) | Enquanto você anda na cidade (no máximo 5 por segundo): a posição na cidade (`x`, `y`, em tiles), a direção (`dir`: `n`, `s`, `e` ou `w`) e se está andando (`moving`) | É o seu personagem na rua; a posição é na cidade do mundo, nunca nada do escritório. Com a aba em segundo plano, um passo parado a cada 30 s |
-| Pedido de área de novo (`resync`) | Quando chega uma mudança de prédio fora de ordem: só o id do pedaço da cidade (`chunk`) ou, dentro de um prédio que você visita, o id desse prédio (`building`) | Para o seu Habblaud mostrar os prédios certos |
-| Pedido de perfil (`profile`) | Ao clicar em alguém na rua: só o id (`playerId`) que o próprio mundo deu a essa pessoa | Para mostrar o cartão de quem está perto |
-| Entrar e sair de um prédio (`enter` e `leave`) | Ao apertar E na porta (ou em "Ver como os outros veem") e ao sair: só o id do prédio que o mundo deu (`buildingId`). Lá dentro, nenhum passo sai: o seu personagem anda só na sua tela | Para ver o interior do prédio de alguém (salas com nomes fictícios e os agentes no status de agora, sem terminal, mensagens, pedidos de permissão nem nada que age) |
-| O social leve, quando você aperta (`like`/`unlike`, `greet`, `block`/`unblock`, `report`, `stamp`, `knock`, `teleport`, `summary.seen`) | Só ids e itens de lista: o prédio (`buildingId`) ou a pessoa (`playerId`) que o mundo deu, o cumprimento (`greetingId`), o carimbo (`stampId`) e o motivo da denúncia (`reason`) das listas fixas, e o código do prédio ("HB-XXXX", como você digitou) no "Ir para". Nenhum texto livre | Curtir, cumprimentar, bloquear, denunciar, deixar um carimbo, bater na porta, ir até um prédio e dizer que viu o "Enquanto você estava fora" |
+| First message of the connection (`hello`) | The device `token`, the Habblaud `version`, the `build` (`commit` of the code in use and `dirty`, the "modified copy" mark) and the interface `locale` (`pt-BR`, `en`, `es` or `fr`) | To authenticate, to know whether it is an official version and to send the notices in your language. The token goes only here, never in the URL; the language does not go in the building packet. Never the folder path or anything about the machine |
+| The building packet | On connecting and, after that, when the office changes: at most one every 5 seconds, and nothing if the packet did not change | It is the live building |
+| Sign of life (`ping`, and the `pong` when the server asks) | Every 30 seconds, with no content | So the building stays lit while Habblaud is open (paused or out of the world, it lights nothing: it only keeps the World scene's connection) |
+| World scene open or closed (`view` and `view.off`) | When opening and when closing the city in the browser, with no content | So the server sends the piece of the city around your character only while you are looking; with the scene closed, nothing comes down |
+| Your character's steps (`move`) | While you walk in the city (at most 5 per second): the position in the city (`x`, `y`, in tiles), the direction (`dir`: `n`, `s`, `e` or `w`) and whether it is walking (`moving`) | It is your character on the street; the position is in the world's city, never anything from the office. With the tab in the background, one standing-still step every 30 s |
+| Request for the area again (`resync`) | When a building change arrives out of order: only the id of the piece of the city (`chunk`) or, inside a building you are visiting, that building's id (`building`) | So your Habblaud shows the right buildings |
+| Profile request (`profile`) | When clicking someone on the street: only the id (`playerId`) the world itself gave that person | To show the card of whoever is nearby |
+| Entering and leaving a building (`enter` and `leave`) | When pressing E at the door (or on "See it as others do") and when leaving: only the building id the world gave (`buildingId`). Inside, no step leaves: your character walks only on your screen | To see the inside of someone's building (rooms with fictional names and the agents in their current status, with no terminal, messages, permission requests or anything that acts) |
+| The light social features, when you press them (`like`/`unlike`, `greet`, `block`/`unblock`, `report`, `stamp`, `knock`, `teleport`, `summary.seen`) | Only ids and list items: the building (`buildingId`) or the person (`playerId`) the world gave, the greeting (`greetingId`), the stamp (`stampId`) and the report reason (`reason`) from the fixed lists, and the building code ("HB-XXXX", as you typed it) in "Go to". No free text | Liking, greeting, blocking, reporting, leaving a stamp, knocking on the door, going to a building and saying you saw the "While you were away" |
 
-O pacote do prédio tem estes campos e mais nenhum (o formato exato está em
-[`shared/world/schema.json`](../../shared/world/schema.json); um teste confere que cada campo dele está nesta página):
+The building packet has these fields and no others (the exact format is in
+[`shared/world/schema.json`](../../shared/world/schema.json); a test checks that each of its fields is on this page):
 
-| Campo | O que é | Por quê |
+| Field | What it is | Why |
 | --- | --- | --- |
-| `v` | Versão do formato do pacote (`1`) | Compatibilidade |
-| `version` | Versão do Habblaud (`1.0.0`) | Compatibilidade do protocolo |
-| `theme` | `none`, `halloween` ou `christmas`, já resolvido: o "Automático" vira o tema do calendário (Halloween em outubro, Natal de 1º de novembro a 26 de dezembro), pela data do computador (no Docker, UTC) | O prédio e o interior com o seu tema |
-| `floors` | Um andar por sala com alguém presente, em ordem embaralhada | Altura do prédio e as salas do interior |
-| `id` (do andar) | Um id aleatório por sala (`f_` e 10 caracteres), que não vem do caminho da pasta, **troca a cada 24 h** (com sorteio de ±6 h) e troca também quando a sala some e volta ou quando o Habblaud reinicia. Sem horário nenhum | Quem visita hoje e amanhã não sabe se é o mesmo projeto |
-| `agents` (do andar) | Um por agente principal ou subagente trabalhando, esperando, à toa ou de olho num shell | O personagem fazendo a coisa certa na mesa certa |
-| `id` (do agente) | Id aleatório (`a_` e 8 caracteres), com as mesmas trocas do id do andar | Saber quem é quem no pacote |
-| `kind` e `parentId` | Principal (`main`) ou subagente (`sub`) e, no subagente, o id **do mundo** do agente que o chamou (ausente se esse agente já saiu) | O subagente perto de quem o chamou |
-| `provider` | `claude` ou `codex` | O visual da ferramenta |
-| `status` | `working`, `waiting`, `idle` ou `shell`. **Sem** "desde quando" | O que o personagem está fazendo |
-| `look` | A dica visual do personagem (`f` ou `m`) | O corpo e o nome combinarem |
-| `name` | Um nome sorteado da lista de nomes do Habblaud a partir do id aleatório do mundo (nunca o nome do escritório, editado ou não) | O personagem ter um nome |
-| `parts` | As cores e os estilos da aparência (`skin`, `hair`, `hairStyle`, `eyes`, `top`, `topAccent`, `topStyle`, `bottom`, `bottomStyle`, `shoes`, `accessory`, `accessoryColor`, `facialHair`), sorteados a partir do id aleatório do mundo, com as peças que você escolheu no editor por cima | O personagem com a cara certa |
-| `tasksDone` | Tarefas concluídas hoje por aquele agente, só a faixa: `0` (nenhuma), `1` (1 ou 2), `2` (3 a 5), `3` (6 ou mais). Nunca o título | O "+1" sobre a cabeça do personagem |
-| `compacted` | Só se você ligou "compactações": `true` quando o agente compactou o contexto desde o pacote anterior (o `/clear` não conta) | A lixeira da sala enche |
-| `tokens` | Só se "mostrar tokens" estiver ligado (vem ligado; dá para desligar): `day` (hoje) e `week` (hoje e os 6 dias anteriores), o total do prédio (entrada + saída de todos os agentes, do "Meu dia", sem o modo demonstração), arredondado a 2 algarismos (ex.: 1.200.000). Os outros só veem a **faixa** (até 100 mil, 1 milhão, 10 milhões, 100 milhões, acima) | O medidor da fachada |
+| `v` | Version of the packet format (`1`) | Compatibility |
+| `version` | Habblaud version (`1.0.0`) | Protocol compatibility |
+| `theme` | `none`, `halloween` or `christmas`, already resolved: "Automatic" becomes the calendar's theme (Halloween in October, Christmas from November 1 to December 26), by the computer's date (in Docker, UTC) | The building and the inside with your theme |
+| `floors` | One floor per room with someone present, in shuffled order | Height of the building and the rooms of the inside |
+| `id` (of the floor) | A random id per room (`f_` and 10 characters), which does not come from the folder path, **changes every 24 h** (with a random draw of ±6 h) and also changes when the room disappears and comes back or when Habblaud restarts. No time of any kind | Whoever visits today and tomorrow does not know whether it is the same project |
+| `agents` (of the floor) | One per main agent or subagent working, waiting, idle or watching a shell | The character doing the right thing at the right desk |
+| `id` (of the agent) | Random id (`a_` and 8 characters), with the same changes as the floor id | To know who is who in the packet |
+| `kind` and `parentId` | Main (`main`) or subagent (`sub`) and, on the subagent, the **world** id of the agent that called it (absent if that agent has already left) | The subagent near the one that called it |
+| `provider` | `claude` or `codex` | The tool's look |
+| `status` | `working`, `waiting`, `idle` or `shell`. **No** "since when" | What the character is doing |
+| `look` | The character's visual hint (`f` or `m`) | So the body and the name match |
+| `name` | A name drawn from Habblaud's name list based on the world's random id (never the office name, edited or not) | So the character has a name |
+| `parts` | The colors and styles of the appearance (`skin`, `hair`, `hairStyle`, `eyes`, `top`, `topAccent`, `topStyle`, `bottom`, `bottomStyle`, `shoes`, `accessory`, `accessoryColor`, `facialHair`), drawn based on the world's random id, with the pieces you chose in the editor on top | The character with the right face |
+| `tasksDone` | Tasks completed today by that agent, only the range: `0` (none), `1` (1 or 2), `2` (3 to 5), `3` (6 or more). Never the title | The "+1" over the character's head |
+| `compacted` | Only if you turned on "compactions": `true` when the agent compacted the context since the previous packet (`/clear` does not count) | The room's trash can fills up |
+| `tokens` | Only if "show tokens" is on (it comes on; you can turn it off): `day` (today) and `week` (today and the 6 days before), the building's total (input + output of all agents, from "My day", without demo mode), rounded to 2 digits (e.g. 1,200,000). The others see only the **range** (up to 100 thousand, 1 million, 10 million, 100 million, above) | The facade meter |
 
-Mais nada. O pacote de um escritório com 3 projetos e 5 agentes tem uns 2 KB. Os limites são 64 andares, 64 agentes
-por andar, 256 no total e 64 KB (na prática, uns 170 agentes); acima disso, o Habblaud corta os últimos e avisa no log.
-O servidor confere cada campo (nomes dentro da lista de nomes, cores dentro das paletas, ids no formato) e recusa o
-pacote inteiro se aparecer qualquer campo fora da lista.
+Nothing else. The packet of an office with 3 projects and 5 agents is about 2 KB. The limits are 64 floors, 64 agents
+per floor, 256 in total and 64 KB (in practice, about 170 agents); above that, Habblaud cuts the last ones and says so
+in the log. The server checks each field (names within the name list, colors within the palettes, ids in the format)
+and rejects the whole packet if any field outside the list shows up.
 
-### Exemplo real de um pacote
+### Real example of a packet
 
 ```json
 {
@@ -113,105 +114,107 @@ pacote inteiro se aparecer qualquer campo fora da lista.
 }
 ```
 
-(`"...": "..."` abrevia peças iguais às da Marina. Um teste confere este exemplo contra o
+(`"...": "..."` abbreviates pieces equal to Marina's. A test checks this example against the
 [`schema.json`](../../shared/world/schema.json).)
 
-## O que nunca sai
+## What never leaves
 
-| Nunca sai | Exemplos |
+| Never leaves | Examples |
 | --- | --- |
-| Caminho e nome do projeto, nome que você deu à sala | `/Users/voce/projetos/cliente-x`, "Projeto secreto" |
-| Título da sessão, branch, modo de permissão, modelo | "Corrigir o login", `feat/pagamentos`, `opus` |
-| O que os agentes fazem | Atividades, tarefas, comandos, shells, pedidos de permissão, perguntas, mensagens, o terminal |
-| Custo e números de trabalho | Dinheiro gasto, linhas de código, chamadas de ferramenta, tokens por agente (tokens saem só como o total do prédio, arredondado) |
-| A sua conta do Claude ou do Codex | E-mail, organização, plano, uso de 5 horas e semanal |
-| O nome que você deu a um personagem | Pode ser o seu nome real: no mundo, o personagem ganha outro nome sorteado |
-| A semente do personagem | A aparência no mundo é sorteada a partir de um id aleatório; só as peças escolhidas no editor sobem iguais |
-| Horários | Quando a sessão começou, quando o status mudou, quando a sala nasceu: o pacote não tem tempo nenhum |
-| Coisas da máquina | Nome do computador, usuário do sistema, fuso horário. O dispositivo aparece só como "Dispositivo 1/2/3" |
-| O seu histórico | Estatísticas do Meu dia, a linha do tempo do timelapse, o histórico de sessões |
-| Agentes do modo demonstração | Ficam de fora antes de montar o pacote |
+| Project path and name, the name you gave the room | `/Users/voce/projetos/cliente-x`, "Secret project" |
+| Session title, branch, permission mode, model | "Fix the login", `feat/pagamentos`, `opus` |
+| What the agents do | Activities, tasks, commands, shells, permission requests, questions, messages, the terminal |
+| Cost and work numbers | Money spent, lines of code, tool calls, tokens per agent (tokens leave only as the building's total, rounded) |
+| Your Claude or Codex account | Email, organization, plan, 5-hour and weekly usage |
+| The name you gave a character | It may be your real name: in the world, the character gets another drawn name |
+| The character's seed | The appearance in the world is drawn based on a random id; only the pieces chosen in the editor go up as they are |
+| Times | When the session started, when the status changed, when the room was born: the packet has no time at all |
+| Things about the machine | Computer name, system user, time zone. The device shows up only as "Device 1/2/3" |
+| Your history | My day statistics, the timelapse timeline, the session history |
+| Demo mode agents | They are left out before the packet is built |
 
-## Ao vivo, sem identificar ninguém
+## Live, without identifying anyone
 
-O que aparece para quem visita: **quem visita o mundo vê, ao vivo, quantos projetos e agentes você está rodando e o
-que cada personagem está fazendo (trabalhando, esperando, à toa). Ninguém vê quais projetos são, o que os agentes
-fazem, nem quem você é: só o nickname e o avatar que você escolheu.**
+What shows up for visitors: **people visiting the world see, live, how many projects and agents you are running and
+what each character is doing (working, waiting, idle). Nobody sees which projects they are, what the agents are
+doing, or who you are: only the nickname and the avatar you chose.**
 
-- **Ninguém é identificado:** só o nickname (escolhido no cadastro) e o avatar que você escolheu e o país do IP (dá para
-  esconder). Sem e-mail, nome real, nome de conta ou máquina. Os IPs do cadastro e do último login ficam só com a
-  administração, nunca aparecem no mundo.
-- **Nenhum projeto é identificável:** os ids dos andares são aleatórios e trocam a cada 24 h (±6 h), com a ordem das
-  salas embaralhada.
-- **Nenhum horário do escritório sai:** o pacote não tem "desde quando" nem nada de tempo. A visita mostra o status,
-  nunca "há quanto tempo".
-- **Nenhum histórico do prédio fica:** do prédio, o servidor guarda só o dia do último sinal e o mês em que entrou no
-  mundo. Não existe linha do tempo de prédio nem "visto por último".
-- **Sem feed global:** cada pessoa só recebe o pedaço da cidade em volta do personagem dela; nenhuma rota lista
-  prédios ou jogadores.
-- **Nada prova que você está no computador:** os agentes trabalham sozinhos. O cartão diz "aceso" ou "apagado" sobre o
-  prédio, nunca "online" sobre a pessoa.
-- **Modo discreto:** só aceso ou apagado e o número de andares, sem contadores nem status. **Fechado a visitas:**
-  ninguém entra.
-- **Visitas:** quem entra no seu prédio vê as salas com os nomes fictícios e os agentes no status de agora; no modo
-  discreto, as salas vazias com a luz acesa; pausado, tudo apagado. Você vê só "N visitantes agora", nunca quem. E o
-  que você vê lá dentro do prédio dos outros fica na sua tela: nada do interior sobe, nem a posição do seu personagem.
-- **Bloqueio nos dois sentidos:** quem você bloqueia some para você e você some para essa pessoa, inclusive o prédio.
-- **O social leve não conta quem foi:** o dono vê quantas visitas, likes e carimbos recebeu ("Enquanto você estava
-  fora") e quantos likes ganhou hoje, nunca de quem; bater na porta chega sem nome, e só se o dono ligou "Avisar quando
-  baterem na porta". Os agregados da cidade (a meta da semana, o total de tokens em faixa) só aparecem com 10 prédios
-  ou mais.
+- **Nobody is identified:** only the nickname (chosen at signup) and the avatar you chose and the country of the IP (you
+  can hide it). No email, real name, account name or machine. The signup and last-login IPs stay only with the
+  administration and never show up in the world.
+- **No project is identifiable:** the floor ids are random and change every 24 h (±6 h), with the order of the
+  rooms shuffled.
+- **No time from the office leaves:** the packet has no "since when" or anything about time. The visit shows the status,
+  never "for how long".
+- **No history of the building is kept:** of the building, the server keeps only the day of the last signal and the month
+  it entered the world. There is no building timeline and no "last seen".
+- **No global feed:** each person only receives the piece of the city around their own character; no route lists
+  buildings or players.
+- **Nothing proves you are at the computer:** the agents work on their own. The card says "lit" or "lights off" about
+  the building, never "online" about the person.
+- **Discreet mode:** only lit or off and the number of floors, with no counters or statuses. **Closed to visitors:**
+  nobody gets in.
+- **Visits:** whoever enters your building sees the rooms with the fictional names and the agents in their current
+  status; in discreet mode, the empty rooms with the lights on; paused, everything off. You see only "N visitors now",
+  never who. And what you see inside other people's buildings stays on your screen: nothing from the inside goes up, not
+  even your character's position.
+- **Blocking goes both ways:** whoever you block disappears for you and you disappear for that person, including the
+  building.
+- **The light social features do not tell who it was:** the owner sees how many visits, likes and stamps they got
+  ("While you were away") and how many likes they got today, never from whom; a knock on the door arrives with no name,
+  and only if the owner turned on "Let me know when someone knocks". The city aggregates (the week's goal, the token
+  total as a range) only show up with 10 buildings or more.
 
-Dito com clareza: quem observar o mesmo prédio por muito tempo pode notar padrões (mais agentes em dias úteis, por
-exemplo). Quem não quiser nem isso usa o modo discreto ou pausa.
+Said plainly: whoever watches the same building for a long time may notice patterns (more agents on weekdays, for
+example). Anyone who does not want even that uses discreet mode or pauses.
 
-## Neste computador
+## On this computer
 
-- A conta do World fica em `~/.habblaud/world.json` (no Docker, no volume `/data`), com permissão só para o seu
-  usuário. O token do dispositivo sai dali só para o servidor do mundo, por HTTPS e na primeira mensagem da conexão
-  do prédio, e nunca vai para o navegador, para os logs ou para a URL. O mesmo arquivo guarda o tema escolhido para o
-  prédio (que fica mesmo depois de sair da conta) e se o prédio está pausado ou fora do mundo.
-- A última remessa do prédio (o pacote exato, a hora, o tamanho e a resposta do servidor) fica em
-  `~/.habblaud/world-last-uplink.json`, também só para o seu usuário, e some ao sair da conta.
-- Os ids aleatórios do mundo vivem só na memória do Habblaud: reiniciar o Habblaud gera ids novos.
-- O que o mundo manda ao dono (os likes de hoje, o "Enquanto você estava fora", as batidas na porta e a lista de quem
-  você bloqueou) fica só na memória do Habblaud; no snapshot (que também vai ao celular) entram só os likes de hoje,
-  quantas batidas houve e se há um resumo não visto. O carimbo que você deixou hoje num prédio fica no navegador
-  (`localStorage`), para o botão saber que já foi.
-- A seção do World só funciona pelo próprio computador (`http://localhost`), nunca pelo celular, e só com o Habblaud
-  acessível apenas pelo próprio computador. Como acontece com as mensagens pelo escritório, qualquer programa deste
-  computador que alcance o `localhost` consegue agir pela conta.
-- **Pausar** para o envio do pacote do prédio antes de responder e avisa o servidor do mundo: o prédio apaga na hora
-  para todos e o lote fica guardado. **Retomar** volta a enviar (sem resposta do servidor, o Habblaud tenta avisar de
-  novo).
-- **Pausado: seu prédio está apagado, mas você pode andar pela cidade.** Com a cena Mundo aberta, a conexão continua
-  (ou abre) levando só a primeira mensagem (`hello`), o sinal de vida (`ping`/`pong`) e os comandos da cena (`view`,
-  `view.off`, `move`, `profile`, `resync`, `enter`, `leave`): nenhum pacote do prédio sai, e o sinal de vida não acende o prédio. Fechada a cena, a conexão
-  fecha e nada sai. Fora do mundo vale o mesmo.
-- **Sair do mundo** para o envio do pacote e só responde depois que o servidor do mundo retira o prédio e libera o
-  lote. A conta e o personagem continuam (dá para andar pela cidade, como pausado); nenhum pacote do prédio sai até
-  você clicar em **Voltar ao mundo**, que pede a volta ao servidor do mundo e cria um prédio novo, em outro lote. Se a
-  conta sair do mundo em outro computador, este também fica fora do mundo, sem enviar pacote, até **Voltar ao
-  mundo**.
-- **A cidade** (a cena Mundo) só desce com ela aberta no navegador: os prédios e as pessoas por perto que o servidor
-  do mundo manda ficam na memória do Habblaud e vão à página pelo `localhost`, nunca para o disco nem para os logs, e
-  são esquecidos ao fechar a cena ou cair a conexão. A cena só abre pela própria página do Habblaud, nunca por outro
-  site.
-- Tarefas concluídas e compactações são contadas na memória do Habblaud também com o prédio pausado ou sem conexão;
-  só a faixa do dia (e o "compactou desde o pacote anterior") sai, na remessa seguinte.
-- **Sair** apaga o token deste computador e o desconecta no servidor. A lista de dispositivos mostra onde a conta está
-  conectada (até 3) e desconecta um por um.
+- The World account is in `~/.habblaud/world.json` (in Docker, in the `/data` volume), with permission only for your
+  user. The device token leaves from there only for the world server, over HTTPS and in the first message of the
+  building's connection, and never goes to the browser, to the logs or to the URL. The same file keeps the theme chosen
+  for the building (which stays even after signing out) and whether the building is paused or out of the world.
+- The building's last upload (the exact packet, the time, the size and the server's response) is in
+  `~/.habblaud/world-last-uplink.json`, also only for your user, and disappears when you sign out.
+- The world's random ids live only in Habblaud's memory: restarting Habblaud generates new ids.
+- What the world sends the owner (today's likes, the "While you were away", the knocks on the door and the list of who
+  you blocked) stays only in Habblaud's memory; the snapshot (which also goes to the phone) gets only today's likes,
+  how many knocks there were and whether there is an unseen summary. The stamp you left today on a building stays in
+  the browser (`localStorage`), so the button knows it was already done.
+- The World section only works from the computer itself (`http://localhost`), never from the phone, and only with
+  Habblaud reachable only from the computer itself. As with messages from the office, any program on this
+  computer that reaches `localhost` can act for the account.
+- **Pause** stops sending the building packet before it answers and tells the world server: the building turns off
+  right away for everyone and the lot is kept. **Resume** starts sending again (with no response from the server,
+  Habblaud tries to tell it again).
+- **Paused: your building is dark, but you can walk around the city.** With the World scene open, the connection stays
+  (or opens) carrying only the first message (`hello`), the sign of life (`ping`/`pong`) and the scene commands (`view`,
+  `view.off`, `move`, `profile`, `resync`, `enter`, `leave`): no building packet leaves, and the sign of life does not light up the building. With the scene closed, the connection
+  closes and nothing leaves. Out of the world, the same applies.
+- **Leave the world** stops sending the packet and only answers after the world server removes the building and frees
+  the lot. The account and the character stay (you can walk around the city, as when paused); no building packet leaves
+  until you click **Back to the world**, which asks the world server for the return and creates a new building, on
+  another lot. If the account leaves the world on another computer, this one also stays out of the world, sending no
+  packet, until **Back to the world**.
+- **The city** (the World scene) only comes down with it open in the browser: the buildings and the people nearby that
+  the world server sends stay in Habblaud's memory and go to the page through `localhost`, never to the disk or to the
+  logs, and are forgotten when the scene closes or the connection drops. The scene only opens from Habblaud's own page,
+  never from another site.
+- Completed tasks and compactions are counted in Habblaud's memory also with the building paused or with no connection;
+  only the day's range (and the "compacted since the previous packet") leaves, in the next upload.
+- **Sign out** deletes this computer's token and disconnects it on the server. The device list shows where the account
+  is connected (up to 3) and disconnects them one by one.
 
-## Como a garantia é mantida
+## How the guarantee is kept
 
-1. **O protocolo é público e fechado:** [`shared/world/protocol.ts`](../../shared/world/protocol.ts) e
-   [`schema.json`](../../shared/world/schema.json) definem cada campo; o servidor recusa qualquer outro.
-2. **Um arquivo só monta o pacote do prédio:** [`shared/world/projection.ts`](../../shared/world/projection.ts), que
-   recebe das salas só o id e nunca recebe contas, uso nem estatísticas. Os testes conferem cada chave do pacote
-   contra a lista do `schema.json`, que nenhum texto do escritório (caminhos, nomes de sala, títulos, atividades,
-   comandos, tarefas, branch, modelo, conta, e-mail, nomes editados) aparece nele e que nenhum número parece um horário.
-3. **Você vê o que foi enviado:** Habblaud World › Ver o que foi enviado (o botão de cidade na barra do topo) mostra o JSON exato da última
-   remessa, a hora, o tamanho e a resposta do servidor (aceito, ou o motivo da recusa). É o mesmo objeto que foi para
-   o fio.
-4. **Código aberto:** quem revisa um pull request que mexe em `shared/world/` ou `server/world/` confere esta lista
-   contra o que o código manda ([`CONTRIBUTING.md`](../../CONTRIBUTING.md)).
+1. **The protocol is public and closed:** [`shared/world/protocol.ts`](../../shared/world/protocol.ts) and
+   [`schema.json`](../../shared/world/schema.json) define each field; the server rejects any other.
+2. **A single file builds the building packet:** [`shared/world/projection.ts`](../../shared/world/projection.ts), which
+   receives only the id from the rooms and never receives accounts, usage or statistics. The tests check each key of the
+   packet against the list in `schema.json`, that no text from the office (paths, room names, titles, activities,
+   commands, tasks, branch, model, account, email, edited names) appears in it and that no number looks like a time.
+3. **You see what was sent:** Habblaud World › See what was sent (the city button in the top bar) shows the exact JSON of the last
+   upload, the time, the size and the server's response (accepted, or the reason for the rejection). It is the same
+   object that went onto the wire.
+4. **Open source:** whoever reviews a pull request that touches `shared/world/` or `server/world/` checks this list
+   against what the code sends ([`CONTRIBUTING.md`](../../CONTRIBUTING.md)).

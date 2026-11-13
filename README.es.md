@@ -436,12 +436,12 @@ las actividades y las animaciones de los agentes. El ciclo día/noche sigue sien
 
 ### Idiomas
 
-La interfaz está en **portugués, inglés, español y francés**. Sigue el idioma del navegador; en
+La interfaz está en **inglés, portugués, español y francés**. Sigue el idioma del navegador; en
 **Configuración › Idioma** puedes fijar uno (la elección queda guardada en este navegador). Los textos que arma el
 servidor (actividades, avisos, terminal, logs y los scripts de instalación) siguen `HABBLAUD_LANG` y, si no está
-definida, el idioma del sistema, salvo el inglés: muchas máquinas y todos los contenedores vienen en inglés por
-defecto, incluso para quien usa otro idioma. Para tener el servidor en inglés, define `HABBLAUD_LANG=en` (en Docker,
-en el `.env`). Un texto sin traducción aparece en portugués.
+definida, el idioma del sistema cuando es uno de los cuatro; si no, quedan en inglés.
+Para tener el servidor en español, define `HABBLAUD_LANG=es` (en Docker,
+en el `.env`). Un texto sin traducción aparece en inglés.
 
 ### Día, noche y sonidos
 
@@ -764,7 +764,7 @@ Todo funciona sin configurar nada. Si necesitas ajustar algo, usa variables de e
 | `HABBLAUD_CODEX_DIRS` | detección automática | Carpetas de Codex, separadas por comas (en lugar de `~/.codex*` y `CODEX_HOME`). |
 | `HABBLAUD_CODEX_BIN` | `codex` del PATH (en Windows, `codex.exe`) | El binario de Codex que entrega los mensajes (`codex queue`), en modo Node o en `npm run codex:bridge`. |
 | `HABBLAUD_UPDATE_CHECK` | activada | `0` desactiva la comprobación de versión nueva (una consulta a las releases del repositorio en GitHub cada 6 h). |
-| `HABBLAUD_LANG` | idioma del sistema (salvo inglés); si no, `pt-BR` | Idioma de los textos que arma el servidor (actividades, avisos, logs): `pt-BR`, `en`, `es` o `fr`. La interfaz sigue al navegador o la elección en Configuración › Idioma. Consulta [Idiomas](#idiomas). |
+| `HABBLAUD_LANG` | idioma del sistema; si no, `en` | Idioma de los textos que arma el servidor (actividades, avisos, logs): `pt-BR`, `en`, `es` o `fr`. La interfaz sigue al navegador o la elección en Configuración › Idioma. Consulta [Idiomas](#idiomas). |
 | `HABBLAUD_ACCOUNTS` | — | JSON para personalizar el nombre, la letra o el color, emparejado por el nombre de la carpeta de la cuenta. P. ej.: `[{"id":".claude-conta2","name":"Trabalho","short":"T","color":"#5cc97b"}]`. |
 
 **En Docker**, valen `HABBLAUD_PORT`, `HABBLAUD_BIND`, `HABBLAUD_ALLOWED_HOSTS`, `HABBLAUD_DEMO`, `HABBLAUD_TERMINAL`,

@@ -168,9 +168,9 @@ Now open Claude Code in any project and watch your agent arrive by elevator. �
 ### 3. Install the Habblaud mod in Claude Code (recommended)
 
 ```bash
-npm run mod:install                        # o mod e os plugins de permissões e de mensagens, em cada conta
-npm run mod:install -- --sem-permissoes    # sem responder permissões e perguntas pelo escritório
-npm run mod:install -- --sem-mensagens     # sem mandar mensagens aos agentes pelo escritório
+npm run mod:install                        # the mod and the permissions and messages plugins, in each account
+npm run mod:install -- --sem-permissoes    # without answering permissions and questions from the office
+npm run mod:install -- --sem-mensagens     # without sending messages to the agents from the office
 ```
 
 Habblaud ships a [mod](https://code.claude.com/docs/en/plugins/mods/overview) (a plugin that runs inside
@@ -200,8 +200,8 @@ Without mods, live usage and answering from the office come from two installers 
 `settings.json` (with a backup first):
 
 ```bash
-npm run usage:install    # põe um "tap" na frente do statusline de cada conta, que captura o uso de 5h/semanal
-npm run hooks:install    # acrescenta o hook PermissionRequest, para responder permissões pelo escritório
+npm run usage:install    # puts a "tap" in front of each account's statusline, which captures the 5h/weekly usage
+npm run hooks:install    # adds the PermissionRequest hook, to answer permissions from the office
 ```
 
 Your statusline keeps looking the same. To undo: `npm run usage:uninstall` and `npm run hooks:uninstall`.
@@ -252,7 +252,7 @@ every request on it requires a login. What separates the two is the port the con
 header. Nothing of this exists until you run the setup: without it, no extra port is published.
 
 ```bash
-npm run remote:setup   # usuário, senha, nome do endereço e (opcional) um endereço próprio
+npm run remote:setup   # username, password, name of the address and (optional) an address of your own
 npm run docker:up
 ```
 
@@ -326,8 +326,8 @@ Habblaud was called **CodeTown** up to 0.3.2. After `git pull`, run once:
 
 ```bash
 npm install
-npm run mod:install      # troca o marketplace e os plugins codetown pelos habblaud, em cada conta
-npm run docker:up        # tira o container codetown e copia os dados do volume antigo para o novo
+npm run mod:install      # swaps the codetown marketplace and plugins for the habblaud ones, in each account
+npm run docker:up        # removes the codetown container and copies the data from the old volume to the new one
 ```
 
 - **Mod:** until you run `mod:install`, the accounts' Claude Code complains about the `codetown` marketplace (the
@@ -346,12 +346,12 @@ npm run docker:up        # tira o container codetown e copia os dados do volume 
 ### Uninstalling
 
 ```bash
-npm run mod:uninstall                       # tira o mod, os plugins de permissões e de mensagens e o marketplace
-npm run codex:uninstall                     # tira os hooks do Habblaud do Codex (os outros ficam)
-npm run docker:down                         # para o container
-docker volume rm habblaud_habblaud-data     # apaga os dados do container (nomes, salas, linha do tempo e estatísticas)
-docker image rm habblaud:local              # apaga a imagem
-rm -rf ~/.habblaud                          # apaga os dados locais (uso capturado, nomes, salas, linha do tempo e estatísticas)
+npm run mod:uninstall                       # removes the mod, the permissions and messages plugins and the marketplace
+npm run codex:uninstall                     # removes the Habblaud hooks from Codex (the others stay)
+npm run docker:down                         # stops the container
+docker volume rm habblaud_habblaud-data     # deletes the container's data (names, rooms, timeline and statistics)
+docker image rm habblaud:local              # deletes the image
+rm -rf ~/.habblaud                          # deletes the local data (captured usage, names, rooms, timeline and statistics)
 ```
 
 Then just delete the project folder — run `mod:uninstall` **first**, or the accounts' Claude Code will start
@@ -420,12 +420,12 @@ activities and animations. The day/night cycle is still a separate option.
 
 ### Languages
 
-The interface is in **Portuguese, English, Spanish and French**. It follows the browser's language; in
+The interface is in **English, Portuguese, Spanish and French**. It follows the browser's language; in
 **Settings › Language** you can pin one (the choice is saved in this browser). The texts the server builds
 (activities, notices, terminal, logs and the install scripts) follow `HABBLAUD_LANG` and, without it, the
-system language, except English: many machines and every container come in English by default, even for people who use another language.
-For the server in English, set `HABBLAUD_LANG=en` (in Docker, in `.env`). Any text without a translation shows up in
-Portuguese.
+system language when it is one of the four; otherwise they are in English.
+For the server in Portuguese, set `HABBLAUD_LANG=pt-BR` (in Docker, in `.env`). Any text without a translation shows up in
+English.
 
 ### Day, night and sounds
 
@@ -475,7 +475,7 @@ open the same window, with tabs for the other agents in the same project.
 
 - Session opened here: it's the real Claude Code (type, answer; Esc interrupts the agent, as in the terminal).
 - Session opened in another terminal: **Take over here** (at the top of the window) ends the session there and continues the **same
-  conversation** here (`claude --resume <sessão>`, in the same folder and account). The character keeps its name. On Windows, the
+  conversation** here (`claude --resume <session>`, in the same folder and account). The character keeps its name. On Windows, the
   terminal the session came from goes back to normal (Habblaud turns off the mouse/keyboard modes that Claude turned on).
 - **End** closes the session, whether it's here or in another terminal (the conversation is saved).
 - **New session** (in the room's drawer) opens a new Claude Code in the project folder.
@@ -678,15 +678,15 @@ becomes **Account C** and **Account D**. Only shortcuts of up to 3 letters count
 
 **Where the numbers come from.** The recommended way is the Habblaud mod (`npm run mod:install`, Claude Code 2.1.287+):
 inside each session, it receives the plan limits from Claude Code itself and stores only the 5-hour and weekly
-percentages (and when they reset) in `~/.habblaud/usage/<conta>.json`. The numbers arrive after each account's next
+percentages (and when they reset) in `~/.habblaud/usage/<account>.json`. The numbers arrive after each account's next
 reply. Check with `npm run mod:status`. On earlier versions of Claude Code, the statusline tap
 (`npm run usage:install`) does the same through the statusline command, in the same file.
 
 <details>
 <summary><b>Details of the tap and the /usage cache</b></summary>
 
-- `usage:install` (the old way) changes, in `<conta>/settings.json`, **only** the `statusLine.command` field: the
-  original command (e.g. `npx -y ccstatusline`) now runs through `node "<pasta do Habblaud>/scripts/statusline-tap.mjs" --
+- `usage:install` (the old way) changes, in `<account>/settings.json`, **only** the `statusLine.command` field: the
+  original command (e.g. `npx -y ccstatusline`) now runs through `node "<Habblaud folder>/scripts/statusline-tap.mjs" --
   <comando original>` (on Windows, the original command runs in Git Bash, as Claude Code would run it). A copy of the
   file first goes to `settings.json.habblaud-backup-<data>`. If the account had no statusline, one is created that only
   captures usage. `npm run usage:install -- --dry-run` shows what would change without writing anything.
@@ -730,7 +730,7 @@ Everything works without configuring anything. If you need to adjust something, 
 | `HABBLAUD_CODEX_DIRS` | automatic detection | Codex folders, comma-separated (instead of `~/.codex*` and `CODEX_HOME`). |
 | `HABBLAUD_CODEX_BIN` | `codex` from PATH (on Windows, `codex.exe`) | The Codex binary that delivers the messages (`codex queue`), in Node mode or in `npm run codex:bridge`. |
 | `HABBLAUD_UPDATE_CHECK` | on | `0` turns off the new-version check (a request to the repository's releases on GitHub every 6 h). |
-| `HABBLAUD_LANG` | system language (except English), otherwise `pt-BR` | Language of the texts the server builds (activities, notices, logs): `pt-BR`, `en`, `es` or `fr`. The interface follows the browser or the choice in Settings › Language. See [Languages](#languages). |
+| `HABBLAUD_LANG` | system language, otherwise `en` | Language of the texts the server builds (activities, notices, logs): `pt-BR`, `en`, `es` or `fr`. The interface follows the browser or the choice in Settings › Language. See [Languages](#languages). |
 | `HABBLAUD_ACCOUNTS` | — | JSON to customize name, letter or color, matched by the account folder name. E.g. `[{"id":".claude-conta2","name":"Trabalho","short":"T","color":"#5cc97b"}]`. |
 
 **In Docker**, `HABBLAUD_PORT`, `HABBLAUD_BIND`, `HABBLAUD_ALLOWED_HOSTS`, `HABBLAUD_DEMO`, `HABBLAUD_TERMINAL`,
@@ -759,7 +759,7 @@ account stays only here, in `~/.habblaud/world.json` (permission 600; in Docker,
 **Privacy.** Nothing about your work leaves your computer. From the building, only this goes out: the theme, one floor
 per open room (with a random code that changes every day) and, for each agent, main or subagent, the tool, the status,
 the appearance, a drawn name and the band of tasks completed that day. Paths, project names, titles, commands,
-messages, code, cost, model, branch and your Claude account never leave. The full list, field by field (in Portuguese):
+messages, code, cost, model, branch and your Claude account never leave. The full list, field by field:
 [docs/world/privacidade.md](docs/world/privacidade.md). **See what was sent**, on the Your building card, shows the
 exact JSON of the last upload, with its size in bytes and the world's reply.
 
@@ -821,8 +821,8 @@ Once a day.
 
 **Truthful data.** The World only works if the buildings are real: changing Habblaud to send invented or inflated
 floors, agents, statuses, tokens or characters breaks the Terms of Use and gets the account banned (the server checks
-the plausibility of every packet). Changing Habblaud for anything else stays free (MIT). How Habblaud talks to the World
-(in Portuguese): [shared/world/README.md](shared/world/README.md).
+the plausibility of every packet). Changing Habblaud for anything else stays free (MIT). How Habblaud talks to the World:
+[shared/world/README.md](shared/world/README.md).
 
 **Testing with a local world server.** For World development, with the world server running on the same computer (for
 example, in Docker, published on port 4848):
@@ -847,8 +847,8 @@ How the section looks, in demo mode (`?mock=1&world=logged_out`, `waiting` or `a
 
 ```
  ~/.claude*/sessions/<pid>.json ─────────────────┐
- ~/.claude*/projects/<projeto>/<sessão>.jsonl ───┼──▶ servidor Node ──▶ modelo do escritório ──▶ SSE ──▶ navegador
- .../<sessão>/subagents/**/agent-*.jsonl ────────┘    (polling de 1 s)                                 (canvas + interface)
+ ~/.claude*/projects/<project>/<session>.jsonl ──┼──▶ Node server ──▶ office model ──▶ SSE ──▶ browser
+ .../<session>/subagents/**/agent-*.jsonl ───────┘    (1 s polling)                            (canvas + interface)
 ```
 
 - **Who's in the office:** while a session is open, Claude Code keeps `sessions/<pid>.json` with the
@@ -862,7 +862,7 @@ How the section looks, in demo mode (`?mock=1&world=logged_out`, `waiting` or `a
 - **What each one is doing:** the server follows the end of the transcripts (`.jsonl`) of the open sessions and turns
   each tool call into an activity, with an icon, in the server's language (see [Languages](#languages)). Tasks, title, model and
   stats come from there too.
-- **Subagents:** the transcripts in `<sessão>/subagents/` (including those from workflows) become characters linked to the
+- **Subagents:** the transcripts in `<session>/subagents/` (including those from workflows) become characters linked to the
   agent that called them.
 - **GitHub:** PRs, pushes, CI and releases come from the same transcript lines (the command and its output, or the
   `gitOperation` that Claude Code itself records); nothing is queried on GitHub.
@@ -873,11 +873,11 @@ How the section looks, in demo mode (`?mock=1&world=logged_out`, `waiting` or `a
 <summary><b>Code structure and API</b></summary>
 
 ```
-shared/   protocolo (types.ts), atividades em PT-BR, nomes, simulador de demonstração
-server/   servidor HTTP + SSE: contas e uso, leitura das sessões e transcripts, modelo do escritório
-client/   Vite: src/art (pixel art procedural), src/world (o escritório no canvas), src/ui (interface)
-scripts/  build do servidor, docker-up, instaladores (mod, tap de statusline e hook de permissão) e screenshots
-mod/      o mod do Habblaud e os plugins de permissões e de mensagens (plugins do Claude Code; marketplace em .claude-plugin/)
+shared/   protocol (types.ts), activity texts, names, demo simulator
+server/   HTTP + SSE server: accounts and usage, reading of sessions and transcripts, office model
+client/   Vite: src/art (procedural pixel art), src/world (the office on the canvas), src/ui (interface)
+scripts/  server build, docker-up, installers (mod, statusline tap and permission hook) and screenshots
+mod/      the Habblaud mod and the permissions and messages plugins (Claude Code plugins; marketplace in .claude-plugin/)
 ```
 
 | Route | Description |
@@ -889,14 +889,14 @@ mod/      o mod do Habblaud e os plugins de permissões e de mensagens (plugins 
 | `PUT /api/agents/:id/character` | Edit the character: `{name, seed, parts}` saves the main agent's name and look as the project's (the room's) character; local access only. |
 | `DELETE /api/agents/:id/character` | "Back to random": deletes the project's character and the agent goes back to its random name; local access only. |
 | `GET /api/sessions/recent` | Session history: sessions from the last 7 days across all accounts (up to 150); local access only. |
-| `GET /api/sessions/:conta/:sessionId/terminal` | SSE of the conversation of a session from the history (same protocol as the terminal); local access only. |
+| `GET /api/sessions/:account/:sessionId/terminal` | SSE of the conversation of a session from the history (same protocol as the terminal); local access only. |
 | `GET /api/stats?day=AAAA-MM-DD` | My day stats (time per status, projects, accounts, hours, waits, tokens and cost). |
 | `GET /api/stats/days` | Days with stats (the last 30). |
 | `GET /api/timeline/days` | Days recorded for the timelapse, with size and the time of the first and last entries. |
 | `GET /api/timeline/:dia` | A day's timeline (`AAAA-MM-DD`), in JSONL (gzipped). |
 | `GET /api/health` | Health: version, demo, Docker, terminal, answering and sending messages from the office, sources and usage status of each account. |
 | `POST /api/demo` | `{"enabled": true \| false}` turns the simulated agents on or off. |
-| `POST /api/rooms/rename` | `{"id": sala, "name": nome}` renames the room (empty goes back to the folder name); the name is stored in `rooms.json`, in the data folder. Local access only. |
+| `POST /api/rooms/rename` | `{"id": room, "name": name}` renames the room (empty goes back to the folder name); the name is stored in `rooms.json`, in the data folder. Local access only. |
 | `GET /api/mod/summary` | For the Claude Code mod: version, how many agents, how many are working and who needs you (without the demo and, with `?account=&session=`, without its own session). |
 | `/api/permissions…` | Answering from the office: the permission hook registers the request (permission or question) and waits; the page fetches the details and decides or answers. Local access only. |
 | `/api/messages…` and `/api/mod/inbox…` | Sending messages: the page puts the message in the queue and follows its delivery; the `habblaud-mensagens` plugin fetches it, delivers it to the session and confirms. Local access only. |
@@ -912,8 +912,8 @@ More server details in [`server/README.md`](server/README.md).
 
 | Host | Container | What for |
 | --- | --- | --- |
-| `<conta>/sessions/` | `/claude/<conta>/sessions` (read-only) | Open sessions and their status. |
-| `<conta>/projects/` | `/claude/<conta>/projects` (read-only) | Transcripts of the sessions and subagents. |
+| `<account>/sessions/` | `/claude/<account>/sessions` (read-only) | Open sessions and their status. |
+| `<account>/projects/` | `/claude/<account>/projects` (read-only) | Transcripts of the sessions and subagents. |
 | `~/.habblaud/usage/` | `/usage` (read-only) | Usage captured by the mod (or by the statusline tap). |
 | `habblaud-data` volume | `/data` | Habblaud's own data (character names, the timelapse timeline and the My day stats). |
 | `~/.habblaud/remote-tls/server/` | `/remote-tls` (read-only) | Only after `npm run remote:setup`: the server certificate and key of the [phone with login](#phone-with-login-and-https-approving-requests) (never the CA key). |
@@ -928,13 +928,13 @@ metadata (letter, email, organization) is read on the host by `docker:up` and pa
 
 - **Read-only:** Habblaud never writes to the Claude Code folders. The exceptions are the installers, which you run:
   `npm run mod:install` / `mod:uninstall` uses `claude plugin` itself (which registers the marketplace and the plugins
-  in `settings.json` and in `<conta>/plugins/`) and, on install, removes the old tap and hook with a backup; in the old
+  in `settings.json` and in `<account>/plugins/`) and, on install, removes the old tap and hook with a backup; in the old
   way, `npm run usage:install` / `usage:uninstall` changes only the `statusLine.command` in `settings.json` and
   `npm run hooks:install` / `hooks:uninstall`, only the `hooks.PermissionRequest` list — always with a backup first.
 - **The mod:** runs inside each Claude Code session, with your permissions (like every mod), and only does what is
   listed in [`mod/README.md`](mod/README.md) — `claude plugin validate mod/habblaud` shows the events and the calls,
   without running anything. It only writes the 5-hour and weekly usage percentages (and when they reset) to
-  `~/.habblaud/usage/<conta>.json`; for the "needs you" line and `/habblaud`, it only talks to Habblaud at
+  `~/.habblaud/usage/<account>.json`; for the "needs you" line and `/habblaud`, it only talks to Habblaud at
   `127.0.0.1`. It doesn't read the conversation, doesn't call the model and doesn't send anything off the computer. It's loaded from this
   folder: whatever is in it (including after a `git pull`) is what runs. The messages plugin
   (`habblaud-mensagens`) is separate precisely because it acts: it types into the session what you sent from the office.
@@ -944,12 +944,12 @@ metadata (letter, email, organization) is read on the host by `docker:up` and pa
   about your sessions; GitHub only sees your IP and the version in use, which goes in the `User-Agent`.
   `HABBLAUD_UPDATE_CHECK=0` turns off the request.
   [Habblaud World](#habblaud-world) (on by default) only sends something to the world server after you create an
-  account and sign in, and only what is listed in [what leaves your computer](docs/world/privacidade.md) (in Portuguese);
+  account and sign in, and only what is listed in [what leaves your computer](docs/world/privacidade.md);
   `HABBLAUD_WORLD=0` turns it all off.
   So is the [phone with login](#phone-with-login-and-https-approving-requests), which only exists after `npm run remote:setup`.
 - **No credentials:** Habblaud doesn't read passwords or access tokens. From each account's `.claude.json` it only uses the
   email, the organization and the `/usage` cache; live usage comes from the mod (or the statusline tap).
-- **Masked secrets:** tokens and passwords in known formats (`Bearer`, `-u usuário:senha`, `TOKEN=`, `sk-…`,
+- **Masked secrets:** tokens and passwords in known formats (`Bearer`, `-u user:password`, `TOKEN=`, `sk-…`,
   `ghp_…`, `AKIA…` keys, JWTs, passwords in URLs) become `***` before they reach the browser.
 - **Protected against malicious sites:** the server refuses addresses that aren't `localhost`/IP (DNS rebinding) and
   `POST` requests coming from other origins (CSRF), and doesn't let the page be embedded in other sites.
@@ -1000,7 +1000,7 @@ metadata (letter, email, organization) is read on the host by `docker:up` and pa
   the folder you choose — the same warning as the interactive terminal applies. Attachments are written to
   `~/.habblaud/attachments/` (folder 700, files 600). In Docker, whoever starts the sessions is the host helper
   (`npm run codex:bridge`), which also reads the delivery files only from known project folders (the ones Claude Code
-  has in `<conta>/projects`), the temporary folder and the attachments.
+  has in `<account>/projects`), the temporary folder and the attachments.
 - **Character editor, local only:** saving or going back to random changes the office and writes to `names.json`, so it
   follows the same safeguard as the terminal (local bind, local `Host`, no proxies or tunnels): without it, the pencil doesn't show up
   and the server answers `403`. Changes require JSON and a local origin. `HABBLAUD_TERMINAL=0` turns it off too.
@@ -1050,7 +1050,7 @@ peak in the afternoon) in `<tmp>/habblaud-demo/timeline/`. Then start a Habblaud
 sessions, and open the Timelapse:
 
 ```bash
-npm run demo:timeline -- --data-dir /tmp/habblaud-demo        # opções: --date, --start 8:30, --hours, --sessions, --seed
+npm run demo:timeline -- --data-dir /tmp/habblaud-demo        # options: --date, --start 8:30, --hours, --sessions, --seed
 mkdir -p /tmp/habblaud-demo/vazio
 HABBLAUD_DATA_DIR=/tmp/habblaud-demo HABBLAUD_TIMELINE=0 HABBLAUD_CLAUDE_DIRS=/tmp/habblaud-demo/vazio \
   HABBLAUD_PORT=4848 npm start                                 # depois de npm run build; abra http://localhost:4848
@@ -1059,10 +1059,10 @@ HABBLAUD_DATA_DIR=/tmp/habblaud-demo HABBLAUD_TIMELINE=0 HABBLAUD_CLAUDE_DIRS=/t
 `HABBLAUD_TIMELINE=0` avoids writing to that folder; with recording on, days older than 7 days are deleted.
 
 **Publishing a version:** every version has its own section in [`CHANGELOG.md`](CHANGELOG.md), with what went in. While
-working, note the changes under "Não lançado" (Unreleased). To release:
+working, note the changes under "Unreleased". To release:
 
 1. Bump the number with `npm version minor --no-git-tag-version` (or `patch`, for a bug-fix-only version).
-2. Replace "Não lançado" with the version and the date (`## [0.3.0] - AAAA-MM-DD`), leave an empty "Não lançado" above it and
+2. Replace "Unreleased" with the version and the date (`## [0.3.0] - YYYY-MM-DD`), leave an empty "Unreleased" above it and
    update the links at the end. `npm test` fails if the `package.json` version doesn't have a section.
 3. Merge into `main` and run `npm run release` (it needs an authenticated [`gh`](https://cli.github.com/); `-- --dry-run`
    only shows the notes). The script creates the `v0.3.0` tag and the release with the section's text. From then on, Habblaud

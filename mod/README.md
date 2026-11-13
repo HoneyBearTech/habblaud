@@ -1,48 +1,49 @@
-# Plugins do Claude Code do Habblaud
+# Habblaud's Claude Code plugins
 
-O repositório é também um marketplace de plugins do Claude Code: `.claude-plugin/marketplace.json` (na raiz)
-lista o marketplace `habblaud` com três plugins, um em cada pasta daqui: o mod `habblaud` (só observa),
-`habblaud-permissoes` (responder permissões pelo escritório) e `habblaud-mensagens` (mandar mensagens pelo
-escritório). O `npm run mod:install` instala os três; `--sem-permissoes` e `--sem-mensagens` deixam o seu de fora.
-As versões acompanham o `package.json` (o teste `server/test/mod.test.ts` falha se divergirem).
+The repository is also a Claude Code plugin marketplace: `.claude-plugin/marketplace.json` (at the root)
+lists the `habblaud` marketplace with three plugins, one in each folder here: the `habblaud` mod (only observes),
+`habblaud-permissoes` (answer permissions from the office) and `habblaud-mensagens` (send messages from the
+office). `npm run mod:install` installs all three; `--sem-permissoes` and `--sem-mensagens` leave theirs out.
+The versions follow `package.json` (the test `server/test/mod.test.ts` fails if they diverge).
 
-Testado com o **Claude Code 2.1.293** (o `habblaud-mensagens`, por enquanto só pelo `claude plugin test` do
-2.1.295). Mods (hooks em TypeScript carregados pelo próprio Claude Code) existem a partir da 2.1.287; a API ainda é
-"early access" e pode mudar entre versões. Em versões anteriores, use os instaladores de sempre
-(`npm run usage:install` e `npm run hooks:install`); mandar mensagens pelo escritório só existe com o mod. A
-instalação está no README principal.
+Tested with **Claude Code 2.1.293** (`habblaud-mensagens`, for now only through the `claude plugin test` of
+2.1.295). Mods (TypeScript hooks loaded by Claude Code itself) exist from 2.1.287 on; the API is still
+"early access" and can change between versions. On earlier versions, use the usual installers
+(`npm run usage:install` and `npm run hooks:install`); sending messages from the office only exists with the mod.
+Installation is in the main README.
 
-## `habblaud` — o mod
+## `habblaud` — the mod
 
-`habblaud/hooks/register.ts`, um módulo só, sem build. Liga cada sessão ao escritório sem ler a conversa:
+`habblaud/hooks/register.ts`, a single module, no build. It connects each session to the office without reading the
+conversation:
 
-- **Uso do plano (5h e semanal):** no início da sessão e a cada `session.measure` (depois de cada turno e quando
-  um limite anda um ponto) lê `$.session.usage().rateLimits` e grava `~/.habblaud/usage/<conta>.json` (ou em
-  `HABBLAUD_USAGE_DIR`) no mesmo formato do tap de statusline, mais `"source": "mod"`. Substitui o
-  `npm run usage:install`: o seu statusline fica intocado. A conta é a pasta de `CLAUDE_CONFIG_DIR` (o primeiro
-  item) ou `~/.claude` (`~` é o `HOME`; no Windows sem ele, o `USERPROFILE`). Valores iguais gravados há menos de
-  10 s não são regravados; falha ao gravar = silêncio.
-- **"Precisa de você" embaixo do prompt:** a cada 5 s pergunta ao Habblaud local
-  (`GET http://127.0.0.1:<HABBLAUD_PORT ou 4747>/api/mod/summary`) quem está esperando, já sem esta sessão e os
-  subagentes dela, e mostra `🏢 Valentina precisa de você em loja-virtual` ou
-  `🏢 2 precisam de você: Valentina (loja-virtual), Elias (app-mobile)` (até 3 nomes, depois "e mais N").
-  Ninguém esperando ou Habblaud fora do ar: a linha some; fora do ar, as perguntas passam a ser a cada 30 s até
-  ele voltar. Só em sessões que desenham (no `claude -p` não pergunta nada).
-- **`/habblaud`:** resumo do escritório inteiro, respondido pelo próprio mod (não chama o modelo, não gasta uso):
+- **Plan usage (5h and weekly):** at the start of the session and on every `session.measure` (after each turn and when
+  a limit moves one point) it reads `$.session.usage().rateLimits` and writes `~/.habblaud/usage/<account>.json` (or to
+  `HABBLAUD_USAGE_DIR`) in the same format as the statusline tap, plus `"source": "mod"`. It replaces
+  `npm run usage:install`: your statusline stays untouched. The account is the folder of `CLAUDE_CONFIG_DIR` (the
+  first item) or `~/.claude` (`~` is `HOME`; on Windows without it, `USERPROFILE`). Equal values written less than
+  10 s ago are not rewritten; a failed write = silence.
+- **"Needs you" below the prompt:** every 5 s it asks the local Habblaud
+  (`GET http://127.0.0.1:<HABBLAUD_PORT or 4747>/api/mod/summary`) who is waiting, already without this session and
+  its subagents, and shows `🏢 Valentina needs you in online-store` or
+  `🏢 2 need you: Valentina (online-store), Elias (app-mobile)` (up to 3 names, then "and N more").
+  Nobody waiting or Habblaud down: the line disappears; while it is down, the questions go to every 30 s until
+  it comes back. Only in sessions that draw (under `claude -p` it asks nothing).
+- **`/habblaud`:** summary of the whole office, answered by the mod itself (doesn't call the model, doesn't spend usage):
 
   ```
-  Habblaud 0.3.0 em http://localhost:4747
-  7 agentes · 3 trabalhando · 2 precisam de você
-  ✋ Valentina (loja-virtual): aprovar uma permissão · dá para responder pelo escritório
-  ✋ Elias (app-mobile): responder no terminal
+  Habblaud 0.3.0 at http://localhost:4747
+  7 agents · 3 working · 2 need you
+  ✋ Valentina (online-store): approve a permission · you can reply from the office
+  ✋ Elias (app-mobile): answer in the terminal
   ```
 
-  Fora do ar: `O Habblaud não respondeu em http://localhost:4747. Para subir: npm run docker:up na pasta do Habblaud.`
+  Down: `Habblaud did not answer at http://localhost:4747. To start it: npm run docker:up in the Habblaud folder.`
 
-### O que ele acessa
+### What it accesses
 
-Saída de `claude plugin validate --strict mod/habblaud` (a análise estática que o Claude Code faz antes de
-carregar o módulo; nada fora desta lista é chamado):
+Output of `claude plugin validate --strict mod/habblaud` (the static analysis that Claude Code does before
+loading the module; nothing outside this list is called):
 
 ```
 ❯ ./register.ts hooks: session.start, session.measure, command.run{command=habblaud}
@@ -52,59 +53,61 @@ carregar o módulo; nada fora desta lista é chamado):
 ❯ ./register.ts env reads: CLAUDE_CONFIG_DIR, HABBLAUD_PORT, HABBLAUD_USAGE_DIR, HOME, USERPROFILE
 ```
 
-Em palavras: só observa (nenhum hook decide nada: não aprova ferramentas, não muda prompts, não lê mensagens),
-grava um único arquivo (o de uso), fala só com `127.0.0.1` e lê cinco variáveis de ambiente. `$.clock.after` é o
-prazo de 2 s de cada pergunta ao Habblaud (`$.http.fetch` não aceita AbortSignal).
+In words: it only observes (no hook decides anything: it doesn't approve tools, doesn't change prompts, doesn't read
+messages), writes a single file (the usage one), talks only to `127.0.0.1` and reads five environment variables.
+`$.clock.after` is the 2 s deadline of each question to Habblaud (`$.http.fetch` doesn't accept AbortSignal).
 
-## `habblaud-permissoes` — responder permissões pelo escritório
+## `habblaud-permissoes` — answer permissions from the office
 
-Um hook `PermissionRequest` comum (sem mod), em `habblaud-permissoes/hooks/hooks.json`:
+A regular `PermissionRequest` hook (no mod), in `habblaud-permissoes/hooks/hooks.json`:
 
 ```json
-{ "matcher": "*", "hooks": [{ "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/permission-hook.mjs\"", "timeout": 86430, "statusMessage": "Aguardando resposta no Habblaud" }] }
+{ "matcher": "*", "hooks": [{ "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/permission-hook.mjs\"", "timeout": 86430, "statusMessage": "Waiting for an answer in Habblaud" }] }
 ```
 
-O script `hooks/permission-hook.mjs` é o mesmo que o `npm run hooks:install` instala (fonte única; Node puro, só
-`node:*`, porque o Claude Code copia apenas a pasta do plugin para o cache). Ele manda o pedido ao Habblaud local
-e espera a resposta por até 5 min; o diálogo continua no terminal e vale o que você responder primeiro. Sem o
-Habblaud no ar ou sem nenhuma página aberta, sai na hora. Porta: `HABBLAUD_PORT` (padrão 4747); espera:
-`HABBLAUD_PERMISSION_TIMEOUT` (padrão 300 s, até 86400 s = 24 h; o tempo limite do hook no plugin é 86430 s). Para aprovar
-pelo celular longe do computador, ponha `"env": { "HABBLAUD_PERMISSION_TIMEOUT": "86400" }` no `settings.json` da
-conta: vale para as sessões abertas depois. Subagentes em segundo plano só mostram o diálogo quando o hook termina,
-por isso o padrão continua 5 min. Precisa de `node` 22+ no `PATH` da sessão.
+The script `hooks/permission-hook.mjs` is the same one that `npm run hooks:install` installs (single source; pure Node,
+only `node:*`, because Claude Code copies only the plugin folder to the cache). It sends the request to the local
+Habblaud and waits for the answer for up to 5 min; the dialog stays in the terminal and whatever you answer first
+counts. Without Habblaud up or without any page open, it exits right away. Port: `HABBLAUD_PORT` (default 4747); wait:
+`HABBLAUD_PERMISSION_TIMEOUT` (default 300 s, up to 86400 s = 24 h; the hook's timeout in the plugin is 86430 s). To
+approve from your phone away from the computer, put `"env": { "HABBLAUD_PERMISSION_TIMEOUT": "86400" }` in the
+account's `settings.json`: it applies to sessions opened afterwards. Background subagents only show the dialog when
+the hook finishes, so the default stays 5 min. Needs `node` 22+ on the session's `PATH`.
 
-`claude plugin validate --strict mod/habblaud-permissoes`: `✔ Validation passed` (o validador também confere o
-esquema do `hooks.json`).
+`claude plugin validate --strict mod/habblaud-permissoes`: `✔ Validation passed` (the validator also checks the
+schema of `hooks.json`).
 
-## `habblaud-mensagens` — mensagens pelo escritório
+## `habblaud-mensagens` — messages from the office
 
-`habblaud-mensagens/hooks/register.ts`, um módulo só, sem build. Leva para a sessão o que você digita no escritório
-(no painel do agente ou no terminal da tecla T), como se você tivesse digitado no terminal:
+`habblaud-mensagens/hooks/register.ts`, a single module, no build. It brings into the session what you type in the
+office (in the agent's panel or in the T key terminal), as if you had typed it in the terminal:
 
-- **Busca:** a cada 2 s, só em sessões que desenham (no `claude -p` não pergunta nada),
-  `POST http://127.0.0.1:<HABBLAUD_PORT ou 4747>/api/mod/inbox` com `{session, account}`. A pergunta também marca a
-  sessão como presente: é ela que mostra, na página, a caixa de mensagem do agente (sem o plugin, a página dá a dica
-  de instalar). Fora do ar, ou respondendo outra coisa (403 com as mensagens desligadas, 404 numa versão sem a
-  rota), passa a perguntar a cada 30 s até ele voltar.
-- **Entrega:** cada mensagem, na ordem, vai por `$.prompt.submit({ text, asUser: true })`. O modelo lê o texto como
-  seu, sem o "The habblaud-mensagens plugin sent a message" (o registro da sessão ainda diz que veio do plugin), e o
-  texto vai exatamente como foi digitado. Com a sessão no meio de um turno, o Claude Code guarda o prompt e o roda
-  num turno só dele quando o atual terminar (um prompt de plugin nunca entra no meio do turno, como um digitado
-  pode entrar). Um hook que recuse a mensagem (`{drop}`) ou uma exceção viram falha, com o motivo, na página.
-- **Confirmação:** um `POST /api/mod/inbox/ack` com o resultado de cada uma (`{session, results: [{id, ok, error?}]}`).
-  A espera por mensagem é de no máximo 2 s: passou disso, a sessão está ocupada, a mensagem está na fila dela e
-  conta como entregue (as seguintes vão em seguida, na ordem). Assim uma rodada nunca passa de uns poucos segundos e
-  a presença (10 s) e a confirmação (30 s) do servidor não vencem com a sessão ocupada; o preço é que uma recusa
-  depois desses 2 s não chega à página.
+- **Fetch:** every 2 s, only in sessions that draw (under `claude -p` it asks nothing),
+  `POST http://127.0.0.1:<HABBLAUD_PORT or 4747>/api/mod/inbox` with `{session, account}`. The question also marks the
+  session as present: that is what shows, on the page, the agent's message box (without the plugin, the page gives the
+  hint to install it). When it is down, or answering something else (403 with messages turned off, 404 on a version
+  without the route), it switches to asking every 30 s until it comes back.
+- **Delivery:** each message, in order, goes through `$.prompt.submit({ text, asUser: true })`. The model reads the
+  text as yours, without the "The habblaud-mensagens plugin sent a message" (the session log still says it came from
+  the plugin), and the text goes exactly as it was typed. With the session in the middle of a turn, Claude Code holds
+  the prompt and runs it in a turn of its own when the current one ends (a plugin prompt never enters in the middle of
+  the turn, as a typed one can). A hook that refuses the message (`{drop}`) or an exception become a failure, with the
+  reason, on the page.
+- **Confirmation:** a `POST /api/mod/inbox/ack` with the result of each one (`{session, results: [{id, ok, error?}]}`).
+  The wait per message is at most 2 s: past that, the session is busy, the message is in its queue and
+  counts as delivered (the next ones go right after, in order). This way a round never takes more than a few seconds
+  and the server's presence (10 s) and confirmation (30 s) don't expire with the session busy; the price is that a
+  refusal after those 2 s doesn't reach the page.
 
-Fica separado do mod `habblaud` de propósito: aquele só observa; este age, digitando na sessão em seu nome. Para
-ficar sem ele: `npm run mod:install -- --sem-mensagens` (um já instalado continua; para tirar:
-`claude plugin uninstall habblaud-mensagens@habblaud`). O `npm run docker:up` atualiza o plugin de quem já o tem,
-mas não o instala sozinho: numa conta com o mod e sem ele, só dá a dica de rodar o `npm run mod:install`.
+It is kept separate from the `habblaud` mod on purpose: that one only observes; this one acts, typing in the session
+on your behalf. To go without it: `npm run mod:install -- --sem-mensagens` (one already installed stays; to remove it:
+`claude plugin uninstall habblaud-mensagens@habblaud`). `npm run docker:up` updates the plugin for those who already
+have it, but doesn't install it on its own: on an account with the mod and without it, it only gives the hint to run
+`npm run mod:install`.
 
-### O que ele acessa
+### What it accesses
 
-Saída de `claude plugin validate --strict mod/habblaud-mensagens`:
+Output of `claude plugin validate --strict mod/habblaud-mensagens`:
 
 ```
 ❯ ./register.ts hooks: session.start
@@ -113,28 +116,28 @@ Saída de `claude plugin validate --strict mod/habblaud-mensagens`:
 ❯ ./register.ts env reads: CLAUDE_CODE_ENTRYPOINT, CLAUDE_CONFIG_DIR, HABBLAUD_PORT, HOME, USERPROFILE
 ```
 
-Em palavras: um hook só (`session.start`, que liga o relógio das rodadas); a única ação na sessão é o
-`$.prompt.submit` das mensagens; não lê a conversa, não grava arquivo nenhum, fala só com `127.0.0.1` e lê quatro
-variáveis de ambiente (a conta sai do `CLAUDE_CONFIG_DIR`, como no mod). `$.clock.after` é o prazo de 2 s de cada
-pedido ao Habblaud e de cada `$.prompt.submit`.
+In words: a single hook (`session.start`, which starts the clock of the rounds); the only action in the session is the
+`$.prompt.submit` of the messages; it doesn't read the conversation, doesn't write any file, talks only to `127.0.0.1`
+and reads four environment variables (the account comes from `CLAUDE_CONFIG_DIR`, as in the mod). `$.clock.after` is
+the 2 s deadline of each request to Habblaud and of each `$.prompt.submit`.
 
-Porta: `HABBLAUD_PORT` (padrão 4747). Precisa do Claude Code 2.1.287+ e de um Habblaud com as mensagens ligadas: a
-mesma trava do terminal e das permissões (porta presa ao `127.0.0.1` e cabeçalho Host local) e `HABBLAUD_MENSAGENS`
-não desligado (`0`, `false`, `off` ou `no` desligam). Qualquer processo desta máquina que fale com o Habblaud
-consegue mandar uma mensagem às sessões com o plugin: por isso a trava local.
+Port: `HABBLAUD_PORT` (default 4747). Needs Claude Code 2.1.287+ and a Habblaud with messages turned on: the
+same lock as the terminal and the permissions (port bound to `127.0.0.1` and local Host header) and `HABBLAUD_MENSAGENS`
+not turned off (`0`, `false`, `off` or `no` turn it off). Any process on this machine that talks to Habblaud
+can send a message to the sessions with the plugin: hence the local lock.
 
-## Desenvolver
+## Developing
 
 ```bash
-claude --plugin-dir mod/habblaud                     # carrega o mod numa sessão, sem instalar (recarrega ao salvar)
-claude -p "/habblaud" --plugin-dir mod/habblaud      # testa o comando sem sessão interativa (não chama o modelo)
-cd mod/habblaud && claude plugin test                # testes do mod (tests/*.test.ts), sem sessão, login nem rede
-cd mod/habblaud-mensagens && claude plugin test      # idem para o plugin de mensagens
-claude plugin validate --strict mod/habblaud         # análise estática + manifesto (idem para as outras pastas e .)
-npx tsc -p mod/habblaud                              # tipos (depois de carregar o mod uma vez com --plugin-dir)
+claude --plugin-dir mod/habblaud                     # loads the mod in a session, without installing (reloads on save)
+claude -p "/habblaud" --plugin-dir mod/habblaud      # tests the command without an interactive session (doesn't call the model)
+cd mod/habblaud && claude plugin test                # the mod's tests (tests/*.test.ts), no session, login or network
+cd mod/habblaud-mensagens && claude plugin test      # same for the messages plugin
+claude plugin validate --strict mod/habblaud         # static analysis + manifest (same for the other folders and .)
+npx tsc -p mod/habblaud                              # types (after loading the mod once with --plugin-dir)
 ```
 
-Ao carregar um mod, o Claude Code grava os tipos da versão instalada em `<pasta>/.claude-plugin/types/` e um
-`<pasta>/tsconfig.json` que os estende; os dois são gerados e ficam fora do git (`mod/.gitignore`). Os testes dos
-mods importam `claude-code/testing` e só rodam pelo `claude plugin test`: o `npm test` (vitest) e o
-`npm run typecheck` não olham esta pasta.
+When it loads a mod, Claude Code writes the types of the installed version to `<folder>/.claude-plugin/types/` and a
+`<folder>/tsconfig.json` that extends them; both are generated and stay out of git (`mod/.gitignore`). The mods' tests
+import `claude-code/testing` and only run through `claude plugin test`: `npm test` (vitest) and
+`npm run typecheck` don't look at this folder.
