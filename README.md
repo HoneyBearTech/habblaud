@@ -220,8 +220,8 @@ reads the conversations, without installing anything. To see Codex **live** (wha
 approve commands from the office, install the hooks:
 
 ```bash
-npm run codex:install      # acrescenta os hooks do Habblaud em ~/.codex/hooks.json (backup antes; os outros ficam)
-npm run codex:status       # confere
+npm run codex:install      # adds the Habblaud hooks to ~/.codex/hooks.json (backup first; the others stay)
+npm run codex:status       # checks them
 ```
 
 Then **open Codex and approve the Habblaud hooks in `/hooks`**: Codex only runs a new hook after you
@@ -309,7 +309,7 @@ are also in [`CHANGELOG.md`](CHANGELOG.md)). To update:
 ```bash
 git pull
 npm install
-npm run docker:up        # ou: npm run build && npm start (e depois npm run mod:install)
+npm run docker:up        # or: npm run build && npm start (and then npm run mod:install)
 ```
 
 > If `git pull` stops with "Your local changes to the following files would be overwritten by merge:
@@ -1053,7 +1053,7 @@ sessions, and open the Timelapse:
 npm run demo:timeline -- --data-dir /tmp/habblaud-demo        # options: --date, --start 8:30, --hours, --sessions, --seed
 mkdir -p /tmp/habblaud-demo/vazio
 HABBLAUD_DATA_DIR=/tmp/habblaud-demo HABBLAUD_TIMELINE=0 HABBLAUD_CLAUDE_DIRS=/tmp/habblaud-demo/vazio \
-  HABBLAUD_PORT=4848 npm start                                 # depois de npm run build; abra http://localhost:4848
+  HABBLAUD_PORT=4848 npm start                                 # after npm run build; open http://localhost:4848
 ```
 
 `HABBLAUD_TIMELINE=0` avoids writing to that folder; with recording on, days older than 7 days are deleted.
@@ -1217,7 +1217,7 @@ for a hangout (alone, it sticks with the popcorn) and takes the hourglass along;
 a new request to someone — it lets the group know ("Oops, they're calling me! 🏃") and runs back to its desk.
 
 <p align="center">
-  <img src="docs/screenshots/social-lounge.gif" width="816" alt="Habblaud lounge with three hangouts at once: three coworkers on the couch watching soccer on TV (the screen flashes GOL), a ping-pong match with fans and an arcade duel with trash talk in the bubbles" />
+  <img src="docs/screenshots/social-lounge.gif" width="816" alt="Habblaud lounge with three hangouts at once: three coworkers on the couch watching soccer on TV (the screen flashes when a goal is scored), a ping-pong match with fans and an arcade duel with trash talk in the bubbles" />
 </p>
 
 ### The hangouts
