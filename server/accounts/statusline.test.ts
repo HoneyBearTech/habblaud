@@ -187,7 +187,7 @@ describe('AccountsService with the statusline source', () => {
 });
 
 describe('account organization', () => {
-  it('omits the generic name "<e-mail>\'s Organization"', () => {
+  it('omits the generic name "<email>\'s Organization"', () => {
     expect(meaningfulOrganization("someone@x.com's Organization", 'someone@x.com')).toBeUndefined();
     expect(meaningfulOrganization("SOMEONE@X.COM’s organization", 'someone@x.com')).toBeUndefined();
     expect(meaningfulOrganization("other@x.com's Organization", undefined)).toBeUndefined();

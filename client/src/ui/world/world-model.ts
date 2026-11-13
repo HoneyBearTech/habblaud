@@ -400,7 +400,7 @@ export const APPEAL_EMAIL = 'privacidade@habblaud.com';
 /** Fixed appeal subject (in Portuguese: it is the inbox filter of whoever handles it), with the account id when known. */
 export const APPEAL_SUBJECT = 'Recurso Habblaud World';
 
-/** The "Appeal by e-mail" link: mailto to APPEAL_EMAIL with the subject and, if there is one, the account id. */
+/** The "Appeal by email" link: mailto to APPEAL_EMAIL with the subject and, if there is one, the account id. */
 export function appealMailto(accountId?: string): string {
   const id = accountId && /^[A-Za-z0-9_-]{1,64}$/.test(accountId) ? accountId : '';
   return `mailto:${APPEAL_EMAIL}?subject=${encodeURIComponent(id ? `${APPEAL_SUBJECT} ${id}` : APPEAL_SUBJECT)}`;
@@ -653,7 +653,7 @@ export interface BuildingView {
   leave: boolean;
   /** The building is marked as "unverified" (what that means, for the owner), or null. */
   unverified: string | null;
-  /** "Appeal by e-mail" (account suspended or banned) or "Dispute by e-mail" (unverified), or null. */
+  /** "Appeal by email" (account suspended or banned) or "Dispute by email" (unverified), or null. */
   appeal: { text: string; hint: string } | null;
 }
 
@@ -662,11 +662,11 @@ export interface BuildingViewOptions {
   maintenance?: boolean;
 }
 
-/** "Appeal by e-mail", with the explanation next to it. */
+/** "Appeal by email", with the explanation next to it. */
 function appealFor(kind: 'appeal' | 'contest'): { text: string; hint: string } {
   return kind === 'appeal'
-    ? { text: tr('Appeal by e-mail'), hint: tr('Opens an e-mail to {0}: tell us what happened, and a person reviews the case.', [APPEAL_EMAIL]) }
-    : { text: tr('Dispute by e-mail'), hint: tr("Opens an e-mail to {0}: if it's a mistake, a person reviews the numbers and removes the badge.", [APPEAL_EMAIL]) };
+    ? { text: tr('Appeal by email'), hint: tr('Opens an email to {0}: tell us what happened, and a person reviews the case.', [APPEAL_EMAIL]) }
+    : { text: tr('Dispute by email'), hint: tr("Opens an email to {0}: if it's a mistake, a person reviews the numbers and removes the badge.", [APPEAL_EMAIL]) };
 }
 
 /** "1 byte", "1,174 bytes". */

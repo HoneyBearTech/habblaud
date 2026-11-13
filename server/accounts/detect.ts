@@ -286,7 +286,7 @@ function str(v: unknown): string | undefined {
 
 /**
  * Organization name worth displaying. Personal accounts get an automatically generated name
- * ("<e-mail>'s Organization"), which says nothing and also shows up in English: it stays out.
+ * ("<email>'s Organization"), which says nothing and also shows up in English: it stays out.
  */
 export function meaningfulOrganization(organization: string | undefined, email: string | undefined): string | undefined {
   if (!organization) return undefined;

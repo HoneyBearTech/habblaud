@@ -2,8 +2,8 @@
 //
 // The card shows the connection, the pause, the stop requested by the world server (with the reason) and "Out of the
 // world"; the "Leave the world" button asks for confirmation in two clicks, like "Sign out", and explains how it differs
-// from the pause. Phase 6: a suspended or banned account gets "Appeal by e-mail" (mailto with the account id in the
-// subject, when known), the "unverified" building shows the badge with "Dispute by e-mail", and the world's maintenance
+// from the pause. Phase 6: a suspended or banned account gets "Appeal by email" (mailto with the account id in the
+// subject, when known), the "unverified" building shows the badge with "Dispute by email", and the world's maintenance
 // shows in place of "Reconnecting". The card is updated in place on every render (counts and "last upload" change
 // every few seconds without redoing the whole screen, which would lose the focus). The window shows the last upload
 // exactly as the local server stored it (GET /api/world/last-uplink): the JSON, the time, the size in bytes and the

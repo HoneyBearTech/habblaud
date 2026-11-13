@@ -547,22 +547,22 @@ describe('account and data (Phase 6)', () => {
     expect(appealMailto('x&cc=a@b.co')).toBe(appealMailto());
   });
 
-  it('account suspended or banned: "Appeal by e-mail"; the other stops, no', () => {
+  it('account suspended or banned: "Appeal by email"; the other stops, no', () => {
     const stopped = (reason: WorldBuildingStop) => buildingView({ ...live, connected: false, stopped: reason }, true, NOW);
-    for (const r of ['banned', 'suspended'] as const) expect(stopped(r).appeal).toMatchObject({ text: 'Appeal by e-mail', hint: expect.stringContaining(APPEAL_EMAIL) });
+    for (const r of ['banned', 'suspended'] as const) expect(stopped(r).appeal).toMatchObject({ text: 'Appeal by email', hint: expect.stringContaining(APPEAL_EMAIL) });
     for (const r of ['update', 'other-device', 'waiting', 'no_player', 'unauthorized', 'deleted'] as const) expect(stopped(r).appeal, r).toBeNull();
     expect(stopped('deleted')).toMatchObject({ label: 'Account deleted', toggle: null, leave: false });
     expect(buildingView(live, true, NOW)).toMatchObject({ appeal: null, unverified: null });
   });
 
-  it('unverified: the badge with "Dispute by e-mail" while the building is in the world; the city label', () => {
+  it('unverified: the badge with "Dispute by email" while the building is in the world; the city label', () => {
     const v = buildingView({ ...live, unverified: true }, true, NOW);
     expect(v.unverified).toMatch(/unverified/);
-    expect(v.appeal).toMatchObject({ text: 'Dispute by e-mail' });
-    expect(buildingView({ ...live, unverified: true, paused: true }, true, NOW).appeal?.text).toBe('Dispute by e-mail');
+    expect(v.appeal).toMatchObject({ text: 'Dispute by email' });
+    expect(buildingView({ ...live, unverified: true, paused: true }, true, NOW).appeal?.text).toBe('Dispute by email');
     expect(buildingView({ ...live, unverified: true, left: true }, true, NOW)).toMatchObject({ unverified: null, appeal: null });
     // Suspended outweighs the badge: the appeal is for the suspension.
-    expect(buildingView({ ...live, connected: false, unverified: true, stopped: 'suspended' }, true, NOW)).toMatchObject({ unverified: null, appeal: { text: 'Appeal by e-mail' } });
+    expect(buildingView({ ...live, connected: false, unverified: true, stopped: 'suspended' }, true, NOW)).toMatchObject({ unverified: null, appeal: { text: 'Appeal by email' } });
     expect(unverifiedLabel()).toBe('Unverified');
     expect(unverifiedHint()).toMatch(/review/);
   });

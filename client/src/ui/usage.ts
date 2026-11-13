@@ -6,7 +6,7 @@
 // - an account with no numbers says "no usage data" and offers "How to enable" (Habblaud mod, recommended).
 // Codex account: the numbers come from its session files, which only renew while some session is running; that is why
 // the age ("12 min ago") is always on display. No quota or credits ("no quota") never becomes 0%. There is nothing to
-// install for the usage: "How it works" opens the help at the Codex section. No Opus/Sonnet or e-mail (only the plan).
+// install for the usage: "How it works" opens the help at the Codex section. No Opus/Sonnet or email (only the plan).
 import type { AccountInfo } from '../../../shared/types';
 import type { UiContext } from './context';
 import { h, KeyedList, setAttr, setHidden, setStyleVar, setText, setTitle, setVariant } from './dom';
@@ -174,7 +174,7 @@ export function showsUsageAge(a: Pick<AccountInfo, 'usage' | 'usageStatus' | 'pr
   return state === 'stale' || (isCodex(a) && state !== 'empty');
 }
 
-/** Line under the name: e-mail; on Codex (no e-mail), the plan; on the others, the folder. */
+/** Line under the name: email; on Codex (no email), the plan; on the others, the folder. */
 export function usageSubtitle(a: Pick<AccountInfo, 'email' | 'plan' | 'configDir' | 'provider'>): string {
   if (a.email) return a.email;
   if (isCodex(a)) return a.plan ? tr('{0} plan', [a.plan]) : 'Codex';

@@ -763,9 +763,9 @@ messages, code, cost, model, branch and your Claude account never leave. The ful
 [docs/world/privacidade.md](docs/world/privacidade.md). **See what was sent**, on the Your building card, shows the
 exact JSON of the last upload, with its size in bytes and the world's reply.
 
-**Account and waitlist.** Sign up with e-mail, **player name** (3 to 20 characters, unique in the world: it stays
+**Account and waitlist.** Sign up with email, **player name** (3 to 20 characters, unique in the world: it stays
 reserved for you while you wait on the list and becomes your character's name) and password (12 characters or more;
-leaked passwords are refused), a 6-digit code by e-mail and accepting the Terms of Use and the Privacy Policy. Every
+leaked passwords are refused), a 6-digit code by email and accepting the Terms of Use and the Privacy Policy. Every
 account joins a waitlist, and access is granted in batches: an open Habblaud checks on its own every 30 minutes. Up to 3
 computers per account (**Devices**, with revoke).
 
@@ -776,8 +776,8 @@ besides the name). You can create it while still on the waitlist.
 **Building.** With the account approved and the character created, the building goes up on its own (over a WebSocket)
 and follows the office live. The **Your building** card shows the connection, floors, agents, the last upload and, when
 the world refuses an upload or stops the building (old version, another computer, suspended or banned account), the
-reason; a suspended or banned account gets **Appeal by e-mail**. A building marked as "unverified" (implausible numbers,
-under review) stays out of leaderboards and highlights and shows **Dispute by e-mail**. When the world is under
+reason; a suspended or banned account gets **Appeal by email**. A building marked as "unverified" (implausible numbers,
+under review) stays out of leaderboards and highlights and shows **Dispute by email**. When the world is under
 maintenance, the card says so, and Habblaud tries again on its own.
 
 **Visibility.** Live (floors, counters and each character's status) or **discreet mode** (only lit or dark and the
@@ -810,13 +810,13 @@ blocked are listed in **Blocked**, with **Unblock**. In demo mode:
 **Pause, leave, delete.** **Pause** turns the building off right away and keeps the lot (after 30 days paused, it
 disappears from the map; 30 days later, it's removed). **Leave the world** removes the building and frees the lot; the
 account and the character stay, and coming back creates a new building. **Delete account** (in **Account and data**,
-with the code that arrives by e-mail) takes the building and the profile out of the world right away, deletes the
+with the code that arrives by email) takes the building and the profile out of the world right away, deletes the
 account, likes, blocks, reports you made and devices from the database within 7 days (and from backups within 30) and
 deletes `world.json` from this computer. With no word from Habblaud for 7 days, the building disappears from the map
-and, 30 days later, is removed; an e-mail warns 3 days before (can be turned off in **Account and data**).
+and, 30 days later, is removed; an email warns 3 days before (can be turned off in **Account and data**).
 
 **Export.** **Download my data** (in **Account and data**) saves `habblaud-world-dados.json` with what the world keeps
-about your account: e-mail, dates, character, visibility, devices, building, likes given, blocks and reports you made.
+about your account: email, dates, character, visibility, devices, building, likes given, blocks and reports you made.
 Once a day.
 
 **Truthful data.** The World only works if the buildings are real: changing Habblaud to send invented or inflated

@@ -1,4 +1,4 @@
-// ALTCHA: proof of work that the Habblaud World server asks for at sign-up and when sending e-mails (in place of a
+// ALTCHA: proof of work that the Habblaud World server asks for at sign-up and when sending emails (in place of a
 // captcha). The server sends {algorithm, challenge, salt, maxnumber, signature}; the requester finds the number n
 // (0..maxnumber) with SHA-256(salt + n) = challenge and returns, in base64, the JSON {algorithm, challenge, number,
 // salt, signature, took} (the ALTCHA widget format). The local Habblaud server solves it, by brute force, with no

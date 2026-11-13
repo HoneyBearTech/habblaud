@@ -51,7 +51,7 @@ interface Account {
   left?: boolean;
   /** How many times it came back to the world (POST /v1/me/building/join). */
   buildingJoined?: number;
-  /** Inactivity warning by e-mail (absent = never sent; the real server keeps true by default). */
+  /** Inactivity warning by email (absent = never sent; the real server keeps true by default). */
   notifyInactivity?: boolean;
   /** POST /v1/me/delete requested (the code is FAKE_CODE). */
   deleteRequested?: boolean;
@@ -66,7 +66,7 @@ export interface FakeConnection {
   id: number;
   /** When the connection opened (ms). */
   openedAt: number;
-  /** Account e-mail, after the `welcome`. */
+  /** Account email, after the `welcome`. */
   email?: string;
   /** Path and query of the upgrade request (the token can never be here). */
   url: string;

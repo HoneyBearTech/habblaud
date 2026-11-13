@@ -10,6 +10,14 @@ versioning](https://semver.org/): a fix bumps the last number (0.2.**1**), a new
 
 ## [Unreleased]
 
+### Changed
+
+- **English is the default language, and the language the texts are written in.** With no language chosen, the
+  interface and the server's texts (activities, notices, terminal, logs and the install scripts) come in English
+  instead of Portuguese. Portuguese, Spanish and French are still in **Settings › Language**. The server follows
+  `HABBLAUD_LANG`; without it, the system's language if it is one of the four, otherwise English. To keep
+  everything as it was, set `HABBLAUD_LANG=pt-BR` (in Docker, in `.env`) and pick **Português** in Settings.
+
 ## [1.0.3] - 2026-10-16
 
 ### Fixed
@@ -64,7 +72,7 @@ four languages.
   pixels, the account state in the header and everything that follows in a scrollable body. The "in the world" chip
   next to the version, the launch popups and the "While you were away" notice open the same window, on the right
   screen.
-- **Account:** in the Habblaud World window. **Create account** (e-mail and a password of 12 characters or more, the
+- **Account:** in the Habblaud World window. **Create account** (email and a password of 12 characters or more, the
   summary of what leaves and what never leaves the computer, the line about real data and the required acceptance of
   the Terms of Use and the Privacy Policy; the anti-robot challenge is solved by Habblaud itself) or **I already have
   an account**; 6-digit code with resend; **Forgot password**; **Devices** (up to 3, with revoke) and sign out. On the
@@ -73,7 +81,7 @@ four languages.
   the account only with local access (the terminal lock). The device token stays in `~/.habblaud/world.json`
   (permission 600; in Docker, in the `/data` volume) and never goes to the browser, the snapshot, the logs or the URL.
 - **Player name chosen at sign-up (it stays reserved on the waitlist):** sign-up asks for the player name (3 to 20
-  characters, unique in the world) along with the e-mail and the password, checked on the spot and, if it is already
+  characters, unique in the world) along with the email and the password, checked on the spot and, if it is already
   in use, with the notice on the field itself. It stays reserved for the account while it waits on the list (the
   waiting screen shows "Your player name: X (reserved)") and becomes the character's name, which is born with it
   without asking for the name again (it can be changed later, once every 30 days); old accounts, with no reservation,
@@ -92,20 +100,20 @@ four languages.
   days.
 - **Building visibility:** live or discreet, closed to visitors, hide the country, tokens (only in ranges),
   leaderboard, compactions and **Let me know when someone knocks** (off by default).
-- **Account and data** (new screen of the Habblaud World window): the switch **E-mail me before my building is removed
+- **Account and data** (new screen of the Habblaud World window): the switch **Email me before my building is removed
   for inactivity**; **Download my data**, which saves `habblaud-world-dados.json` with what the world keeps about the
   account (once a day); and **Delete account** in three steps: what goes away and when (the building and the profile
   right away; the account, the likes, the blocks, the reports made and the devices from the database in 7 days; from
-  the backups, within 30), the confirmation, which sends a code to the e-mail, and the code. With the account deleted
+  the backups, within 30), the confirmation, which sends a code to the email, and the code. With the account deleted
   (from here or from another computer), the building's connection closes and `world.json` disappears from this
   computer; the section says that the account was deleted.
 - **Your building in the world:** with access granted and the character created, the **Your building** card shows
   whether the building is connected, reconnecting, paused or out of the world (or whether the character is still
   missing), how many floors and agents it has, when the last upload went out and, if the world refuses an upload, the
   reason. When the world server stops the building, the card says why: **Update Habblaud** (old version), **Connected
-  on another computer** (with **Bring it to this computer**), account suspended or banned (with **Appeal by e-mail**,
-  which opens an e-mail to privacidade@habblaud.com with the account id in the subject) or account deleted. A building
-  marked as **unverified** shows the badge and **Dispute by e-mail**, and the world under maintenance shows up as
+  on another computer** (with **Bring it to this computer**), account suspended or banned (with **Appeal by email**,
+  which opens an email to privacidade@habblaud.com with the account id in the subject) or account deleted. A building
+  marked as **unverified** shows the badge and **Dispute by email**, and the world under maintenance shows up as
   **Under maintenance** (Habblaud tries again on its own, with a wait). **Pause** stops the sending right away and
   turns the building off, keeping the lot; **Resume** lights it up again. **Leave the world** (in two clicks, with the
   difference from pausing next to it) removes the building right away and frees the lot; the account and the character

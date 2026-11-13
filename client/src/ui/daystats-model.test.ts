@@ -165,7 +165,7 @@ describe('accounts, waits and highlights', () => {
     ];
     const rows = waitRows(waits, clock);
     expect(rows[0]).toMatchObject({ rank: 1, duration: '12 min', pct: 100, when: '14:32–14:44', ongoing: false });
-    expect(rows[0].label).toBe('#1: 12 min, Marina in store, 14:32–14:44, for approve a permission');
+    expect(rows[0].label).toBe('1. 12 min, Marina in store, 14:32–14:44, for approve a permission');
     expect(rows[1]).toMatchObject({ rank: 2, pct: 25, when: 'since 15:32', ongoing: true });
     expect(rows[1].label).toContain('still waiting');
   });

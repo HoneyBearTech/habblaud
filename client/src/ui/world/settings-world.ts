@@ -1,10 +1,10 @@
 // The content of the "Habblaud World" window (world-dialog.ts, its own button in the top bar): account (sign-up with
-// acceptance of the terms and the privacy summary, e-mail code, login, forgot password), waitlist, character
+// acceptance of the terms and the privacy summary, email code, login, forgot password), waitlist, character
 // (the appearance editor from the agent's drawer, plus name, traits and intro phrase), the "Your building" card with
 // Pause/Resume and "See what was sent" (building.ts), building visibility, devices and sign out. Also the theme
 // hint in Settings › Appearance, when the choice goes to the building. Phase 6: "Account and data" (the inactivity
 // warning, "Download my data" and "Delete account" in three steps: what goes away and when, the confirmation and the
-// e-mail code), the world maintenance notice and the deleted account one. It talks to the local routes /api/world/*
+// email code), the world maintenance notice and the deleted account one. It talks to the local routes /api/world/*
 // (net/world.ts); the pure rules are in world-model.ts.
 //
 // The window calls render() on every dirty frame: the body is only redone when the screen changes (otherwise what was
@@ -1251,8 +1251,8 @@ export class WorldSettingsGroup {
     let pending: boolean | null = null;
     const error = h('p', { class: 'ui-world__error', role: 'alert', hidden: true });
     const sw = switchRow(
-      tr('E-mail me before my building is removed for inactivity'),
-      tr('With no word from this Habblaud for 7 days, the building disappears from the map and, 30 days later, is removed. The e-mail arrives 3 days before the removal.'),
+      tr('Email me before my building is removed for inactivity'),
+      tr('With no word from this Habblaud for 7 days, the building disappears from the map and, 30 days later, is removed. The email arrives 3 days before the removal.'),
       () => void toggle(),
     );
     const noPlayer = para('ui-set__hint', tr('The inactivity warning becomes available after you create the character.'));
@@ -1322,7 +1322,7 @@ export class WorldSettingsGroup {
       h('h4', { class: 'ui-world__acct-title', text: tr('Your data') }),
       para(
         'ui-set__hint',
-        tr('A JSON file with what Habblaud World keeps about your account: e-mail, dates, character, visibility, devices, building, likes given, blocks and reports you made. You can download it once a day.'),
+        tr('A JSON file with what Habblaud World keeps about your account: email, dates, character, visibility, devices, building, likes given, blocks and reports you made. You can download it once a day.'),
       ),
       h('div', { class: 'ui-world__actions' }, btn),
       note,
@@ -1358,7 +1358,7 @@ export class WorldSettingsGroup {
       };
       form.el.append(
         para('ui-world__warn', tr('Are you sure? The building and the profile leave the world as soon as you enter the code.')),
-        para('ui-set__hint', ...rich(tr("To confirm, we send a 6-digit code to the account's e-mail ({0})."), [h('strong', { class: 'ui-world__email', text: email() })])),
+        para('ui-set__hint', ...rich(tr("To confirm, we send a 6-digit code to the account's email ({0})."), [h('strong', { class: 'ui-world__email', text: email() })])),
         form.error,
         h('div', { class: 'ui-world__actions' }, form.submit, h('button', { class: 'ui-btn', type: 'button', text: tr('Cancel'), on: { click: () => show(explain()) } })),
       );
