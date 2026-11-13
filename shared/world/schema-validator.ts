@@ -28,7 +28,7 @@ function typeOk(type: string, v: unknown): boolean {
     case 'null':
       return v === null;
     default:
-      throw new Error(`tipo não suportado: ${type}`);
+      throw new Error(`unsupported type: ${type}`);
   }
 }
 
@@ -36,14 +36,14 @@ export function compileValidator(root: { [k: string]: unknown }): (data: unknown
   const resolve = (ref: string): Schema => {
     const m = /^#\/\$defs\/([\w-]+)$/.exec(ref);
     const defs = root.$defs as Record<string, Schema> | undefined;
-    if (!m || !defs || !(m[1] in defs)) throw new Error(`$ref não suportado: ${ref}`);
+    if (!m || !defs || !(m[1] in defs)) throw new Error(`unsupported $ref: ${ref}`);
     return defs[m[1]];
   };
   const check = (schema: Schema, v: unknown, path: string, out: SchemaError[]): void => {
     if (schema === true) return;
     if (schema === false) return void out.push({ keyword: 'false schema', path });
     for (const k of Object.keys(schema)) {
-      if (!KEYWORDS.has(k) && !ANNOTATIONS.has(k)) throw new Error(`palavra-chave não suportada: ${k} (${path || '/'})`);
+      if (!KEYWORDS.has(k) && !ANNOTATIONS.has(k)) throw new Error(`unsupported keyword: ${k} (${path || '/'})`);
     }
     const s = schema as Record<string, unknown>;
     const fail = (keyword: string, at = path): void => void out.push({ keyword, path: at });
