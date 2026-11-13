@@ -339,8 +339,8 @@
     inset 0 2px 0 rgba(255, 255, 255, 0.35);
 }
 
-/* Conta do Codex: chip "vazado" (fundo escuro, borda e letra na cor da conta) com cantos em degrau, como um pixel
-   arredondado. Lê-se de longe como "outra ferramenta" sem precisar de logotipo. */
+/* Codex account: "hollow" chip (dark background, border and letter in the account's color) with stepped corners,
+   like a rounded pixel. From a distance it reads as "another tool" without needing a logo. */
 .ui-acc-chip[data-provider='codex'] {
   --step: 2px;
   border-radius: 0;
@@ -365,7 +365,7 @@
   --step: 3px;
 }
 
-/* Selo de texto "Codex" ao lado do nome da conta (fonte do sistema: na Pixelify o "C" parece "O"). */
+/* "Codex" text badge next to the account name (system font: in Pixelify the "C" looks like an "O"). */
 .ui-prov {
   display: inline-flex;
   align-items: center;
@@ -1023,7 +1023,7 @@
   color: #ffcf8a;
 }
 
-/* Codex com números recentes: a idade fica à mostra, discreta (os números só se renovam com sessão rodando). */
+/* Codex with recent numbers: the age stays in view, discreet (the numbers only renew with a session running). */
 .ui-usage-card__state.is-fresh {
   background: rgba(255, 255, 255, 0.06);
   color: var(--ui-muted);
@@ -1205,7 +1205,7 @@
   display: none;
 }
 
-/* Codex sem cota nem créditos: aviso (nunca uma barra em 0%). */
+/* Codex with no quota and no credits: notice (never a bar at 0%). */
 .ui-usage-card__msg.is-noquota {
   color: #ffb0a0;
   font-weight: 650;
@@ -2187,7 +2187,7 @@
   font-size: 12.5px;
 }
 
-/* Perguntas do AskUserQuestion dentro do alerta: só leitura, a resposta é dada no Claude Code. */
+/* Questions of AskUserQuestion inside the alert: read-only, the answer is given in Claude Code. */
 .ui-ask {
   display: grid;
   gap: 10px;
@@ -3905,8 +3905,9 @@
   }
 }
 
-/* 4 ou mais contas (ex.: as do Claude Code, a do Codex e as do demo): os cartões podem estreitar até perder a coluna
-   do reinício (ela continua na dica de cada cartão) e o zoom fica na rolagem do mouse e nos atalhos + / −. */
+/* 4 or more accounts (e.g. the Claude Code ones, the Codex one and the demo ones): the cards can narrow until they
+   lose the reset column (it stays in each card's tooltip) and the zoom stays on the mouse wheel and the + / −
+   shortcuts. */
 @media (max-width: 1700px) {
   .ui-topbar:has(.ui-usage-card:nth-child(4)) .ui-usage-card {
     min-width: 128px;
@@ -5001,7 +5002,7 @@ button.ui-term__think:hover,
   }
 }
 
-/* Rodapé: linha de estado do Claude Code e a caixa de mensagem (ui/composer.ts; desabilitada quando não dá). */
+/* Footer: Claude Code's status line and the message box (ui/composer.ts; disabled when it can't be used). */
 .ui-term__foot {
   flex: none;
   padding: 8px 12px 12px;
@@ -6527,7 +6528,7 @@ html.is-replay #world {
   opacity: 0.75;
 }
 
-/* Dica dos hooks do Codex no fim da gaveta de um agente do Codex. */
+/* Hint about the Codex hooks at the end of the drawer of a Codex agent. */
 .ui-codex-hint {
   margin: 4px 0 2px;
   padding: 8px 10px;
