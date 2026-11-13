@@ -21,8 +21,8 @@ function roomsFor(slots: number[]): AreaLayout[] {
   return slots.map((slot) => layoutProjectRoom({ id: `/proj/${slot}`, slot, seed: 1000 + slot * 77 }, theme));
 }
 
-describe('mapeamento de slots', () => {
-  it('coluna = núcleo + floor(slot/2); par = norte, ímpar = sul', () => {
+describe('slot mapping', () => {
+  it('column = core + floor(slot/2); even = north, odd = south', () => {
     expect(slotColumn(0)).toBe(2);
     expect(slotColumn(1)).toBe(2);
     expect(slotColumn(2)).toBe(3);
@@ -34,7 +34,7 @@ describe('mapeamento de slots', () => {
     expect(slotAt(slotColumn(9), slotSide(9))).toBe(9);
   });
 
-  it('retângulos das salas não se sobrepõem e respeitam o corredor', () => {
+  it('room rectangles do not overlap and respect the hallway', () => {
     const a = slotRect(0);
     const b = slotRect(1);
     expect(a).toEqual({ x: 2 * COL_W, y: 0, w: COL_W, h: 12 });
@@ -43,7 +43,7 @@ describe('mapeamento de slots', () => {
     expect(b.y + b.h).toBe(BUILDING_H);
   });
 
-  it('largura do prédio: núcleo + maior coluna usada + 1 (mínimo 1 coluna de projeto)', () => {
+  it('building width: core + largest column in use + 1 (minimum 1 project column)', () => {
     expect(columnsFor([])).toBe(3);
     expect(columnsFor([0, 1])).toBe(3);
     expect(columnsFor([5])).toBe(5);
@@ -51,7 +51,7 @@ describe('mapeamento de slots', () => {
   });
 });
 
-describe('layout do prédio', () => {
+describe('building layout', () => {
   const slots = [0, 1, 2, 3, 4, 7];
   const rooms = roomsFor(slots);
   const cols = columnsFor(slots);
@@ -61,18 +61,18 @@ describe('layout do prédio', () => {
   const reach = b.grid.reachableFrom(elevator.tx, elevator.ty);
   const reachable = (x: number, y: number) => reach[y * b.grid.w + x] === 1;
 
-  it('há dois elevadores com tiles de aproximação caminháveis', () => {
+  it('there are two elevators with walkable approach tiles', () => {
     const elevators = reception.spots.filter((s) => s.kind === 'elevator');
     expect(elevators).toHaveLength(2);
     for (const e of elevators) expect(b.grid.walkable(e.tx, e.ty)).toBe(true);
   });
 
-  it('todos os spots são alcançáveis a partir dos elevadores', () => {
+  it('all spots are reachable from the elevators', () => {
     const unreachable = b.spots.filter((s) => !reachable(s.tx, s.ty)).map((s) => s.id);
     expect(unreachable).toEqual([]);
   });
 
-  it('as portas conectam cada sala ao corredor', () => {
+  it('the doors connect each room to the hallway', () => {
     for (const room of rooms) {
       const door = room.door!;
       expect(door).toBeDefined();
@@ -90,7 +90,7 @@ describe('layout do prédio', () => {
     }
   });
 
-  it('cada sala tem 6 mesas, ao menos 4 lugares extras sentados, interruptor e quadro', () => {
+  it('each room has 6 desks, at least 4 extra seated places, a switch and a whiteboard', () => {
     for (const room of rooms) {
       const desks = room.spots.filter((s) => s.kind === 'desk');
       expect(desks).toHaveLength(6);
@@ -106,7 +106,7 @@ describe('layout do prédio', () => {
     }
   });
 
-  it('móveis bloqueantes não se sobrepõem e ficam dentro da área', () => {
+  it('blocking furniture does not overlap and stays inside the area', () => {
     for (const area of [...b.core, b.corridor, ...rooms]) {
       const used = new Map<string, string>();
       for (const f of area.furniture) {
@@ -117,7 +117,7 @@ describe('layout do prédio', () => {
             expect(x >= area.rect.x && x < area.rect.x + area.rect.w && y >= area.rect.y && y < area.rect.y + area.rect.h).toBe(true);
             const key = `${x},${y}`;
             if (def.blocks) {
-              expect(used.get(key), `${f.id} sobre ${used.get(key)}`).toBeUndefined();
+              expect(used.get(key), `${f.id} on top of ${used.get(key)}`).toBeUndefined();
               used.set(key, f.id);
             }
           }
@@ -127,18 +127,18 @@ describe('layout do prédio', () => {
     }
   });
 
-  it('spots têm ids únicos', () => {
+  it('spots have unique ids', () => {
     const ids = b.spots.map((s) => s.id);
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it('pontos de conversa e ping-pong vêm em pares', () => {
+  it('conversation and ping-pong spots come in pairs', () => {
     const groups = new Map<string, number>();
     for (const s of b.spots) if (s.group && (s.kind === 'talk' || s.kind === 'pingpong')) groups.set(s.group, (groups.get(s.group) ?? 0) + 1);
     for (const [, n] of groups) expect(n).toBe(2);
   });
 
-  it('corredor alterna bebedouro e banco nas colunas de projeto, sem excesso de plantas', () => {
+  it('hallway alternates water cooler and bench in the project columns, without too many plants', () => {
     const coolers = b.corridor.furniture.filter((f) => f.kind === 'water_cooler');
     expect(coolers.length).toBeGreaterThanOrEqual(Math.ceil((cols - 2) / 2));
     const benches = b.corridor.furniture.filter((f) => f.kind === 'bench');
@@ -147,7 +147,7 @@ describe('layout do prédio', () => {
     expect(plants.length).toBeLessThanOrEqual(cols * 2);
   });
 
-  it('a área externa e os pátios cobrem o prédio', () => {
+  it('the outdoor area and the courtyards cover the building', () => {
     const ext = layoutExterior(cols);
     expect(ext.bounds.x).toBeLessThan(0);
     expect(ext.bounds.x + ext.bounds.w).toBeGreaterThan(cols * COL_W);
@@ -172,16 +172,16 @@ function hiddenWallItems(area: AreaLayout): string[] {
       if (!TALL_FLOOR.has(f.kind) || f.ty !== wy) continue;
       const fx0 = f.tx * TILE + (f.dx ?? 0);
       const fx1 = fx0 + FURNITURE[f.kind].footprint.w * TILE;
-      if (fx0 < w.cx + half && fx1 > w.cx - half) out.push(`${w.id} atrás de ${f.id}`);
+      if (fx0 < w.cx + half && fx1 > w.cx - half) out.push(`${w.id} behind ${f.id}`);
     }
   }
   return out;
 }
 
-describe('variações das salas de projeto', () => {
+describe('variations of the project rooms', () => {
   const seeds = Array.from({ length: 90 }, (_, i) => (i * 7919 + 13) >>> 0);
 
-  it('toda variação é válida: sem sobreposição, tudo alcançável, lugares suficientes', () => {
+  it('every variation is valid: no overlap, everything reachable, enough places', () => {
     for (const slot of [0, 1]) {
       for (const seed of seeds) {
         const room = layoutProjectRoom({ id: `/v/${seed}`, slot, seed }, theme);
@@ -191,28 +191,28 @@ describe('variações das salas de projeto', () => {
           const def = FURNITURE[f.kind];
           for (let y = f.ty; y < f.ty + def.footprint.h; y++)
             for (let x = f.tx; x < f.tx + def.footprint.w; x++) {
-              expect(x >= room.rect.x + 1 && x < room.rect.x + 15 && y >= room.rect.y + 2 && y < room.rect.y + 11, `${f.id} fora do piso`).toBe(true);
+              expect(x >= room.rect.x + 1 && x < room.rect.x + 15 && y >= room.rect.y + 2 && y < room.rect.y + 11, `${f.id} off the floor`).toBe(true);
               if (!def.blocks) continue;
-              expect(used.get(`${x},${y}`), `${f.id} sobre ${used.get(`${x},${y}`)}`).toBeUndefined();
+              expect(used.get(`${x},${y}`), `${f.id} on top of ${used.get(`${x},${y}`)}`).toBeUndefined();
               used.set(`${x},${y}`, f.id);
             }
         }
         const door = room.door!;
         const reach = b.grid.reachableFrom(door.x, door.y);
-        for (const sp of room.spots) expect(reach[sp.ty * b.grid.w + sp.tx], `${sp.id} inalcançável (semente ${seed})`).toBe(1);
+        for (const sp of room.spots) expect(reach[sp.ty * b.grid.w + sp.tx], `${sp.id} unreachable (seed ${seed})`).toBe(1);
         const r = room.rect;
         for (let y = r.y + 2; y < r.y + 11; y++)
-          for (let x = r.x + 1; x < r.x + 15; x++) if (b.grid.walkable(x, y)) expect(reach[y * b.grid.w + x], `tile ${x},${y} isolado (semente ${seed})`).toBe(1);
+          for (let x = r.x + 1; x < r.x + 15; x++) if (b.grid.walkable(x, y)) expect(reach[y * b.grid.w + x], `tile ${x},${y} isolated (seed ${seed})`).toBe(1);
         expect(room.spots.filter((sp) => sp.kind === 'desk')).toHaveLength(6);
         expect(room.spots.filter((sp) => sp.kind === 'stool' || sp.kind === 'nook').length).toBeGreaterThanOrEqual(4);
         // spots de uso não podem cair em cima de móvel que bloqueia
-        for (const sp of room.spots) expect(b.grid.walkable(sp.tx, sp.ty), `${sp.id} sobre móvel`).toBe(true);
+        for (const sp of room.spots) expect(b.grid.walkable(sp.tx, sp.ty), `${sp.id} on furniture`).toBe(true);
         expect(hiddenWallItems(room)).toEqual([]);
       }
     }
   });
 
-  it('as salas não são todas iguais: espelhamento, canto de reunião e cantos variam', () => {
+  it('the rooms are not all the same: mirroring, meeting corner and corners vary', () => {
     const vs = seeds.map(roomVariant);
     expect(new Set(vs.map((v) => v.mirror)).size).toBe(2);
     expect(new Set(vs.map((v) => v.meeting)).size).toBe(3);
@@ -225,12 +225,12 @@ describe('variações das salas de projeto', () => {
   });
 });
 
-describe('itens de parede', () => {
-  it('quadros, janelas, TV, placas e espelhos não ficam atrás de móveis altos', () => {
+describe('wall items', () => {
+  it('whiteboards, windows, TV, signs and mirrors are not behind tall furniture', () => {
     for (const area of [...coreAreas(), ...roomsFor([0, 1, 2, 3, 4, 7])]) expect(hiddenWallItems(area), area.id).toEqual([]);
   });
 
-  it('passagens nas faces das paredes têm batente', () => {
+  it('openings on the wall faces have a door frame', () => {
     const restroom = coreAreas().find((a) => a.kind === 'restroom')!;
     expect(restroom.wallItems.some((w) => w.kind === 'door_frame')).toBe(true);
     for (const room of roomsFor([1, 3, 7])) expect(room.wallItems.some((w) => w.kind === 'door_frame'), room.id).toBe(true);

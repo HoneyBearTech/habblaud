@@ -43,7 +43,7 @@ const CHARACTER: WorldCharacterInput = {
 };
 
 describe('HttpWorldApi', () => {
-  it('cada ação vai para a rota do contrato, com JSON (mesmo vazio) nos POST/PUT', async () => {
+  it('each action goes to the contract route, with JSON (even empty) in the POST/PUT', async () => {
     const { calls, api } = recorder(202, {});
     await api.register({ email: 'a@b.co', password: 'x'.repeat(12), name: 'Ana Pixel', locale: 'pt-BR' });
     await api.verify({ email: 'a@b.co', code: '123456' });
@@ -76,21 +76,21 @@ describe('HttpWorldApi', () => {
     expect(JSON.parse(String(calls[7].init?.body))).toEqual(CHARACTER);
   });
 
-  it('GET sem corpo; o status vem conferido', async () => {
-    const { calls, api } = recorder(200, { available: true, configured: true, state: 'waiting', account: { emailMasked: 'vo***@exemplo.com', access: 'waiting' } });
+  it('GET with no body; the status comes checked', async () => {
+    const { calls, api } = recorder(200, { available: true, configured: true, state: 'waiting', account: { emailMasked: 'yo***@example.com', access: 'waiting' } });
     const r = await api.status();
     expect(calls[0].url).toBe('/api/world/status');
     expect(calls[0].init?.method).toBe('GET');
     expect(calls[0].init?.body).toBeUndefined();
-    expect(r).toEqual({ ok: true, data: { available: true, configured: true, state: 'waiting', account: { emailMasked: 'vo***@exemplo.com', access: 'waiting' } } });
+    expect(r).toEqual({ ok: true, data: { available: true, configured: true, state: 'waiting', account: { emailMasked: 'yo***@example.com', access: 'waiting' } } });
   });
 
-  it('status torto vira erro, não estado inventado', async () => {
+  it('malformed status becomes an error, not made-up state', async () => {
     expect((await recorder(200, { state: 'dancing' }).api.status()).ok).toBe(false);
     expect((await recorder(200, '<html>').api.status()).ok).toBe(false);
   });
 
-  it('dispositivos: aceita a lista solta ou dentro de {devices}', async () => {
+  it('devices: accepts the bare list or inside {devices}', async () => {
     const list = [{ id: 'd1', label: 'Dispositivo 1', current: true }, { id: 'd2', label: 'Dispositivo 2' }];
     const a = await recorder(200, list).api.devices();
     const b = await recorder(200, { devices: list }).api.devices();
@@ -98,31 +98,31 @@ describe('HttpWorldApi', () => {
     expect(a.ok && a.data.map((d) => d.current)).toEqual([true, false]);
   });
 
-  it('erro do contrato: o código vem do corpo e o status vai junto', async () => {
+  it('contract error: the code comes from the body and the status goes along', async () => {
     const r = await recorder(409, { error: { code: 'name_taken', message: 'Name taken' } }).api.saveCharacter(CHARACTER);
     expect(r).toEqual({ ok: false, code: 'name_taken', status: 409 });
   });
 
-  it('sem código (guarda, rota desligada, corpo vazio): decide pelo status HTTP', async () => {
+  it('no code (guard, route turned off, empty body): decides by the HTTP status', async () => {
     expect(await recorder(403, { error: 'Origin not allowed.' }).api.logout()).toMatchObject({ code: 'forbidden' });
     expect(await recorder(404, undefined).api.status()).toMatchObject({ code: 'not_configured' });
     expect(await recorder(429, '').api.resend({ email: 'a@b.co' })).toMatchObject({ code: 'rate_limited' });
-    expect(await recorder(500, { error: { code: 'algo_novo' } }).api.logout()).toMatchObject({ code: 'unknown' });
+    expect(await recorder(500, { error: { code: 'something_new' } }).api.logout()).toMatchObject({ code: 'unknown' });
   });
 
-  it('sem resposta do Habblaud: offline', async () => {
-    const api = new HttpWorldApi((() => Promise.reject(new TypeError('rede'))) as unknown as typeof fetch);
+  it('no response from Habblaud: offline', async () => {
+    const api = new HttpWorldApi((() => Promise.reject(new TypeError('network'))) as unknown as typeof fetch);
     expect(await api.login({ email: 'a@b.co', password: 'x' })).toEqual({ ok: false, code: 'offline', status: 0 });
   });
 
-  it('worldErrorCode só aceita os códigos conhecidos', () => {
+  it('worldErrorCode only accepts the known codes', () => {
     expect(worldErrorCode(400, { error: { code: 'invalid_code' } })).toBe('invalid_code');
     expect(worldErrorCode(400, { error: { code: '__proto__' } })).toBe('unknown');
   });
 });
 
-describe('meta.world e status', () => {
-  it('readWorldMeta: ausente, torto ou com estado desconhecido', () => {
+describe('meta.world and status', () => {
+  it('readWorldMeta: missing, malformed or with an unknown state', () => {
     expect(readWorldMeta(null)).toBeUndefined();
     expect(readWorldMeta(snap(undefined))).toBeUndefined();
     expect(readWorldMeta(snap({ configured: true }))).toBeUndefined();
@@ -130,20 +130,20 @@ describe('meta.world e status', () => {
     expect(readWorldMeta(snap({ enabled: true, state: 'zzz' }))).toEqual({ enabled: true, configured: false, state: 'off' });
   });
 
-  it('readWorldMeta: a cena Mundo (Fase 3) só com `available` booleano', () => {
+  it('readWorldMeta: the World scene (Phase 3) only with a boolean `available`', () => {
     const base = { enabled: true, configured: true, state: 'approved' };
     expect(readWorldMeta(snap({ ...base, scene: { available: true } }))?.scene).toEqual({ available: true });
     expect(readWorldMeta(snap({ ...base, scene: { available: false, extra: 1 } }))?.scene).toEqual({ available: false });
-    expect(readWorldMeta(snap({ ...base, scene: { available: 'sim' } }))).not.toHaveProperty('scene');
+    expect(readWorldMeta(snap({ ...base, scene: { available: 'yes' } }))).not.toHaveProperty('scene');
     expect(readWorldMeta(snap({ ...base, scene: [] }))).not.toHaveProperty('scene');
   });
 
-  it('parseWorldStatus completa a visibilidade do personagem com os padrões', () => {
+  it('parseWorldStatus fills in the character visibility with the defaults', () => {
     const s = parseWorldStatus({ state: 'approved', configured: true, player: { name: 'Pixel', look: 'm', parts: {}, traits: ['games', 'cafeina'], intro: 'coffee', visibility: { mode: 'discreet' } } });
     expect(s?.player?.visibility).toEqual({ mode: 'discreet', closed: false, hideCountry: false, tokensVisible: true, leaderboard: false, compactions: false, knocks: false });
   });
 
-  it('parseWorldStatus: mustRename só quando é true', () => {
+  it('parseWorldStatus: mustRename only when it is true', () => {
     const player = { name: '???', look: 'm', parts: {}, traits: ['games', 'cafeina'], intro: 'coffee' };
     expect(parseWorldStatus({ state: 'approved', player: { ...player, mustRename: true } })?.player?.mustRename).toBe(true);
     expect(parseWorldStatus({ state: 'approved', player: { ...player, mustRename: 1 } })?.player).not.toHaveProperty('mustRename');
@@ -153,30 +153,30 @@ describe('meta.world e status', () => {
 describe('FakeWorldApi', () => {
   const fake = (state?: ConstructorParameters<typeof FakeWorldApi>[0]) => new FakeWorldApi({ delayMs: 0, ...state });
 
-  it('cadastro → código → lista de espera → aprovado', async () => {
+  it('sign-up → code → waitlist → approved', async () => {
     const api = fake();
     expect(api.meta()).toEqual({ enabled: true, configured: true, state: 'logged_out' });
-    expect((await api.register({ email: 'nova@exemplo.com', password: 'cavalo correto bateria', name: 'Nova Pixel', locale: 'pt-BR' })).ok).toBe(true);
-    expect(await api.verify({ email: 'nova@exemplo.com', code: '000000' })).toMatchObject({ ok: false, code: 'invalid_code' });
-    expect((await api.verify({ email: 'nova@exemplo.com', code: FAKE_CODE })).ok).toBe(true);
+    expect((await api.register({ email: 'nova@example.com', password: 'correct horse battery', name: 'Nova Pixel', locale: 'pt-BR' })).ok).toBe(true);
+    expect(await api.verify({ email: 'nova@example.com', code: '000000' })).toMatchObject({ ok: false, code: 'invalid_code' });
+    expect((await api.verify({ email: 'nova@example.com', code: FAKE_CODE })).ok).toBe(true);
     expect(api.meta().state).toBe('waiting');
     // O nome do cadastro fica reservado até o personagem existir.
     const st = await api.status();
-    expect(st.ok && st.data.account).toEqual({ emailMasked: 'no***@exemplo.com', access: 'waiting', reservedName: 'Nova Pixel' });
+    expect(st.ok && st.data.account).toEqual({ emailMasked: 'no***@example.com', access: 'waiting', reservedName: 'Nova Pixel' });
     api.approve();
     expect(api.meta().state).toBe('approved');
   });
 
-  it('cadastro: o nome é conferido antes da senha e não pode estar em uso; criar o personagem usa a reserva', async () => {
+  it('sign-up: the name is checked before the password and cannot be in use; creating the character uses the reservation', async () => {
     const api = fake({ state: 'waiting' });
     await api.logout();
-    expect(await api.register({ email: 'x@exemplo.com', password: 'curta', name: 'a!', locale: 'pt-BR' })).toMatchObject({ code: 'name_invalid', status: 422 });
-    expect(await api.register({ email: 'x@exemplo.com', password: 'cavalo correto bateria', name: 'Admin', locale: 'pt-BR' })).toMatchObject({ code: 'name_blocked' });
+    expect(await api.register({ email: 'x@example.com', password: 'short', name: 'a!', locale: 'pt-BR' })).toMatchObject({ code: 'name_invalid', status: 422 });
+    expect(await api.register({ email: 'x@example.com', password: 'correct horse battery', name: 'Admin', locale: 'pt-BR' })).toMatchObject({ code: 'name_blocked' });
     // "Pixel Dev" é a reserva da conta da demonstração; "Marina" é de um personagem fixo.
-    expect(await api.register({ email: 'x@exemplo.com', password: 'cavalo correto bateria', name: 'pixel dev', locale: 'pt-BR' })).toMatchObject({ code: 'name_taken', status: 409 });
-    expect(await api.register({ email: 'x@exemplo.com', password: 'cavalo correto bateria', name: 'MARINA', locale: 'pt-BR' })).toMatchObject({ code: 'name_taken' });
-    expect((await api.register({ email: 'x@exemplo.com', password: 'cavalo correto bateria', name: 'Xis Pixel', locale: 'pt-BR' })).ok).toBe(true);
-    await api.verify({ email: 'x@exemplo.com', code: FAKE_CODE });
+    expect(await api.register({ email: 'x@example.com', password: 'correct horse battery', name: 'pixel dev', locale: 'pt-BR' })).toMatchObject({ code: 'name_taken', status: 409 });
+    expect(await api.register({ email: 'x@example.com', password: 'correct horse battery', name: 'MARINA', locale: 'pt-BR' })).toMatchObject({ code: 'name_taken' });
+    expect((await api.register({ email: 'x@example.com', password: 'correct horse battery', name: 'Xis Pixel', locale: 'pt-BR' })).ok).toBe(true);
+    await api.verify({ email: 'x@example.com', code: FAKE_CODE });
     // Sem `name` no corpo: o personagem nasce com a reserva; com `name`, ele é ignorado.
     const { name: _name, ...rest } = CHARACTER;
     expect((await api.saveCharacter(rest)).ok).toBe(true);
@@ -185,7 +185,7 @@ describe('FakeWorldApi', () => {
     expect(st.ok && st.data.account).not.toHaveProperty('reservedName');
   });
 
-  it('nome trocado à força: o status pede um nome novo e salvar o personagem resolve', async () => {
+  it('name changed by force: the status asks for a new name and saving the character resolves it', async () => {
     const api = fake({ state: 'approved' });
     api.forceRename();
     const before = await api.status();
@@ -197,24 +197,24 @@ describe('FakeWorldApi', () => {
     expect(after.ok && after.data.player).not.toHaveProperty('mustRename');
   });
 
-  it('login: credenciais erradas, e-mail sem confirmar, banido', async () => {
+  it('login: wrong credentials, unconfirmed email, banned', async () => {
     const api = fake();
-    await api.register({ email: 'nova@exemplo.com', password: 'cavalo correto bateria', name: 'Nova Pixel', locale: 'pt-BR' });
-    expect(await api.login({ email: 'nova@exemplo.com', password: 'outra senha qualquer' })).toMatchObject({ code: 'invalid_credentials' });
-    expect(await api.login({ email: 'nova@exemplo.com', password: 'cavalo correto bateria' })).toMatchObject({ code: 'email_not_verified' });
-    expect(await api.login({ email: 'banido@exemplo.com', password: 'cavalo correto bateria' })).toMatchObject({ code: 'banned' });
-    expect(await api.login({ email: 'ninguem@exemplo.com', password: 'cavalo correto bateria' })).toMatchObject({ code: 'invalid_credentials' });
+    await api.register({ email: 'nova@example.com', password: 'correct horse battery', name: 'Nova Pixel', locale: 'pt-BR' });
+    expect(await api.login({ email: 'nova@example.com', password: 'some other password' })).toMatchObject({ code: 'invalid_credentials' });
+    expect(await api.login({ email: 'nova@example.com', password: 'correct horse battery' })).toMatchObject({ code: 'email_not_verified' });
+    expect(await api.login({ email: 'banido@example.com', password: 'correct horse battery' })).toMatchObject({ code: 'banned' });
+    expect(await api.login({ email: 'nobody@example.com', password: 'correct horse battery' })).toMatchObject({ code: 'invalid_credentials' });
   });
 
-  it('cadastro com e-mail que já existe responde igual (não revela quem tem conta)', async () => {
+  it('sign-up with an email that already exists answers the same (does not reveal who has an account)', async () => {
     const api = fake({ state: 'waiting' });
     await api.logout();
-    expect((await api.register({ email: FAKE_EMAIL, password: 'cavalo correto bateria', name: 'Outra Pessoa', locale: 'pt-BR' })).ok).toBe(true);
+    expect((await api.register({ email: FAKE_EMAIL, password: 'correct horse battery', name: 'Another Person', locale: 'pt-BR' })).ok).toBe(true);
     // A senha antiga continua valendo.
     expect((await api.login({ email: FAKE_EMAIL, password: FAKE_PASSWORD })).ok).toBe(true);
   });
 
-  it('personagem: nome em uso, reservado, inválido e traços que não combinam (editando: o nome vem do corpo)', async () => {
+  it('character: name in use, reserved, invalid and traits that do not go together (editing: the name comes from the body)', async () => {
     const api = fake({ state: 'approved' });
     expect(await api.saveCharacter({ ...CHARACTER, name: 'Marina' })).toMatchObject({ code: 'name_taken' });
     expect(await api.saveCharacter({ ...CHARACTER, name: 'Admin' })).toMatchObject({ code: 'name_blocked' });
@@ -225,7 +225,7 @@ describe('FakeWorldApi', () => {
     expect(st.ok && st.data.player).toMatchObject({ name: 'Pixel Dev', traits: ['cafeina', 'games'], intro: 'coffee', country: 'BR' });
   });
 
-  it('visibilidade só com personagem; esconder o país tira o país do perfil', async () => {
+  it('visibility only with a character; hiding the country removes the country from the profile', async () => {
     const api = fake({ state: 'approved' });
     const vis = { mode: 'live', closed: false, hideCountry: true, tokensVisible: false, leaderboard: false, compactions: false, knocks: false } as const;
     expect((await api.saveVisibility(vis)).ok).toBe(true);
@@ -236,7 +236,7 @@ describe('FakeWorldApi', () => {
     expect(await fresh.saveVisibility(vis)).toMatchObject({ code: 'invalid' });
   });
 
-  it('dispositivos: revogar outro some da lista; revogar este sai da conta', async () => {
+  it('devices: revoking another one removes it from the list; revoking this one signs out', async () => {
     const api = fake({ state: 'approved' });
     const list = await api.devices();
     expect(list.ok && list.data.map((d) => [d.label, d.current])).toEqual([['Dispositivo 2', false], ['Dispositivo 1', true]]);
@@ -249,17 +249,17 @@ describe('FakeWorldApi', () => {
     expect(api.meta().state).toBe('logged_out');
   });
 
-  it('esqueci a senha: código errado, código certo troca a senha e desconecta tudo', async () => {
+  it('forgot the password: wrong code, right code changes the password and disconnects everything', async () => {
     const api = fake({ state: 'waiting' });
     expect((await api.forgotPassword({ email: FAKE_EMAIL })).ok).toBe(true);
-    expect(await api.resetPassword({ email: FAKE_EMAIL, code: '111111', password: 'senha nova bem longa' })).toMatchObject({ code: 'invalid_code' });
-    expect((await api.resetPassword({ email: FAKE_EMAIL, code: FAKE_CODE, password: 'senha nova bem longa' })).ok).toBe(true);
+    expect(await api.resetPassword({ email: FAKE_EMAIL, code: '111111', password: 'a new very long password' })).toMatchObject({ code: 'invalid_code' });
+    expect((await api.resetPassword({ email: FAKE_EMAIL, code: FAKE_CODE, password: 'a new very long password' })).ok).toBe(true);
     expect(api.meta().state).toBe('logged_out');
     expect(await api.login({ email: FAKE_EMAIL, password: FAKE_PASSWORD })).toMatchObject({ code: 'invalid_credentials' });
-    expect((await api.login({ email: FAKE_EMAIL, password: 'senha nova bem longa' })).ok).toBe(true);
+    expect((await api.login({ email: FAKE_EMAIL, password: 'a new very long password' })).ok).toBe(true);
   });
 
-  it('reenviar o código: 3 por hora', async () => {
+  it('resend the code: 3 per hour', async () => {
     let now = 1_000_000;
     const api = fake({ now: () => now });
     for (let i = 0; i < 3; i++) expect((await api.resend({ email: 'a@b.co' })).ok).toBe(true);
@@ -268,25 +268,25 @@ describe('FakeWorldApi', () => {
     expect((await api.resend({ email: 'a@b.co' })).ok).toBe(true);
   });
 
-  it('failNext simula erro de rede ou do servidor do mundo na próxima chamada', async () => {
+  it('failNext simulates a network error or a world server error on the next call', async () => {
     const api = fake({ state: 'waiting' });
     api.failNext('network');
     expect(await api.status()).toMatchObject({ ok: false, code: 'network' });
     expect((await api.status()).ok).toBe(true);
   });
 
-  it('sem servidor configurado: tudo responde not_configured', async () => {
+  it('no server configured: everything answers not_configured', async () => {
     const api = fake({ state: 'off' });
     expect(api.meta()).toEqual({ enabled: false, configured: false, state: 'off' });
     expect(await api.login({ email: 'a@b.co', password: 'x' })).toMatchObject({ code: 'not_configured' });
   });
 
-  it('avisa quem escuta quando o estado muda', async () => {
+  it('notifies whoever listens when the state changes', async () => {
     const api = fake();
     let n = 0;
     const off = api.onChange(() => n++);
-    await api.register({ email: 'nova@exemplo.com', password: 'cavalo correto bateria', name: 'Nova Pixel', locale: 'pt-BR' });
-    await api.verify({ email: 'nova@exemplo.com', code: FAKE_CODE });
+    await api.register({ email: 'nova@example.com', password: 'correct horse battery', name: 'Nova Pixel', locale: 'pt-BR' });
+    await api.verify({ email: 'nova@example.com', code: FAKE_CODE });
     expect(n).toBe(2);
     // Ler não avisa (senão a interface releria o status sem parar).
     await api.status();
@@ -298,21 +298,21 @@ describe('FakeWorldApi', () => {
   });
 });
 
-describe('de onde vêm os dados', () => {
-  it('?world= escolhe o estado inicial do falso (valor desconhecido: sem conta)', () => {
+describe('where the data comes from', () => {
+  it('?world= chooses the initial state of the fake (unknown value: no account)', () => {
     expect(fakeWorldStateFrom('?mock=1')).toBeNull();
     expect(fakeWorldStateFrom('?mock=1&world')).toBe('logged_out');
     expect(fakeWorldStateFrom('?mock=1&world=waiting')).toBe('waiting');
     expect(fakeWorldStateFrom('?world=xyz')).toBe('logged_out');
   });
 
-  it('modo demonstração sem &world: nada do World (as capturas antigas não mudam)', () => {
+  it('demo mode without &world: nothing from the World (the old screenshots do not change)', () => {
     const src = worldSource({ mock: true, liveSnapshot: null }, '?mock=1');
     expect(src.client).toBeNull();
     expect(src.meta()).toBeUndefined();
   });
 
-  it('modo demonstração com &world: o falso responde (aprovado: com o prédio no mundo)', () => {
+  it('demo mode with &world: the fake answers (approved: with the building in the world)', () => {
     const src = worldSource({ mock: true, liveSnapshot: null }, '?mock=1&world=approved');
     expect(src.fake).toBe(true);
     expect(src.client).toBeInstanceOf(FakeWorldApi);
@@ -327,7 +327,7 @@ describe('de onde vêm os dados', () => {
     expect(worldSource({ mock: true, liveSnapshot: null }, '?mock=1&world=waiting').meta()).toEqual({ enabled: true, configured: true, state: 'waiting' });
   });
 
-  it('ao vivo: rotas locais e o meta.world do snapshot ao vivo', () => {
+  it('live: local routes and the meta.world of the live snapshot', () => {
     const store = { mock: false, liveSnapshot: snap({ enabled: true, configured: true, state: 'logged_out' }) };
     const src = worldSource(store, '?world=waiting');
     expect(src.client).toBeInstanceOf(HttpWorldApi);
@@ -337,8 +337,8 @@ describe('de onde vêm os dados', () => {
 
 // ------------------------------------------------------------------ Fase 2: prédio no mundo
 
-describe('prédio: rotas locais da Fase 2', () => {
-  it('última remessa, pausar, retomar, sair do mundo e tema vão para as rotas do contrato', async () => {
+describe('building: local routes of Phase 2', () => {
+  it('last upload, pause, resume, leave the world and theme go to the contract routes', async () => {
     const { calls, api } = recorder(200, {});
     await api.lastUplink();
     await api.pause();
@@ -356,31 +356,31 @@ describe('prédio: rotas locais da Fase 2', () => {
     ]);
   });
 
-  it('última remessa: {} é "nada saiu ainda"; o pacote vem como foi guardado; fora do formato é erro', async () => {
+  it('last upload: {} is "nothing has left yet"; the packet comes as it was stored; out of format is an error', async () => {
     expect(await recorder(200, {}).api.lastUplink()).toEqual({ ok: true, data: null });
     const body = { at: 1_760_000_000_000, bytes: 1174, uplink: FAKE_UPLINK, ack: { ok: true, at: 1_760_000_000_050 } };
     expect(await recorder(200, body).api.lastUplink()).toEqual({ ok: true, data: body });
-    expect(await recorder(200, { at: 'ontem', uplink: {} }).api.lastUplink()).toMatchObject({ ok: false, code: 'unknown' });
+    expect(await recorder(200, { at: 'yesterday', uplink: {} }).api.lastUplink()).toMatchObject({ ok: false, code: 'unknown' });
     expect(await recorder(401, { error: { code: 'not_logged_in' } }).api.lastUplink()).toMatchObject({ ok: false, code: 'not_logged_in' });
   });
 
-  it('a resposta recusada sem código (ou com um que esta versão não conhece) vira "internal"; números tortos viram 0', () => {
+  it('the refused response without a code (or with one this version does not know) becomes "internal"; malformed numbers become 0', () => {
     expect(parseLastUplink({ at: 5, bytes: 10, uplink: { v: 1 }, ack: { ok: false, at: 6 } })?.ack).toEqual({ ok: false, error: 'internal', at: 6 });
-    expect(parseLastUplink({ at: 5, bytes: 10, uplink: { v: 1 }, ack: { ok: false, error: 'novo', at: 6 } })?.ack).toEqual({ ok: false, error: 'internal', at: 6 });
+    expect(parseLastUplink({ at: 5, bytes: 10, uplink: { v: 1 }, ack: { ok: false, error: 'new', at: 6 } })?.ack).toEqual({ ok: false, error: 'internal', at: 6 });
     // Aceita: os bytes que o mundo contou; sem horário, a resposta não vale.
     expect(parseLastUplink({ at: 5, bytes: 10, uplink: { v: 1 }, ack: { ok: true, at: 6, bytes: 10 } })?.ack).toEqual({ ok: true, at: 6, bytes: 10 });
     expect(parseLastUplink({ at: 5, bytes: 10, uplink: { v: 1 }, ack: { ok: true } })?.ack).toBeUndefined();
-    expect(parseBuilding({ connected: 'sim', paused: true, floors: -3, agents: 2.7, lastUplinkAt: 'agora', lastAck: { ok: false, error: 'rate' } })).toEqual({
+    expect(parseBuilding({ connected: 'yes', paused: true, floors: -3, agents: 2.7, lastUplinkAt: 'now', lastAck: { ok: false, error: 'rate' } })).toEqual({
       connected: false,
       paused: true,
       floors: 0,
       agents: 2,
       lastAck: { ok: false, error: 'rate' },
     });
-    expect(parseBuilding('prédio')).toBeUndefined();
+    expect(parseBuilding('building')).toBeUndefined();
   });
 
-  it('pausar e retomar devolvem o WorldStatus: vale o building.paused dele; sem o campo, o que foi pedido', async () => {
+  it('pause and resume return the WorldStatus: its building.paused holds; without the field, what was asked', async () => {
     expect(await recorder(200, { state: 'approved', building: { paused: true } }).api.pause()).toEqual({ ok: true, data: { paused: true } });
     expect(await recorder(200, { state: 'approved', building: { paused: true } }).api.resume()).toEqual({ ok: true, data: { paused: true } });
     expect(await recorder(200, '').api.resume()).toEqual({ ok: true, data: { paused: false } });
@@ -388,13 +388,13 @@ describe('prédio: rotas locais da Fase 2', () => {
     expect(await recorder(503, { error: { code: 'unavailable' } }).api.leave()).toMatchObject({ ok: false, code: 'unavailable', status: 503 });
   });
 
-  it('status: o motivo da parada (só os conhecidos), fora do mundo e o tema guardado', () => {
+  it('status: the reason for the stop (only the known ones), out of the world and the stored theme', () => {
     const base = { connected: false, paused: true, floors: 1, agents: 1 };
     expect(parseWorldStatus({ state: 'approved', building: { ...base, stopped: 'update', left: true }, theme: 'christmas' })).toMatchObject({
       building: { ...base, stopped: 'update', left: true },
       theme: 'christmas',
     });
-    const odd = parseWorldStatus({ state: 'approved', building: { ...base, stopped: 'deploy', left: 'sim' }, theme: 'pascoa' });
+    const odd = parseWorldStatus({ state: 'approved', building: { ...base, stopped: 'deploy', left: 'yes' }, theme: 'easter' });
     expect(odd?.building).toEqual(base);
     expect(odd?.theme).toBeUndefined();
     // No snapshot, a parada é só sim/não (o motivo não vai ao celular).
@@ -403,7 +403,7 @@ describe('prédio: rotas locais da Fase 2', () => {
     expect(buildingFromMeta({ ...base, stopped: true, left: true })).toEqual({ ...base, left: true });
   });
 
-  it('meta.world e o status trazem o prédio, conferido', () => {
+  it('meta.world and the status bring the building, checked', () => {
     const building = { connected: true, paused: false, floors: 3, agents: 5, lastUplinkAt: 1_760_000_000_000 };
     expect(readWorldMeta(snap({ enabled: true, configured: true, state: 'approved', building }))).toEqual({ enabled: true, configured: true, state: 'approved', building });
     expect(readWorldMeta(snap({ enabled: true, configured: true, state: 'approved', building: 7 }))).toEqual({ enabled: true, configured: true, state: 'approved' });
@@ -412,7 +412,7 @@ describe('prédio: rotas locais da Fase 2', () => {
   });
 });
 
-describe('FakeWorldApi: prédio', () => {
+describe('FakeWorldApi: building', () => {
   const OCT = Date.UTC(2026, 9, 15, 12);
   const JULY = Date.UTC(2026, 6, 1, 12);
   const clock = (start: number) => {
@@ -420,7 +420,7 @@ describe('FakeWorldApi: prédio', () => {
     return { now: () => t, tick: (ms: number) => (t += ms) };
   };
 
-  it('visitantes de mentira (Fase 4): ninguém nos primeiros segundos, depois 1 e 2; setVisitors fixa; pausado, nada', async () => {
+  it('fake visitors (Phase 4): nobody in the first seconds, then 1 and 2; setVisitors fixes it; paused, nothing', async () => {
     const c = clock(OCT);
     const api = new FakeWorldApi({ state: 'approved', delayMs: 0, now: c.now });
     expect(api.meta().building?.visitors).toBe(0);
@@ -435,7 +435,7 @@ describe('FakeWorldApi: prédio', () => {
     expect(api.meta().building).not.toHaveProperty('visitors');
   });
 
-  it('o exemplo da 3.3: ids aleatórios no formato do protocolo, pais presentes, peças completas', () => {
+  it('the example from 3.3: random ids in the protocol format, parents present, complete pieces', () => {
     const agents = FAKE_UPLINK.floors.flatMap((f) => f.agents);
     for (const f of FAKE_UPLINK.floors) expect(f.id).toMatch(/^f_[0-9a-f]{10}$/);
     for (const a of agents) {
@@ -446,7 +446,7 @@ describe('FakeWorldApi: prédio', () => {
     expect(uplinkBytes(FAKE_UPLINK)).toBe(new TextEncoder().encode(JSON.stringify(FAKE_UPLINK)).length);
   });
 
-  it('aprovado: prédio aceso, a remessa de exemplo com o tema do dia e a resposta aceita', async () => {
+  it('approved: building lit, the sample upload with the theme of the day and the accepted response', async () => {
     const api = new FakeWorldApi({ state: 'approved', delayMs: 0, now: () => OCT });
     const st = await api.status();
     expect(st.ok && st.data.building).toMatchObject({ connected: true, paused: false, floors: 2, agents: 3, lastUplinkAt: OCT, lastAck: { ok: true }, visitors: 0 });
@@ -458,7 +458,7 @@ describe('FakeWorldApi: prédio', () => {
     expect(july.ok && july.data?.uplink.theme).toBe('none');
   });
 
-  it('na lista de espera, sem conta ou sem personagem: sem prédio', async () => {
+  it('on the waitlist, without an account or without a character: no building', async () => {
     expect(new FakeWorldApi({ state: 'waiting', delayMs: 0 }).meta()).not.toHaveProperty('building');
     expect(await new FakeWorldApi({ state: 'logged_out', delayMs: 0 }).lastUplink()).toMatchObject({ ok: false, code: 'not_logged_in' });
     const api = new FakeWorldApi({ state: 'waiting', delayMs: 0 });
@@ -471,7 +471,7 @@ describe('FakeWorldApi: prédio', () => {
     expect(api.meta().building).toMatchObject({ connected: true, paused: false, floors: 2, agents: 3 });
   });
 
-  it('pausar apaga e para o envio; retomar acende e manda o pacote inteiro de novo', async () => {
+  it('pausing turns it off and stops sending; resuming lights it up and sends the whole packet again', async () => {
     const c = clock(OCT);
     const api = new FakeWorldApi({ state: 'approved', delayMs: 0, now: c.now });
     let n = 0;
@@ -490,17 +490,17 @@ describe('FakeWorldApi: prédio', () => {
     expect(n).toBe(3);
   });
 
-  it('tema: grava a escolha, resolve o automático e recusa valor fora da lista', async () => {
+  it('theme: saves the choice, resolves the automatic one and refuses a value outside the list', async () => {
     const api = new FakeWorldApi({ state: 'approved', delayMs: 0, now: () => OCT });
     expect(api.worldTheme()).toBe('auto');
     expect((await api.setTheme('none')).ok).toBe(true);
     expect(api.worldTheme()).toBe('none');
     const last = await api.lastUplink();
     expect(last.ok && last.data?.uplink.theme).toBe('none');
-    expect(await api.setTheme('carnaval' as 'none')).toMatchObject({ ok: false, code: 'invalid' });
+    expect(await api.setTheme('carnival' as 'none')).toMatchObject({ ok: false, code: 'invalid' });
   });
 
-  it('remessa recusada: o status e a última remessa trazem o motivo', async () => {
+  it('refused upload: the status and the last upload bring the reason', async () => {
     const api = new FakeWorldApi({ state: 'approved', delayMs: 0, now: () => OCT });
     api.rejectUplinks('limits');
     const st = await api.status();
@@ -510,7 +510,7 @@ describe('FakeWorldApi: prédio', () => {
     expect(api.meta().building).not.toHaveProperty('lastAck');
   });
 
-  it('sair do mundo: apagado e fora do mundo até voltar, que manda o pacote inteiro de novo', async () => {
+  it('leave the world: off and out of the world until coming back, which sends the whole packet again', async () => {
     const c = clock(OCT);
     const api = new FakeWorldApi({ state: 'approved', delayMs: 0, now: c.now });
     expect((await api.leave()).ok).toBe(true);
@@ -526,7 +526,7 @@ describe('FakeWorldApi: prédio', () => {
     expect(api.meta().building?.lastUplinkAt).toBe(OCT + 60_000);
   });
 
-  it('parada pelo "mundo": o status traz o motivo, o meta só "parou"; retomar volta', async () => {
+  it('stopped by the "world": the status brings the reason, the meta only "stopped"; resuming brings it back', async () => {
     const api = new FakeWorldApi({ state: 'approved', delayMs: 0, now: () => OCT });
     api.stopBuilding('other-device');
     const st = await api.status();
@@ -536,7 +536,7 @@ describe('FakeWorldApi: prédio', () => {
     expect(api.meta().building).not.toHaveProperty('stopped');
   });
 
-  it('o status traz o tema guardado (ausente no automático)', async () => {
+  it('the status brings the stored theme (absent in automatic)', async () => {
     const api = new FakeWorldApi({ state: 'approved', delayMs: 0, now: () => OCT });
     expect((await api.status()).ok && (await api.status()).ok).toBe(true);
     const before = await api.status();
@@ -546,7 +546,7 @@ describe('FakeWorldApi: prédio', () => {
     expect(after.ok && after.data.theme).toBe('halloween');
   });
 
-  it('conexão caída: reconectando até retomar; sair da conta tira o prédio do meta', async () => {
+  it('dropped connection: reconnecting until it resumes; signing out removes the building from the meta', async () => {
     const api = new FakeWorldApi({ state: 'approved', delayMs: 0 });
     api.dropConnection();
     expect(api.meta().building).toMatchObject({ connected: false, paused: false });
@@ -555,8 +555,8 @@ describe('FakeWorldApi: prédio', () => {
   });
 });
 
-describe('conta e dados (Fase 6)', () => {
-  it('excluir a conta e baixar os dados vão para as rotas do contrato; o JSON vem formatado para salvar', async () => {
+describe('account and data (Phase 6)', () => {
+  it('deleting the account and downloading the data go to the contract routes; the JSON comes formatted for saving', async () => {
     const { calls, api } = recorder(200, { account: { email: 'a@b.co' }, likesGiven: [] });
     expect(await api.requestAccountDeletion()).toEqual({ ok: true, data: null });
     expect(await api.confirmAccountDeletion({ code: '123456' })).toEqual({ ok: true, data: null });
@@ -572,16 +572,16 @@ describe('conta e dados (Fase 6)', () => {
     expect(await recorder(503, { error: { code: 'maintenance' } }).api.status()).toMatchObject({ ok: false, code: 'maintenance', status: 503 });
   });
 
-  it('status: o id da conta (só um id limpo) e o selo "não verificado" do prédio', () => {
+  it('status: the account id (only a clean id) and the "unverified" badge of the building', () => {
     const base = { available: true, configured: true, state: 'approved' };
     expect(parseWorldStatus({ ...base, account: { emailMasked: 'a***@b.co', access: 'approved', id: 'acc_1' } })?.account).toEqual({ emailMasked: 'a***@b.co', access: 'approved', id: 'acc_1' });
     expect(parseWorldStatus({ ...base, account: { emailMasked: 'a***@b.co', access: 'approved', id: '<x>' } })?.account).toEqual({ emailMasked: 'a***@b.co', access: 'approved' });
     expect(parseBuilding({ connected: true, paused: false, floors: 1, agents: 1, unverified: true })?.unverified).toBe(true);
-    expect(parseBuilding({ connected: true, paused: false, floors: 1, agents: 1, unverified: 'sim' })?.unverified).toBeUndefined();
+    expect(parseBuilding({ connected: true, paused: false, floors: 1, agents: 1, unverified: 'yes' })?.unverified).toBeUndefined();
     expect(parseWorldStatus({ ...base, player: { name: 'P', look: 'f', parts: {}, traits: [], intro: 'hello', visibility: { notifyInactivity: false } } })?.player?.visibility.notifyInactivity).toBe(false);
   });
 
-  it('FakeWorldApi: excluir a conta pede o código; o certo tira a conta e deixa o aviso; exportar uma vez por dia', async () => {
+  it('FakeWorldApi: deleting the account asks for the code; the right one removes the account and leaves the notice; export once a day', async () => {
     const api = new FakeWorldApi({ delayMs: 0, state: 'approved' });
     await api.setTheme('halloween');
     const data = await api.exportData();
@@ -597,7 +597,7 @@ describe('conta e dados (Fase 6)', () => {
     expect(await api.login({ email: FAKE_EMAIL, password: FAKE_PASSWORD })).toMatchObject({ ok: false, code: 'invalid_credentials' });
   });
 
-  it('FakeWorldApi: manutenção no status e o prédio sem conexão até acabar', async () => {
+  it('FakeWorldApi: maintenance in the status and the building without a connection until it ends', async () => {
     const api = new FakeWorldApi({ delayMs: 0, state: 'approved' });
     api.setMaintenance(true);
     let st = await api.status();
@@ -608,7 +608,7 @@ describe('conta e dados (Fase 6)', () => {
     expect(st.ok && st.data.building?.connected).toBe(true);
   });
 
-  it('FakeWorldApi: o "mundo" marca o prédio como não verificado e o aviso de inatividade fica na visibilidade', async () => {
+  it('FakeWorldApi: the "world" marks the building as unverified and the inactivity notice stays in the visibility', async () => {
     const api = new FakeWorldApi({ delayMs: 0, state: 'approved' });
     api.markUnverified(true);
     let st = await api.status();

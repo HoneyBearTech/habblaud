@@ -32,7 +32,7 @@ const DAY = '2026-10-08';
 function agent(p: Partial<AgentInfo> & { id: string }): AgentInfo {
   return {
     kind: 'main',
-    roomId: '/p/loja',
+    roomId: '/p/store',
     name: 'Ana',
     look: 'f',
     role: 'Main agent',
@@ -51,12 +51,12 @@ function agent(p: Partial<AgentInfo> & { id: string }): AgentInfo {
 }
 
 const ROOMS = [
-  { id: '/p/loja', name: 'loja' },
+  { id: '/p/store', name: 'store' },
   { id: '/p/api', name: 'api' },
 ];
 const ACCOUNTS = [
-  { id: '.claude', name: 'Conta C', short: 'C', color: '#f08a3c' },
-  { id: '.claude-conta2', name: 'Conta D', short: 'D', color: '#4aa8e8' },
+  { id: '.claude', name: 'Account C', short: 'C', color: '#f08a3c' },
+  { id: '.claude-conta2', name: 'Account D', short: 'D', color: '#4aa8e8' },
 ];
 
 function view(...agents: AgentInfo[]): StatsView {
@@ -70,8 +70,8 @@ function setup(tz = 'UTC', startedAt = T0 - H) {
   return { book, tracker, day };
 }
 
-describe('fusos e dias', () => {
-  it('valida AAAA-MM-DD com rigor', () => {
+describe('time zones and days', () => {
+  it('validates YYYY-MM-DD strictly', () => {
     expect(parseDayKey('2026-10-08')).toEqual({ y: 2026, m: 10, d: 8 });
     expect(parseDayKey('2024-02-29')).not.toBeNull();
     for (const bad of ['2026-02-30', '2025-02-29', '2026-13-01', '2026-1-08', ' 2026-10-08', '2026-10-08 ', '2026/10/08', '20261008', '', '1969-12-31']) {
@@ -81,7 +81,7 @@ describe('fusos e dias', () => {
     expect(addDays('2026-01-01', -1)).toBe('2025-12-31');
   });
 
-  it('começo do dia e hora local no fuso pedido', () => {
+  it('start of the day and local time in the requested time zone', () => {
     expect(dayStart(DAY, 'UTC')).toBe(Date.UTC(2026, 9, 8));
     // São Paulo (UTC-3, sem horário de verão): o dia começa às 03:00 UTC.
     expect(dayStart(DAY, 'America/Sao_Paulo')).toBe(Date.UTC(2026, 9, 8, 3));
@@ -91,13 +91,13 @@ describe('fusos e dias', () => {
     expect(r.end - r.start).toBe(23 * H);
   });
 
-  it('fusos aceitos', () => {
+  it('accepted time zones', () => {
     expect(isValidTimeZone('America/Sao_Paulo')).toBe(true);
     expect(isValidTimeZone('UTC')).toBe(true);
-    for (const bad of ['', 'Marte/Olimpo', '../etc/passwd', 'America/Sao_Paulo; rm', 'a'.repeat(80)]) expect(isValidTimeZone(bad), bad).toBe(false);
+    for (const bad of ['', 'Mars/Olympus', '../etc/passwd', 'America/Sao_Paulo; rm', 'a'.repeat(80)]) expect(isValidTimeZone(bad), bad).toBe(false);
   });
 
-  it('une intervalos sobrepostos', () => {
+  it('merges overlapping intervals', () => {
     expect(
       mergeIntervals([
         [10, 20],
@@ -113,8 +113,8 @@ describe('fusos e dias', () => {
   });
 });
 
-describe('StatsTracker: tempo por status', () => {
-  it('integra o tempo entre amostras e parte o intervalo em statusSince', () => {
+describe('StatsTracker: time per status', () => {
+  it('integrates the time between samples and splits the interval at statusSince', () => {
     const { tracker, day } = setup();
     tracker.observe(view(agent({ id: 'a' })), T0); // primeira vez: só a referência
     tracker.observe(view(agent({ id: 'a' })), T0 + 60 * S);
@@ -127,15 +127,15 @@ describe('StatsTracker: tempo por status', () => {
     expect(d.totals.waitWallMs).toBe(110 * S);
     expect(d.totals.waits).toBe(1);
     expect(d.totals.longestWaitMs).toBe(110 * S);
-    expect(d.waits[0]).toMatchObject({ agentId: 'a', agentName: 'Ana', roomName: 'loja', start: T0 + 90 * S, end: T0 + 200 * S, reason: 'approve a permission' });
+    expect(d.waits[0]).toMatchObject({ agentId: 'a', agentName: 'Ana', roomName: 'store', start: T0 + 90 * S, end: T0 + 200 * S, reason: 'approve a permission' });
     expect(d.totals.sessions).toBe(1);
     expect(d.hours).toHaveLength(24);
     expect(d.hours[10]).toMatchObject({ hour: 10, ms: { working: 90 * S, waiting: 110 * S } });
-    expect(d.rooms.map((r) => r.name)).toEqual(['loja']);
-    expect(d.accounts[0]).toMatchObject({ id: '.claude', name: 'Conta C', short: 'C', color: '#f08a3c', sessions: 1 });
+    expect(d.rooms.map((r) => r.name)).toEqual(['store']);
+    expect(d.accounts[0]).toMatchObject({ id: '.claude', name: 'Account C', short: 'C', color: '#f08a3c', sessions: 1 });
   });
 
-  it('concluído e encerrado não contam tempo; pausa longa entre amostras também não', () => {
+  it('completed and ended do not count time; a long pause between samples does not either', () => {
     const { tracker, day } = setup();
     tracker.observe(view(agent({ id: 'a' })), T0);
     tracker.observe(view(agent({ id: 'a', status: 'offline', statusSince: T0 + 10 * S })), T0 + 30 * S);
@@ -144,7 +144,7 @@ describe('StatsTracker: tempo por status', () => {
     expect(day().totals.ms).toEqual({ working: 10 * S, waiting: 0, idle: 0, shell: 0 });
   });
 
-  it('tempo de relógio com alguém esperando não soma agentes', () => {
+  it('clock time with someone waiting does not add up agents', () => {
     const { tracker, day } = setup();
     const v = (st: 'waiting' | 'working') => view(agent({ id: 'a', status: st, statusSince: T0 }), agent({ id: 'b', roomId: '/p/api', account: '.claude-conta2', status: 'waiting', statusSince: T0 }));
     tracker.observe(v('waiting'), T0);
@@ -157,12 +157,12 @@ describe('StatsTracker: tempo por status', () => {
     // Por projeto: ordenado pelo tempo esperando você (empate: maior tempo total, depois nome).
     expect(d.rooms.map((r) => [r.name, r.ms.waiting])).toEqual([
       ['api', 120 * S],
-      ['loja', 120 * S],
+      ['store', 120 * S],
     ]);
     expect(d.accounts.map((a) => a.id).sort()).toEqual(['.claude', '.claude-conta2']);
   });
 
-  it('esperas curtas (piscadas) não entram no ranking', () => {
+  it('short waits (blinks) do not enter the ranking', () => {
     const { tracker, day } = setup();
     tracker.observe(view(agent({ id: 'a' })), T0);
     tracker.observe(view(agent({ id: 'a', status: 'waiting', statusSince: T0 + 59 * S })), T0 + 60 * S);
@@ -174,7 +174,7 @@ describe('StatsTracker: tempo por status', () => {
     expect(d.totals.waits).toBe(0);
   });
 
-  it('agente que some e volta logo: segue de onde parou (mesma espera, mesma linha de base)', () => {
+  it('agent that disappears and comes back soon: continues from where it stopped (same wait, same baseline)', () => {
     const { tracker, day } = setup();
     const stats = (n: number) => ({ toolCalls: n, tokensIn: n * 1000, tokensOut: n * 10, subagents: 0 });
     tracker.observe(view(agent({ id: 'a', status: 'waiting', statusSince: T0, stats: stats(10) })), T0);
@@ -192,7 +192,7 @@ describe('StatsTracker: tempo por status', () => {
     expect(tracker.size).toBe(1);
   });
 
-  it('agente que some por mais que a pausa máxima: a espera fecha e o intervalo não conta', () => {
+  it('agent that disappears for longer than the maximum pause: the wait closes and the interval does not count', () => {
     const { tracker, day } = setup();
     const waiting = agent({ id: 'a', status: 'waiting', statusSince: T0 });
     tracker.observe(view(waiting), T0);
@@ -206,7 +206,7 @@ describe('StatsTracker: tempo por status', () => {
     expect(d.waits.map((w) => w.ms)).toEqual([30 * S, 10 * S]);
   });
 
-  it('a virada do dia parte o intervalo na meia-noite (dias de arquivo separados)', () => {
+  it('the day rollover splits the interval at midnight (separate file days)', () => {
     const { book, tracker } = setup();
     const midnight = Date.UTC(2026, 9, 9);
     tracker.observe(view(agent({ id: 'a', status: 'waiting', statusSince: midnight - 5 * MIN })), midnight - 30 * S);
@@ -223,7 +223,7 @@ describe('StatsTracker: tempo por status', () => {
     expect(d1.waits[0].ms).toBe(60 * S);
   });
 
-  it('o dia é montado no fuso de quem pergunta', () => {
+  it('the day is built in the time zone of whoever asks', () => {
     const { book, tracker } = setup('UTC');
     // 02:00–02:10 UTC = 23:00–23:10 do dia anterior em São Paulo.
     const t = Date.UTC(2026, 9, 8, 2);
@@ -238,8 +238,8 @@ describe('StatsTracker: tempo por status', () => {
   });
 });
 
-describe('StatsTracker: contagens a partir dos números cumulativos', () => {
-  it('agente antigo: linha de base, releitura absorvida, deltas depois', () => {
+describe('StatsTracker: counts from the cumulative numbers', () => {
+  it('old agent: baseline, reread absorbed, deltas afterwards', () => {
     const { tracker, day } = setup('UTC', T0 - H);
     const a = (sec: number, toolCalls: number, tokensIn: number, extra: Partial<AgentInfo> = {}) =>
       tracker.observe(view(agent({ id: 'a', stats: { toolCalls, tokensIn, tokensOut: tokensIn / 100, subagents: 0 }, ...extra })), T0 + sec * S);
@@ -257,7 +257,7 @@ describe('StatsTracker: contagens a partir dos números cumulativos', () => {
     expect(c.tokensOut).toBe(610);
   });
 
-  it('custo que aparece num agente antigo é linha de base; tarefas só contam o que sobe', () => {
+  it('cost that appears on an old agent is baseline; tasks only count what goes up', () => {
     const { tracker, day } = setup('UTC', T0 - H);
     const tasks = (done: number, total = 3): TaskItem[] => Array.from({ length: total }, (_, i) => ({ id: String(i), title: `t${i}`, status: i < done ? 'completed' : 'pending' }));
     const obs = (sec: number, cost: number | undefined, done: number, total = 3) =>
@@ -272,18 +272,18 @@ describe('StatsTracker: contagens a partir dos números cumulativos', () => {
     expect(c.tasksDone).toBe(2);
   });
 
-  it('subagente e sessão que nascem durante a observação contam do zero', () => {
+  it('subagent and session born during the observation count from zero', () => {
     const { tracker, day } = setup('UTC', T0 - H);
     tracker.observe(view(agent({ id: 'main' })), T0);
     tracker.observe(
       view(
         agent({ id: 'main' }),
         agent({ id: 'sub', kind: 'sub', parentId: 'main', startedAt: T0 + 5 * S, stats: { toolCalls: 3, tokensIn: 20_000, tokensOut: 300, subagents: 0 } }),
-        agent({ id: 'novo', startedAt: T0 + 4 * S }),
+        agent({ id: 'new', startedAt: T0 + 4 * S }),
       ),
       T0 + 6 * S,
     );
-    tracker.observe(view(agent({ id: 'novo', startedAt: T0 + 4 * S, stats: { toolCalls: 2, tokensIn: 9_000, tokensOut: 100, subagents: 0 } })), T0 + 7 * S);
+    tracker.observe(view(agent({ id: 'new', startedAt: T0 + 4 * S, stats: { toolCalls: 2, tokensIn: 9_000, tokensOut: 100, subagents: 0 } })), T0 + 7 * S);
     const d = day();
     expect(d.totals.counts.toolCalls).toBe(5);
     expect(d.totals.counts.tokensIn).toBe(29_000);
@@ -291,7 +291,7 @@ describe('StatsTracker: contagens a partir dos números cumulativos', () => {
     expect(d.totals.sessions).toBe(2);
   });
 
-  it('/clear conta do zero; /resume vira linha de base', () => {
+  it('/clear counts from zero; /resume becomes baseline', () => {
     const { tracker, day } = setup('UTC', T0 - H);
     const obs = (sec: number, sessionId: string, toolCalls: number) =>
       tracker.observe(view(agent({ id: 'a', sessionId, stats: { toolCalls, tokensIn: 0, tokensOut: 0, subagents: 0 } })), T0 + sec * S);
@@ -307,10 +307,10 @@ describe('StatsTracker: contagens a partir dos números cumulativos', () => {
     expect(d.totals.sessions).toBe(3);
   });
 
-  it('prompts: só os de depois do início, cada um uma vez', () => {
+  it('prompts: only the ones from after the start, each one once', () => {
     const { tracker, day } = setup('UTC', T0);
     const prompt = (id: string, at: number) => ({ id, kind: 'prompt' as const, icon: '📨', text: 'Got a request', at });
-    const recent = [prompt('velho', T0 - MIN), prompt('p1', T0 + 2 * S)];
+    const recent = [prompt('old', T0 - MIN), prompt('p1', T0 + 2 * S)];
     tracker.observe(view(agent({ id: 'a', recent })), T0 + 3 * S);
     tracker.observe(view(agent({ id: 'a', recent: [...recent, prompt('p2', T0 + 4 * S)] })), T0 + 5 * S);
     tracker.observe(view(agent({ id: 'a', recent: [...recent, prompt('p2', T0 + 4 * S)] })), T0 + 6 * S);
@@ -318,10 +318,10 @@ describe('StatsTracker: contagens a partir dos números cumulativos', () => {
   });
 });
 
-describe('limite de esperas por dia', () => {
+describe('limit of waits per day', () => {
   const wait = (i: number, over: Partial<WaitRecord> = {}): WaitRecord => ({ agentId: `a${i}`, agentName: 'A', roomId: '/p/x', account: 'c', start: T0 + i, end: T0 + i + 1_000 + i, ...over });
 
-  it('esperas fechadas: sai a mais curta e o total fica no limite', () => {
+  it('closed waits: the shortest one goes out and the total stays at the limit', () => {
     const book = new StatsBook((t) => dayKeyOf(t, 'UTC'));
     const day = book.day(DAY);
     for (let i = 0; i < MAX_WAITS_PER_DAY + 20; i++) book.addWait(wait(i));
@@ -330,7 +330,7 @@ describe('limite de esperas por dia', () => {
     expect(day.waits.some((w) => w.agentId === `a${MAX_WAITS_PER_DAY + 19}`)).toBe(true); // a mais longa ficou
   });
 
-  it('todas ainda abertas: o limite vale do mesmo jeito (sai a mais curta)', () => {
+  it('all still open: the limit applies just the same (the shortest one goes out)', () => {
     const book = new StatsBook((t) => dayKeyOf(t, 'UTC'));
     const day = book.day(DAY);
     for (let i = 0; i < MAX_WAITS_PER_DAY + 50; i++) book.addWait(wait(i, { open: true }));
@@ -339,7 +339,7 @@ describe('limite de esperas por dia', () => {
     expect(day.waits.some((w) => w.agentId === `a${MAX_WAITS_PER_DAY + 49}`)).toBe(true);
   });
 
-  it('uma espera aberta nova que é a mais curta de todas não entra', () => {
+  it('a new open wait that is the shortest of all does not get in', () => {
     const book = new StatsBook((t) => dayKeyOf(t, 'UTC'));
     const day = book.day(DAY);
     for (let i = 0; i < MAX_WAITS_PER_DAY; i++) book.addWait(wait(i + 10, { open: true }));
@@ -350,8 +350,8 @@ describe('limite de esperas por dia', () => {
   });
 });
 
-describe('arquivo do dia', () => {
-  it('ida e volta pelo JSON preserva a consulta', () => {
+describe('day file', () => {
+  it('round trip through JSON preserves the query', () => {
     const { book, tracker } = setup();
     tracker.observe(view(agent({ id: 'a' }), agent({ id: 'b', status: 'waiting', statusSince: T0, roomId: '/p/api' })), T0);
     tracker.observe(view(agent({ id: 'a' }), agent({ id: 'b', status: 'waiting', statusSince: T0, roomId: '/p/api' })), T0 + MIN);
@@ -363,15 +363,15 @@ describe('arquivo do dia', () => {
     expect(back[0].waits[0].open).toBe(true);
   });
 
-  it('arquivo estranho: versão desconhecida é recusada e lixo é saneado', () => {
+  it('strange file: unknown version is rejected and garbage is sanitized', () => {
     expect(parseDayFile(null, DAY)).toBeNull();
     expect(parseDayFile({ version: 2, hours: [] }, DAY)).toBeNull();
-    expect(parseDayFile('texto', DAY)).toBeNull();
+    expect(parseDayFile('text', DAY)).toBeNull();
     const raw = JSON.parse(
       JSON.stringify({
         version: 1,
         hours: [
-          { t: T0, ms: { working: -5, waiting: 'x', idle: 1e400, shell: 7 }, counts: { prompts: 2 }, rooms: [['__proto__', { ms: { working: 3 } }], 'lixo'], agents: [['m:s', '/p', '.c'], 5] },
+          { t: T0, ms: { working: -5, waiting: 'x', idle: 1e400, shell: 7 }, counts: { prompts: 2 }, rooms: [['__proto__', { ms: { working: 3 } }], 'junk'], agents: [['m:s', '/p', '.c'], 5] },
           { t: T0 + 123, ms: { working: 1 } },
         ],
         rooms: [['__proto__', 'x'], [1, 2]],
@@ -390,8 +390,8 @@ describe('arquivo do dia', () => {
   });
 });
 
-describe('histórico fictício do demo', () => {
-  it('preenche o dia com as salas e contas do demo, de forma determinística', () => {
+describe('fictitious demo history', () => {
+  it('fills the day with the demo rooms and accounts, deterministically', () => {
     const v: StatsView = {
       agents: [
         agent({ id: 'demo:1', roomId: 'demo:/dev/online-store', account: 'demo:.claude' }),

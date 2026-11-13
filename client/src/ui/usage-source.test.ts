@@ -8,7 +8,7 @@ const codex = (over: Partial<Acc> = {}): Acc => ({ provider: 'codex', usageStatu
 const win = { utilization: 42, resetsAt: 10 * 60 * MIN };
 
 describe('sourceLabel', () => {
-  it('diz quem gravou o uso ao vivo', () => {
+  it('says who recorded the live usage', () => {
     expect(sourceLabel({ source: 'statusline', via: 'mod', fetchedAt: 0 })).toBe('live (Habblaud mod)');
     expect(sourceLabel({ source: 'statusline', via: 'tap', fetchedAt: 0 })).toBe('live (Claude Code statusline)');
     expect(sourceLabel({ source: 'statusline', fetchedAt: 0 })).toBe('live (Claude Code statusline)');
@@ -17,8 +17,8 @@ describe('sourceLabel', () => {
   });
 });
 
-describe('cartão de uso de uma conta do Codex', () => {
-  it('"sem cota" é um estado próprio (nunca 0% nem "sem dados")', () => {
+describe('usage card of a Codex account', () => {
+  it('"no quota" is a state of its own (never 0% or "no data")', () => {
     const noQuota = codex({ usage: { source: 'codex', noQuota: true, fetchedAt: 0 } });
     expect(cardState(noQuota)).toBe('noquota');
     expect(usageMessage(noQuota)).toEqual(['no quota', 'no quota']);
@@ -28,7 +28,7 @@ describe('cartão de uso de uma conta do Codex', () => {
     expect(cardState(codex())).toBe('empty');
   });
 
-  it('a idade fica sempre à mostra no Codex (só se renova com sessão rodando); no Claude Code, só quando é antiga', () => {
+  it('the age always shows in Codex (it only renews with a session running); in Claude Code, only when it is old', () => {
     const fresh = { source: 'codex' as const, fiveHour: win, fetchedAt: 0 };
     expect(showsUsageAge(codex({ usage: fresh }))).toBe(true);
     expect(showsUsageAge(codex({ usage: { source: 'codex', noQuota: true, fetchedAt: 0 } }))).toBe(true);
@@ -38,7 +38,7 @@ describe('cartão de uso de uma conta do Codex', () => {
     expect(codexUsageNote(codex({ usage: fresh }), 12 * MIN)).toBe('Codex only records usage while a session is running: these numbers are from the last reading (12 min ago).');
   });
 
-  it('sem números: não há o que instalar; embaixo do nome, o plano (sem e-mail)', () => {
+  it('no numbers: there is nothing to install; under the name, the plan (no email)', () => {
     expect(usageMessage(codex())).toEqual(['no data yet', 'no data']);
     expect(codexUsageNote(codex(), 0)).toBe('Nothing to install: the numbers arrive with the next Codex session.');
     expect(usageSubtitle(codex())).toBe('Team plan');

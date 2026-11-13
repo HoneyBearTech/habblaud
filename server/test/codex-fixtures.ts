@@ -46,12 +46,12 @@ export const R = {
       session_id: o.sessionId ?? t,
       id: t,
       timestamp: ts(o.at ?? Date.now()),
-      cwd: o.cwd ?? '/projetos/loja',
+      cwd: o.cwd ?? '/projects/store',
       originator: 'codex_cli_rs',
       cli_version: '0.162.0',
       source: o.source ?? 'cli',
       model_provider: 'openai',
-      base_instructions: { text: 'Instruções base sintéticas. '.repeat(40) },
+      base_instructions: { text: 'Synthetic base instructions. '.repeat(40) },
       git: { branch: o.branch ?? 'main', commit_hash: 'abc123' },
     };
     if (o.history !== null) payload.history_mode = o.history ?? 'paginated';
@@ -59,7 +59,7 @@ export const R = {
     return line('session_meta', payload, o.at ?? Date.now());
   },
   turnContext(o: { at?: number; cwd?: string; model?: string } = {}): string {
-    return line('turn_context', { cwd: o.cwd ?? '/projetos/loja', model: o.model ?? 'gpt-teste-codex', effort: 'medium', approval_policy: 'on-request' }, o.at ?? Date.now());
+    return line('turn_context', { cwd: o.cwd ?? '/projects/store', model: o.model ?? 'gpt-test-codex', effort: 'medium', approval_policy: 'on-request' }, o.at ?? Date.now());
   },
   taskStarted(turn: string, at = Date.now(), trigger?: string): string {
     const p: Record<string, unknown> = { type: 'task_started', turn_id: turn, started_at: Math.floor(at / 1000), model_context_window: 200_000 };
@@ -67,7 +67,7 @@ export const R = {
     return line('event_msg', p, at);
   },
   taskComplete(turn: string, at = Date.now(), durationMs = 4_000): string {
-    return line('event_msg', { type: 'task_complete', turn_id: turn, last_agent_message: 'pronto', duration_ms: durationMs }, at);
+    return line('event_msg', { type: 'task_complete', turn_id: turn, last_agent_message: 'done', duration_ms: durationMs }, at);
   },
   turnAborted(turn: string, at = Date.now(), reason = 'interrupted'): string {
     return line('event_msg', { type: 'turn_aborted', turn_id: turn, reason }, at);
@@ -90,7 +90,7 @@ export const R = {
         type: 'CommandExecution',
         id,
         command: ['/bin/zsh', '-lc', script],
-        cwd: 'file:///projetos/loja',
+        cwd: 'file:///projects/store',
         parsed_cmd: [{ type: 'unknown', cmd: script }],
         source: 'agent',
         status: o.status ?? (exit === 0 ? 'completed' : 'failed'),

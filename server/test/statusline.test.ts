@@ -32,7 +32,7 @@ function statusJson(over: Record<string, unknown> = {}): string {
     session_id: 'sess-1',
     transcript_path: '/fake/home/.claude-conta2/projects/-x-proj/sess-1.jsonl',
     cwd: '/x/proj',
-    model: { id: 'claude-teste', display_name: 'Teste' },
+    model: { id: 'claude-test', display_name: 'Test' },
     workspace: { current_dir: '/x/proj', project_dir: '/x/proj' },
     cost: { total_cost_usd: 1.23 },
     rate_limits: {
@@ -62,7 +62,7 @@ describe('statusline-tap.mjs', { timeout: 20_000 }, () => {
   const tap = (args: string[], input: string, extraEnv: NodeJS.ProcessEnv = {}) =>
     spawnSync(process.execPath, [TAP, ...args], { input, env: { ...env, ...extraEnv }, encoding: 'utf8', timeout: 10_000 });
 
-  it.skipIf(!SH)('repassa o stdin ao comando original e grava SÓ os limites, de forma atômica e com modo 600', () => {
+  it.skipIf(!SH)('passes stdin on to the original command and writes ONLY the limits, atomically and with mode 600', () => {
     const input = statusJson();
     const r = tap(['--', 'cat'], input);
     expect(r.status).toBe(0);
@@ -82,10 +82,10 @@ describe('statusline-tap.mjs', { timeout: 20_000 }, () => {
     expect(Math.abs(rec.fetchedAt - Date.now())).toBeLessThan(30_000);
     // Nada do resto do stdin (custo, sessão, cwd...).
     const raw = readFileSync(file, 'utf8');
-    for (const leak of ['sess-1', 'total_cost_usd', '/x/proj', 'claude-teste']) expect(raw).not.toContain(leak);
+    for (const leak of ['sess-1', 'total_cost_usd', '/x/proj', 'claude-test']) expect(raw).not.toContain(leak);
   });
 
-  it.skipIf(!SH)('sai com o código do comando original; comandos com pipe e aspas continuam valendo', () => {
+  it.skipIf(!SH)('exits with the code of the original command; commands with pipe and quotes still work', () => {
     expect(tap(['--', 'exit', '7'], statusJson()).status).toBe(7);
     // O instalador põe o comando complexo entre aspas simples; o shell do Claude Code as tira e o tap
     // recebe o comando inteiro como um único argumento.
@@ -99,34 +99,34 @@ describe('statusline-tap.mjs', { timeout: 20_000 }, () => {
     expect(viaShell.stdout).toBe('A B|');
   });
 
-  it('sem comando original: não imprime nada, mas captura', () => {
+  it('no original command: prints nothing, but captures', () => {
     const r = tap([], statusJson());
     expect(r.status).toBe(0);
     expect(r.stdout).toBe('');
     expect(existsSync(join(usageDir, '.claude-conta2.json'))).toBe(true);
   });
 
-  it.skipIf(!SH)('sem rate_limits, JSON inválido ou pasta de uso impossível: nunca atrapalha o statusline', () => {
+  it.skipIf(!SH)('no rate_limits, invalid JSON or impossible usage folder: never gets in the way of the statusline', () => {
     const noLimits = statusJson({ rate_limits: undefined });
     expect(tap(['--', 'cat'], noLimits).stdout).toBe(noLimits);
-    expect(tap(['--', 'cat'], 'isto não é json').stdout).toBe('isto não é json');
+    expect(tap(['--', 'cat'], 'this is not json').stdout).toBe('this is not json');
     expect(existsSync(usageDir)).toBe(false);
     // HABBLAUD_USAGE_DIR aponta para um arquivo: a gravação falha em silêncio.
-    writeFileSync(join(tmp.dir, 'arquivo'), 'x');
-    const r = tap(['--', 'echo', 'ok'], statusJson(), { HABBLAUD_USAGE_DIR: join(tmp.dir, 'arquivo') });
+    writeFileSync(join(tmp.dir, 'file'), 'x');
+    const r = tap(['--', 'echo', 'ok'], statusJson(), { HABBLAUD_USAGE_DIR: join(tmp.dir, 'file') });
     expect(r.status).toBe(0);
     expect(r.stdout).toBe('ok\n');
     expect(r.stderr).toBe('');
   });
 
-  it('sem transcript_path: CLAUDE_CONFIG_DIR (primeiro da lista) e depois ~/.claude', () => {
-    tap([], statusJson({ transcript_path: undefined }), { CLAUDE_CONFIG_DIR: '/outra/.claude-trabalho,/x' });
-    expect(JSON.parse(readFileSync(join(usageDir, '.claude-trabalho.json'), 'utf8')).configDir).toBe(resolve('/outra/.claude-trabalho'));
+  it('no transcript_path: CLAUDE_CONFIG_DIR (first in the list) and then ~/.claude', () => {
+    tap([], statusJson({ transcript_path: undefined }), { CLAUDE_CONFIG_DIR: '/other/.claude-work,/x' });
+    expect(JSON.parse(readFileSync(join(usageDir, '.claude-work.json'), 'utf8')).configDir).toBe(resolve('/other/.claude-work'));
     tap([], statusJson({ transcript_path: undefined }));
     expect(JSON.parse(readFileSync(join(usageDir, '.claude.json'), 'utf8')).configDir).toBe(join(env.HOME!, '.claude'));
   });
 
-  it('não regrava valores idênticos em menos de 10 s', () => {
+  it('does not rewrite identical values in less than 10 s', () => {
     tap([], statusJson());
     const file = join(usageDir, '.claude-conta2.json');
     const first = JSON.parse(readFileSync(file, 'utf8')).fetchedAt;
@@ -138,21 +138,21 @@ describe('statusline-tap.mjs', { timeout: 20_000 }, () => {
     expect(changed.seven_day).toBeUndefined();
   });
 
-  it.skipIf(process.platform === 'win32')('originalShell fora do Windows: o shell padrão do Node (/bin/sh)', () => {
+  it.skipIf(process.platform === 'win32')('originalShell outside Windows: the default Node shell (/bin/sh)', () => {
     expect(originalShell({ PATH: process.env.PATH })).toBe(true);
   });
 
-  it.runIf(process.platform === 'win32')('originalShell no Windows: CLAUDE_CODE_GIT_BASH_PATH ou o Git Bash ao lado do git.exe do PATH', () => {
+  it.runIf(process.platform === 'win32')('originalShell on Windows: CLAUDE_CODE_GIT_BASH_PATH or the Git Bash next to the git.exe in the PATH', () => {
     const git = join(tmp.dir, 'Git');
-    for (const f of ['cmd/git.exe', 'mingw64/bin/git.exe', 'bin/bash.exe', 'outro/bash.exe']) {
+    for (const f of ['cmd/git.exe', 'mingw64/bin/git.exe', 'bin/bash.exe', 'other/bash.exe']) {
       mkdirSync(dirname(join(git, f)), { recursive: true });
       writeFileSync(join(git, f), '');
     }
     const bash = join(git, 'bin', 'bash.exe');
     expect(originalShell({ PATH: join(git, 'cmd') })).toBe(bash);
     expect(originalShell({ PATH: join(git, 'mingw64', 'bin') })).toBe(bash);
-    expect(originalShell({ PATH: join(git, 'cmd'), CLAUDE_CODE_GIT_BASH_PATH: join(git, 'outro', 'bash.exe') })).toBe(join(git, 'outro', 'bash.exe'));
-    expect(originalShell({ PATH: join(git, 'cmd'), CLAUDE_CODE_GIT_BASH_PATH: join(git, 'nao-existe.exe') })).toBe(bash);
+    expect(originalShell({ PATH: join(git, 'cmd'), CLAUDE_CODE_GIT_BASH_PATH: join(git, 'other', 'bash.exe') })).toBe(join(git, 'other', 'bash.exe'));
+    expect(originalShell({ PATH: join(git, 'cmd'), CLAUDE_CODE_GIT_BASH_PATH: join(git, 'does-not-exist.exe') })).toBe(bash);
     expect(originalShell({ PATH: tmp.dir })).toBe(true);
     expect(originalShell({})).toBe(true);
     // Entrada relativa do PATH não conta: resolveria contra a pasta atual.
@@ -161,30 +161,30 @@ describe('statusline-tap.mjs', { timeout: 20_000 }, () => {
   });
 });
 
-describe('statusline-install.ts (funções puras)', () => {
-  it('tildify: ~/ para o que está no HOME (no Windows, também com \\), o resto como está', () => {
+describe('statusline-install.ts (pure functions)', () => {
+  it('tildify: ~/ for what is in HOME (on Windows, also with \\), the rest as is', () => {
     const home = resolve('/u/fulano');
     expect(tildify(home, home)).toBe('~');
     expect(tildify(join(home, '.claude', 'settings.json'), home)).toBe('~/.claude/settings.json');
-    expect(tildify(`${home}-outro`, home)).toBe(`${home}-outro`);
+    expect(tildify(`${home}-other`, home)).toBe(`${home}-other`);
     expect(tildify(resolve('/x/y'), home)).toBe(resolve('/x/y'));
   });
 
   const tapPath = '/repo/habblaud/scripts/statusline-tap.mjs';
 
-  it('envolve e desembrulha preservando o comando original', () => {
+  it('wraps and unwraps preserving the original command', () => {
     expect(wrapCommand('node', tapPath, 'npx -y ccstatusline')).toBe('node "/repo/habblaud/scripts/statusline-tap.mjs" -- npx -y ccstatusline');
     expect(wrapCommand('node', tapPath)).toBe('node "/repo/habblaud/scripts/statusline-tap.mjs"');
-    for (const original of ['npx -y ccstatusline', `bash -c 'echo "oi" | head -1'`, '~/.claude/statusline.sh 2>/dev/null', `echo 'it'"'"'s'`]) {
+    for (const original of ['npx -y ccstatusline', `bash -c 'echo "hi" | head -1'`, '~/.claude/statusline.sh 2>/dev/null', `echo 'it'"'"'s'`]) {
       const wrapped = wrapCommand('/opt/homebrew/bin/node', tapPath, original);
       expect(unwrapCommand(wrapped)).toEqual({ tapPath, original });
     }
-    expect(unwrapCommand(wrapCommand('node', '/caminho com $ e "/statusline-tap.mjs', 'x'))).toEqual({ tapPath: '/caminho com $ e "/statusline-tap.mjs', original: 'x' });
+    expect(unwrapCommand(wrapCommand('node', '/path with $ and "/statusline-tap.mjs', 'x'))).toEqual({ tapPath: '/path with $ and "/statusline-tap.mjs', original: 'x' });
     expect(unwrapCommand('npx -y ccstatusline')).toBeUndefined();
     expect(decodeOriginal(encodeOriginal('a | b'))).toBe('a | b');
   });
 
-  it('planos de instalação e remoção', () => {
+  it('install and removal plans', () => {
     const settings = { model: 'opus', statusLine: { type: 'command', command: 'npx -y ccstatusline', padding: 0 }, permissions: { allow: ['Bash(ls:*)'] } };
     const inst = planInstall(settings, 'node', tapPath);
     expect(inst.action).toBe('install');
@@ -193,8 +193,8 @@ describe('statusline-install.ts (funções puras)', () => {
     expect(Object.keys(inst.settings)).toEqual(['model', 'statusLine', 'permissions']);
     expect(planInstall(inst.settings, 'node', tapPath).action).toBe('none');
     // Repo mudou de lugar: atualiza o caminho sem perder o original.
-    const moved = planInstall(inst.settings, 'node', '/novo/scripts/statusline-tap.mjs');
-    expect(moved.action === 'install' && unwrapCommand(String((moved.settings.statusLine as { command: string }).command))).toEqual({ tapPath: '/novo/scripts/statusline-tap.mjs', original: 'npx -y ccstatusline' });
+    const moved = planInstall(inst.settings, 'node', '/new/scripts/statusline-tap.mjs');
+    expect(moved.action === 'install' && unwrapCommand(String((moved.settings.statusLine as { command: string }).command))).toEqual({ tapPath: '/new/scripts/statusline-tap.mjs', original: 'npx -y ccstatusline' });
     const un = planUninstall(inst.settings);
     expect(un.action === 'uninstall' && un.settings).toEqual(settings);
     expect(planUninstall(settings).action).toBe('none');
@@ -202,12 +202,12 @@ describe('statusline-install.ts (funções puras)', () => {
     const created = planInstall({ model: 'x' }, 'node', tapPath);
     expect(created.action === 'install' && created.settings).toEqual({ model: 'x', statusLine: { type: 'command', command: wrapCommand('node', tapPath) } });
     expect(created.action === 'install' && planUninstall(created.settings)).toMatchObject({ action: 'uninstall', settings: { model: 'x' } });
-    expect(planInstall({ statusLine: 'texto' }, 'node', tapPath).action).toBe('skip');
-    expect(planInstall({ statusLine: { type: 'outro' } }, 'node', tapPath).action).toBe('skip');
+    expect(planInstall({ statusLine: 'text' }, 'node', tapPath).action).toBe('skip');
+    expect(planInstall({ statusLine: { type: 'other' } }, 'node', tapPath).action).toBe('skip');
   });
 
   // Lugares estáveis do macOS e do Linux; no Windows o binário é node.exe e o comando fica sempre "node".
-  it.skipIf(process.platform === 'win32')('node estável no PATH vira caminho absoluto; nvm/fnm viram só "node"', () => {
+  it.skipIf(process.platform === 'win32')('stable node in the PATH becomes an absolute path; nvm/fnm become just "node"', () => {
     const home = '/Users/fulano';
     const has = (set: string[]) => (p: string) => set.includes(p);
     expect(detectNodeCommand({ PATH: '/opt/homebrew/bin:/usr/bin' }, home, has(['/opt/homebrew/bin/node', '/usr/bin/node']))).toBe('/opt/homebrew/bin/node');
@@ -216,7 +216,7 @@ describe('statusline-install.ts (funções puras)', () => {
   });
 });
 
-describe('statusline-install.ts (arquivos, HOME falso)', () => {
+describe('statusline-install.ts (files, fake HOME)', () => {
   let tmp: ReturnType<typeof tempDir>;
   let home: string;
   let out: string[];
@@ -239,7 +239,7 @@ describe('statusline-install.ts (arquivos, HOME falso)', () => {
     );
   const read = (acc: string) => JSON.parse(readFileSync(join(home, acc, 'settings.json'), 'utf8'));
 
-  it('install: backup, só o statusLine muda, permissão preservada; de novo = nada a fazer', () => {
+  it('install: backup, only the statusLine changes, permission preserved; again = nothing to do', () => {
     expect(exec('install')).toBe(0);
     const c = read('.claude');
     expect(c.model).toBe('opus');
@@ -258,7 +258,7 @@ describe('statusline-install.ts (arquivos, HOME falso)', () => {
     expect(readdirSync(join(home, '.claude')).filter((f) => f.includes('backup'))).toHaveLength(1);
   });
 
-  it.skipIf(!SH)('o comando instalado funciona de verdade: repassa a saída e captura o uso', () => {
+  it.skipIf(!SH)('the installed command really works: passes the output on and captures the usage', () => {
     exec('install');
     const cmd: string = read('.claude').statusLine.command.replace('npx -y ccstatusline', 'cat');
     const usageDir = join(tmp.dir, 'usage');
@@ -268,7 +268,7 @@ describe('statusline-install.ts (arquivos, HOME falso)', () => {
     expect(JSON.parse(readFileSync(join(usageDir, '.claude.json'), 'utf8')).five_hour.utilization).toBe(42.5);
   });
 
-  it('status e uninstall devolvem tudo como era', () => {
+  it('status and uninstall return everything as it was', () => {
     exec('install');
     out = [];
     exec('status');
@@ -281,7 +281,7 @@ describe('statusline-install.ts (arquivos, HOME falso)', () => {
     expect(out.join('\n')).toContain("wasn't installed");
   });
 
-  it('nome antigo: o install leva ~/.codetown para ~/.habblaud (mesmo com HABBLAUD_USAGE_DIR em outro lugar); status e uninstall não', () => {
+  it('old name: install moves ~/.codetown to ~/.habblaud (even with HABBLAUD_USAGE_DIR somewhere else); status and uninstall do not', () => {
     mkdirSync(join(home, '.codetown', 'usage'), { recursive: true });
     writeFileSync(join(home, '.codetown', 'usage', '.claude.json'), '{"fetchedAt":1}');
     exec('status');
@@ -302,7 +302,7 @@ describe('statusline-install.ts (arquivos, HOME falso)', () => {
   });
 
   // No Windows o chmod não tira a escrita de uma pasta: o rename passaria.
-  it.skipIf(!HAS_POSIX_MODES)('nome antigo: se não der para mover, avisa e instala assim mesmo', () => {
+  it.skipIf(!HAS_POSIX_MODES)('old name: if it cannot be moved, warns and installs anyway', () => {
     mkdirSync(join(home, '.codetown', 'usage'), { recursive: true });
     // HOME só de leitura: o rename de ~/.codetown falha (as contas, por dentro, seguem graváveis).
     chmodSync(home, 0o555);
@@ -316,18 +316,18 @@ describe('statusline-install.ts (arquivos, HOME falso)', () => {
     expect(read('.claude').statusLine.command).toContain('statusline-tap.mjs');
   });
 
-  it('--dry-run não grava; JSON inválido nunca é sobrescrito', () => {
+  it('--dry-run does not write; invalid JSON is never overwritten', () => {
     const before = readFileSync(join(home, '.claude', 'settings.json'), 'utf8');
     exec('install', { dryRun: true });
     expect(readFileSync(join(home, '.claude', 'settings.json'), 'utf8')).toBe(before);
     expect(existsSync(join(home, '.claude-conta2', 'settings.json'))).toBe(false);
-    writeFileSync(join(home, '.claude-conta2', 'settings.json'), '{ quebrado');
+    writeFileSync(join(home, '.claude-conta2', 'settings.json'), '{ broken');
     expect(exec('install')).toBe(1);
-    expect(readFileSync(join(home, '.claude-conta2', 'settings.json'), 'utf8')).toBe('{ quebrado');
+    expect(readFileSync(join(home, '.claude-conta2', 'settings.json'), 'utf8')).toBe('{ broken');
     expect(out.join('\n')).toContain('invalid JSON');
   });
 
-  it('writeSettings: sem corrida, grava e o backup é o conteúdo que o rename substituiu', () => {
+  it('writeSettings: no race, writes and the backup is the content that the rename replaced', () => {
     const file = join(home, '.claude', 'settings.json');
     const raw = readFileSync(file, 'utf8');
     const next = { ...original, statusLine: { type: 'command', command: 'tap' } };
@@ -338,7 +338,7 @@ describe('statusline-install.ts (arquivos, HOME falso)', () => {
     if (HAS_POSIX_MODES) expect(statSync(file).mode & 0o777).toBe(0o644);
   });
 
-  it('writeSettings: edição concorrente entre a leitura e a gravação aborta e o arquivo fica intacto', () => {
+  it('writeSettings: concurrent edit between the read and the write aborts and the file stays intact', () => {
     const file = join(home, '.claude', 'settings.json');
     const raw = readFileSync(file, 'utf8');
     const concurrent = `${JSON.stringify({ ...original, enabledPlugins: { outro: true } }, null, 2)}\n`;

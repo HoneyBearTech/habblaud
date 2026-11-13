@@ -93,15 +93,15 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 
-describe('FeedPanel pausado', () => {
-  it.each(['SSE', 'social'])('guarda só os 50 eventos mais novos de %s, sem perder a contagem por conta', (source) => {
-    const shown = agent('visível');
-    const hidden = agent('oculto', '.claude-2');
-    const old = item('antes', shown);
+describe('FeedPanel paused', () => {
+  it.each(['SSE', 'social'])('keeps only the 50 newest events from %s, without losing the count per account', (source) => {
+    const shown = agent('visible');
+    const hidden = agent('hidden', '.claude-2');
+    const old = item('before', shown);
     const p = panel([old], [shown, hidden]);
     p.scroller.scrollTop = 0;
     p.scroller.fire('scroll');
-    const fresh = Array.from({ length: 120 }, (_, i) => item(`novo-${i}`, i < 70 ? shown : hidden));
+    const fresh = Array.from({ length: 120 }, (_, i) => item(`new-${i}`, i < 70 ? shown : hidden));
     if (source === 'SSE') p.receive(fresh);
     else for (const f of fresh) p.social({ id: f.id, agentId: f.agentId, at: f.activity.at, icon: f.activity.icon, text: f.activity.text, place: f.roomName });
     // A retenção é observada só para comprovar o teto de memória, além da saída do painel.
@@ -109,7 +109,7 @@ describe('FeedPanel pausado', () => {
     expect(retained).toHaveLength(50);
     expect(retained.map((f) => f.id)).toEqual(fresh.slice(70).map((f) => f.id));
     p.view.render();
-    expect(p.list.children.map((e) => e.dataset.key)).toEqual(['antes']);
+    expect(p.list.children.map((e) => e.dataset.key)).toEqual(['before']);
     expect(p.pill.textContent).toBe('99 new');
     p.prefs.hiddenAccounts = ['.claude-2'];
     p.view.render();
@@ -122,35 +122,35 @@ describe('FeedPanel pausado', () => {
     expect(p.pill.hidden).toBe(true);
     p.scroller.scrollTop = 0;
     p.scroller.fire('scroll');
-    p.receive([item('depois', shown)]);
+    p.receive([item('after', shown)]);
     p.view.render();
     expect(p.pill.textContent).toBe('1 new');
   });
 
-  it.each(['retomar', 'recolher'])('preserva os metadados das linhas e pendências, liberando o resto ao %s', (action) => {
-    const old = agent('antigo');
-    const p = panel([item('antes', old)], [old]);
+  it.each(['resume', 'collapse'])('preserves the metadata of the rows and pending items, releasing the rest on %s', (action) => {
+    const old = agent('old');
+    const p = panel([item('before', old)], [old]);
     const meta = (p.view as unknown as { meta: Map<string, Pick<AgentInfo, 'seed' | 'account'>> }).meta;
     p.scroller.scrollTop = 0;
     p.scroller.fire('scroll');
     for (let i = 0; i < 51; i++) {
-      const a = agent(`sessão-${i}`);
+      const a = agent(`session-${i}`);
       p.snapshot.agents = [a];
-      p.receive([item(`novo-${i}`, a)]);
+      p.receive([item(`new-${i}`, a)]);
       p.view.render();
     }
-    const retainedIds = ['antigo', ...Array.from({ length: 50 }, (_, i) => `sessão-${i + 1}`)];
+    const retainedIds = ['old', ...Array.from({ length: 50 }, (_, i) => `session-${i + 1}`)];
     expect([...meta.keys()]).toEqual(retainedIds);
     // A saída do agente não apaga a aparência/conta de um evento que ainda está guardado; quem está no escritório
     // fica mesmo sem evento (o render recriaria a cada quadro).
-    p.snapshot.agents = [agent('sem-evento')];
+    p.snapshot.agents = [agent('no-event')];
     p.view.render();
-    expect([...meta.keys()]).toEqual([...retainedIds, 'sem-evento']);
-    expect(meta.get('sessão-1')).toEqual(expect.objectContaining({ seed: 1, account: '.claude' }));
-    if (action === 'retomar') p.pill.fire('click');
+    expect([...meta.keys()]).toEqual([...retainedIds, 'no-event']);
+    expect(meta.get('session-1')).toEqual(expect.objectContaining({ seed: 1, account: '.claude' }));
+    if (action === 'resume') p.pill.fire('click');
     else p.close();
     p.view.render();
-    expect([...meta.keys()]).toEqual([...retainedIds.slice(1), 'sem-evento']);
+    expect([...meta.keys()]).toEqual([...retainedIds.slice(1), 'no-event']);
     expect(p.list.children).toHaveLength(50);
     expect(p.list.children[0].firstElementChild!.children[1].dataset.sig).toContain('1|f|main|');
   });

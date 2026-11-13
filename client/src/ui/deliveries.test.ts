@@ -3,14 +3,14 @@ import { arrivals, fileUrl, parseDeliveries, projectName, unseenCount, workLine 
 
 const d = (id: string, finishedAt: number, extra: object = {}) => ({ id, headline: 'h', text: 't', finishedAt, startedAt: finishedAt - 600_000, tools: 3, edited: 0, attachments: [], request: '', account: 'a', sessionId: 's', ...extra });
 
-describe('entregas no navegador', () => {
-  it('valida a resposta e descarta anexo com id ou tipo estranho', () => {
+describe('deliveries in the browser', () => {
+  it('validates the response and discards an attachment with a strange id or type', () => {
     const list = parseDeliveries({ deliveries: [d('1', 10, { attachments: [{ id: 'abcdef1234', name: 'a.png', kind: 'image' }, { id: '../x', name: 'b', kind: 'image' }, { id: 'abcdef1234', name: 'c', kind: 'exe' }] }), { id: 2 }] });
     expect(list).toHaveLength(1);
     expect(list[0].attachments.map((a) => a.name)).toEqual(['a.png']);
     expect(parseDeliveries(null)).toEqual([]);
   });
-  it('novas desde a última vez, chegadas para o aviso, linha do trabalho', () => {
+  it('new since the last time, arrivals for the notice, work line', () => {
     const list = parseDeliveries({ deliveries: [d('1', 300), d('2', 200), d('3', 100)] });
     expect(unseenCount(list, 150)).toBe(2);
     expect(arrivals(list, 0)).toEqual([]);

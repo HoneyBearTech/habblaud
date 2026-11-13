@@ -15,7 +15,7 @@ function agent(id: string, extra: Partial<AgentInfo> = {}): AgentInfo {
   return {
     id,
     kind: 'main',
-    roomId: '/p/loja',
+    roomId: '/p/store',
     name: 'Marina',
     look: 'f',
     role: 'Main agent',
@@ -37,7 +37,7 @@ function snap(agents: AgentInfo[]): OfficeSnapshot {
   return {
     rev: 1,
     serverTime: T0,
-    rooms: agents.length ? [{ id: '/p/loja', name: 'loja', path: '/p/loja', slot: 0, seed: 3, createdAt: T0 }] : [],
+    rooms: agents.length ? [{ id: '/p/store', name: 'store', path: '/p/store', slot: 0, seed: 3, createdAt: T0 }] : [],
     agents,
     accounts: [],
     meta: { demo: false, sources: [], startedAt: T0, version: 't' },
@@ -61,8 +61,8 @@ const read = (day = '2026-10-07'): TimelineRecord[] => {
   return existsSync(f) ? parseTimeline(readFileSync(f, 'utf8')) : [];
 };
 
-describe('gravador da linha do tempo', () => {
-  it('keyframe primeiro; deltas com throttle de 1 s e só quando algo mudou', () => {
+describe('timeline recorder', () => {
+  it('keyframe first; deltas with a 1 s throttle and only when something changed', () => {
     const rec = recorder();
     rec.ingest(snap([agent('.claude:1')]));
     let recs = read();
@@ -74,17 +74,17 @@ describe('gravador da linha do tempo', () => {
     rec.ingest(snap([agent('.claude:1', { status: 'idle', statusSince: now })]));
     expect(read()).toHaveLength(1); // dentro do throttle
     now += 300;
-    rec.ingest(snap([agent('.claude:1', { status: 'waiting', statusSince: now, waitingFor: 'responder' })]));
+    rec.ingest(snap([agent('.claude:1', { status: 'waiting', statusSince: now, waitingFor: 'answer' })]));
     expect(read()).toHaveLength(1);
     now += 600; // 1,1 s depois do keyframe: o relógio interno grava o estado mais recente
     rec.tick();
     recs = read();
     expect(recs).toHaveLength(2);
-    expect(recs[1]).toEqual({ t: 'd', at: now, agents: [['.claude:1', { status: 'waiting', statusSince: T0 + 500, waitingFor: 'responder' }]] });
+    expect(recs[1]).toEqual({ t: 'd', at: now, agents: [['.claude:1', { status: 'waiting', statusSince: T0 + 500, waitingFor: 'answer' }]] });
 
     // Mudança só no que o player não desenha (números, rev): nada.
     now += 5_000;
-    rec.ingest({ ...snap([agent('.claude:1', { status: 'waiting', statusSince: T0 + 500, waitingFor: 'responder', stats: { toolCalls: 9, tokensIn: 1, tokensOut: 1, subagents: 0 } })]), rev: 99 });
+    rec.ingest({ ...snap([agent('.claude:1', { status: 'waiting', statusSince: T0 + 500, waitingFor: 'answer', stats: { toolCalls: 9, tokensIn: 1, tokensOut: 1, subagents: 0 } })]), rev: 99 });
     rec.tick();
     expect(read()).toHaveLength(2);
 
@@ -101,11 +101,11 @@ describe('gravador da linha do tempo', () => {
     );
   });
 
-  it('o arquivo reconstrói o último estado (keyframe + deltas)', () => {
+  it('the file rebuilds the last state (keyframe + deltas)', () => {
     const rec = recorder();
     const states = [
       [agent('.claude:1')],
-      [agent('.claude:1', { activity: { id: 'a', kind: 'read', icon: '📖', text: 'Lendo App.tsx', at: T0 + 1 } })],
+      [agent('.claude:1', { activity: { id: 'a', kind: 'read', icon: '📖', text: 'Reading App.tsx', at: T0 + 1 } })],
       [agent('.claude:1', { status: 'shell', shells: [{ id: 'j', label: 'Build', startedAt: T0, background: true, kind: 'shell' }] }), agent('s:x', { kind: 'sub', parentId: '.claude:1' })],
       [agent('.claude:1', { status: 'idle', activity: { id: 'b', kind: 'done', icon: '✅', text: 'Done', at: T0 + 2 } })],
     ];
@@ -122,7 +122,7 @@ describe('gravador da linha do tempo', () => {
     expect(frame.agents.get('.claude:1')!.shells).toBeUndefined();
   });
 
-  it('keyframe periódico (a cada 5 min, mesmo sem mudança) e fim marcado ao parar', () => {
+  it('periodic keyframe (every 5 min, even with no change) and end marked on stop', () => {
     const rec = recorder();
     rec.ingest(snap([agent('.claude:1')]));
     now += 299_000;
@@ -144,7 +144,7 @@ describe('gravador da linha do tempo', () => {
     expect(read().at(-1)).toMatchObject({ t: 'k', boot: true, agents: [] });
   });
 
-  it('virada do dia: arquivo novo começando com keyframe', () => {
+  it('day rollover: new file starting with a keyframe', () => {
     now = new Date(2026, 9, 7, 23, 59, 59, 500).getTime();
     const rec = recorder();
     rec.ingest(snap([agent('.claude:1')]));
@@ -158,15 +158,15 @@ describe('gravador da linha do tempo', () => {
     expect((next[0] as TimelineKeyframe).agents).toHaveLength(1);
   });
 
-  it('retenção: apaga só arquivos de dia anteriores aos últimos 7 dias', () => {
+  it('retention: deletes only day files older than the last 7 days', () => {
     mkdirSync(dir, { recursive: true });
     const keep = ['2026-10-01', '2026-10-04', '2026-10-06'];
     const drop = ['2026-09-30', '2026-09-01', '2025-12-31'];
     for (const d of [...keep, ...drop]) writeFileSync(join(dir, `${d}.jsonl`), '{}\n');
-    writeFileSync(join(dir, 'anotacoes.txt'), 'x');
+    writeFileSync(join(dir, 'notes.txt'), 'x');
     writeFileSync(join(dir, '2026-02-30.jsonl'), 'x');
     recorder().ingest(snap([]));
-    expect(readdirSync(dir).sort()).toEqual(['2026-02-30.jsonl', ...keep.map((d) => `${d}.jsonl`), '2026-10-07.jsonl', 'anotacoes.txt'].sort());
+    expect(readdirSync(dir).sort()).toEqual(['2026-02-30.jsonl', ...keep.map((d) => `${d}.jsonl`), '2026-10-07.jsonl', 'notes.txt'].sort());
     // retentionDays 0 = nunca apaga (gerador do timelapse fictício)
     writeFileSync(join(dir, '2020-01-01.jsonl'), '{}\n');
     now = new Date(2026, 9, 8, 9).getTime();
@@ -174,12 +174,12 @@ describe('gravador da linha do tempo', () => {
     expect(existsSync(join(dir, '2020-01-01.jsonl'))).toBe(true);
   });
 
-  it('limite de tamanho: grava menos depois do limite suave e para no limite duro até a virada', () => {
+  it('size limit: writes less after the soft limit and stops at the hard limit until the rollover', () => {
     const rec = recorder({ softBytes: 1_500, hardBytes: 3_000, slowThrottleMs: 10_000, slowKeyframeMs: 600_000 });
     let i = 0;
     const step = (ms: number) => {
       now += ms;
-      rec.ingest(snap([agent('.claude:1', { activity: { id: String(i), kind: 'read', icon: '📖', text: `Lendo arquivo-${i++}.ts`, at: now } })]));
+      rec.ingest(snap([agent('.claude:1', { activity: { id: String(i), kind: 'read', icon: '📖', text: `Reading file-${i++}.ts`, at: now } })]));
     };
     step(0);
     while (!rec.state.slow) step(1_000);
@@ -206,9 +206,9 @@ describe('gravador da linha do tempo', () => {
     expect(read('2026-10-08')[0]).toMatchObject({ t: 'k' });
   });
 
-  it('falha de disco não lança: avisa, espera e volta com um keyframe', () => {
-    const blocked = join(tmp.dir, 'bloqueado');
-    writeFileSync(blocked, 'não sou pasta');
+  it('disk failure does not throw: warns, waits and comes back with a keyframe', () => {
+    const blocked = join(tmp.dir, 'blocked');
+    writeFileSync(blocked, 'I am not a folder');
     const rec = new TimelineRecorder({ dir: join(blocked, 'timeline'), now: () => now, retryMs: 60_000 });
     expect(() => rec.ingest(snap([agent('.claude:1')]))).not.toThrow();
     expect(rec.state.failing).toBe(true);
@@ -225,9 +225,9 @@ describe('gravador da linha do tempo', () => {
   });
 });
 
-describe('dias disponíveis', () => {
-  it('lista com tamanho e horário do primeiro e do último registro, do mais recente ao mais antigo', () => {
-    expect(listTimelineDays(join(tmp.dir, 'nao-existe'))).toEqual([]);
+describe('available days', () => {
+  it('list with size and time of the first and the last record, from most recent to oldest', () => {
+    expect(listTimelineDays(join(tmp.dir, 'does-not-exist'))).toEqual([]);
     mkdirSync(dir, { recursive: true });
     const a = join(dir, '2026-10-06.jsonl');
     writeFileSync(a, `${JSON.stringify({ t: 'k', at: 100, v: 1, every: 1, rooms: [], agents: [], accounts: [] })}\n${JSON.stringify({ t: 'd', at: 250, agents: [['x', { activity: { at: 999 } }]] })}\n`);
@@ -235,7 +235,7 @@ describe('dias disponíveis', () => {
     appendFileSync(a, '{"t":"d","at":300,"agents":[[');
     writeFileSync(join(dir, '2026-10-07.jsonl'), `${JSON.stringify({ t: 'k', at: 500, v: 1, every: 1, rooms: [], agents: [], accounts: [] })}\n`);
     writeFileSync(join(dir, '2026-10-05.jsonl'), '');
-    writeFileSync(join(dir, 'lixo.jsonl'), 'x');
+    writeFileSync(join(dir, 'junk.jsonl'), 'x');
     const days = listTimelineDays(dir);
     expect(days.map((d) => d.day)).toEqual(['2026-10-07', '2026-10-06']);
     expect(days[1]).toMatchObject({ from: 100, to: 250 });
@@ -243,7 +243,7 @@ describe('dias disponíveis', () => {
     expect(days[0]).toMatchObject({ from: 500, to: 500 });
   });
 
-  it('caminho do arquivo só para dias válidos', () => {
+  it('file path only for valid days', () => {
     expect(timelineFile('/d', '2026-10-07')).toBe(join('/d', '2026-10-07.jsonl'));
     expect(timelineFile('/d', '../etc/passwd')).toBeNull();
     expect(timelineFile('/d', '2026-10-07/../../x')).toBeNull();

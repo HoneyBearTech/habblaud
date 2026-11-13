@@ -34,7 +34,7 @@ const acc = (id: string, extra: Partial<DetectedAccount> = {}): DetectedAccount 
 const slash = (p: string) => p.replaceAll('\\', '/');
 
 describe('docker-up', () => {
-  it('a linha do Habblaud World: o padrão sem URL; ligado com o endereço conferido; o ambiente vale mais que o .env', () => {
+  it('the Habblaud World line: the default without URL; on with the checked address; the environment counts more than the .env', () => {
     expect(worldLine({})).toBe('Habblaud World: on: https://server.habblaud.com (default)');
     expect(worldLine({ HABBLAUD_WORLD_URL: 'wss://server.habblaud.com/' })).toBe('Habblaud World: on: https://server.habblaud.com');
     // Do .env (o Compose lê sozinho), com aspas.
@@ -46,17 +46,17 @@ describe('docker-up', () => {
     expect(worldLine({ HABBLAUD_WORLD_URL: '' }, file)).toBe('Habblaud World: on: https://server.habblaud.com (default)');
     expect(worldLine({ HABBLAUD_WORLD: '0' }, file)).toBe('Habblaud World: off (HABBLAUD_WORLD=0).');
     // Nunca repete a URL crua (pode ter usuário e senha).
-    expect(worldLine({ HABBLAUD_WORLD_URL: 'https://ana:segredo@server.habblaud.com' })).not.toContain('segredo');
+    expect(worldLine({ HABBLAUD_WORLD_URL: 'https://ana:secret@server.habblaud.com' })).not.toContain('secret');
   });
 
-  it('argumentos', () => {
+  it('arguments', () => {
     expect(parseArgs([])).toEqual({ down: false, build: true, help: false });
     expect(parseArgs(['--no-build'])).toEqual({ down: false, build: false, help: false });
     expect(parseArgs(['--down'])).toMatchObject({ down: true });
     expect(() => parseArgs(['--xyz'])).toThrow(/unknown option/);
   });
 
-  it('monta só projects/ e sessions/ que existem', () => {
+  it('mounts only the projects/ and sessions/ that exist', () => {
     const dirs = ['/Users/fulano/.claude', '/Users/fulano/.claude-conta2'];
     const exists = new Set(['/Users/fulano/.claude/projects', '/Users/fulano/.claude/sessions', '/Users/fulano/.claude-conta2/sessions']);
     const mounts = planMounts(dirs, [acc('.claude'), acc('.claude-conta2')], (p) => (exists.has(slash(p)) ? `/real${slash(p)}` : undefined));
@@ -69,18 +69,18 @@ describe('docker-up', () => {
     ]);
   });
 
-  it('cache de uso: só data e percentuais/reinícios das janelas exibidas', () => {
+  it('usage cache: only date and percentages/resets of the displayed windows', () => {
     expect(sanitizeCachedUsage(null)).toBeUndefined();
     expect(
       sanitizeCachedUsage({
         fetchedAtMs: 5,
-        accountUuid: 'nao',
+        accountUuid: 'no',
         utilization: { five_hour: { utilization: 10, resets_at: null }, seven_day: { utilization: 20, resets_at: 'x' }, extra_usage: { monthly_limit: 99 } },
       }),
     ).toEqual({ fetchedAtMs: 5, utilization: { five_hour: { utilization: 10 }, seven_day: { utilization: 20, resets_at: 'x' } } });
   });
 
-  it('override: somente leitura, sem criar pastas no host, `$` escapado e a pasta do statusline em /usage', () => {
+  it('override: read-only, without creating folders on the host, `$` escaped and the statusline folder at /usage', () => {
     const mounts = planMounts(['/Users/fu$lano/.claude'], [acc('.claude', { email: 'a@b.c', cachedUsage: { fetchedAtMs: 1, utilization: {} } })], slash);
     const yml = renderOverride(mounts, new Date('2026-10-06T00:00:00Z'), '/Users/fulano/.habblaud/usage');
     expect(yml).toContain('source: "/Users/fu$$lano/.claude/projects"');
@@ -97,13 +97,13 @@ describe('docker-up', () => {
     expect(yamlString('a"b$c')).toBe('"a\\"b$$c"');
   });
 
-  it('Codex: monta SÓ sessions/, archived_sessions/ e thread-writer-locks/ (somente leitura) e passa as contas com a pasta do host', () => {
+  it('Codex: mounts ONLY sessions/, archived_sessions/ and thread-writer-locks/ (read-only) and passes the accounts with the host folder', () => {
     expect([...CODEX_MOUNTED_SUBDIRS]).toEqual(['sessions', 'archived_sessions', 'thread-writer-locks']);
     const host = '/Users/fulano/.codex';
     // Existem no host também auth.json, config.toml, history.jsonl, shell_snapshots/, logs e SQLite: nada disso entra.
     const exists = new Set([`${host}/sessions`, `${host}/thread-writer-locks`, `${host}/auth.json`, `${host}/config.toml`, `${host}/shell_snapshots`, `${host}/history.jsonl`]);
     const codexAcc: DetectedAccount = { id: '.codex', provider: 'codex', configDir: host, short: 'CX', name: 'Codex', color: '#5cc97b', plan: 'Plus' };
-    const codex = planCodexMounts([host, '/Users/fulano/.codex-vazia'], [codexAcc, { ...codexAcc, id: '.codex-vazia' }], (p) => (exists.has(slash(p)) ? `/real${slash(p)}` : undefined));
+    const codex = planCodexMounts([host, '/Users/fulano/.codex-empty'], [codexAcc, { ...codexAcc, id: '.codex-empty' }], (p) => (exists.has(slash(p)) ? `/real${slash(p)}` : undefined));
     expect(codex.map((m) => m.binds)).toEqual([
       [
         { source: `/real${host}/sessions`, target: '/codex/.codex/sessions' },
@@ -132,7 +132,7 @@ describe('docker-up', () => {
     expect(codexDisabled({})).toBe(false);
   });
 
-  it('fuso do host vai para o container como TZ', () => {
+  it('host time zone goes to the container as TZ', () => {
     const mounts = planMounts(['/Users/fulano/.claude'], [acc('.claude')], slash);
     expect(renderOverride(mounts, new Date(0), undefined, 'America/Sao_Paulo')).toContain('TZ: "America/Sao_Paulo"');
     expect(renderOverride(mounts)).not.toContain('TZ:');
@@ -143,16 +143,16 @@ describe('docker-up', () => {
   });
 });
 
-describe('docker-up: migração do nome antigo (CodeTown)', () => {
+describe('docker-up: migration from the old name (CodeTown)', () => {
   const none: DockerState = { legacyContainer: false, legacyNetwork: false, legacyVolume: false, legacyImage: false, dataVolume: false };
   const upBuild = { kind: 'compose', args: ['up', '-d', '--build'] };
 
-  it('sem nada do CodeTown: só o compose up de sempre', () => {
+  it('nothing from CodeTown: only the usual compose up', () => {
     expect(planUp(none, true)).toEqual({ steps: [upBuild], cleanup: [] });
     expect(planUp(none, false)).toEqual({ steps: [{ kind: 'compose', args: ['up', '-d'] }], cleanup: [] });
   });
 
-  it('primeira subida depois do rename: tira container e rede, o Compose cria o volume e os dados são copiados', () => {
+  it('first start after the rename: removes container and network, Compose creates the volume and the data is copied', () => {
     const plan = planUp({ legacyContainer: true, legacyNetwork: true, legacyVolume: true, legacyImage: true, dataVolume: false }, true);
     expect(plan.steps).toEqual([
       { kind: 'remove-container', name: 'codetown' },
@@ -165,7 +165,7 @@ describe('docker-up: migração do nome antigo (CodeTown)', () => {
     expect(plan.cleanup).toEqual(['docker volume rm codetown_codetown-data', 'docker image rm codetown:local']);
   });
 
-  it('--no-build e container antigo já derrubado: cria parado sem reconstruir, copia e sobe', () => {
+  it('--no-build and old container already taken down: creates it stopped without rebuilding, copies and starts', () => {
     expect(planUp({ ...none, legacyVolume: true }, false)).toEqual({
       steps: [
         { kind: 'compose', args: ['up', '--no-start'] },
@@ -176,7 +176,7 @@ describe('docker-up: migração do nome antigo (CodeTown)', () => {
     });
   });
 
-  it('volume novo já existe: não copia por cima', () => {
+  it('new volume already exists: does not copy over it', () => {
     // Já migrado antes: o volume antigo ficou, mas não há o que fazer nem lembrar.
     expect(planUp({ ...none, legacyVolume: true, legacyImage: true, dataVolume: true }, true)).toEqual({ steps: [upBuild], cleanup: [] });
     // Container antigo de pé com os dois volumes: sai o container, sem cópia.
@@ -186,38 +186,38 @@ describe('docker-up: migração do nome antigo (CodeTown)', () => {
     });
   });
 
-  it('sobra só a rede ou a imagem: tira a rede, sem dica', () => {
+  it('only the network or the image is left: removes the network, without a hint', () => {
     expect(planUp({ ...none, legacyNetwork: true, legacyImage: true }, true)).toEqual({
       steps: [{ kind: 'remove-network', name: 'codetown_default' }, upBuild],
       cleanup: [],
     });
   });
 
-  it('cópia: imagem do Habblaud como root, sem rede, volume antigo só leitura', () => {
-    const args = copyVolumeArgs('velho', 'novo');
+  it('copy: Habblaud image as root, without network, old volume read-only', () => {
+    const args = copyVolumeArgs('old', 'new');
     expect(args[0]).toBe('run');
     expect(args).toContain('--rm');
     expect(args.join(' ')).toContain('--user 0:0 --entrypoint sh');
     expect(args.join(' ')).toContain('--network none');
-    expect(args.join(' ')).toContain('-v velho:/from:ro -v novo:/to habblaud:local -c ');
+    expect(args.join(' ')).toContain('-v old:/from:ro -v new:/to habblaud:local -c ');
     const script = args.at(-1)!;
     expect(script).toMatch(/^set -e; cp -a \/from\/\. \/to\/;/);
     expect(script).toContain('chown "$(stat -c %u:%g /from)" /to');
   });
 
-  it('.env: só os nomes das variáveis, nunca os valores', () => {
+  it('.env: only the names of the variables, never the values', () => {
     const text = [
-      '# CODETOWN_COMENTADA=1',
+      '# CODETOWN_COMMENTED=1',
       'CODETOWN_BIND=0.0.0.0',
       '  export CODETOWN_PORT = 4848',
       'HABBLAUD_DEMO=1',
       '',
-      'SEM_IGUAL',
-      '1INVALIDA=x',
-      'SEGREDO=CODETOWN_X=y\r',
+      'NO_EQUALS',
+      '1INVALID=x',
+      'SECRET=CODETOWN_X=y\r',
     ].join('\n');
     const keys = envFileKeys(text);
-    expect(keys).toEqual(['CODETOWN_BIND', 'CODETOWN_PORT', 'HABBLAUD_DEMO', 'SEGREDO']);
+    expect(keys).toEqual(['CODETOWN_BIND', 'CODETOWN_PORT', 'HABBLAUD_DEMO', 'SECRET']);
     const msg = legacyEnvWarning(keys, 'in .env');
     expect(msg).toBe('old-name variables ignored in .env: CODETOWN_BIND → HABBLAUD_BIND, CODETOWN_PORT → HABBLAUD_PORT. Rename to re-enable.');
     expect(msg).not.toContain('0.0.0.0');

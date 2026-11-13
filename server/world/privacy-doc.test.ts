@@ -12,19 +12,19 @@ const DOC = readFileSync(join(import.meta.dirname, '..', '..', 'docs', 'world', 
 const cited = (field: string) => DOC.includes(`\`${field}\``);
 
 describe('docs/world/privacidade.md', () => {
-  it('cita cada campo do schema.json', () => {
+  it('mentions each field of schema.json', () => {
     const paths = [...schemaKeyPaths(schemaJson as unknown as { [k: string]: unknown })];
     const fields = new Set(paths.map((p) => p.split('.').pop()!.replace(/\[\]$/, '')));
     expect(fields.size).toBeGreaterThanOrEqual(30);
-    for (const f of fields) expect(cited(f), `campo \`${f}\` do schema.json sem citação em docs/world/privacidade.md`).toBe(true);
+    for (const f of fields) expect(cited(f), `field \`${f}\` of schema.json not cited in docs/world/privacidade.md`).toBe(true);
   });
 
-  it('cita cada campo do hello (e o build por dentro)', () => {
+  it('mentions each field of the hello (and the build inside it)', () => {
     const hello: Record<keyof Omit<HelloMessage, 't' | 'v'>, true> = { version: true, build: true, locale: true, token: true };
     for (const f of [...Object.keys(hello), 'commit', 'dirty']) expect(cited(f), f).toBe(true);
   });
 
-  it('a conferência não passa à toa: um campo inventado não está lá', () => {
+  it('the check does not pass for nothing: a made-up field is not there', () => {
     expect(cited('costUSD')).toBe(false);
     expect(cited('gitBranch')).toBe(false);
   });

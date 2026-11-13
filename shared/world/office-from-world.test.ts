@@ -29,7 +29,7 @@ function newAgent(id: string, status: WorldAgent['status'], extra: Partial<World
 }
 
 describe('officeFromBuilding', () => {
-  it('uma sala por andar, na ordem recebida, com o rótulo traduzido e sem caminho', () => {
+  it('one room per floor, in the order received, with the translated label and no path', () => {
     const d = sampleBuildingDetail();
     const s = officeFromBuilding(d, T0, OPTS);
     expect(s.rooms).toEqual([
@@ -41,7 +41,7 @@ describe('officeFromBuilding', () => {
     expect(s.serverTime).toBe(T0);
   });
 
-  it('um agente por agente do mundo: id `world:`, sem atividade nem tarefas, estatísticas zeradas e tempos = agora', () => {
+  it('one agent per world agent: id `world:`, no activity or tasks, zeroed statistics and times = now', () => {
     const d = sampleBuildingDetail();
     const s = officeFromBuilding(d, T0, OPTS);
     expect(s.agents).toHaveLength(6);
@@ -81,7 +81,7 @@ describe('officeFromBuilding', () => {
     }
   });
 
-  it('contas fictícias, uma por ferramenta, sem e-mail, plano nem uso; meta mínimo, sem terminal nem mensagens', () => {
+  it('fictitious accounts, one per tool, without email, plan or usage; minimal meta, without terminal or messages', () => {
     const s = officeFromBuilding(sampleBuildingDetail(), T0, OPTS);
     expect(s.accounts).toEqual([
       { id: 'world:claude', provider: 'claude', short: 'C', name: 'Claude Code', color: WORLD_TOOL_ACCOUNTS.claude.color, configDir: '', sessions: 2, usageStatus: 'disabled' },
@@ -99,17 +99,17 @@ describe('officeFromBuilding', () => {
     expect(s.ptys).toBeUndefined();
   });
 
-  it('rótulos e papéis no idioma atual; id de andar desconhecido vira "Projeto"', () => {
+  it('labels and roles in the current language; unknown floor id becomes "Project"', () => {
     setLocale('pt-BR');
     const d = sampleBuildingDetail();
-    d.floors[2].label = 'novo-nome';
+    d.floors[2].label = 'new-name';
     const s = officeFromBuilding(d, T0, OPTS);
     expect(s.rooms.map((r) => r.name)).toEqual(['Projeto Ipê', 'Projeto Jade', 'Projeto']);
     expect(byName(s, 'Marina').role).toBe('Agente principal');
     expect(byName(s, 'Rafael').role).toBe('Subagente');
   });
 
-  it('modo discreto e prédio apagado: as salas ficam, sem ninguém, mesmo com agentes no pacote por engano', () => {
+  it('discreet mode and building off: the rooms stay, with nobody, even with agents in the packet by mistake', () => {
     for (const mode of ['discreet', 'away'] as const) {
       const d = sampleBuildingDetail(mode);
       expect(hidesAgents(d.building)).toBe(true);
@@ -124,13 +124,13 @@ describe('officeFromBuilding', () => {
     expect(hidesAgents(sampleBuildingDetail().building)).toBe(false);
   });
 
-  it('defensivo: pai que não está no prédio, ids repetidos, status/ferramenta/look novos, nome e peças inválidos', () => {
+  it('defensive: parent that is not in the building, repeated ids, new status/tool/look, invalid name and parts', () => {
     const d = sampleBuildingDetail();
     d.floors[0].agents.push(
       newAgent('a_99999999', 'working', { kind: 'sub', parentId: 'a_00000000' }), // pai fora do prédio
       newAgent('a_1f2e3d4c', 'idle', { name: 'Ana' }), // id repetido: fica o primeiro
       { ...newAgent('a_88888888', 'working'), status: 'dancing', provider: 'gemini', look: 'x', kind: 'boss', name: '‮evil' } as unknown as WorldAgent,
-      newAgent('a_77777777', 'idle', { parts: { skin: 'vermelho', hair: '#ABCDEF', hairStyle: 'moicano', topStyle: 'polo', novo: 'x' } as never }),
+      newAgent('a_77777777', 'idle', { parts: { skin: 'red', hair: '#ABCDEF', hairStyle: 'moicano', topStyle: 'polo', novo: 'x' } as never }),
     );
     d.floors.push({ ...d.floors[1], agents: [] }); // andar repetido
     const s = officeFromBuilding(d, T0, OPTS);
@@ -143,7 +143,7 @@ describe('officeFromBuilding', () => {
     expect(s.agents.find((a) => a.id === 'world:a_77777777')!.parts).toEqual({ hair: '#abcdef', topStyle: 'polo' });
   });
 
-  it('limites do pacote: no máximo 64 andares e 64 agentes por andar', () => {
+  it('packet limits: at most 64 floors and 64 agents per floor', () => {
     const d = sampleBuildingDetail();
     d.floors = Array.from({ length: 70 }, (_, i) => ({
       id: `f_${String(i).padStart(10, '0')}`,
@@ -165,7 +165,7 @@ describe('officeFromBuilding', () => {
 describe('applyBuildingPatch', () => {
   const T1 = T0 + 60_000;
 
-  it('troca agentes: quem mudou de status ganha statusSince novo; quem não mudou guarda o de antes', () => {
+  it('swaps agents: whoever changed status gets a new statusSince; whoever did not keeps the one from before', () => {
     const base = officeFromBuilding(sampleBuildingDetail(), T0, OPTS);
     const floors = sampleBuildingDetail().floors;
     floors[1].agents[0].status = 'working'; // Beatriz: waiting -> working
@@ -178,7 +178,7 @@ describe('applyBuildingPatch', () => {
     expect(snapshot.meta).toBe(base.meta);
   });
 
-  it('andar que some leva os agentes; andar novo entra depois dos outros; os que ficam guardam vaga e createdAt', () => {
+  it('a floor that disappears takes the agents; a new floor comes in after the others; the ones that stay keep their spot and createdAt', () => {
     const base = officeFromBuilding(sampleBuildingDetail(), T0, OPTS);
     const floors = sampleBuildingDetail().floors.filter((f) => f.label !== 'jade');
     floors.unshift({ id: 'f_3d4e5f6071', label: 'orion', agents: [newAgent('a_0badf00d', 'working', { name: 'Camila' })] });
@@ -194,7 +194,7 @@ describe('applyBuildingPatch', () => {
     expect(snapshot.accounts.map((a) => a.sessions)).toEqual([3, 1]); // Marina, Larissa e Camila; Gustavo
   });
 
-  it('só visitantes (ou nada que mude o escritório): o mesmo snapshot', () => {
+  it('only visitors (or nothing that changes the office): the same snapshot', () => {
     const base = officeFromBuilding(sampleBuildingDetail(), T0, OPTS);
     expect(applyBuildingPatch(base, { rev: 13 }, T1).snapshot).toBe(base);
     expect(applyBuildingPatch(base, { rev: 14, floors: sampleBuildingDetail().floors }, T1).snapshot).toBe(base);
@@ -202,7 +202,7 @@ describe('applyBuildingPatch', () => {
     expect(applyBuildingPatch(base, { rev: 15, building: visible }, T1)).toEqual({ snapshot: base, rev: 15 });
   });
 
-  it('o prédio ficou discreto ou apagado no meio da visita: as salas ficam e todo mundo some', () => {
+  it('the building became discreet or off in the middle of the visit: the rooms stay and everyone disappears', () => {
     const base = officeFromBuilding(sampleBuildingDetail(), T0, OPTS);
     for (const mode of ['discreet', 'away'] as const) {
       const { snapshot } = applyBuildingPatch(base, { rev: 13, building: sampleBuildingDetail(mode).building }, T1);
@@ -219,7 +219,7 @@ describe('applyBuildingPatch', () => {
     expect(live.snapshot.agents).toHaveLength(6);
   });
 
-  it('checkBuildingRev: a seguinte aplica, repetida ou antiga é ignorada, salto pede resync', () => {
+  it('checkBuildingRev: the next one applies, repeated or old is ignored, a jump asks for resync', () => {
     expect(checkBuildingRev(12, 13)).toBe('apply');
     expect(checkBuildingRev(12, 12)).toBe('stale');
     expect(checkBuildingRev(12, 3)).toBe('stale');
@@ -235,7 +235,7 @@ function strings(v: unknown, out: string[] = []): string[] {
   return out;
 }
 
-describe('canários invertidos: o escritório da visita só tem o que veio do mundo', () => {
+describe('inverted canaries: the visit office only has what came from the world', () => {
   /** O permitido: as strings do detail (e os ids com `world:`), os rótulos traduzidos, os papéis e as ferramentas. */
   function allowed(d: WorldBuildingDetail): Set<string> {
     const fromDetail = strings(d);
@@ -255,40 +255,40 @@ describe('canários invertidos: o escritório da visita só tem o que veio do mu
     ]);
   }
 
-  it('nenhuma string fora da lista, mesmo com campos a mais vindos do servidor (caminho, e-mail, título...)', () => {
+  it('no string outside the list, even with extra fields coming from the server (path, email, title...)', () => {
     const clean = sampleBuildingDetail();
     const ok = allowed(clean);
     const dirty = structuredClone(clean) as unknown as {
       building: Record<string, unknown> & { owner: Record<string, unknown> };
       floors: Array<Record<string, unknown> & { agents: Array<Record<string, unknown> & { parts: Record<string, unknown> }> }>;
     };
-    dirty.building.path = '/Users/canario/projeto-secreto';
-    dirty.building.owner.email = 'canario@empresa.example';
-    dirty.floors[0].path = '/Users/canario/projeto-secreto';
-    dirty.floors[0].name = 'projeto-secreto-canario';
+    dirty.building.path = '/Users/canary/secret-project';
+    dirty.building.owner.email = 'canary@company.example';
+    dirty.floors[0].path = '/Users/canary/secret-project';
+    dirty.floors[0].name = 'secret-project-canary';
     Object.assign(dirty.floors[0].agents[0], {
-      email: 'canario@empresa.example',
-      cwd: '/Users/canario',
-      title: 'Título canário da sessão',
-      model: 'modelo-canario',
-      gitBranch: 'feat/canario',
-      activity: { text: 'Editing canario.ts' },
-      tasks: [{ id: '1', title: 'Tarefa canário', status: 'completed' }],
+      email: 'canary@company.example',
+      cwd: '/Users/canary',
+      title: 'Canary session title',
+      model: 'canary-model',
+      gitBranch: 'feat/canary',
+      activity: { text: 'Editing canary.ts' },
+      tasks: [{ id: '1', title: 'Canary task', status: 'completed' }],
       statusSince: 123,
     });
-    dirty.floors[0].agents[0].parts.canario = '#canario';
+    dirty.floors[0].agents[0].parts.canario = '#canary';
     for (const mode of [undefined, 'patch'] as const) {
       const d = dirty as unknown as WorldBuildingDetail;
       const s = mode ? applyBuildingPatch(officeFromBuilding(clean, T0, OPTS), { rev: 2, floors: d.floors, building: d.building }, T0 + 1).snapshot : officeFromBuilding(d, T0, OPTS);
       const out = strings(s);
       expect(out.length).toBeGreaterThan(50);
-      for (const str of out) expect(ok.has(str), `string inesperada: ${JSON.stringify(str)}`).toBe(true);
-      expect(JSON.stringify(s)).not.toMatch(/canario|Users|@|Tarefa|feat\//);
+      for (const str of out) expect(ok.has(str), `unexpected string: ${JSON.stringify(str)}`).toBe(true);
+      expect(JSON.stringify(s)).not.toMatch(/canary|canario|Users|@|Canary|feat\//);
       expect(byName(s, 'Marina').statusSince).not.toBe(123);
     }
   });
 
-  it('o mesmo nos outros idiomas (os rótulos traduzidos entram na lista)', () => {
+  it('the same in the other languages (the translated labels go into the list)', () => {
     for (const locale of ['pt-BR', 'es', 'fr'] as const) {
       setLocale(locale);
       const d = sampleBuildingDetail();

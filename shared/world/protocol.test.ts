@@ -110,27 +110,27 @@ const EXEMPLO_COMPLETO: WorldUplink = {
 
 const clone = <T>(x: T): T => structuredClone(x);
 
-describe('schema.json do WorldUplink (validador mínimo)', () => {
-  it('aceita o exemplo da seção 3.3 com a abreviação desfeita', () => {
+describe('schema.json of the WorldUplink (minimal validator)', () => {
+  it('accepts the example from section 3.3 with the abbreviation undone', () => {
     expect(validate(EXEMPLO_COMPLETO)).toEqual([]);
   });
 
-  it('o exemplo literal só falha pela abreviação "..." das peças', () => {
+  it('the literal example only fails because of the "..." abbreviation of the parts', () => {
     const motivos = validate(EXEMPLO_3_3).map((e) => `${e.keyword} ${e.path}`);
     expect(motivos.sort()).toEqual(['additionalProperties /floors/0/agents/1/parts', 'additionalProperties /floors/1/agents/0/parts']);
   });
 
-  it('aceita o pacote mínimo e o opcional de tokens', () => {
+  it('accepts the minimal packet and the optional tokens', () => {
     expect(valid({ v: 1, version: '0.11.0', theme: 'none', floors: [] })).toBe(true);
     expect(valid({ v: 1, version: '1.2.3-beta.1', theme: 'christmas', floors: [], tokens: { day: 12000, week: 340000 } })).toBe(true);
   });
 
-  it('recusa campo desconhecido em qualquer profundidade', () => {
-    const raiz = { ...clone(EXEMPLO_COMPLETO), path: '/Users/fulano/projeto' };
+  it('rejects an unknown field at any depth', () => {
+    const raiz = { ...clone(EXEMPLO_COMPLETO), path: '/Users/someone/project' };
     const andar = clone(EXEMPLO_COMPLETO);
-    (andar.floors[0] as unknown as Record<string, unknown>)['name'] = 'Projeto secreto';
+    (andar.floors[0] as unknown as Record<string, unknown>)['name'] = 'Secret project';
     const agente = clone(EXEMPLO_COMPLETO);
-    (agente.floors[0]!.agents[0] as unknown as Record<string, unknown>)['title'] = 'Corrigir login';
+    (agente.floors[0]!.agents[0] as unknown as Record<string, unknown>)['title'] = 'Fix login';
     const pecas = clone(EXEMPLO_COMPLETO);
     (pecas.floors[0]!.agents[0]!.parts as Record<string, unknown>)['seed'] = 123;
     const tokens = clone(EXEMPLO_COMPLETO);
@@ -138,12 +138,12 @@ describe('schema.json do WorldUplink (validador mínimo)', () => {
     for (const p of [raiz, andar, agente, pecas, tokens]) expect(valid(p)).toBe(false);
   });
 
-  it('recusa enumerações, formatos e limites fora do protocolo', () => {
+  it('rejects enumerations, formats and limits outside the protocol', () => {
     const casos: Array<(u: WorldUplink) => void> = [
       (u) => { (u as { v: number }).v = 2; },
       (u) => { (u as { theme: string }).theme = 'auto'; },
-      (u) => { u.version = 'mais nova'; },
-      (u) => { u.floors[0]!.id = 'f_projeto-x'; },
+      (u) => { u.version = 'newer'; },
+      (u) => { u.floors[0]!.id = 'f_project-x'; },
       (u) => { u.floors[0]!.agents[0]!.id = 'a_3f9d'; }, // 4 hex: a 6.1 pede 8
       (u) => { (u.floors[0]!.agents[0] as { status: string }).status = 'done'; },
       (u) => { (u.floors[0]!.agents[0] as { tasksDone: number }).tasksDone = 4; },
@@ -151,7 +151,7 @@ describe('schema.json do WorldUplink (validador mínimo)', () => {
       (u) => { u.floors[0]!.agents[0]!.parts.skin = 'red'; },
       (u) => { (u.floors[0]!.agents[0]!.parts as { hairStyle: string }).hairStyle = 'moicano'; },
       (u) => { u.floors[0]!.agents[0]!.name = 'x'.repeat(25); },
-      (u) => { u.floors[0]!.agents[0]!.name = 'Projeto /Users/x'; },
+      (u) => { u.floors[0]!.agents[0]!.name = 'Project /Users/x'; },
       (u) => { u.tokens = { day: -1, week: 0 }; },
       (u) => { u.tokens = { day: 1.5, week: 0 }; },
       (u) => { u.floors[0]!.agents[0]!.parentId = 'a_71c0b5a9'; }, // principal com pai
@@ -160,11 +160,11 @@ describe('schema.json do WorldUplink (validador mínimo)', () => {
     for (const [i, mudar] of casos.entries()) {
       const u = clone(EXEMPLO_COMPLETO);
       mudar(u);
-      expect(valid(u), `caso ${i}`).toBe(false);
+      expect(valid(u), `case ${i}`).toBe(false);
     }
   });
 
-  it('subagente sem o pai no pacote vai sem parentId (o pai já saiu); principal nunca leva parentId', () => {
+  it('subagent without the parent in the packet goes without parentId (the parent already left); a main agent never carries parentId', () => {
     const u = clone(EXEMPLO_COMPLETO);
     delete u.floors[0]!.agents[1]!.parentId;
     expect(validate(u)).toEqual([]);
@@ -172,7 +172,7 @@ describe('schema.json do WorldUplink (validador mínimo)', () => {
     expect(valid(u)).toBe(false);
   });
 
-  it('o validador mínimo não ignora palavra-chave nenhuma', () => {
+  it('the minimal validator does not ignore any keyword', () => {
     expect(() => compileValidator({ type: 'string', format: 'email' })('x')).toThrow(/format/);
   });
 });
@@ -181,8 +181,8 @@ describe('schema.json do WorldUplink (validador mínimo)', () => {
 // As listas do protocolo contra o schema e o resto do código
 // ---------------------------------------------------------------------------------------------------------------
 
-describe('listas do protocolo', () => {
-  it('estilos da aparência: iguais aos de shared/appearance.ts e aos do schema, e as mesmas peças', () => {
+describe('protocol lists', () => {
+  it('appearance styles: the same as those of shared/appearance.ts and those of the schema, and the same parts', () => {
     expect(HAIR_STYLES).toEqual(appearance.HAIR_STYLES);
     expect(TOP_STYLES).toEqual(appearance.TOP_STYLES);
     expect(ACCESSORIES).toEqual(appearance.ACCESSORIES);
@@ -197,7 +197,7 @@ describe('listas do protocolo', () => {
     expect(parts.bottomStyle.enum).toEqual([...BOTTOM_STYLES]);
   });
 
-  it('limites e enumerações do schema batem com os tipos', () => {
+  it('schema limits and enumerations match the types', () => {
     expect(schema.properties.floors.maxItems).toBe(UPLINK_LIMITS.floors);
     expect((schema.$defs.floor.properties as Record<string, { maxItems: number }>).agents.maxItems).toBe(UPLINK_LIMITS.agentsPerFloor);
     const themes: WorldTheme[] = ['none', 'halloween', 'christmas'];
@@ -206,7 +206,7 @@ describe('listas do protocolo', () => {
     expect((schema.$defs.agent.properties as Record<string, { enum: unknown[] }>).status.enum).toEqual(statuses);
   });
 
-  it('ids fixos do contrato: 14 traços, 5 pares que não combinam, 20 frases, 10 cumprimentos, 4 idiomas', () => {
+  it('fixed ids of the contract: 14 traits, 5 pairs that do not go together, 20 phrases, 10 greetings, 4 languages', () => {
     const unique = (l: readonly string[]) => new Set(l).size === l.length;
     expect(TRAIT_IDS).toHaveLength(14);
     expect(INTRO_IDS).toHaveLength(20);
@@ -221,7 +221,7 @@ describe('listas do protocolo', () => {
     expect(PLAYER_NAME_LIMITS).toEqual({ min: 3, max: 20 });
   });
 
-  it('Fases 3 a 5: os ids dos avisos (o `text` do notice) e o `left` do ack, só acrescentados', () => {
+  it('Phases 3 to 5: the ids of the notices (the `text` of the notice) and the `left` of the ack, only added', () => {
     expect([...NOTICE_IDS]).toEqual([
       'ignored', 'invalid', 'rate_limited', 'view_required', 'not_found', 'street_left', 'chunk_full', 'afk', 'server_restart', 'left',
       // Fase 4 (a porta de um prédio): só no fim.
@@ -234,7 +234,7 @@ describe('listas do protocolo', () => {
     expect([...UPLINK_ACK_ERRORS]).toEqual(['schema', 'limits', 'name_pool', 'parts', 'ids', 'rate', 'internal', 'left', 'implausible']);
   });
 
-  it('Fase 5: 8 carimbos, 3 metas da cidade, os 6 motivos de denúncia e "bater na porta" desligado por padrão', () => {
+  it('Phase 5: 8 stamps, 3 city goals, the 6 report reasons and "knock on the door" off by default', () => {
     const unique = (l: readonly string[]) => new Set(l).size === l.length;
     expect([...STAMP_IDS]).toEqual(['visited', 'nice_building', 'keep_going', 'coffee', 'wave', 'star', 'heart', 'rocket']);
     expect([...CITY_GOAL_IDS]).toEqual(['agent_hours_10k', 'agent_hours_50k', 'agent_hours_100k']);
@@ -244,7 +244,7 @@ describe('listas do protocolo', () => {
     expect(VISIBILITY_DEFAULTS.knocks).toBe(false);
   });
 
-  it('Fase 6: `deleted` no goodbye, `maintenance` nos erros, `implausible` no ack, o aviso de inatividade e o selo "não verificado", só acrescentados', () => {
+  it('Phase 6: `deleted` in the goodbye, `maintenance` in the errors, `implausible` in the ack, the inactivity notice and the "unverified" badge, only added', () => {
     expect([...GOODBYE_REASONS]).toEqual(['deploy', 'other-device', 'banned', 'suspended', 'waiting', 'update', 'unauthorized', 'no_player', 'deleted']);
     expect(WORLD_ERROR_CODES).toContain('maintenance');
     expect(UPLINK_ACK_ERRORS.at(-1)).toBe('implausible');

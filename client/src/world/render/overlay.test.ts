@@ -4,10 +4,10 @@ import { setLocale } from '../../../../shared/i18n';
 import { overviewFrame } from '../camera';
 import { rationBubbles, waitBubbleText } from './overlay';
 
-describe('balões', () => {
+describe('speech bubbles', () => {
   afterEach(() => setLocale('en'));
 
-  it('espera: só o motivo, sem o prefixo redundante', () => {
+  it('waiting: only the reason, without the redundant prefix', () => {
     expect(waitBubbleText('approve a permission')).toBe('Approve a permission');
     expect(waitBubbleText('Needs you: choose an option')).toBe('Choose an option');
     expect(waitBubbleText('needs you')).toBe('Answer in terminal');
@@ -23,7 +23,7 @@ describe('balões', () => {
     expect(waitBubbleText(undefined)).toBe('Responder no terminal');
   });
 
-  it('visão geral: no máximo 1 balão com texto por área e 4 na tela (mais recentes primeiro)', () => {
+  it('overview: at most 1 speech bubble with text per area and 4 on screen (most recent first)', () => {
     const items = [
       { room: 'a', prio: 50, changedAt: 10 },
       { room: 'a', prio: 50, changedAt: 30 },
@@ -41,10 +41,10 @@ describe('balões', () => {
   });
 });
 
-describe('visão geral', () => {
+describe('overview', () => {
   const building = { x: 0, y: 0, w: 4 * 16 * 16, h: 29 * 16 };
 
-  it('enquadra o prédio na área livre (fora dos painéis), com folga para as placas acima', () => {
+  it('frames the building in the free area (outside the panels), with room for the signs above', () => {
     const free = overviewFrame(building, 1440, 900, { top: 0, right: 0, bottom: 0, left: 0 });
     const ui = overviewFrame(building, 1440, 900, { top: 64, right: 0, bottom: 200, left: 320 });
     expect(ui.zoom).toBeLessThan(free.zoom);

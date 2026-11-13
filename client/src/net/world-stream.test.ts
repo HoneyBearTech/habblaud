@@ -102,7 +102,7 @@ function httpSetup(replies: Array<{ status: number; body?: unknown }> = []) {
 const move = (x: number): WorldSceneCommand => ({ t: 'move', x, y: 15, dir: 'e', moving: true });
 
 describe('enqueueCommands', () => {
-  it('o último move substitui os outros; o resto fica até o teto, saindo os mais velhos', () => {
+  it('the last move replaces the others; the rest stays up to the cap, the oldest leaving', () => {
     expect(enqueueCommands([move(1), { t: 'like', buildingId: 'b' }], [move(2)])).toEqual([{ t: 'like', buildingId: 'b' }, move(2)]);
     const many = Array.from({ length: 30 }, (_, i) => ({ t: 'profile' as const, playerId: `p${i}` }));
     const q = enqueueCommands([], [...many, move(3)]);
@@ -113,13 +113,13 @@ describe('enqueueCommands', () => {
 });
 
 describe('HttpWorldStream', () => {
-  it('abre /api/world/stream; snapshot e mensagens da cena viram eventos; o que não é da cena fica', () => {
+  it('opens /api/world/stream; snapshot and scene messages become events; what is not from the scene stays', () => {
     const { sources, events, snap } = httpSetup();
     expect(sources[0]?.url).toBe('/api/world/stream');
     sources[0]!.fire('world.snapshot', snap());
     sources[0]!.fire('world', { t: 'pos', x: 21, y: 15 });
     sources[0]!.fire('world', { t: 'uplink.ack', at: 1 });
-    sources[0]!.fire('world', 'torto');
+    sources[0]!.fire('world', 'crooked');
     expect(events).toEqual([
       { type: 'status', status: 'open' },
       { type: 'snapshot', snapshot: snap() },
@@ -127,7 +127,7 @@ describe('HttpWorldStream', () => {
     ]);
   });
 
-  it('comandos em lotes: um a cada 200 ms, com o id do stream, só o último move; nada antes do snapshot', async () => {
+  it('commands in batches: one every 200 ms, with the stream id, only the last move; nothing before the snapshot', async () => {
     const { c, ws, sources, posts, snap } = httpSetup();
     ws.send([move(1)]);
     await c.advance(1_000);
@@ -143,7 +143,7 @@ describe('HttpWorldStream', () => {
     expect(posts[1]?.body).toEqual({ stream: 'abc', cmds: [{ t: 'profile', playerId: 'p1' }, move(3)] });
   });
 
-  it('429: o lote volta para a fila e espera o Retry-After; outros erros viram evento', async () => {
+  it('429: the batch goes back to the queue and waits for the Retry-After; other errors become an event', async () => {
     const { c, ws, sources, posts, events, snap } = httpSetup([
       { status: 429, body: { error: { code: 'rate_limited', retryAfter: 1 } } },
       { status: 202 },
@@ -163,7 +163,7 @@ describe('HttpWorldStream', () => {
     expect(events.at(-1)).toEqual({ type: 'error', code: 'not_connected' });
   });
 
-  it('o navegador desistiu do stream (fechado): reabre com espera crescente; o snapshot novo traz outro id', async () => {
+  it('the browser gave up on the stream (closed): reopens with a growing wait; the new snapshot brings another id', async () => {
     const { c, ws, sources, posts, events, snap } = httpSetup();
     sources[0]!.fire('world.snapshot', snap('s1'));
     sources[0]!.readyState = 2;
@@ -187,7 +187,7 @@ describe('HttpWorldStream', () => {
   });
 });
 
-describe('FakeWorldStream (modo demonstração)', () => {
+describe('FakeWorldStream (demo mode)', () => {
   const district = 'centro';
   const door = fakeMyDoor();
   const around = new Set(chunksAround(chunkOf(blockAt(door.x, door.y))).map((ch) => chunkId(district, ch)));
@@ -200,7 +200,7 @@ describe('FakeWorldStream (modo demonstração)', () => {
     return out;
   };
 
-  it('de volta à cidade: view.off + view e um stream novo da mesma página nascem na última posição (sem memória, na porta)', () => {
+  it('back to the city: view.off + view and a new stream from the same page spawn at the last position (with no memory, at the door)', () => {
     const memory = {};
     const a = new FakeWorldStream({ autoplay: false, now: () => 0, memory });
     const to = { x: door.x + 2, y: door.y };
@@ -217,7 +217,7 @@ describe('FakeWorldStream (modo demonstração)', () => {
     expect(new FakeWorldStream({ autoplay: false, now: () => 0 }).snapshot().pos).toEqual({ x: door.x, y: door.y, dir: 's', moving: false });
   });
 
-  it('20 prédios nos primeiros lotes da espiral, o meu no (3,1); eu nasço na calçada da minha porta', () => {
+  it('20 buildings in the first lots of the spiral, mine at (3,1); I spawn on the sidewalk at my door', () => {
     const b = fakeCityBuildings();
     expect(b.map((x) => ({ x: x.lot.x, y: x.lot.y }))).toEqual(first(20));
     const mine = b.find((x) => x.id === FAKE_ME.id)!;
@@ -250,7 +250,7 @@ describe('FakeWorldStream (modo demonstração)', () => {
     expect(st.startPos).toEqual({ x: door.x, y: door.y });
   });
 
-  it('o 6º jogador fica parado num assento de banco da praça (a cena desenha sentado)', () => {
+  it('the 6th player stays still on a plaza bench seat (the scene draws them seated)', () => {
     const s = new FakeWorldStream({ autoplay: false, now: () => 0 });
     const seat = fakeBenchSeat();
     expect(plazaDecor().some((d) => d.seat && d.seat.x === seat.x && d.seat.y === seat.y)).toBe(true);
@@ -262,7 +262,7 @@ describe('FakeWorldStream (modo demonstração)', () => {
     expect(msgs.filter((m) => m.t === 'players').flatMap((m) => m.players.map((p: { id: string }) => p.id))).not.toContain(sitter.id);
   });
 
-  it('?perf=N: N prédios na espiral, com nomes numerados e ainda o meu', () => {
+  it('?perf=N: N buildings in the spiral, with numbered names and still mine', () => {
     const b = fakeCityBuildings(300);
     expect(b).toHaveLength(300);
     expect(new Set(b.map((x) => x.id)).size).toBe(300);
@@ -272,7 +272,7 @@ describe('FakeWorldStream (modo demonstração)', () => {
     expect(fakeCityBuildings(5_000)).toHaveLength(2000);
   });
 
-  it('afk depois de 60 s sem andar; um passo de verdade tira', async () => {
+  it('afk after 60 s without walking; a real step clears it', async () => {
     let t = 0;
     const f = new FakeWorldStream({ autoplay: false, now: () => t });
     const msgs: any[] = [];
@@ -289,7 +289,7 @@ describe('FakeWorldStream (modo demonstração)', () => {
     expect(f.snapshot().afk).toBe(false);
   });
 
-  it('determinístico: o mesmo relógio dá a mesma cidade e os mesmos passos', () => {
+  it('deterministic: the same clock gives the same city and the same steps', () => {
     const run = () => {
       let t = 0;
       const f = new FakeWorldStream({ autoplay: false, now: () => t });
@@ -304,7 +304,7 @@ describe('FakeWorldStream (modo demonstração)', () => {
     expect(run()).toEqual(run());
   });
 
-  it('os 5 andam em volta dos quarteirões, sempre em lugar caminhável e nos chunks da vista; o estado acompanha sem resync', async () => {
+  it('the 5 walk around the blocks, always in a walkable place and in the chunks of the view; the state keeps up without resync', async () => {
     let t = 0;
     const f = new FakeWorldStream({ autoplay: false, now: () => t });
     let state: SceneState | undefined;
@@ -319,7 +319,7 @@ describe('FakeWorldStream (modo demonstração)', () => {
       t += 200;
       f.tick();
       for (const p of f.snapshot().players) {
-        expect(isWalkable(p.pos.x, p.pos.y, () => true), `${p.id} em ${p.pos.x},${p.pos.y}`).toBe(true);
+        expect(isWalkable(p.pos.x, p.pos.y, () => true), `${p.id} at ${p.pos.x},${p.pos.y}`).toBe(true);
         expect(around.has(chunkId(district, chunkOf(blockAt(p.pos.x, p.pos.y))))).toBe(true);
       }
     }
@@ -334,7 +334,7 @@ describe('FakeWorldStream (modo demonstração)', () => {
     for (const [i, p] of f.snapshot().players.slice(0, 5).entries()) expect(p.pos).not.toEqual(start[i]?.pos);
   });
 
-  it('loopPosition: a volta inteira fecha no mesmo ponto, nos dois sentidos', () => {
+  it('loopPosition: the full lap closes at the same point, in both directions', () => {
     const b = { x: 1, y: 0 };
     const len = 2 * (44 + 26);
     expect(loopPosition(b, 0, true)).toMatchObject({ x: 50, y: -1, dir: 'e' });
@@ -342,7 +342,7 @@ describe('FakeWorldStream (modo demonstração)', () => {
     expect(loopPosition(b, 1, false)).toMatchObject({ x: 50, y: 0, dir: 's' });
   });
 
-  it('comandos: move para lote ou longe demais volta como pos; profile, like e resync respondem no passo seguinte', async () => {
+  it('commands: move to a lot or too far comes back as pos; profile, like and resync answer on the next step', async () => {
     let t = 0;
     const f = new FakeWorldStream({ autoplay: false, now: () => t });
     const msgs: any[] = [];
@@ -351,7 +351,7 @@ describe('FakeWorldStream (modo demonstração)', () => {
     f.send([{ t: 'move', x: door.x + 1, y: door.y, dir: 'e', moving: true }]);
     f.send([{ t: 'move', x: 60, y: 5, dir: 'e', moving: true }]); // dentro de um lote
     f.send([{ t: 'move', x: 21, y: 15, dir: 'e', moving: true }]); // longe demais (a praça)
-    f.send([{ t: 'profile', playerId: 'p_2' }, { t: 'profile', playerId: 'ninguem' }, { t: 'like', buildingId: 'b_000' }, { t: 'resync', chunk: 'centro:0,0' }]);
+    f.send([{ t: 'profile', playerId: 'p_2' }, { t: 'profile', playerId: 'nobody' }, { t: 'like', buildingId: 'b_000' }, { t: 'resync', chunk: 'centro:0,0' }]);
     expect(msgs).toEqual([]);
     t += 200;
     f.tick();
@@ -365,7 +365,7 @@ describe('FakeWorldStream (modo demonstração)', () => {
     expect(msgs[5].chunk).toBe('centro:0,0');
   });
 
-  it('rente à borda de um lote, a posição truncada do fio continua na calçada (sem `pos`)', async () => {
+  it('right at the edge of a lot, the truncated position from the wire stays on the sidewalk (no `pos`)', async () => {
     const f = new FakeWorldStream({ autoplay: false, now: () => 0 });
     const msgs: any[] = [];
     f.on((e) => e.type === 'message' && msgs.push(e.msg));
@@ -382,7 +382,7 @@ describe('FakeWorldStream (modo demonstração)', () => {
     expect(msgs.filter((m) => m.t === 'pos')).toEqual([]);
   });
 
-  it('visita (Fase 4): longe e fechado recusam; o meu de qualquer lugar; lá dentro nada da rua desce, patches a cada 3 s; leave volta à porta', async () => {
+  it('visit (Phase 4): far away and closed refuse; mine from anywhere; inside nothing from the street comes down, patches every 3 s; leave returns to the door', async () => {
     let t = 0;
     const f = new FakeWorldStream({ autoplay: false, now: () => t });
     const msgs: any[] = [];
@@ -392,7 +392,7 @@ describe('FakeWorldStream (modo demonstração)', () => {
     const other = all.find((b) => b.id !== FAKE_ME.id && b.state === 'online' && b.agents && !b.closed)!;
     const closed = all.find((b) => b.closed)!;
     f.send([{ t: 'enter', buildingId: other.id }]);
-    f.send([{ t: 'enter', buildingId: 'nao_existe' }]);
+    f.send([{ t: 'enter', buildingId: 'does_not_exist' }]);
     f.tick();
     expect(msgs.filter((m) => m.t === 'notice').map((m) => m.text)).toEqual(['too_far', 'not_found']);
     // fechado, mesmo na porta
@@ -426,7 +426,7 @@ describe('FakeWorldStream (modo demonstração)', () => {
     expect(f.snapshot().inside).toBeUndefined();
   });
 
-  it('visita: o interior de exemplo segue o prédio (discreto: sem agentes e `discreet`; apagado: `away`)', async () => {
+  it('visit: the sample interior follows the building (discreet: no agents and `discreet`; off: `away`)', async () => {
     const f = new FakeWorldStream({ autoplay: false, now: () => 0 });
     const msgs: any[] = [];
     f.on((e) => e.type === 'message' && msgs.push(e.msg));
@@ -448,7 +448,7 @@ describe('FakeWorldStream (modo demonstração)', () => {
     }
   });
 
-  it('createWorldStream: mock dá a cidade falsa; close para tudo', async () => {
+  it('createWorldStream: mock gives the fake city; close stops everything', async () => {
     const ws = createWorldStream({ mock: true, autoplay: false });
     expect(ws).toBeInstanceOf(FakeWorldStream);
     const evs: WorldStreamEvent[] = [];
@@ -458,7 +458,7 @@ describe('FakeWorldStream (modo demonstração)', () => {
     expect(evs).toEqual([{ type: 'status', status: 'closed' }]);
   });
 
-  describe('social leve (Fase 5)', () => {
+  describe('light social (Phase 5)', () => {
     const start = async (t = { v: 0 }) => {
       const f = new FakeWorldStream({ autoplay: false, now: () => t.v });
       const msgs: any[] = [];
@@ -479,7 +479,7 @@ describe('FakeWorldStream (modo demonstração)', () => {
       }
     };
 
-    it('os prédios têm código (o meu é HB-4F2K), uns aceitam batidas e um está "não verificado"; o snapshot traz a meta a 80 %', () => {
+    it('the buildings have a code (mine is HB-4F2K), some accept knocks and one is "unverified"; the snapshot brings the goal at 80 %', () => {
       const b = fakeCityBuildings();
       expect(b.find((x) => x.id === FAKE_ME.id)?.code).toBe('HB-4F2K');
       expect(new Set(b.map((x) => x.code)).size).toBe(20);
@@ -490,7 +490,7 @@ describe('FakeWorldStream (modo demonstração)', () => {
       expect(city).toMatchObject({ lit: b.filter((x) => x.state === 'online').length, tokensBand: 4, goal: { label: 'agent_hours_10k', target: 10_000, progress: 8_000, id: '2026-10-12:agent_hours_10k' } });
     });
 
-    it('like só perto da porta e nunca no meu; carimbo uma vez; bater de longe recusa', async () => {
+    it('like only near the door and never on mine; stamp once; knocking from far away is refused', async () => {
       const { f, msgs } = await start();
       f.send([{ t: 'like', buildingId: FAKE_ME.id }]);
       walkTo(f, doorOf('b_004'));
@@ -507,7 +507,7 @@ describe('FakeWorldStream (modo demonstração)', () => {
       ]);
     });
 
-    it('dentro do prédio (visita), like e carimbo valem; bloquear e denunciar respondem blocked_ok e reported', async () => {
+    it('inside the building (visit), like and stamp count; block and report answer blocked_ok and reported', async () => {
       const { f, msgs } = await start();
       walkTo(f, doorOf('b_004'));
       f.send([{ t: 'enter', buildingId: 'b_004' }]);
@@ -530,7 +530,7 @@ describe('FakeWorldStream (modo demonstração)', () => {
       ]);
     });
 
-    it('cumprimentar um bot: o eco e a resposta dele em 1,2 s; bloquear tira da rua e desbloquear devolve', async () => {
+    it('greeting a bot: the echo and its reply in 1.2 s; blocking takes it off the street and unblocking brings it back', async () => {
       const { f, msgs, t } = await start();
       f.send([{ t: 'greet', playerId: 'p_2', greetingId: 'coffee' }]);
       f.tick();
@@ -547,7 +547,7 @@ describe('FakeWorldStream (modo demonstração)', () => {
       expect(msgs.filter((m) => m.t === 'notice' || m.t === 'player.join').slice(-2)).toMatchObject([{ t: 'notice', text: 'not_found' }, { t: 'player.join', player: { id: 'p_2' } }]);
     });
 
-    it('os bots se cumprimentam a cada 5 s, e o outro responde', async () => {
+    it('the bots greet each other every 5 s, and the other one replies', async () => {
       const { f, msgs, t } = await start();
       for (let i = 0; i < 25; i++) {
         t.v += 200;
@@ -561,7 +561,7 @@ describe('FakeWorldStream (modo demonstração)', () => {
       expect(replies).toHaveLength(1);
     });
 
-    it('ir para um código: pos na calçada da porta (e o "eu" do falso vai junto); código que não existe: not_found', async () => {
+    it('go to a code: pos on the sidewalk at the door (and the "me" of the fake goes along); code that does not exist: not_found', async () => {
       const { f, msgs } = await start();
       const target = fakeCityBuildings()[12]!;
       f.send([{ t: 'teleport', code: target.code!.toLowerCase().replace('-', ' ') }, { t: 'teleport', code: 'HB-ZZZZ' }]);
@@ -583,7 +583,7 @@ describe('FakeWorldStream (modo demonstração)', () => {
       expect(lit).toContainEqual({ x: last.x, y: last.y });
     });
 
-    it('celebrate: fogos e a meta seguinte (50 mil h)', async () => {
+    it('celebrate: fireworks and the next goal (50 thousand h)', async () => {
       const { f, msgs } = await start({ v: Date.UTC(2026, 9, 15) });
       f.celebrate();
       expect(msgs[0]).toEqual({ t: 'city.fireworks', goalId: '2026-10-12:agent_hours_10k' });

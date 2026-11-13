@@ -26,24 +26,24 @@ function feed(lines: string[], state: CodexState = createCodexState()): { state:
 const texts = (results: CodexLineResult[]) => results.flatMap((r) => r.activities.map((a) => a.activity.text));
 const ids = (results: CodexLineResult[]) => results.flatMap((r) => r.activities.map((a) => a.activity.id));
 
-describe('rollout do Codex: paginated', () => {
-  it('conversa sai dos item_completed; contexto injetado (response_item message) fica de fora', () => {
+describe('Codex rollout: paginated', () => {
+  it('conversation comes from the item_completed; injected context (response_item message) is left out', () => {
     const at = Date.parse('2026-10-09T12:00:00Z');
     const { state, results } = feed([
       R.meta(T, { at }),
-      R.message('developer', '<permissions instructions> segredo do sistema'),
+      R.message('developer', '<permissions instructions> system secret'),
       R.message('user', '<environment_context>cwd</environment_context>'),
       R.taskStarted('turn1', at + 1),
-      R.user(T, 'turn1', 'u1', 'Arrume o teste quebrado da loja', at + 2),
-      R.reasoning(T, 'turn1', 'r1', ['Lendo os testes'], at + 3),
-      R.reasoning(T, 'turn1', 'r2', ['Ainda pensando'], at + 4),
-      R.agent(T, 'turn1', 'a1', 'Corrigi o teste.', at + 5),
+      R.user(T, 'turn1', 'u1', 'Fix the broken store test', at + 2),
+      R.reasoning(T, 'turn1', 'r1', ['Reading the tests'], at + 3),
+      R.reasoning(T, 'turn1', 'r2', ['Still thinking'], at + 4),
+      R.agent(T, 'turn1', 'a1', 'I fixed the test.', at + 5),
       R.taskComplete('turn1', at + 6, 6_000),
     ]);
-    expect(texts(results)).toEqual(['Received “Arrume o teste quebrado da loja”', 'Thinking…', 'Writing the reply', 'Done in 6s']);
+    expect(texts(results)).toEqual(['Received “Fix the broken store test”', 'Thinking…', 'Writing the reply', 'Done in 6s']);
     expect(ids(results)).toEqual(['acc:t#u1', 'acc:t#r1', 'acc:t#a1', 'acc:t#turn1:done']);
     expect(results.find((r) => r.activities[0]?.activity.kind === 'prompt')?.activities[0].activity.kind).toBe('prompt');
-    expect(state.title).toBe('Arrume o teste quebrado da loja');
+    expect(state.title).toBe('Fix the broken store test');
     expect(state.mode).toBe('paginated');
     expect(state.gitBranch).toBe('main');
     expect(state.turnOpen).toBe(false);
@@ -52,7 +52,7 @@ describe('rollout do Codex: paginated', () => {
     expect(signals).toContain('turnEnd');
   });
 
-  it('comando: as mesmas atividades do Bash, comando em lista ou texto, erro e recusa', () => {
+  it('command: the same activities as Bash, command as a list or text, error and denial', () => {
     const { results, state } = feed([
       R.command(T, 't', 'call_1', 'npm test', { output: 'ok' }),
       R.command(T, 't', 'call_2', 'git push origin main', { exit: 1, output: 'rejected\n' }),
@@ -69,11 +69,11 @@ describe('rollout do Codex: paginated', () => {
     expect(acts[0].detail).toBe('npm test');
     expect(state.stats.toolCalls).toBe(3);
     expect(commandText(['/bin/bash', '-c', 'ls -la'])).toBe('ls -la');
-    expect(commandText(['git', 'commit', '-m', 'uma mensagem'])).toBe("git commit -m 'uma mensagem'");
-    expect(commandText('  echo oi ')).toBe('echo oi');
+    expect(commandText(['git', 'commit', '-m', 'a message'])).toBe("git commit -m 'a message'");
+    expect(commandText('  echo hi ')).toBe('echo hi');
   });
 
-  it('atividade em andamento (function_call sem saída) e o item concluído não duplicam (mesmo call_id)', () => {
+  it('activity in progress (function_call with no output) and the completed item do not duplicate (same call_id)', () => {
     const { results: all, state } = feed([
       R.meta(T),
       R.functionCall('call_9', 'exec_command', { cmd: 'npm run build', yield_time_ms: 10_000 }),
@@ -90,63 +90,63 @@ describe('rollout do Codex: paginated', () => {
     expect(state.stats.toolCalls).toBe(1);
   });
 
-  it('mudanças de arquivo (mapa do rollout ou lista), apply_patch, MCP e plano', () => {
+  it('file changes (rollout map or list), apply_patch, MCP and plan', () => {
     const { results, state } = feed([
       R.fileChange(T, 't', 'call_p', {
-        '/projetos/loja/src/app.ts': { type: 'update', unified_diff: '@@ -1 +1 @@\n-a\n+b\n', move_path: null },
-        '/projetos/loja/src/novo.ts': { type: 'add', content: 'export {}\n' },
+        '/projects/store/src/app.ts': { type: 'update', unified_diff: '@@ -1 +1 @@\n-a\n+b\n', move_path: null },
+        '/projects/store/src/new.ts': { type: 'add', content: 'export {}\n' },
       }),
       R.mcp(T, 't', 'call_m', 'github', 'create_pull_request', { owner: 'o', repo: 'r', title: 'x' }, { result: '{"number": 7, "html_url": "https://github.com/o/r/pull/7"}' }),
-      R.functionCall('call_plan', 'update_plan', { plan: [{ step: 'Ler o código', status: 'completed' }, { step: 'Corrigir', status: 'in_progress' }] }),
+      R.functionCall('call_plan', 'update_plan', { plan: [{ step: 'Read the code', status: 'completed' }, { step: 'Fix', status: 'in_progress' }] }),
     ]);
     const acts = results.flatMap((r) => r.activities.map((a) => a.activity));
     expect(acts.map((a) => [a.id, a.text])).toEqual([
       ['acc:t#call_p', 'Editing app.ts'],
-      ['acc:t#call_p:1', 'Writing novo.ts'],
+      ['acc:t#call_p:1', 'Writing new.ts'],
       ['acc:t#call_m', 'GitHub: create pull request'],
       ['acc:t#call_plan', 'Updating the plan'],
     ]);
     expect(acts[2].tool).toBe('mcp__github__create_pull_request');
     expect(state.tasks).toEqual([
-      { id: '1', title: 'Ler o código', status: 'completed' },
-      { id: '2', title: 'Corrigir', status: 'in_progress' },
+      { id: '1', title: 'Read the code', status: 'completed' },
+      { id: '2', title: 'Fix', status: 'in_progress' },
     ]);
     expect(results[1].signals.find((s) => s.type === 'github')).toMatchObject({ event: { kind: 'pr_opened', number: 7, repo: 'o/r' }, key: 'call_m' });
-    expect(fileChanges([{ path: '/x/a.ts', kind: 'add', diff: 'oi' }])).toEqual([{ path: '/x/a.ts', kind: 'add', text: 'oi' }]);
+    expect(fileChanges([{ path: '/x/a.ts', kind: 'add', diff: 'hi' }])).toEqual([{ path: '/x/a.ts', kind: 'add', text: 'hi' }]);
     expect(patchFiles('*** Begin Patch\n*** Update File: src/a.ts\n@@\n*** Add File: src/b.ts\n+x\n*** End Patch')).toEqual([
       { path: 'src/a.ts', kind: 'update' },
       { path: 'src/b.ts', kind: 'add' },
     ]);
-    expect(describeCodexTool('apply_patch', { command: '*** Begin Patch\n*** Add File: docs/x.md\n+oi\n*** End Patch' })).toMatchObject({ tool: 'Write', desc: { text: 'Writing x.md' } });
+    expect(describeCodexTool('apply_patch', { command: '*** Begin Patch\n*** Add File: docs/x.md\n+hi\n*** End Patch' })).toMatchObject({ tool: 'Write', desc: { text: 'Writing x.md' } });
     expect(describeCodexTool('Bash', { command: 'pytest -q' }).desc.text).toBe('Running tests');
     expect(describeCodexTool('create_issue', {}, 'mcp__github__').tool).toBe('mcp__github__create_issue');
   });
 
-  it('code mode do app: a mensagem enviada a você (user_messaging) é a resposta, sem duplicar com a entrega gravada', () => {
+  it('app code mode: the message sent to you (user_messaging) is the response, without duplicating with the recorded delivery', () => {
     const { results } = feed([
       R.meta(T),
-      R.customToolCall('call_js', 'exec', 'await tools.user_messaging.send_message({text: "Achei o bug"})'),
-      R.delivered('call_msg', 'Achei o bug no checkout'),
-      R.mcp(T, 't', 'call_msg', 'codex_apps', 'user_messaging_send_message', { text: 'Achei o bug no checkout' }, { result: 'ok' }),
-      R.delivered('call_cut', 'Texto cortado', Date.now(), false),
+      R.customToolCall('call_js', 'exec', 'await tools.user_messaging.send_message({text: "Found the bug"})'),
+      R.delivered('call_msg', 'Found the bug in the checkout'),
+      R.mcp(T, 't', 'call_msg', 'codex_apps', 'user_messaging_send_message', { text: 'Found the bug in the checkout' }, { result: 'ok' }),
+      R.delivered('call_cut', 'Text cut off', Date.now(), false),
     ]);
     const acts = results.flatMap((r) => r.activities.map((a) => a.activity));
     expect(acts.map((a) => [a.id, a.text, a.detail])).toEqual([
       ['acc:t#call_js', 'Running code', undefined],
-      ['acc:t#call_msg', 'Writing the reply', 'Achei o bug no checkout'],
+      ['acc:t#call_msg', 'Writing the reply', 'Found the bug in the checkout'],
       // O item concluído tem o mesmo id: o escritório não duplica.
-      ['acc:t#call_msg', 'Writing the reply', 'Achei o bug no checkout'],
-      ['acc:t#call_cut', 'Writing the reply', 'Texto cortado'],
+      ['acc:t#call_msg', 'Writing the reply', 'Found the bug in the checkout'],
+      ['acc:t#call_cut', 'Writing the reply', 'Text cut off'],
     ]);
   });
 
-  it('uso do plano: só a cota padrão (outro limit_id fica de fora)', () => {
-    const rl = { ...R.rateLimits({}), limit_id: 'codex_outro_modelo' };
+  it('plan usage: only the default quota (another limit_id is left out)', () => {
+    const rl = { ...R.rateLimits({}), limit_id: 'codex_other_model' };
     expect(usageFromRateLimits(rl, 1)).toBeUndefined();
     expect(usageFromRateLimits({ ...rl, limit_id: null }, 1)).toMatchObject({ fiveHour: { utilization: 12.5 } });
   });
 
-  it('GitHub: o push que deu certo vira evento; o que falhou, não', () => {
+  it('GitHub: the push that worked becomes an event; the one that failed does not', () => {
     const ok = 'To github.com:o/r.git\n   abc1234..def5678  main -> main\n';
     const rejected = 'To github.com:o/r.git\n ! [rejected]        main -> main (fetch first)\nerror: failed to push some refs\n';
     const { results } = feed([R.command(T, 't', 'c1', 'git push', { output: ok }), R.command(T, 't', 'c2', 'git push', { exit: 1, output: rejected })]);
@@ -154,13 +154,13 @@ describe('rollout do Codex: paginated', () => {
     expect(results[1].signals.some((s) => s.type === 'github')).toBe(false);
   });
 
-  it('tokens: total cumulativo, sem somar o cache de novo', () => {
+  it('tokens: cumulative total, without adding the cache again', () => {
     const { state } = feed([R.tokens({ input: 1_000, cached: 800, output: 50 }), R.tokens({ input: 3_000, cached: 2_500, output: 120, reasoning: 60 })]);
     expect(state.stats.tokensIn).toBe(3_000);
     expect(state.stats.tokensOut).toBe(120);
   });
 
-  it('uso do plano: janela pela duração, idade da linha e sem cota', () => {
+  it('plan usage: window by duration, age of the line and no quota', () => {
     const at = Date.parse('2026-10-09T12:00:00Z');
     // Posições trocadas: vale a duração (10080 = semana).
     const swapped = usageFromRateLimits(R.rateLimits({ primary: { used: 70, minutes: 10080, resetsAt: 1_900_000_000 }, secondary: { used: 5.5, minutes: 300 } }), at);
@@ -173,7 +173,7 @@ describe('rollout do Codex: paginated', () => {
     expect(results[0].signals).toContainEqual({ type: 'usage', usage: expect.objectContaining({ fetchedAt: at, fiveHour: { utilization: 12.5, resetsAt: 2_000_000_000_000 } }), plan: 'pro' });
   });
 
-  it('turno interrompido e ids estáveis numa releitura (inclusive sem id próprio)', () => {
+  it('interrupted turn and stable ids on a reread (including without an id of its own)', () => {
     // Sem session_meta na janela, o formato ainda não é conhecido: a resposta legacy vale.
     const lines = [R.taskStarted('t9'), R.turnAborted('t9'), R.legacyAgent('x')];
     const a = feed(lines);
@@ -184,25 +184,25 @@ describe('rollout do Codex: paginated', () => {
   });
 });
 
-describe('rollout do Codex: legacy', () => {
-  it('o básico: prompt, raciocínio, resposta e comando concluído (function_call + saída)', () => {
+describe('Codex rollout: legacy', () => {
+  it('the basics: prompt, reasoning, response and completed command (function_call + output)', () => {
     const { results, state } = feed([
       R.meta(T, { history: null }),
-      R.legacyUser('Liste os arquivos'),
-      R.legacyReasoning('pensando'),
+      R.legacyUser('List the files'),
+      R.legacyReasoning('thinking'),
       R.functionCall('c1', 'shell', { command: ['bash', '-lc', 'ls -la'] }),
-      R.functionOutput('c1', JSON.stringify({ output: 'erro', metadata: { exit_code: 2 } })),
-      R.legacyAgent('Pronto, listei.'),
+      R.functionOutput('c1', JSON.stringify({ output: 'error', metadata: { exit_code: 2 } })),
+      R.legacyAgent('Done, I listed them.'),
       // Num legacy, item_completed de UserMessage não existe; se aparecer, não duplica a conversa por isso.
     ]);
     expect(state.mode).toBe('legacy');
-    expect(texts(results)).toEqual(['Received “Liste os arquivos”', 'Thinking…', 'Exploring folders', 'Error in Bash', 'Writing the reply']);
+    expect(texts(results)).toEqual(['Received “List the files”', 'Thinking…', 'Exploring folders', 'Error in Bash', 'Writing the reply']);
     expect(state.stats.toolCalls).toBe(1);
-    expect(state.title).toBe('Liste os arquivos');
+    expect(state.title).toBe('List the files');
   });
 
-  it('eventos legacy são ignorados num rollout paginated', () => {
-    const { results } = feed([R.meta(T), R.legacyUser('duplicado'), R.legacyAgent('duplicado')]);
+  it('legacy events are ignored in a paginated rollout', () => {
+    const { results } = feed([R.meta(T), R.legacyUser('duplicate'), R.legacyAgent('duplicate')]);
     expect(texts(results)).toEqual([]);
   });
 });
@@ -211,7 +211,7 @@ describe('session_meta', () => {
   const meta = (source: unknown, extra: Record<string, unknown> = {}) =>
     parseSessionMeta({ id: T, session_id: T, cwd: '/p', source, history_mode: 'paginated', ...extra });
 
-  it('subagente (thread_spawn), internos e fontes comuns', () => {
+  it('subagent (thread_spawn), internal ones and common sources', () => {
     const parent = threadId(2);
     expect(meta(SOURCES.sub(parent))).toMatchObject({ parentThreadId: parent, agentRole: 'explorer', agentNickname: 'Kepler', internal: false });
     // A chave já apareceu como subAgent (camelCase) na documentação: as duas valem.
@@ -229,23 +229,23 @@ describe('session_meta', () => {
 });
 
 describe('pathFromUri', () => {
-  it('caminho POSIX, com percent-encoding', () => {
+  it('POSIX path, with percent-encoding', () => {
     expect(pathFromUri('file:///repo/a.png')).toBe('/repo/a.png');
     expect(pathFromUri('file:///home/user/my%20file.png')).toBe('/home/user/my file.png');
     expect(pathFromUri('file:///tmp/caf%C3%A9.png')).toBe('/tmp/café.png');
   });
 
-  it('drive do Windows (a letra da URI decide, não o sistema), com percent-encoding', () => {
+  it('Windows drive (the letter of the URI decides, not the system), with percent-encoding', () => {
     expect(pathFromUri('file:///C:/repo/a.png')).toBe('C:\\repo\\a.png');
     expect(pathFromUri('file:///C:/repo/my%20file.png')).toBe('C:\\repo\\my file.png');
   });
 
-  it('UNC preserva o servidor, com percent-encoding', () => {
-    expect(pathFromUri('file://servidor/share/a.png')).toBe('\\\\servidor\\share\\a.png');
-    expect(pathFromUri('file://servidor/share/my%20file.png')).toBe('\\\\servidor\\share\\my file.png');
+  it('UNC preserves the server, with percent-encoding', () => {
+    expect(pathFromUri('file://server/share/a.png')).toBe('\\\\server\\share\\a.png');
+    expect(pathFromUri('file://server/share/my%20file.png')).toBe('\\\\server\\share\\my file.png');
   });
 
-  it('o que não é file:// e URI inválida continuam como antes', () => {
+  it('what is not file:// and an invalid URI stay as before', () => {
     expect(pathFromUri('/repo/a.png')).toBe('/repo/a.png');
     expect(pathFromUri('C:\\repo\\a.png')).toBe('C:\\repo\\a.png');
     expect(pathFromUri('FILE:///C:/repo/a.png')).toBe('FILE:///C:/repo/a.png');

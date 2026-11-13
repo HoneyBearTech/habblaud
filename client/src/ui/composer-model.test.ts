@@ -43,8 +43,8 @@ function agent(over: Partial<AgentInfo> = {}): AgentInfo {
 
 const ON: ComposerEnv = { enabled: true, local: true, replaying: false };
 
-describe('caixa de mensagem (peças puras)', () => {
-  it('composerMode: pronta só para principal presente com o plugin, recurso ligado e página local', () => {
+describe('message box (pure pieces)', () => {
+  it('composerMode: ready only for a present main agent with the plugin, feature on and local page', () => {
     expect(composerMode(agent(), ON)).toEqual({ kind: 'ready' });
     for (const status of ['working', 'waiting', 'shell'] as const) expect(composerMode(agent({ status }), ON).kind).toBe('ready');
     // Recurso ligado, mas a sessão sem o plugin: a dica de instalação.
@@ -52,7 +52,7 @@ describe('caixa de mensagem (peças puras)', () => {
     expect(PLUGIN_HINT).toBe('To send messages from here: npm run mod:install (plugin habblaud-mensagens)');
   });
 
-  it('composerMode: quando não dá, diz por quê (a gaveta esconde, o terminal mostra o motivo)', () => {
+  it('composerMode: when it cannot, says why (the drawer hides, the terminal shows the reason)', () => {
     const off = (a: AgentInfo | undefined, env: Partial<ComposerEnv> = {}) => {
       const m = composerMode(a, { ...ON, ...env });
       expect(m.kind).toBe('off');
@@ -68,9 +68,9 @@ describe('caixa de mensagem (peças puras)', () => {
     expect(off(agent(), { replaying: true })).toMatch(/timelapse/);
   });
 
-  it('texto: sai sem os espaços do fim; vazio ou longo demais não manda', () => {
-    expect(messageText('  oi\n  tudo bem?  \n\n')).toBe('  oi\n  tudo bem?');
-    expect(canSend('oi')).toBe(true);
+  it('text: goes out without the trailing spaces; empty or too long does not send', () => {
+    expect(messageText('  hi\n  all good?  \n\n')).toBe('  hi\n  all good?');
+    expect(canSend('hi')).toBe(true);
     expect(canSend(' \n\t ')).toBe(false);
     expect(canSend('x'.repeat(20_000))).toBe(true);
     expect(canSend('x'.repeat(20_001))).toBe(false);
@@ -78,7 +78,7 @@ describe('caixa de mensagem (peças puras)', () => {
     expect(canSend(`${'x'.repeat(20_000)}\n\n`)).toBe(true);
   });
 
-  it('Enter manda; Shift+Enter e Alt+Enter quebram a linha; Enter compondo acento (IME) não manda', () => {
+  it('Enter sends; Shift+Enter and Alt+Enter break the line; Enter while composing an accent (IME) does not send', () => {
     const k = (over: Partial<Pick<KeyboardEvent, 'key' | 'shiftKey' | 'altKey' | 'isComposing'>> = {}) =>
       enterSends({ key: 'Enter', shiftKey: false, altKey: false, isComposing: false, ...over });
     expect(k()).toBe(true);
@@ -88,20 +88,20 @@ describe('caixa de mensagem (peças puras)', () => {
     expect(k({ key: 'a' })).toBe(false);
   });
 
-  it('linha de situação: enviando, na fila, entregando, entregue (some depois de um tempo) e os erros', () => {
+  it('status line: sending, queued, delivering, delivered (disappears after a while) and the errors', () => {
     expect(sendStatusText(undefined, 0)).toBe('');
     expect(sendStatusText({ phase: 'sending', at: 0 }, 0)).toBe('Sending…');
     expect(sendStatusText({ phase: 'queued', at: 0 }, 0)).toMatch(/^Queued/);
     expect(sendStatusText({ phase: 'sent', at: 0 }, 0)).toMatch(/^Delivering/);
     expect(sendStatusText({ phase: 'delivered', at: 0 }, 1_000)).toMatch(/^Delivered ✓ \(if the agent is busy, it goes in when it finishes\)$/);
     expect(sendStatusText({ phase: 'delivered', at: 0 }, DELIVERED_SHOW_MS)).toBe('');
-    expect(sendStatusText({ phase: 'rejected', error: 'já há 5 mensagens', at: 0 }, 0)).toBe("Couldn't send: já há 5 mensagens");
+    expect(sendStatusText({ phase: 'rejected', error: 'there are already 5 messages', at: 0 }, 0)).toBe("Couldn't send: there are already 5 messages");
     expect(sendStatusText({ phase: 'failed', error: "the session didn't confirm delivery", at: 0 }, 99_999)).toBe("Not delivered: the session didn't confirm delivery");
     expect(['delivered', 'failed', 'rejected'].every((p) => isSettled(p as never))).toBe(true);
     expect(['sending', 'queued', 'sent'].some((p) => isSettled(p as never))).toBe(false);
   });
 
-  it('Codex: com entregador, igual ao Claude Code; sem ele, a dica do codex:bridge; recurso desligado manda ao Codex', () => {
+  it('Codex: with a deliverer, same as Claude Code; without it, the codex:bridge hint; feature off sends you to Codex', () => {
     const codex = (over: Partial<AgentInfo> = {}) => agent({ provider: 'codex', ...over });
     expect(composerMode(codex(), ON)).toEqual({ kind: 'ready' });
     expect(composerMode(codex({ canMessage: undefined }), ON)).toEqual({ kind: 'hint', text: CODEX_BRIDGE_HINT });
@@ -111,7 +111,7 @@ describe('caixa de mensagem (peças puras)', () => {
     expect(composerMode(codex({ status: 'offline' }), ON)).toEqual({ kind: 'off', text: 'Session ended' });
   });
 
-  it('Codex: "Entregue" é a fila da sessão; dica e prazo falam do Codex', () => {
+  it('Codex: "Delivered" is the session queue; hint and deadline talk about Codex', () => {
     expect(sendStatusText({ phase: 'delivered', at: 0 }, 1_000, 'codex')).toBe("Delivered ✓ to the session queue: goes in when Codex finishes what it's doing (up to ~10 s)");
     expect(sendStatusText({ phase: 'delivered', at: 0 }, DELIVERED_SHOW_MS, 'codex')).toBe('');
     expect(sendStatusText({ phase: 'queued', at: 0 }, 0, 'codex')).toBe('Queued: delivering to Codex…');
@@ -123,7 +123,7 @@ describe('caixa de mensagem (peças puras)', () => {
     expect(timeoutError()).toBe(TIMEOUT_ERROR);
   });
 
-  it('consulta da entrega: rápida no começo, mais espaçada depois', () => {
+  it('delivery polling: fast at the start, more spaced out later', () => {
     expect(pollDelay(0)).toBeLessThan(1_000);
     expect(pollDelay(20_000)).toBeGreaterThan(pollDelay(0));
     expect(pollDelay(60_000)).toBeGreaterThanOrEqual(pollDelay(20_000));

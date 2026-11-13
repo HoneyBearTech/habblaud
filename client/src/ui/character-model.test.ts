@@ -9,7 +9,7 @@ const OPEN = { live: true, terminal: true, local: true, replaying: false, mock: 
 const MAIN = { id: '.claude:1', kind: 'main', status: 'working' } as const;
 
 describe('canEditCharacter', () => {
-  it('só o principal real, ao vivo, com acesso local (fora do timelapse e do mock)', () => {
+  it('only the real main agent, live, with local access (outside the timelapse and the mock)', () => {
     expect(canEditCharacter(MAIN, OPEN)).toBe(true);
     expect(canEditCharacter({ ...MAIN, id: 's:sub', kind: 'sub' }, OPEN)).toBe(false);
     expect(canEditCharacter({ ...MAIN, id: 'demo:x-1' }, OPEN)).toBe(false);
@@ -17,14 +17,14 @@ describe('canEditCharacter', () => {
     for (const k of ['replaying', 'mock'] as const) expect(canEditCharacter(MAIN, { ...OPEN, [k]: true })).toBe(false);
   });
 
-  it('quem está saindo (offline, nos 20 s de graça) não ganha o lápis; os outros status, sim', () => {
+  it('whoever is leaving (offline, in the 20 s of grace) does not get the pencil; the other statuses do', () => {
     expect(canEditCharacter({ ...MAIN, status: 'offline' }, OPEN)).toBe(false);
     for (const status of ['idle', 'waiting', 'shell'] as const) expect(canEditCharacter({ ...MAIN, status }, OPEN), status).toBe(true);
   });
 });
 
 describe('changedParts', () => {
-  it('só as peças diferentes da aparência da seed, na ordem fixa', () => {
+  it('only the pieces different from the appearance of the seed, in the fixed order', () => {
     const base = appearanceFromSeed(3, { look: 'm' });
     const skin = base.skin === '#5a3623' ? '#ffe2cc' : '#5a3623';
     const topStyle = base.topStyle === 'jacket' ? 'polo' : 'jacket';
@@ -34,7 +34,7 @@ describe('changedParts', () => {
     expect(changedParts(base, { ...base })).toEqual({});
   });
 
-  it('a ordem vem de PART_KEYS, não da ordem das chaves da aparência editada', () => {
+  it('the order comes from PART_KEYS, not from the key order of the edited appearance', () => {
     const base = appearanceFromSeed(3, { look: 'm' });
     const shoes = base.shoes === '#101010' ? '#ffffff' : '#101010';
     const bottomStyle = base.bottomStyle === 'skirt' ? 'pants' : 'skirt';
@@ -52,20 +52,20 @@ describe('changedParts', () => {
   });
 });
 
-describe('grupos e rótulos do editor', () => {
-  it('todas as peças aparecem uma vez no editor', () => {
+describe('editor groups and labels', () => {
+  it('all the pieces appear once in the editor', () => {
     const keys = EDITOR_GROUPS.flatMap((g) => g.rows.map((r) => r.key));
     expect([...keys].sort()).toEqual([...PART_KEYS].sort());
   });
 
-  it('todo estilo tem rótulo em português', () => {
+  it('every style has a label', () => {
     const lists = { hairStyle: HAIR_STYLES, topStyle: TOP_STYLES, bottomStyle: BOTTOM_STYLES, accessory: ACCESSORIES, facialHair: FACIAL_HAIR } as const;
     for (const [key, values] of Object.entries(lists)) {
       for (const v of values) expect(styleLabel(key as keyof typeof lists, v), `${key}=${v}`).not.toBe(v);
     }
   });
 
-  it('a cor do acessório some quando não há acessório', () => {
+  it('the accessory color disappears when there is no accessory', () => {
     const color = EDITOR_GROUPS.flatMap((g) => g.rows).find((r) => r.key === 'accessoryColor')!;
     expect(rowVisible(color, { accessory: 'none' })).toBe(false);
     expect(rowVisible(color, { accessory: 'cap' })).toBe(true);
@@ -125,25 +125,25 @@ function characterEditor() {
   return { editor, button, input, error, save, open, send, settle, announce };
 }
 
-describe('respostas assíncronas do editor de personagem', () => {
+describe('asynchronous responses of the character editor', () => {
   afterEach(() => vi.unstubAllGlobals());
 
   for (const operation of ['save', 'reset'] as const) {
     for (const next of ['b', 'a']) {
-      it.each([undefined, 'No connection to Habblaud.'])(`${operation}: resposta %s não altera a nova edição de ${next}`, async (error) => {
+      it.each([undefined, 'No connection to Habblaud.'])(`${operation}: response %s does not change the new edit of ${next}`, async (error) => {
         const ui = characterEditor();
         ui.open('a');
         ui.send(operation);
         if (next === 'a') ui.editor.close();
         ui.open(next);
-        ui.input.value = 'Rascunho novo';
+        ui.input.value = 'New draft';
         const focused = document.activeElement;
 
         await ui.settle(error);
 
         expect(ui.editor.el.hidden).toBe(false);
         expect(ui.button.getAttribute('aria-expanded')).toBe('true');
-        expect(ui.input.value).toBe('Rascunho novo');
+        expect(ui.input.value).toBe('New draft');
         expect(ui.error.hidden).toBe(true);
         expect(ui.error.textContent).toBe('');
         expect(document.activeElement).toBe(focused);
@@ -151,7 +151,7 @@ describe('respostas assíncronas do editor de personagem', () => {
       });
     }
 
-    it(`${operation}: sucesso na edição atual fecha o editor e anuncia o resultado`, async () => {
+    it(`${operation}: success on the current edit closes the editor and announces the result`, async () => {
       const ui = characterEditor();
       ui.open('a');
       ui.send(operation);

@@ -9,13 +9,13 @@ function session(p: Partial<RecentSession> & Pick<RecentSession, 'sessionId' | '
   return { account: '.claude', projectDir: '-p', size: 1_000, open: false, ...p };
 }
 
-describe('sessões do Codex no histórico', () => {
-  it('parseRecentSessions guarda o provider só quando é o Codex; a busca acha "codex"', () => {
+describe('Codex sessions in the history', () => {
+  it('parseRecentSessions keeps the provider only when it is Codex; the search finds "codex"', () => {
     const list = parseRecentSessions({
       sessions: [
         { account: '.codex', provider: 'codex', sessionId: 'x', projectDir: '/p', lastAt: 2, size: 1, open: false },
         { account: '.claude', provider: 'claude', sessionId: 'c', projectDir: '-p', lastAt: 1, size: 1, open: false },
-        { account: '.claude', provider: 'outro', sessionId: 'd', projectDir: '-p', lastAt: 0, size: 1, open: false },
+        { account: '.claude', provider: 'other', sessionId: 'd', projectDir: '-p', lastAt: 0, size: 1, open: false },
       ],
     });
     expect(list.map((s) => [s.sessionId, s.provider])).toEqual([
@@ -28,7 +28,7 @@ describe('sessões do Codex no histórico', () => {
 });
 
 describe('groupSessionsByDay', () => {
-  it('Hoje, Ontem e datas, do dia mais recente para o mais antigo (e da mais recente para a mais antiga dentro do dia)', () => {
+  it('Today, Yesterday and dates, from the most recent day to the oldest (and from the most recent to the oldest within the day)', () => {
     const list = [
       session({ sessionId: 'a', lastAt: at(8, 9) }),
       session({ sessionId: 'b', lastAt: at(6, 23, 59) }),
@@ -51,36 +51,36 @@ describe('groupSessionsByDay', () => {
 
 describe('filterSessions', () => {
   const list = [
-    session({ sessionId: 'a', lastAt: 3, title: 'Configuração do carrinho', project: '/Users/ana/projetos/loja' }),
-    session({ sessionId: 'b', lastAt: 2, title: 'Rota de login', project: '/Users/ana/projetos/api', account: '.claude-conta2' }),
-    session({ sessionId: 'c', lastAt: 1, projectDir: '-Users-ana-projetos-site' }),
+    session({ sessionId: 'a', lastAt: 3, title: 'Configuração do carrinho', project: '/Users/ana/projects/store' }),
+    session({ sessionId: 'b', lastAt: 2, title: 'Login route', project: '/Users/ana/projects/api', account: '.claude-conta2' }),
+    session({ sessionId: 'c', lastAt: 1, projectDir: '-Users-ana-projects-site' }),
   ];
-  const label = (id: string) => (id === '.claude-conta2' ? 'Trabalho T' : 'Pessoal P');
+  const label = (id: string) => (id === '.claude-conta2' ? 'Work W' : 'Personal P');
 
-  it('por título ou projeto, sem diferenciar maiúsculas nem acentos; todos os termos precisam casar', () => {
+  it('by title or project, ignoring case and accents; all the terms must match', () => {
     expect(filterSessions(list, 'configuracao').map((s) => s.sessionId)).toEqual(['a']);
-    expect(filterSessions(list, 'LOJA').map((s) => s.sessionId)).toEqual(['a']);
+    expect(filterSessions(list, 'STORE').map((s) => s.sessionId)).toEqual(['a']);
     expect(filterSessions(list, 'site').map((s) => s.sessionId)).toEqual(['c']);
-    expect(filterSessions(list, 'rota api').map((s) => s.sessionId)).toEqual(['b']);
-    expect(filterSessions(list, 'rota loja')).toEqual([]);
+    expect(filterSessions(list, 'route api').map((s) => s.sessionId)).toEqual(['b']);
+    expect(filterSessions(list, 'route store')).toEqual([]);
   });
 
-  it('pela conta (nome ou letra); sem termo, tudo', () => {
-    expect(filterSessions(list, 'trabalho', label).map((s) => s.sessionId)).toEqual(['b']);
-    expect(filterSessions(list, 'pessoal', label).map((s) => s.sessionId)).toEqual(['a', 'c']);
+  it('by the account (name or letter); with no term, everything', () => {
+    expect(filterSessions(list, 'work', label).map((s) => s.sessionId)).toEqual(['b']);
+    expect(filterSessions(list, 'personal', label).map((s) => s.sessionId)).toEqual(['a', 'c']);
     expect(filterSessions(list, '  ', label)).toHaveLength(3);
   });
 });
 
 describe('parseRecentSessions', () => {
-  it('aceita as válidas, ignora o resto e ordena da mais recente para a mais antiga', () => {
+  it('accepts the valid ones, ignores the rest and sorts from the most recent to the oldest', () => {
     const raw = {
       sessions: [
-        { account: '.claude', sessionId: 's1', projectDir: '-p', project: '/p', title: 'Um', firstAt: 1, lastAt: 10, size: 99, open: false, agentId: 'x' },
+        { account: '.claude', sessionId: 's1', projectDir: '-p', project: '/p', title: 'One', firstAt: 1, lastAt: 10, size: 99, open: false, agentId: 'x' },
         { account: '.claude', sessionId: 's2', lastAt: 20, open: true, agentId: '.claude:7' },
         { account: '.claude', lastAt: 30 },
         { sessionId: 's4', lastAt: 30 },
-        { account: '.claude', sessionId: 's5', lastAt: 'ontem' },
+        { account: '.claude', sessionId: 's5', lastAt: 'yesterday' },
         null,
         'x',
       ],
@@ -89,13 +89,13 @@ describe('parseRecentSessions', () => {
     expect(out.map((s) => s.sessionId)).toEqual(['s2', 's1']);
     expect(out[0]).toEqual({ account: '.claude', sessionId: 's2', projectDir: '', lastAt: 20, size: 0, open: true, agentId: '.claude:7' });
     // agentId só vale para sessão aberta.
-    expect(out[1]).toEqual({ account: '.claude', sessionId: 's1', projectDir: '-p', project: '/p', title: 'Um', firstAt: 1, lastAt: 10, size: 99, open: false });
+    expect(out[1]).toEqual({ account: '.claude', sessionId: 's1', projectDir: '-p', project: '/p', title: 'One', firstAt: 1, lastAt: 10, size: 99, open: false });
     expect(parseRecentSessions(null)).toEqual([]);
     expect(parseRecentSessions({ sessions: 'x' })).toEqual([]);
   });
 });
 
-describe('utilitários', () => {
+describe('utilities', () => {
   it('formatSize', () => {
     expect(formatSize(10)).toBe('1 KB');
     expect(formatSize(820 * 1024)).toBe('820 KB');

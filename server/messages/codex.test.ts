@@ -43,47 +43,47 @@ let codexHome: string;
 beforeEach(() => {
   tmp = tempDir();
   bin = writeFakeCodex(tmp.dir);
-  log = join(tmp.dir, 'chamadas.log');
+  log = join(tmp.dir, 'calls.log');
   codexHome = join(tmp.dir, '.codex');
   mkdirSync(codexHome);
 });
 afterEach(() => tmp.cleanup());
 
 const runner = (timeoutMs?: number) => createCodexQueueRunner(bin, { env: { PATH: process.env.PATH, FAKE_CODEX_LOG: log }, timeoutMs });
-const job = (over: Partial<CodexQueueJob> = {}): CodexQueueJob => ({ codexHome, thread: THREAD, text: 'oi', ...over });
+const job = (over: Partial<CodexQueueJob> = {}): CodexQueueJob => ({ codexHome, thread: THREAD, text: 'hi', ...over });
 
-describe('codex queue (binário falso)', () => {
-  it.runIf(FAKE_CODEX_RUNS)('retorno 0 = entrou na fila; argumentos com "=" e o CODEX_HOME da conta; nunca -c/--enable/--disable/--no-daemon', async () => {
+describe('codex queue (fake binary)', () => {
+  it.runIf(FAKE_CODEX_RUNS)('return 0 = joined the queue; arguments with "=" and the CODEX_HOME of the account; never -c/--enable/--disable/--no-daemon', async () => {
     const run = runner();
-    expect(await run(job({ text: '-c model="x"\n--no-daemon e mais' }))).toEqual({ ok: true });
+    expect(await run(job({ text: '-c model="x"\n--no-daemon and more' }))).toEqual({ ok: true });
     const [call] = fakeCodexCalls(log);
-    expect(call).toEqual({ args: ['queue', `--thread=${THREAD}`, '--message=-c model="x"\n--no-daemon e mais'], codexHome });
+    expect(call).toEqual({ args: ['queue', `--thread=${THREAD}`, '--message=-c model="x"\n--no-daemon and more'], codexHome });
     expect(queueArgs(THREAD, 'x')).toEqual(['queue', `--thread=${THREAD}`, '--message=x']);
   });
 
-  it.runIf(FAKE_CODEX_RUNS)('erro: a 1ª linha do stderr; prazo esgotado; texto com NUL e thread inválido nem rodam', async () => {
+  it.runIf(FAKE_CODEX_RUNS)('error: the 1st line of stderr; deadline expired; text with NUL and invalid thread do not even run', async () => {
     const run = runner(400);
     const gone = await run(job({ thread: GONE_THREAD }));
     expect(gone).toEqual({ ok: false, error: expect.stringMatching(/^Error: failed to queue session message: .*no rollout found for thread id 0199aaaa/) });
     expect(await run(job({ thread: SLOW_THREAD }))).toEqual({ ok: false, error: "codex queue didn't respond within 0 s (the message may have been queued anyway)" });
     const before = fakeCodexCalls(log).length;
     expect(await run(job({ text: 'a\u0000b' }))).toEqual({ ok: false, error: "the message has characters that can't be sent to Codex" });
-    expect(await run(job({ thread: 'nome-da-sessao' }))).toEqual({ ok: false, error: 'invalid Codex thread id' });
-    expect(await run(job({ codexHome: 'relativo' }))).toEqual({ ok: false, error: 'invalid Codex account folder' });
+    expect(await run(job({ thread: 'session-name' }))).toEqual({ ok: false, error: 'invalid Codex thread id' });
+    expect(await run(job({ codexHome: 'relative' }))).toEqual({ ok: false, error: 'invalid Codex account folder' });
     expect(fakeCodexCalls(log)).toHaveLength(before);
-    expect(await createCodexQueueRunner(join(tmp.dir, 'nao-existe'))(job())).toEqual({ ok: false, error: expect.stringMatching(/^couldn't run Codex/) });
-    expect(firstLine('\n  \nError: x\nmais')).toBe('Error: x');
+    expect(await createCodexQueueRunner(join(tmp.dir, 'does-not-exist'))(job())).toEqual({ ok: false, error: expect.stringMatching(/^couldn't run Codex/) });
+    expect(firstLine('\n  \nError: x\nmore')).toBe('Error: x');
     expect(firstLine('')).toBeUndefined();
   });
 
-  it('findCodexBin: HABBLAUD_CODEX_BIN (se for executável) ou codex no PATH', () => {
+  it('findCodexBin: HABBLAUD_CODEX_BIN (if it is executable) or codex in the PATH', () => {
     expect(findCodexBin({ HABBLAUD_CODEX_BIN: bin, PATH: '' })).toBe(bin);
-    expect(findCodexBin({ HABBLAUD_CODEX_BIN: join(tmp.dir, 'nada'), PATH: tmp.dir })).toBeUndefined();
-    expect(findCodexBin({ PATH: ['/nao/existe', 'relativo', tmp.dir].join(delimiter) })).toBe(bin);
-    expect(findCodexBin({ PATH: '/nao/existe' })).toBeUndefined();
+    expect(findCodexBin({ HABBLAUD_CODEX_BIN: join(tmp.dir, 'nothing'), PATH: tmp.dir })).toBeUndefined();
+    expect(findCodexBin({ PATH: ['/does/not/exist', 'relative', tmp.dir].join(delimiter) })).toBe(bin);
+    expect(findCodexBin({ PATH: '/does/not/exist' })).toBeUndefined();
   });
 
-  it.runIf(process.platform === 'win32')('findCodexBin no Windows: só o codex.exe; os scripts que o npm põe no PATH não rodam sem shell', () => {
+  it.runIf(process.platform === 'win32')('findCodexBin on Windows: only codex.exe; the scripts that npm puts in the PATH do not run without a shell', () => {
     const npm = join(tmp.dir, 'npm');
     mkdirSync(npm);
     for (const f of ['codex', 'codex.cmd', 'codex.ps1']) writeFileSync(join(npm, f), '');
@@ -120,9 +120,9 @@ function setup(codex?: Partial<CodexDeliveryOptions> | null) {
     messages: () => registry?.reachable() ?? new Set(),
     now: clock.now,
   });
-  office.addMain({ id: MAIN, provider: 'codex', account: '.codex', sessionId: THREAD, cwd: '/p/loja', role: 'Main agent', startedAt: 0, status: 'idle' });
+  office.addMain({ id: MAIN, provider: 'codex', account: '.codex', sessionId: THREAD, cwd: '/p/store', role: 'Main agent', startedAt: 0, status: 'idle' });
   office.addMain({ id: OTHER, provider: 'codex', account: '.codex', sessionId: '0199b0c0-0000-7abc-8def-0123456789ab', cwd: '/p/api', role: 'Main agent', startedAt: 0, status: 'idle' });
-  office.addMain({ id: CLAUDE, account: 'acc', sessionId: THREAD, cwd: '/p/loja', role: 'Main agent', startedAt: 0, status: 'idle' });
+  office.addMain({ id: CLAUDE, account: 'acc', sessionId: THREAD, cwd: '/p/store', role: 'Main agent', startedAt: 0, status: 'idle' });
   registry = new MessageRegistry({
     office,
     codex: codex === null ? undefined : { homeOf: (acc) => (acc === '.codex' ? codexHome : undefined), ...codex },
@@ -134,7 +134,7 @@ function setup(codex?: Partial<CodexDeliveryOptions> | null) {
 const snapAgent = (office: Office, id: string): AgentInfo | undefined => office.commit().snapshot.agents.find((a) => a.id === id);
 
 function sent(r: SendResult): string {
-  if (!('message' in r)) throw new Error(`recusada: ${JSON.stringify(r)}`);
+  if (!('message' in r)) throw new Error(`refused: ${JSON.stringify(r)}`);
   return r.message.id;
 }
 
@@ -144,49 +144,49 @@ async function settle(registry: MessageRegistry, id: string): Promise<OutboxMess
     if (m.status === 'delivered' || m.status === 'failed') return m;
     await new Promise((ok) => setTimeout(ok, 20));
   }
-  throw new Error('a mensagem não se resolveu');
+  throw new Error('the message did not settle');
 }
 
-describe('MessageRegistry: Codex no modo Node (o servidor roda o codex queue)', () => {
-  it.runIf(FAKE_CODEX_RUNS)('canMessage nos principais do Codex; entrega pelo codex queue com o thread e a pasta da conta; atividade no feed', async () => {
+describe('MessageRegistry: Codex in Node mode (the server runs codex queue)', () => {
+  it.runIf(FAKE_CODEX_RUNS)('canMessage on the Codex main agents; delivery by codex queue with the thread and the account folder; activity in the feed', async () => {
     const { office, registry } = setup({ run: runner() });
     expect(snapAgent(office, MAIN)!.canMessage).toBe(true);
     // O do Claude Code (mesmo id de sessão, por acaso) segue dependendo do plugin.
     expect(snapAgent(office, CLAUDE)!.canMessage).toBeUndefined();
-    const r = registry.send({ agentId: MAIN, text: 'roda os testes' });
+    const r = registry.send({ agentId: MAIN, text: 'run the tests' });
     expect(r).toMatchObject({ message: { status: 'queued' } });
     const id = sent(r);
     expect(registry.get(id)!.status).toBe('sent');
     expect(await settle(registry, id)).toMatchObject({ status: 'delivered' });
-    expect(fakeCodexCalls(log)).toEqual([{ args: ['queue', `--thread=${THREAD}`, '--message=roda os testes'], codexHome }]);
-    expect(snapAgent(office, MAIN)!.recent.some((a) => a.text === 'Message via Habblaud' && a.detail === 'roda os testes')).toBe(true);
+    expect(fakeCodexCalls(log)).toEqual([{ args: ['queue', `--thread=${THREAD}`, '--message=run the tests'], codexHome }]);
+    expect(snapAgent(office, MAIN)!.recent.some((a) => a.text === 'Message via Habblaud' && a.detail === 'run the tests')).toBe(true);
     // A caixa de entrada do plugin nunca entrega mensagens do Codex (nem conhece o agente do Codex).
     expect(registry.inbox({ session: THREAD, account: '.codex' })).toEqual([]);
   });
 
-  it.runIf(FAKE_CODEX_RUNS)('falha do codex queue vira failed com a 1ª linha do stderr', async () => {
+  it.runIf(FAKE_CODEX_RUNS)('a codex queue failure becomes failed with the 1st line of stderr', async () => {
     const { office, registry } = setup({ run: runner() });
     office.addMain({ id: `.codex:${GONE_THREAD}`, provider: 'codex', account: '.codex', sessionId: GONE_THREAD, cwd: '/p/x', role: 'Main agent', startedAt: 0, status: 'idle' });
-    const m = await settle(registry, sent(registry.send({ agentId: `.codex:${GONE_THREAD}`, text: 'oi' })));
+    const m = await settle(registry, sent(registry.send({ agentId: `.codex:${GONE_THREAD}`, text: 'hi' })));
     expect(m).toMatchObject({ status: 'failed', error: expect.stringMatching(/^Error: .*no rollout found/) });
   });
 
-  it('uma mensagem por vez por agente, na ordem; agentes diferentes em paralelo; nada sai pela rodada do auxiliar', async () => {
+  it('one message at a time per agent, in order; different agents in parallel; nothing goes out through the helper round', async () => {
     const m = manualRunner();
     const { registry, clock } = setup({ run: m.run });
-    const a1 = sent(registry.send({ agentId: MAIN, text: 'um' }));
-    const a2 = sent(registry.send({ agentId: MAIN, text: 'dois' }));
-    const b1 = sent(registry.send({ agentId: OTHER, text: 'outro' }));
-    expect(m.jobs.map((j) => j.text)).toEqual(['um', 'outro']);
+    const a1 = sent(registry.send({ agentId: MAIN, text: 'one' }));
+    const a2 = sent(registry.send({ agentId: MAIN, text: 'two' }));
+    const b1 = sent(registry.send({ agentId: OTHER, text: 'other' }));
+    expect(m.jobs.map((j) => j.text)).toEqual(['one', 'other']);
     expect(registry.get(a2)!.status).toBe('queued');
     expect(registry.codexPoll({})).toEqual([]);
     await m.finish(0, { ok: true });
     expect(registry.get(a1)!.status).toBe('delivered');
-    expect(m.jobs.map((j) => j.text)).toEqual(['um', 'outro', 'dois']);
-    await m.finish(2, { ok: false, error: 'Error: recusado' });
-    expect(registry.get(a2)).toMatchObject({ status: 'failed', error: 'Error: recusado' });
+    expect(m.jobs.map((j) => j.text)).toEqual(['one', 'other', 'two']);
+    await m.finish(2, { ok: false, error: 'Error: refused' });
+    expect(registry.get(a2)).toMatchObject({ status: 'failed', error: 'Error: refused' });
     // Fila parada atrás de uma entrega lenta: falha no prazo com o motivo do Codex.
-    const b2 = sent(registry.send({ agentId: OTHER, text: 'atrás' }));
+    const b2 = sent(registry.send({ agentId: OTHER, text: 'behind' }));
     clock.advance(QUEUED_TIMEOUT_MS);
     registry.tick();
     expect(registry.get(b2)).toMatchObject({ status: 'failed', error: ERR_CODEX_SLOW });
@@ -196,14 +196,14 @@ describe('MessageRegistry: Codex no modo Node (o servidor roda o codex queue)', 
     expect(registry.get(b1)!.status).toBe('delivered');
   });
 
-  it('agente que sai: falha; conta sem pasta conhecida: falha sem rodar nada', async () => {
+  it('agent that leaves: fails; account with no known folder: fails without running anything', async () => {
     const m = manualRunner();
     const { office, registry } = setup({ run: m.run, homeOf: () => undefined });
-    const id = sent(registry.send({ agentId: MAIN, text: 'oi' }));
+    const id = sent(registry.send({ agentId: MAIN, text: 'hi' }));
     expect(registry.get(id)).toMatchObject({ status: 'failed', error: ERR_CODEX_HOME });
     expect(m.jobs).toEqual([]);
     const s = setup({ run: m.run });
-    const id2 = sent(s.registry.send({ agentId: MAIN, text: 'oi' }));
+    const id2 = sent(s.registry.send({ agentId: MAIN, text: 'hi' }));
     s.office.setStatus(MAIN, 'offline');
     s.registry.tick();
     expect(s.registry.get(id2)).toMatchObject({ status: 'failed', error: ERR_GONE });
@@ -211,12 +211,12 @@ describe('MessageRegistry: Codex no modo Node (o servidor roda o codex queue)', 
   });
 });
 
-describe('MessageRegistry: Codex pelo auxiliar do host (Docker)', () => {
-  it('uma mensagem por agente por rodada; as seguintes esperam a confirmação sem iniciar o prazo de entrega', () => {
+describe('MessageRegistry: Codex through the host helper (Docker)', () => {
+  it('one message per agent per round; the next ones wait for the confirmation without starting the delivery deadline', () => {
     const { registry, clock } = setup();
     registry.codexPoll({});
-    const ids = Array.from({ length: 5 }, (_, i) => sent(registry.send({ agentId: MAIN, text: `mensagem ${i}` })));
-    const other = sent(registry.send({ agentId: OTHER, text: 'outro' }));
+    const ids = Array.from({ length: 5 }, (_, i) => sent(registry.send({ agentId: MAIN, text: `message ${i}` })));
+    const other = sent(registry.send({ agentId: OTHER, text: 'other' }));
     expect(registry.codexPoll({}).map((m) => m.id)).toEqual([ids[0], other]);
     expect(ids.map((id) => registry.get(id)!.status)).toEqual(['sent', 'queued', 'queued', 'queued', 'queued']);
     expect(registry.codexPoll({})).toEqual([]);
@@ -233,28 +233,28 @@ describe('MessageRegistry: Codex pelo auxiliar do host (Docker)', () => {
     expect(registry.get(other)!.status).toBe('delivered');
   });
 
-  it('sem entregador: o Codex não recebe (com o motivo); subagente do Codex também não', () => {
+  it('with no deliverer: Codex does not receive (with the reason); a Codex subagent does not either', () => {
     let s = setup(null);
     expect(snapAgent(s.office, MAIN)!.canMessage).toBeUndefined();
-    expect(s.registry.send({ agentId: MAIN, text: 'oi' })).toEqual({ error: 'unavailable', reason: ERR_CODEX_UNAVAILABLE });
+    expect(s.registry.send({ agentId: MAIN, text: 'hi' })).toEqual({ error: 'unavailable', reason: ERR_CODEX_UNAVAILABLE });
     s = setup();
-    expect(s.registry.send({ agentId: MAIN, text: 'oi' })).toEqual({ error: 'unavailable', reason: ERR_CODEX_UNAVAILABLE });
+    expect(s.registry.send({ agentId: MAIN, text: 'hi' })).toEqual({ error: 'unavailable', reason: ERR_CODEX_UNAVAILABLE });
     s.office.addSub({ id: '.codex:sub', parentId: MAIN, sessionId: '0199b0c0-5678-7abc-8def-0123456789ab', role: 'worker', background: false, startedAt: 0 });
     s.registry.codexPoll({});
-    expect(s.registry.send({ agentId: '.codex:sub', text: 'oi' })).toMatchObject({ error: 'unavailable', reason: expect.stringMatching(/^subagents/) });
+    expect(s.registry.send({ agentId: '.codex:sub', text: 'hi' })).toMatchObject({ error: 'unavailable', reason: expect.stringMatching(/^subagents/) });
   });
 
-  it('a rodada marca a presença (canMessage) e entrega com thread e pasta; a confirmação resolve; a presença vence', () => {
+  it('the round marks presence (canMessage) and delivers with thread and folder; the confirmation resolves; the presence expires', () => {
     const { office, registry, clock } = setup();
     expect(registry.codexPoll({})).toEqual([]);
     expect(snapAgent(office, MAIN)!.canMessage).toBe(true);
-    const a = sent(registry.send({ agentId: MAIN, text: 'um' }));
-    const b = sent(registry.send({ agentId: MAIN, text: 'dois' }));
-    const c = sent(registry.send({ agentId: OTHER, text: 'três' }));
+    const a = sent(registry.send({ agentId: MAIN, text: 'one' }));
+    const b = sent(registry.send({ agentId: MAIN, text: 'two' }));
+    const c = sent(registry.send({ agentId: OTHER, text: 'three' }));
     const got = registry.codexPoll({});
     expect(got).toEqual([
-      { id: a, account: '.codex', codexHome, thread: THREAD, text: 'um' },
-      { id: c, account: '.codex', codexHome, thread: '0199b0c0-0000-7abc-8def-0123456789ab', text: 'três' },
+      { id: a, account: '.codex', codexHome, thread: THREAD, text: 'one' },
+      { id: c, account: '.codex', codexHome, thread: '0199b0c0-0000-7abc-8def-0123456789ab', text: 'three' },
     ]);
     expect(registry.get(a)!.status).toBe('sent');
     expect(registry.get(b)!.status).toBe('queued');
@@ -264,7 +264,7 @@ describe('MessageRegistry: Codex pelo auxiliar do host (Docker)', () => {
     expect(registry.get(a)!.status).toBe('sent');
     registry.codexAck({ results: [{ id: a, ok: true }, { id: 'x', ok: true }] });
     expect(registry.get(a)!.status).toBe('delivered');
-    expect(registry.codexPoll({})).toEqual([{ id: b, account: '.codex', codexHome, thread: THREAD, text: 'dois' }]);
+    expect(registry.codexPoll({})).toEqual([{ id: b, account: '.codex', codexHome, thread: THREAD, text: 'two' }]);
     registry.codexAck({ results: [{ id: b, ok: false, error: 'Error: no rollout found' }] });
     expect(registry.get(b)).toMatchObject({ status: 'failed', error: 'Error: no rollout found' });
     // Sem confirmação no prazo: falha; a confirmação atrasada corrige.
@@ -280,26 +280,26 @@ describe('MessageRegistry: Codex pelo auxiliar do host (Docker)', () => {
     expect(() => registry.codexPoll([])).toThrow();
   });
 
-  it('ninguém buscou: falha no prazo com o motivo do auxiliar; agente com outra em entrega espera a vez', () => {
+  it('nobody fetched it: fails at the deadline with the reason from the helper; an agent with another one in delivery waits its turn', () => {
     const { registry, clock } = setup();
     registry.codexPoll({});
-    const a = sent(registry.send({ agentId: MAIN, text: 'um' }));
+    const a = sent(registry.send({ agentId: MAIN, text: 'one' }));
     expect(registry.codexPoll({}).map((m) => m.id)).toEqual([a]);
-    const b = sent(registry.send({ agentId: MAIN, text: 'dois' }));
+    const b = sent(registry.send({ agentId: MAIN, text: 'two' }));
     expect(registry.codexPoll({})).toEqual([]);
     registry.codexAck({ results: [{ id: a, ok: true }] });
     expect(registry.codexPoll({}).map((m) => m.id)).toEqual([b]);
     registry.codexAck({ results: [{ id: b, ok: true }] });
-    const c = sent(registry.send({ agentId: MAIN, text: 'três' }));
+    const c = sent(registry.send({ agentId: MAIN, text: 'three' }));
     clock.advance(QUEUED_TIMEOUT_MS);
     registry.tick();
     expect(registry.get(c)).toMatchObject({ status: 'failed', error: ERR_CODEX_NOT_FETCHED });
   });
 
-  it('troca de thread antes da busca: o auxiliar não recebe a mensagem e ela falha', () => {
+  it('thread change before the fetch: the helper does not get the message and it fails', () => {
     const { office, registry } = setup();
     registry.codexPoll({});
-    const id = sent(registry.send({ agentId: MAIN, text: 'para o thread antigo' }));
+    const id = sent(registry.send({ agentId: MAIN, text: 'for the old thread' }));
     office.switchSession(MAIN, '0199b0c0-0000-7abc-8def-0000000000ff');
     expect(registry.codexPoll({})).toEqual([]);
     expect(registry.get(id)).toMatchObject({ status: 'failed', error: ERR_SESSION_CHANGED });

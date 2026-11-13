@@ -48,7 +48,7 @@ function handlers(): InputHandlers {
   return { pick: () => null, click() {}, doubleClick() {}, hover() {}, interact() {}, overview() {}, zoomStep() {} };
 }
 
-describe('teclado da câmera', () => {
+describe('camera keyboard', () => {
   let win: ReturnType<typeof installWindow>;
   let off: (() => void) | null = null;
 
@@ -58,7 +58,7 @@ describe('teclado da câmera', () => {
     win?.restore();
   });
 
-  it('ArrowRight com foco num rádio não move a câmera', () => {
+  it('ArrowRight with focus on a radio does not move the camera', () => {
     win = installWindow();
     const pans: [number, number][] = [];
     const camera = { zoom: 1, panBy: (dx: number, dy: number) => pans.push([dx, dy]), zoomAt() {}, settle() {} } as unknown as Camera;
@@ -75,7 +75,7 @@ describe('teclado da câmera', () => {
     expect(pans).toEqual([]);
   });
 
-  it('ArrowRight com foco num botão comum continua movendo a câmera', () => {
+  it('ArrowRight with focus on a regular button keeps moving the camera', () => {
     win = installWindow();
     const pans: [number, number][] = [];
     const camera = { zoom: 1, panBy: (dx: number, dy: number) => pans.push([dx, dy]), zoomAt() {}, settle() {} } as unknown as Camera;
@@ -85,7 +85,7 @@ describe('teclado da câmera', () => {
     expect(pans).toEqual([[-90, 0]]);
   });
 
-  it('ArrowRight com foco no mundo continua movendo a câmera', () => {
+  it('ArrowRight with focus on the world keeps moving the camera', () => {
     win = installWindow();
     const pans: [number, number][] = [];
     const camera = { zoom: 1, panBy: (dx: number, dy: number) => pans.push([dx, dy]), zoomAt() {}, settle() {} } as unknown as Camera;
@@ -107,7 +107,7 @@ describe('modalOpen', () => {
       if (sel === ':not(dialog)[aria-modal="true"]') return e.tag !== 'dialog' && !!e.ariaModal;
       if (sel === '[aria-modal="true"]') return !!e.ariaModal;
       if (sel === ':popover-open') return false;
-      throw new Error(`seletor inesperado no teste: ${sel}`);
+      throw new Error(`unexpected selector in the test: ${sel}`);
     };
     globalThis.document = {
       querySelector: (sel: string) => els.find((e) => sel.split(', ').some((s) => matches(s, e))) ?? null,
@@ -117,7 +117,7 @@ describe('modalOpen', () => {
     };
   }
 
-  it('um <dialog> fechado (mesmo com aria-modal) não bloqueia o teclado da cidade', async () => {
+  it('a closed <dialog> (even with aria-modal) does not block the city keyboard', async () => {
     const { modalOpen } = await import('./input');
     const restore = installDocument([{ tag: 'dialog', open: false, ariaModal: true }]);
     try {
@@ -127,7 +127,7 @@ describe('modalOpen', () => {
     }
   });
 
-  it('um <dialog> aberto, ou outro elemento com aria-modal, bloqueia', async () => {
+  it('an open <dialog>, or another element with aria-modal, blocks', async () => {
     const { modalOpen } = await import('./input');
     for (const els of [[{ tag: 'dialog', open: true }], [{ tag: 'div', ariaModal: true }]]) {
       const restore = installDocument(els);

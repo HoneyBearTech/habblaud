@@ -27,8 +27,8 @@ function agent(id: string, roomId: string, account: string): AgentInfo {
   };
 }
 
-describe('seedDemoHistory com o Codex', () => {
-  it('o Codex ganha projeto no histórico (tokens, sem custo); o Claude Code continua com custo', () => {
+describe('seedDemoHistory with Codex', () => {
+  it('Codex gets a project in the history (tokens, no cost); Claude Code still has cost', () => {
     const view: StatsView = {
       agents: [agent('demo:1', 'demo:/dev/online-store', 'demo:.claude'), agent('demo:2', 'demo:/dev/online-store', 'demo:.codex')],
       rooms: [{ id: 'demo:/dev/online-store', name: 'online-store' }],
@@ -43,7 +43,7 @@ describe('seedDemoHistory com o Codex', () => {
       seedDemoHistory(book, view, now, 'UTC', seed);
       const d = queryDay(book.list(), '2026-10-08', 'UTC', now);
       const codex = d.accounts.find((a) => a.id === 'demo:.codex');
-      expect(codex, `semente ${seed}`).toBeDefined();
+      expect(codex, `seed ${seed}`).toBeDefined();
       expect(codex!.counts.tokensIn).toBeGreaterThan(0);
       expect(codex!.counts.costUSD).toBe(0);
       expect(d.accounts.find((a) => a.id === 'demo:.claude')!.counts.costUSD).toBeGreaterThan(0);

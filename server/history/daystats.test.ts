@@ -18,7 +18,7 @@ const DAY = '2026-10-08';
 function agent(p: Partial<AgentInfo> & { id: string }): AgentInfo {
   return {
     kind: 'main',
-    roomId: '/p/loja',
+    roomId: '/p/store',
     name: 'Ana',
     look: 'f',
     role: 'Main agent',
@@ -42,14 +42,14 @@ function snapOf(agents: AgentInfo[], demo = false): Snap {
   return {
     agents,
     rooms: [
-      { id: '/p/loja', name: 'loja', path: '/p/loja', slot: 0, seed: 1, createdAt: 0 },
+      { id: '/p/store', name: 'store', path: '/p/store', slot: 0, seed: 1, createdAt: 0 },
       { id: '/demo/online-store', name: 'online-store', path: '/demo/online-store', slot: 1, seed: 2, createdAt: 0 },
     ],
     accounts: [
-      { id: '.claude', short: 'C', name: 'Conta C', color: '#f08a3c', configDir: '~/.claude', sessions: 1, usageStatus: 'disabled' },
+      { id: '.claude', short: 'C', name: 'Account C', color: '#f08a3c', configDir: '~/.claude', sessions: 1, usageStatus: 'disabled' },
       { id: 'demo:.claude', short: 'X', name: 'Demo X', color: '#5cc97b', configDir: '(demo)', sessions: 1, usageStatus: 'ok' },
     ],
-    meta: { demo, sources: [], startedAt: 0, version: 'teste' },
+    meta: { demo, sources: [], startedAt: 0, version: 'test' },
   };
 }
 
@@ -79,8 +79,8 @@ function setup(dir: string | null) {
   };
 }
 
-describe('DayStatsService: persistência', () => {
-  it('grava o dia, recarrega no boot e continua somando', () => {
+describe('DayStatsService: persistence', () => {
+  it('writes the day, reloads on boot and keeps adding up', () => {
     const tmp = tempDir();
     try {
       const dir = join(tmp.dir, 'stats');
@@ -109,14 +109,14 @@ describe('DayStatsService: persistência', () => {
       const d = again.day(DAY, 'UTC')!.stats;
       expect(d.totals.ms.waiting).toBe(120 * S);
       expect(d.waits).toHaveLength(1);
-      expect(d.waits[0]).toMatchObject({ agentName: 'Ana', roomName: 'loja', start: T0, end: T0 + 130 * S, ongoing: true });
+      expect(d.waits[0]).toMatchObject({ agentName: 'Ana', roomName: 'store', start: T0, end: T0 + 130 * S, ongoing: true });
       expect(again.days('UTC').days).toEqual([DAY]);
     } finally {
       tmp.cleanup();
     }
   });
 
-  it('arquivo corrompido não derruba: fica de lado como .corrupt e o dia recomeça', () => {
+  it('a corrupted file does not bring it down: it is set aside as .corrupt and the day starts over', () => {
     const tmp = tempDir();
     try {
       const dir = join(tmp.dir, 'stats');
@@ -137,11 +137,11 @@ describe('DayStatsService: persistência', () => {
     }
   });
 
-  it('disco indisponível: segue só na memória, sem exceções', () => {
+  it('disk unavailable: carries on in memory only, with no exceptions', () => {
     const tmp = tempDir();
     try {
       // A "pasta" é um arquivo: nem ler nem gravar funciona.
-      const dir = join(tmp.dir, 'nao-e-pasta');
+      const dir = join(tmp.dir, 'not-a-folder');
       writeFileSync(dir, 'x');
       const env = setup(dir);
       const svc = env.make();
@@ -157,7 +157,7 @@ describe('DayStatsService: persistência', () => {
     }
   });
 
-  it('retenção de 30 dias, lista de dias e virada do dia', () => {
+  it('30-day retention, list of days and day rollover', () => {
     const tmp = tempDir();
     try {
       const dir = join(tmp.dir, 'stats');
@@ -167,11 +167,11 @@ describe('DayStatsService: persistência', () => {
       writeFileSync(join(dir, '2026-09-07.json'), day('2026-09-07', Date.UTC(2026, 8, 7, 12)));
       writeFileSync(join(dir, '2026-09-08.json'), day('2026-09-08', Date.UTC(2026, 8, 8, 12)));
       writeFileSync(join(dir, '2026-10-01.json'), day('2026-10-01', Date.UTC(2026, 9, 1, 12)));
-      writeFileSync(join(dir, 'outro.txt'), 'não mexe');
+      writeFileSync(join(dir, 'other.txt'), 'do not touch');
       const env = setup(dir);
       const svc = env.make();
       svc.load();
-      expect(readdirSync(dir).sort()).toEqual(['2026-09-08.json', '2026-10-01.json', 'outro.txt']);
+      expect(readdirSync(dir).sort()).toEqual(['2026-09-08.json', '2026-10-01.json', 'other.txt']);
       expect(svc.days('UTC').days).toEqual([DAY, '2026-10-01', '2026-09-08']);
       // Em São Paulo, 01/10 12:00 UTC ainda é 01/10.
       expect(svc.days('America/Sao_Paulo').days).toContain('2026-10-01');
@@ -184,7 +184,7 @@ describe('DayStatsService: persistência', () => {
       svc.sample();
       env.run(svc, Date.UTC(2026, 9, 9, 0, 0, 10));
       svc.flush();
-      expect(readdirSync(dir).sort()).toEqual(['2026-10-01.json', '2026-10-08.json', '2026-10-09.json', 'outro.txt']);
+      expect(readdirSync(dir).sort()).toEqual(['2026-10-01.json', '2026-10-08.json', '2026-10-09.json', 'other.txt']);
       expect(svc.day('2026-10-09', 'UTC')!.stats.totals.ms.working).toBe(10 * S);
       expect(svc.day('2026-10-08', 'UTC')!.stats.totals.ms.working).toBe(10 * S);
     } finally {
@@ -193,8 +193,8 @@ describe('DayStatsService: persistência', () => {
   });
 });
 
-describe('DayStatsService: modo demonstração', () => {
-  it('agentes do demo ficam num balde à parte, semeado e só em memória', () => {
+describe('DayStatsService: demo mode', () => {
+  it('demo agents stay in a separate bucket, seeded and in memory only', () => {
     const tmp = tempDir();
     try {
       const dir = join(tmp.dir, 'stats');
@@ -214,7 +214,7 @@ describe('DayStatsService: modo demonstração', () => {
       expect(r.source).toBe('real');
       expect(r.demoAvailable).toBe(true);
       expect(r.stats.totals.ms).toEqual({ working: 20 * S, waiting: 0, idle: 20 * S, shell: 0 });
-      expect(r.stats.rooms.map((x) => x.id)).toEqual(['/p/loja']);
+      expect(r.stats.rooms.map((x) => x.id)).toEqual(['/p/store']);
 
       // Sem `source`, com o demo ligado e o dia de hoje: o demo (histórico fictício + o que acontece ao vivo).
       const d = svc.day(DAY, 'UTC')!;

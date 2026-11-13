@@ -8,21 +8,21 @@ const ASSETS = String.raw`C:\Users\x\.habblaud\assets`;
 const DASH = String.raw`C:\repos\dash`;
 
 describe('RoomAliases', () => {
-  it('padrão, apelido por pasta (barras e maiúsculas tanto faz), vazio volta ao padrão e persiste', () => {
+  it('default, nickname per folder (slashes and uppercase do not matter), empty goes back to the default and it persists', () => {
     const dir = mkdtempSync(join(tmpdir(), 'habblaud-rooms-'));
     try {
       const file = join(dir, 'rooms.json');
       const a = new RoomAliases(file);
-      a.setDefault(ASSETS, 'Arquiteto');
-      expect(a.get('c:/users/x/.habblaud/assets/')).toBe('Arquiteto');
-      expect(a.set(DASH, '  Painel   do  Dash ')).toBe('Painel do Dash');
-      expect(a.set(ASSETS, 'Oficina')).toBe('Oficina');
+      a.setDefault(ASSETS, 'Architect');
+      expect(a.get('c:/users/x/.habblaud/assets/')).toBe('Architect');
+      expect(a.set(DASH, '  The   Dash  Panel ')).toBe('The Dash Panel');
+      expect(a.set(ASSETS, 'Workshop')).toBe('Workshop');
       const b = new RoomAliases(file);
       b.load();
-      expect(b.get('c:/repos/dash')).toBe('Painel do Dash');
-      b.setDefault(ASSETS, 'Arquiteto');
-      expect(b.set(ASSETS, '')).toBe('Arquiteto');
-      expect(b.get('/outro')).toBeUndefined();
+      expect(b.get('c:/repos/dash')).toBe('The Dash Panel');
+      b.setDefault(ASSETS, 'Architect');
+      expect(b.set(ASSETS, '')).toBe('Architect');
+      expect(b.get('/other')).toBeUndefined();
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

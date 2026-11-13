@@ -81,9 +81,9 @@ export async function servePermissions(
   });
   await new Promise<void>((ok) => server.listen(0, '127.0.0.1', ok));
   const port = (server.address() as AddressInfo).port;
-  office.addMain({ id: MAIN, account: 'acc', sessionId: SESSION, cwd: '/p/loja', role: 'Agente principal', startedAt: Date.now(), status: 'working' });
+  office.addMain({ id: MAIN, account: 'acc', sessionId: SESSION, cwd: '/p/store', role: 'Main agent', startedAt: Date.now(), status: 'working' });
   if (opts.codex) {
-    office.addMain({ id: CODEX_MAIN, provider: 'codex', account: '.codex', sessionId: CODEX_THREAD, cwd: '/p/loja', role: 'Agente principal', startedAt: Date.now(), status: 'working' });
+    office.addMain({ id: CODEX_MAIN, provider: 'codex', account: '.codex', sessionId: CODEX_THREAD, cwd: '/p/store', role: 'Main agent', startedAt: Date.now(), status: 'working' });
   }
   if (opts.demo) office.setDemo(true);
   return {
@@ -139,12 +139,12 @@ export function request(
 export function hookJson(over: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     session_id: SESSION,
-    transcript_path: '/tmp/x/projects/-p-loja/sess-1.jsonl',
-    cwd: '/p/loja',
+    transcript_path: '/tmp/x/projects/-p-store/sess-1.jsonl',
+    cwd: '/p/store',
     permission_mode: 'default',
     hook_event_name: 'PermissionRequest',
     tool_name: 'Bash',
-    tool_input: { command: 'npm test', description: 'Rodar os testes' },
+    tool_input: { command: 'npm test', description: 'Run the tests' },
     permission_suggestions: [{ type: 'addRules', rules: [{ toolName: 'Bash', ruleContent: 'npm test:*' }], behavior: 'allow', destination: 'localSettings' }],
     ...over,
   };

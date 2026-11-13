@@ -21,8 +21,8 @@ function base(type: string, o: LineOpts): Record<string, unknown> {
     type,
     uuid: uuid(),
     timestamp: ts(o.at ?? Date.now()),
-    sessionId: o.sessionId ?? 'sess-teste',
-    cwd: '/projetos/demo',
+    sessionId: o.sessionId ?? 'sess-test',
+    cwd: '/projects/demo',
     gitBranch: o.gitBranch ?? 'main',
     isSidechain: !!o.agentId,
   };
@@ -47,7 +47,7 @@ export const L = {
       message: {
         id: o.msgId ?? `msg_${++n}`,
         role: 'assistant',
-        model: o.model ?? 'claude-teste-1',
+        model: o.model ?? 'claude-test-1',
         content: blocks,
         stop_reason: o.stop ?? null,
         usage: o.usage ?? { input_tokens: 10, output_tokens: 5, cache_read_input_tokens: 100, cache_creation_input_tokens: 0 },
@@ -73,7 +73,7 @@ export const L = {
   },
   /** Linhas de metadados sem timestamp (custom-title, ai-title, cost-state...). */
   raw(type: string, fields: Record<string, unknown>): string {
-    return JSON.stringify({ type, sessionId: 'sess-teste', ...fields });
+    return JSON.stringify({ type, sessionId: 'sess-test', ...fields });
   },
   notification(toolUseId: string, status: string, summary: string, o: LineOpts = {}): string {
     const text = `<task-notification>\n<task-id>t1</task-id>\n<tool-use-id>${toolUseId}</tool-use-id>\n<status>${status}</status>\n<summary>${summary}</summary>\n</task-notification>`;
@@ -85,7 +85,7 @@ export const L = {
    * started…") com a instrução do fork depois do bloco <fork-boilerplate>.
    */
   forkStart(agentId: string, toolUseId: string, directive: string, o: LineOpts = {}): string[] {
-    const ref = JSON.stringify({ type: 'fork-context-ref', agentId, parentSessionId: o.sessionId ?? 'sess-teste', parentLastUuid: uuid(), contextLength: 42 });
+    const ref = JSON.stringify({ type: 'fork-context-ref', agentId, parentSessionId: o.sessionId ?? 'sess-test', parentLastUuid: uuid(), contextLength: 42 });
     const spawn = JSON.parse(L.assistant([L.tool(toolUseId, 'Agent', { description: 'x', subagent_type: 'fork', prompt: directive, run_in_background: true })], { ...o, agentId, stop: 'tool_use' })) as Record<string, unknown>;
     spawn.parentUuid = null;
     const text = `<fork-boilerplate>\nYou are a worker fork. Do the directive.\n</fork-boilerplate>\n\nYour directive: ${directive}`;
@@ -117,7 +117,7 @@ export const L = {
       '</task-notification>',
     ].join('\n');
     if (via === 'queue') {
-      return JSON.stringify({ type: 'queue-operation', operation: 'enqueue', timestamp: ts(o.at ?? Date.now()), sessionId: o.sessionId ?? 'sess-teste', content: text });
+      return JSON.stringify({ type: 'queue-operation', operation: 'enqueue', timestamp: ts(o.at ?? Date.now()), sessionId: o.sessionId ?? 'sess-test', content: text });
     }
     return JSON.stringify({ ...base('user', o), origin: { kind: 'task-notification' }, message: { role: 'user', content: text } });
   },
@@ -147,7 +147,7 @@ export function symlinkOrSkip(skip: (note: string) => never, target: string, pat
   try {
     symlinkSync(target, path);
   } catch (err) {
-    if (process.platform === 'win32' && (err as NodeJS.ErrnoException).code === 'EPERM') skip('o Windows não deixou criar o link (Modo de Desenvolvedor desligado)');
+    if (process.platform === 'win32' && (err as NodeJS.ErrnoException).code === 'EPERM') skip('Windows did not let the link be created (Developer Mode off)');
     throw err;
   }
 }

@@ -8,8 +8,8 @@ const on = (patch: Partial<typeof DEFAULT_SOUND_SETTINGS> = {}) => {
   return s;
 };
 
-describe('agendador de sons', () => {
-  it('desligado por padrão: nada toca até ligar', () => {
+describe('sound scheduler', () => {
+  it('off by default: nothing plays until turned on', () => {
     const s = new SoundScheduler();
     expect(s.decide('chime', 0)).toBeNull();
     s.configure(true, DEFAULT_SOUND_SETTINGS);
@@ -18,7 +18,7 @@ describe('agendador de sons', () => {
     expect(s.decide('chime', 10_000)).toBeNull();
   });
 
-  it('respeita as categorias desligadas', () => {
+  it('respects the categories that are turned off', () => {
     const s = on({ keys: false, social: false });
     expect(s.decide('keys', 0)).toBeNull();
     expect(s.decide('pingpong', 0)).toBeNull();
@@ -32,7 +32,7 @@ describe('agendador de sons', () => {
     for (const k of Object.keys(CATEGORY_OF) as SoundKind[]) expect(DEFAULT_SOUND_SETTINGS[CATEGORY_OF[k]]).toBe(true);
   });
 
-  it('volume mestre: curva perceptual, zero emudece, proximidade atenua', () => {
+  it('master volume: perceptual curve, zero mutes, proximity attenuates', () => {
     expect(masterGain(0)).toBe(0);
     expect(masterGain(1)).toBe(1);
     expect(masterGain(0.5)).toBeCloseTo(0.25);
@@ -45,7 +45,7 @@ describe('agendador de sons', () => {
     expect(on({ volume: 1 }).decide('keys', 0, { gain: 0 })).toBeNull();
   });
 
-  it('limite de frequência por canal (sino e estalo dividem o mesmo)', () => {
+  it('rate limit per channel (bell and click share the same one)', () => {
     const s = on();
     expect(s.decide('keys', 1_000)).not.toBeNull();
     expect(s.decide('keys', 1_000 + MIN_GAP_MS.keys - 1)).toBeNull();
@@ -59,7 +59,7 @@ describe('agendador de sons', () => {
     expect(s.decide('elevator', 9_050)).not.toBeNull();
   });
 
-  it('teto global de sons por segundo (o sino de alerta sempre passa)', () => {
+  it('global cap on sounds per second (the alert bell always gets through)', () => {
     const s = on();
     const kinds: SoundKind[] = ['keys', 'elevator', 'pingpong', 'arcade'];
     let played = 0;
@@ -70,7 +70,7 @@ describe('agendador de sons', () => {
     expect(s.decide('elevator', 2_600)).not.toBeNull();
   });
 
-  it('com a aba oculta, só o sino de "precisa de você"', () => {
+  it('with the tab hidden, only the "needs you" bell', () => {
     const s = on();
     expect(s.decide('pop', 0, { hidden: true })).toBeNull();
     expect(s.decide('keys', 0, { hidden: true })).toBeNull();
@@ -78,13 +78,13 @@ describe('agendador de sons', () => {
     expect(s.decide('chime', 0, { hidden: true })).not.toBeNull();
   });
 
-  it('um som recusado não consome o intervalo', () => {
+  it('a refused sound does not use up the interval', () => {
     const s = on();
     expect(s.decide('pop', 0, { hidden: true })).toBeNull();
     expect(s.decide('pop', 10)).not.toBeNull();
   });
 
-  it('valida as preferências de som', () => {
+  it('validates the sound preferences', () => {
     expect(sanitizeSoundSettings(undefined)).toEqual(DEFAULT_SOUND_SETTINGS);
     expect(sanitizeSoundSettings({ volume: 0.3, keys: false })).toEqual({ ...DEFAULT_SOUND_SETTINGS, volume: 0.3, keys: false });
     expect(sanitizeSoundSettings({ volume: Number.NaN }).volume).toBe(DEFAULT_SOUND_SETTINGS.volume);

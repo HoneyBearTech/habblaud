@@ -26,15 +26,15 @@ import {
 
 const s = (t: number, x: number, y: number, moving = true): Sample => ({ t, x, y, dir: 'e', moving });
 
-describe('interpolação dos outros jogadores', () => {
-  it('fica entre as duas amostras que cercam o instante', () => {
+describe('interpolation of the other players', () => {
+  it('stays between the two samples that surround the instant', () => {
     const list = [s(0, 0, 0), s(200, 2, 0), s(400, 4, 1)];
     expect(sampleAt(list, 100)).toMatchObject({ x: 1, y: 0, moving: true });
     expect(sampleAt(list, 300)).toMatchObject({ x: 3, y: 0.5 });
     expect(sampleAt(list, 300)!.speed).toBeCloseTo((Math.hypot(2, 1) * 1000) / 200);
   });
 
-  it('antes da primeira, a primeira; depois da última, a última (e para quando a amostra fica velha)', () => {
+  it('before the first, the first; after the last, the last (and stops when the sample gets old)', () => {
     const list = [s(100, 1, 1), s(300, 2, 1)];
     expect(sampleAt(list, 0)).toMatchObject({ x: 1, y: 1 });
     expect(sampleAt(list, 350)).toMatchObject({ x: 2, y: 1, moving: true });
@@ -42,7 +42,7 @@ describe('interpolação dos outros jogadores', () => {
     expect(sampleAt([], 0)).toBeNull();
   });
 
-  it('as amostras ficam em ordem de tempo e com limite', () => {
+  it('the samples stay in time order and with a limit', () => {
     const list: Sample[] = [];
     for (let i = 0; i < 30; i++) pushSample(list, s(i * 10, i, 0));
     expect(list.length).toBe(10);
@@ -81,8 +81,8 @@ function walkAndDraw(cadence: (t: number) => number, jitter: number, ms: number,
 /** Quadros em que o desenho não saiu do lugar (ou voltou) andando. */
 const frozen = (xs: Array<{ x: number }>) => xs.filter((p, i) => i > 0 && p.x <= xs[i - 1]!.x).length;
 
-describe('interpolação com a cadência do servidor (5/s para os 20 mais perto, 2,5/s para os outros)', () => {
-  it('o atraso segue o maior intervalo recente, com folga, entre o mínimo e o máximo; parado não conta', () => {
+describe('interpolation with the server cadence (5/s for the 20 closest, 2.5/s for the others)', () => {
+  it('the delay follows the largest recent interval, with slack, between the minimum and the maximum; standing still does not count', () => {
     const at = (gaps: number[]) => {
       const list: Sample[] = [];
       let t = 0;
@@ -103,7 +103,7 @@ describe('interpolação com a cadência do servidor (5/s para os 20 mais perto,
     expect(stepDelay(300, 310, 100)).toBe(310);
   });
 
-  it('a 5/s e a 2,5/s, com a rede variando ±30 ms, quem anda nunca para nem volta', () => {
+  it('at 5/s and at 2.5/s, with the network varying ±30 ms, whoever walks never stops or goes back', () => {
     for (const cadence of [200, 400]) {
       const xs = walkAndDraw(() => cadence, 30, 12_000);
       expect(frozen(xs), `${cadence} ms`).toBe(0);
@@ -111,12 +111,12 @@ describe('interpolação com a cadência do servidor (5/s para os 20 mais perto,
     }
   });
 
-  it('com o atraso fixo de antes (150 ms) a 2,5/s, o desenho parava a cada amostra', () => {
+  it('with the fixed delay from before (150 ms) at 2.5/s, the drawing stopped at every sample', () => {
     expect(frozen(walkAndDraw(() => 400, 30, 12_000, 1500, 150))).toBeGreaterThan(50);
     expect(frozen(walkAndDraw(() => 200, 30, 12_000, 1500, 150))).toBeGreaterThan(20);
   });
 
-  it('quem passa dos 20 mais perto (5/s → 2,5/s) e volta: nunca volta atrás, e não para depois de se ajustar', () => {
+  it('whoever leaves the 20 closest (5/s → 2.5/s) and comes back: never goes backward, and does not stop after adjusting', () => {
     const cadence = (t: number) => (t >= 4_000 && t < 9_000 ? 400 : 200);
     const xs = walkAndDraw(cadence, 30, 14_000);
     expect(xs.every((p, i) => i === 0 || p.x >= xs[i - 1]!.x)).toBe(true);
@@ -125,8 +125,8 @@ describe('interpolação com a cadência do servidor (5/s para os 20 mais perto,
   });
 });
 
-describe('movimento local', () => {
-  it('não entra num lote e desliza pela borda', () => {
+describe('local movement', () => {
+  it('does not enter a lot and slides along the edge', () => {
     const o = lotOrigin({ x: 3, y: 0 });
     // na calçada norte, logo acima do lote, andando para baixo e para a direita: só o x muda
     const r = stepMove(o.x + 3.5, o.y - 0.2, 0.5, 0.5);
@@ -136,13 +136,13 @@ describe('movimento local', () => {
     expect(isWalkable(r.x, r.y, () => true)).toBe(true);
   });
 
-  it('passos grandes não atravessam o lote', () => {
+  it('big steps do not go through the lot', () => {
     const o = lotOrigin({ x: 3, y: 0 });
     const r = stepMove(o.x + 3.5, o.y - 0.5, 0, 30);
     expect(r.y).toBeLessThan(o.y);
   });
 
-  it('andando e correndo na diagonal, nunca acima da velocidade de corrida (o servidor aceita até 7,2 tiles/s)', () => {
+  it('walking and running diagonally, never above the running speed (the server accepts up to 7.2 tiles/s)', () => {
     const p = new LocalPlayer(spawnPoint().x + 0.5, spawnPoint().y + 0.5);
     const x0 = p.x;
     const y0 = p.y;
@@ -158,7 +158,7 @@ describe('movimento local', () => {
     expect(q.dir).toBe('left');
   });
 
-  it('segue o caminho do clique até o fim e para; uma tecla cancela o caminho', () => {
+  it('follows the click path to the end and stops; a key cancels the path', () => {
     const p = new LocalPlayer(21.5, 15.5);
     p.follow([22.5, 15.5, 23.5, 15.5, 23.5, 16.5], false);
     for (let i = 0; i < 30 && p.hasPath; i++) p.update(0.1, { dx: 0, dy: 0, run: false });
@@ -170,21 +170,21 @@ describe('movimento local', () => {
     expect(p.hasPath).toBe(false);
   });
 
-  it('a correção do servidor (`pos`) vale na hora', () => {
+  it('the server correction (`pos`) applies right away', () => {
     const p = new LocalPlayer(21.5, 15.5);
     p.follow([30.5, 15.5], true);
     p.correct(10, 10);
     expect([p.x, p.y, p.hasPath]).toEqual([10, 10, false]);
   });
 
-  it('pathPoints: centros dos tiles com o ponto exato do clique no fim', () => {
+  it('pathPoints: tile centers with the exact click point at the end', () => {
     expect(pathPoints([1, 0, 1, 1], 10, 20, { x: 11.2, y: 21.8 })).toEqual([11.5, 20.5, 11.2, 21.8]);
     expect(pathPoints([], 0, 0, { x: 1.2, y: 1.3 })).toEqual([1.2, 1.3]);
   });
 });
 
-describe('envio de move', () => {
-  it('quem parou rente à borda norte ou oeste de um lote não manda uma posição dentro dele', () => {
+describe('sending move', () => {
+  it('whoever stopped right against the north or west edge of a lot does not send a position inside it', () => {
     const o = lotOrigin({ x: 3, y: 0 });
     for (const p of [
       { x: o.x - 0.004, y: o.y + 3 },
@@ -197,7 +197,7 @@ describe('envio de move', () => {
     }
   });
 
-  it('no máximo um a cada 100 ms, só quando muda, e o "parei" sempre sai', () => {
+  it('at most one every 100 ms, only when it changes, and the "I stopped" always goes out', () => {
     const sent: { x: number; moving: boolean; dir: string }[] = [];
     const m = new MoveSender((msg) => sent.push(msg));
     expect(m.tick(0, { x: 1, y: 1, dir: 'right', moving: true })).toBe(true);
@@ -214,7 +214,7 @@ describe('envio de move', () => {
     expect(many.length).toBeLessThanOrEqual(10);
   });
 
-  it('posição em centésimos de tile (truncada: nunca troca de tile) e direções do protocolo', () => {
+  it('position in hundredths of a tile (truncated: never changes tile) and protocol directions', () => {
     const sent: { x: number; y: number }[] = [];
     new MoveSender((msg) => sent.push(msg)).tick(0, { x: 1.23456, y: -7.891, dir: 'up', moving: false });
     expect(sent[0]).toMatchObject({ x: 1.23, y: -7.9 });
@@ -226,8 +226,8 @@ describe('envio de move', () => {
   });
 });
 
-describe('MoveSender depois do keepAlive da aba em segundo plano (bug: dois relógios)', () => {
-  it('o keepAlive não cala os ticks: andar depois dele ainda manda move', () => {
+describe('MoveSender after the keepAlive of the background tab (bug: two clocks)', () => {
+  it('the keepAlive does not silence the ticks: walking after it still sends move', () => {
     // No laço da cena o relógio é performance.now() (ms desde o carregamento); o keepAlive da aba escondida rodava com
     // Date.now() (index.ts) e guardava essa hora, então cada tick via `now - lastAt` negativo e nunca mais mandava: o
     // servidor ficava com a posição congelada enquanto o personagem andava na tela (enter/like → too_far até um `pos`
@@ -244,7 +244,7 @@ describe('MoveSender depois do keepAlive da aba em segundo plano (bug: dois rel�
     expect(sent.at(-1)!.moving).toBe(true);
   });
 
-  it('keepAlive seguido de tick parado na mesma posição não reenvia (sem duplicata)', () => {
+  it('keepAlive followed by a still tick at the same position does not resend (no duplicate)', () => {
     const sent: unknown[] = [];
     const m = new MoveSender((msg) => sent.push(msg));
     const perf = 120_000;

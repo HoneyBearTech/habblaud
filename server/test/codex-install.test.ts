@@ -31,7 +31,7 @@ const SH = posixShell();
 
 /** hooks.json (sintético) com grupos de outro app em alguns eventos, inclusive um que o Habblaud não usa. */
 const ORCA = {
-  description: 'Hooks de outro app',
+  description: 'Hooks from another app',
   hooks: {
     PreToolUse: [{ matcher: 'Bash', hooks: [{ type: 'command', command: 'orca-hook pre', timeout: 10 }] }],
     PermissionRequest: [{ hooks: [{ type: 'command', command: 'orca-hook perm' }] }, { matcher: 'apply_patch', hooks: [{ type: 'command', command: 'orca-hook patch' }] }],
@@ -41,8 +41,8 @@ const ORCA = {
 };
 const orcaAt = (file: { hooks?: Record<string, unknown[]> }, event: string, i: number) => file.hooks?.[event]?.[i];
 
-describe('codex-install.ts (funções puras)', () => {
-  it('comando sem opções e handlers fixos: observação em segundo plano, SessionEnd síncrono, PermissionRequest com a espera', () => {
+describe('codex-install.ts (pure functions)', () => {
+  it('command without options and fixed handlers: background observation, synchronous SessionEnd, PermissionRequest with the wait', () => {
     expect(CMD).toBe('node "/repo/habblaud/mod/habblaud-codex/hook.mjs"');
     expect(handlerFor('PreToolUse', CMD, 25)).toEqual({ type: 'command', command: CMD, async: true, timeout: 5 });
     expect(handlerFor('SessionEnd', CMD, 25)).toEqual({ type: 'command', command: CMD, timeout: 1 });
@@ -55,7 +55,7 @@ describe('codex-install.ts (funções puras)', () => {
     expect(scriptPathOf("node '/a/it'\\''s/habblaud-codex/hook.mjs'")).toBe("/a/it's/habblaud-codex/hook.mjs");
   });
 
-  it('install: acrescenta no FIM de cada evento, sem matcher; grupos alheios e o resto do arquivo intactos; idempotente', () => {
+  it('install: appends at the END of each event, without matcher; foreign groups and the rest of the file intact; idempotent', () => {
     const p = planInstall(ORCA, CMD, 25);
     expect(p.action).toBe('install');
     if (p.action !== 'install') return;
@@ -74,15 +74,15 @@ describe('codex-install.ts (funções puras)', () => {
     expect(installState(next, CMD, 25)).toEqual({ ok: [...EVENTS], outdated: [], missing: [], paths: ['/repo/habblaud/mod/habblaud-codex/hook.mjs'] });
   });
 
-  it('atualizar (outra espera, outro caminho): troca o handler NO MESMO lugar, mesmo com um grupo alheio acrescentado depois', () => {
+  it('update (another wait, another path): replaces the handler IN THE SAME place, even with a foreign group appended later', () => {
     const first = planInstall(ORCA, CMD, 25);
-    if (first.action !== 'install') throw new Error('esperado install');
+    if (first.action !== 'install') throw new Error('expected install');
     const installed = first.file as { hooks: Record<string, unknown[]> };
     // Outro app acrescenta um grupo DEPOIS do do Habblaud.
-    const later = { hooks: [{ type: 'command', command: 'orca-hook depois' }] };
+    const later = { hooks: [{ type: 'command', command: 'orca-hook later' }] };
     installed.hooks.PermissionRequest = [...installed.hooks.PermissionRequest, later];
     const before = JSON.parse(JSON.stringify(installed));
-    const upd = planInstall(installed, hookCommand('/novo/lugar/mod/habblaud-codex/hook.mjs'), 60);
+    const upd = planInstall(installed, hookCommand('/new/place/mod/habblaud-codex/hook.mjs'), 60);
     expect(upd.action).toBe('install');
     if (upd.action !== 'install') return;
     const next = upd.file as { hooks: Record<string, unknown[]> };
@@ -93,17 +93,17 @@ describe('codex-install.ts (funções puras)', () => {
         if (!isOurHandler(g.hooks[0])) expect(next.hooks[event][i], `${event}[${i}]`).toEqual(g);
       });
     }
-    expect(next.hooks.PermissionRequest[2]).toEqual({ hooks: [handlerFor('PermissionRequest', hookCommand('/novo/lugar/mod/habblaud-codex/hook.mjs'), 60)] });
+    expect(next.hooks.PermissionRequest[2]).toEqual({ hooks: [handlerFor('PermissionRequest', hookCommand('/new/place/mod/habblaud-codex/hook.mjs'), 60)] });
     expect(next.hooks.PermissionRequest[3]).toEqual(later);
     expect(installState(installed, CMD, 60)).toMatchObject({ outdated: ['PermissionRequest'], missing: [] });
   });
 
-  it('uninstall: tira só os handlers do Habblaud; de volta ao original; avisa quando um grupo alheio muda de posição', () => {
+  it('uninstall: removes only the Habblaud handlers; back to the original; warns when a foreign group changes position', () => {
     const p = planInstall(ORCA, CMD, 25);
-    if (p.action !== 'install') throw new Error('esperado install');
+    if (p.action !== 'install') throw new Error('expected install');
     expect(planUninstall(p.file)).toEqual({ action: 'uninstall', file: ORCA, message: 'Habblaud hooks removed', shifted: [] });
     const withLater = JSON.parse(JSON.stringify(p.file));
-    withLater.hooks.Stop.push({ hooks: [{ type: 'command', command: 'orca-hook depois' }] });
+    withLater.hooks.Stop.push({ hooks: [{ type: 'command', command: 'orca-hook later' }] });
     const u = planUninstall(withLater);
     expect(u.action === 'uninstall' && u.shifted).toEqual(['Stop']);
     expect(planUninstall(ORCA)).toEqual({ action: 'none', message: "wasn't installed" });
@@ -112,7 +112,7 @@ describe('codex-install.ts (funções puras)', () => {
     expect(only.action === 'install' && planUninstall(only.file)).toMatchObject({ action: 'uninstall', file: {} });
   });
 
-  it('cópias repetidas saem; formatos desconhecidos não são tocados', () => {
+  it('repeated copies are removed; unknown formats are not touched', () => {
     const dup = { hooks: { Stop: [{ hooks: [handlerFor('Stop', CMD, 25)] }, { hooks: [{ type: 'command', command: 'x' }, handlerFor('Stop', CMD, 25)] }] } };
     const p = planInstall(dup, CMD, 25);
     expect(p.action === 'install' && (p.file.hooks as Record<string, unknown[]>).Stop).toEqual([{ hooks: [handlerFor('Stop', CMD, 25)] }, { hooks: [{ type: 'command', command: 'x' }] }]);
@@ -134,7 +134,7 @@ describe('codex-install.ts (funções puras)', () => {
     expect(() => parseArgs(['install', '--node', 'node'], {})).toThrow(/--node/);
   });
 
-  it('Node dos hooks: o do shell de login se for 22+; senão o primeiro candidato 22+ com caminho absoluto', () => {
+  it('Node for the hooks: the one from the login shell if it is 22+; otherwise the first 22+ candidate with an absolute path', () => {
     expect(nodeMajor('v18.12.1')).toBe(18);
     expect(nodeMajor('v24.17.0\n')).toBe(24);
     expect(nodeMajor(undefined)).toBeUndefined();
@@ -150,7 +150,7 @@ describe('codex-install.ts (funções puras)', () => {
   });
 });
 
-describe('codex-install.ts (arquivos, HOME falso)', () => {
+describe('codex-install.ts (files, fake HOME)', () => {
   let tmp: ReturnType<typeof tempDir>;
   let home: string;
   let out: string[];
@@ -164,7 +164,7 @@ describe('codex-install.ts (arquivos, HOME falso)', () => {
     mkdirSync(join(home, '.codex', 'sessions', '2026'), { recursive: true });
     writeFileSync(join(home, '.codex', 'config.toml'), configToml);
     writeFileSync(join(home, '.codex', 'hooks.json'), `${JSON.stringify(ORCA, null, 2)}\n`);
-    mkdirSync(join(home, '.codex-trabalho', 'thread-writer-locks'), { recursive: true });
+    mkdirSync(join(home, '.codex-work', 'thread-writer-locks'), { recursive: true });
     mkdirSync(join(home, '.claude', 'projects'), { recursive: true });
   });
   afterEach(() => tmp.cleanup());
@@ -177,26 +177,26 @@ describe('codex-install.ts (arquivos, HOME falso)', () => {
   const read = (acc: string) => JSON.parse(readFileSync(join(home, acc, 'hooks.json'), 'utf8'));
   const cmd = hookCommand(HOOK_SCRIPT);
 
-  it('descobre ~/.codex* do Codex (e CODEX_HOME); HABBLAUD_CODEX_DIRS substitui e recusa pasta do Claude Code', () => {
-    expect(discoverCodexHomes({}, home).dirs).toEqual([join(home, '.codex'), join(home, '.codex-trabalho')]);
-    const extra = join(tmp.dir, 'outra-conta');
+  it('discovers the ~/.codex* of Codex (and CODEX_HOME); HABBLAUD_CODEX_DIRS replaces them and refuses a Claude Code folder', () => {
+    expect(discoverCodexHomes({}, home).dirs).toEqual([join(home, '.codex'), join(home, '.codex-work')]);
+    const extra = join(tmp.dir, 'other-account');
     mkdirSync(extra);
     // As mesmas pastas que o servidor acompanha: um CODEX_HOME sem cara de Codex (vazio) fica de fora.
-    expect(discoverCodexHomes({ CODEX_HOME: extra }, home).dirs).toEqual([join(home, '.codex'), join(home, '.codex-trabalho')]);
+    expect(discoverCodexHomes({ CODEX_HOME: extra }, home).dirs).toEqual([join(home, '.codex'), join(home, '.codex-work')]);
     mkdirSync(join(extra, 'thread-writer-locks'));
-    expect(discoverCodexHomes({ CODEX_HOME: extra }, home).dirs).toEqual([extra, join(home, '.codex'), join(home, '.codex-trabalho')]);
-    expect(discoverCodexHomes({ HABBLAUD_CODEX_DIRS: `${extra}, ~/.claude, /nao/existe` }, home)).toEqual({ dirs: [extra], refused: [join(home, '.claude')] });
+    expect(discoverCodexHomes({ CODEX_HOME: extra }, home).dirs).toEqual([extra, join(home, '.codex'), join(home, '.codex-work')]);
+    expect(discoverCodexHomes({ HABBLAUD_CODEX_DIRS: `${extra}, ~/.claude, /does/not/exist` }, home)).toEqual({ dirs: [extra], refused: [join(home, '.claude')] });
   });
 
-  it('install: backup, grupos alheios intactos, config.toml intocado, ~/.habblaud/codex-hook.json gravado; de novo = nada a fazer', async () => {
+  it('install: backup, foreign groups intact, config.toml untouched, ~/.habblaud/codex-hook.json written; again = nothing to do', async () => {
     expect(await exec('install', { port: 4851, waitS: 40 })).toBe(0);
     const c = read('.codex');
     for (const [event, list] of Object.entries(ORCA.hooks)) list.forEach((g, i) => expect(c.hooks[event][i]).toEqual(g));
     expect(c.hooks.PermissionRequest[2]).toEqual({ hooks: [handlerFor('PermissionRequest', cmd, 40)] });
-    expect(read('.codex-trabalho').hooks.SessionStart).toEqual([{ hooks: [handlerFor('SessionStart', cmd, 40)] }]);
+    expect(read('.codex-work').hooks.SessionStart).toEqual([{ hooks: [handlerFor('SessionStart', cmd, 40)] }]);
     expect(JSON.parse(readFileSync(join(home, '.codex', 'hooks.json.habblaud-backup-20261009-093000'), 'utf8'))).toEqual(ORCA);
     expect(readFileSync(join(home, '.codex', 'config.toml'), 'utf8')).toBe(configToml);
-    expect(existsSync(join(home, '.codex-trabalho', 'config.toml'))).toBe(false);
+    expect(existsSync(join(home, '.codex-work', 'config.toml'))).toBe(false);
     expect(existsSync(join(home, '.claude', 'hooks.json'))).toBe(false);
     expect(JSON.parse(readFileSync(join(home, '.habblaud', 'codex-hook.json'), 'utf8'))).toEqual({ port: 4851, permissionTimeoutS: 40 });
     const text = out.join('\n');
@@ -210,22 +210,22 @@ describe('codex-install.ts (arquivos, HOME falso)', () => {
     expect(readdirSync(join(home, '.codex')).filter((f) => f.includes('backup'))).toHaveLength(1);
   });
 
-  it('--conta, --dry-run, status (com o Habblaud no ar ou não) e uninstall devolvendo o original', async () => {
+  it('--conta, --dry-run, status (with Habblaud up or not) and uninstall returning the original', async () => {
     const before = readFileSync(join(home, '.codex', 'hooks.json'), 'utf8');
     await exec('install', { dryRun: true });
     expect(readFileSync(join(home, '.codex', 'hooks.json'), 'utf8')).toBe(before);
-    expect(existsSync(join(home, '.codex-trabalho', 'hooks.json'))).toBe(false);
+    expect(existsSync(join(home, '.codex-work', 'hooks.json'))).toBe(false);
     expect(existsSync(join(home, '.habblaud', 'codex-hook.json'))).toBe(false);
     expect(out.join('\n')).toContain('dry run');
 
     out = [];
-    expect(await exec('install', { account: '.codex-trabalho' })).toBe(0);
+    expect(await exec('install', { account: '.codex-work' })).toBe(0);
     expect(readFileSync(join(home, '.codex', 'hooks.json'), 'utf8')).toBe(before);
     out = [];
     await exec('status', {}, {}, { codexEvents: true, permissions: true });
     let text = out.join('\n');
     expect(text).toMatch(/\.codex \(~\/\.codex\/hooks\.json\): not installed/);
-    expect(text).toMatch(/\.codex-trabalho \(.*\): installed on 9 of 9 events/);
+    expect(text).toMatch(/\.codex-work \(.*\): installed on 9 of 9 events/);
     expect(text).toContain('receiving Codex events; office approvals on');
     expect(text).toContain('check /hooks');
     out = [];
@@ -234,30 +234,30 @@ describe('codex-install.ts (arquivos, HOME falso)', () => {
 
     out = [];
     expect(await exec('uninstall')).toBe(0);
-    expect(read('.codex-trabalho')).toEqual({});
+    expect(read('.codex-work')).toEqual({});
     expect(readFileSync(join(home, '.codex', 'hooks.json'), 'utf8')).toBe(before);
     expect(out.join('\n')).toContain("wasn't installed");
-    expect(await exec('install', { account: '.nada' })).toBe(1);
+    expect(await exec('install', { account: '.nothing' })).toBe(1);
   });
 
-  it('--conta com outra espera: avisa das outras pastas que ficaram com a espera antiga (o arquivo de configuração é um só)', async () => {
+  it('--conta with another wait: warns about the other folders that kept the old wait (there is only one configuration file)', async () => {
     expect(await exec('install')).toBe(0);
     out = [];
     expect(await exec('install', { account: '.codex', waitS: 60 })).toBe(0);
-    expect(out.join('\n')).toContain('! .codex-trabalho: Habblaud is there with a different wait; run npm run codex:install without --conta to align.');
+    expect(out.join('\n')).toContain('! .codex-work: Habblaud is there with a different wait; run npm run codex:install without --conta to align.');
     out = [];
     expect(await exec('install', { waitS: 60 })).toBe(0);
     expect(out.join('\n')).not.toContain('a different wait');
   });
 
-  it('JSON inválido nunca é sobrescrito', async () => {
-    writeFileSync(join(home, '.codex-trabalho', 'hooks.json'), '{ quebrado');
+  it('invalid JSON is never overwritten', async () => {
+    writeFileSync(join(home, '.codex-work', 'hooks.json'), '{ broken');
     expect(await exec('install')).toBe(1);
-    expect(readFileSync(join(home, '.codex-trabalho', 'hooks.json'), 'utf8')).toBe('{ quebrado');
+    expect(readFileSync(join(home, '.codex-work', 'hooks.json'), 'utf8')).toBe('{ broken');
     expect(out.join('\n')).toContain('invalid JSON');
   });
 
-  it.skipIf(!SH)('o comando instalado roda de verdade: com o Habblaud fora do ar, sai rápido, com 0 e sem saída', async () => {
+  it.skipIf(!SH)('the installed command really runs: with Habblaud down, exits fast, with 0 and no output', async () => {
     await exec('install', { port: 1 });
     const command: string = read('.codex').hooks.PermissionRequest.at(-1).hooks[0].command;
     for (const event of ['PreToolUse', 'PermissionRequest']) {

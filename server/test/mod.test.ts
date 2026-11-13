@@ -41,18 +41,18 @@ function importsOf(path: string): string[] {
   return [...imports, ...reexports].map((m) => m[1]);
 }
 
-describe('marketplace e plugins do Claude Code', () => {
-  it('versões do marketplace e dos plugin.json = versão do package.json', () => {
+describe('Claude Code marketplace and plugins', () => {
+  it('versions of the marketplace and of the plugin.json files = version of package.json', () => {
     expect(typeof pkg.version).toBe('string');
     expect(market.version).toBe(pkg.version);
     for (const name of PLUGINS) {
       expect(json(`mod/${name}/.claude-plugin/plugin.json`).version, name).toBe(pkg.version);
       const entry = entries.find((e) => e.name === name);
-      if (entry?.version !== undefined) expect(entry.version, `entrada ${name}`).toBe(pkg.version);
+      if (entry?.version !== undefined) expect(entry.version, `entry ${name}`).toBe(pkg.version);
     }
   });
 
-  it('marketplace "habblaud" com os três plugins, cada um numa pasta que existe e com o mesmo nome', () => {
+  it('marketplace "habblaud" with the three plugins, each in a folder that exists and with the same name', () => {
     expect(market.name).toBe('habblaud');
     expect(entries.map((e) => e.name)).toEqual(PLUGINS);
     for (const e of entries) {
@@ -66,7 +66,7 @@ describe('marketplace e plugins do Claude Code', () => {
     }
   });
 
-  it('hooks.json: os módulos dos mods e o script do hook de permissão existem', () => {
+  it('hooks.json: the modules of the mods and the permission hook script exist', () => {
     for (const e of entries) {
       const dir = join(ROOT, String(e.source));
       const hooksJson = join(dir, 'hooks', 'hooks.json');
@@ -85,7 +85,7 @@ describe('marketplace e plugins do Claude Code', () => {
     expect(json('mod/habblaud-mensagens/hooks/hooks.json').modules).toEqual(['./register.ts']);
   });
 
-  it('os mods só importam arquivos deles mesmos e tipos de "claude-code" (regra do Claude Code)', () => {
+  it('the mods only import their own files and types from "claude-code" (Claude Code rule)', () => {
     for (const mod of ['habblaud', 'habblaud-mensagens']) {
       for (const spec of importsOf(join(ROOT, `mod/${mod}/hooks/register.ts`))) {
         expect(spec === 'claude-code' || spec.startsWith('./') || spec.startsWith('../'), `${mod}: ${spec}`).toBe(true);
@@ -94,13 +94,13 @@ describe('marketplace e plugins do Claude Code', () => {
   });
 });
 
-describe('plugin habblaud-permissoes', () => {
+describe('habblaud-permissoes plugin', () => {
   const dir = join(ROOT, 'mod/habblaud-permissoes');
   const hooks = settingsHooks(json('mod/habblaud-permissoes/hooks/hooks.json'));
 
   // No plugin a espera vem do ambiente (HABBLAUD_PERMISSION_TIMEOUT), não do comando: o tempo limite do Claude Code
   // precisa caber a maior espera que o hook aceita, senão ele mata o hook antes (era 330 s e cortava em 5 min; a espera vai até 24 h).
-  it('o mesmo hook do instalador: PermissionRequest, matcher "*", mensagem igual e tempo limite que cabe a espera máxima', () => {
+  it('the same hook as the installer: PermissionRequest, matcher "*", same message and a timeout that fits the maximum wait', () => {
     const installed = hookEntry(hookCommand('node', '/x/permission-hook.mjs', { port: 4747, timeoutS: MAX_TIMEOUT_MS / 1000 }), { port: 4747, timeoutS: MAX_TIMEOUT_MS / 1000 });
     expect(hooks).toHaveLength(1);
     expect(hooks[0]).toEqual({
@@ -110,13 +110,13 @@ describe('plugin habblaud-permissoes', () => {
     });
   });
 
-  it('o script é Node puro (só node:*): o Claude Code copia sozinha a pasta do plugin para o cache', () => {
+  it('the script is pure Node (only node:*): Claude Code copies the plugin folder to the cache on its own', () => {
     const specs = importsOf(join(dir, 'hooks/permission-hook.mjs'));
     expect(specs.length).toBeGreaterThan(0);
     for (const spec of specs) expect(spec.startsWith('node:'), spec).toBe(true);
   });
 
-  it.skipIf(!SH)('o comando do plugin roda de verdade: com o Habblaud fora do ar, sai rápido e sem decisão', () => {
+  it.skipIf(!SH)('the plugin command really runs: with Habblaud down, exits fast and without a decision', () => {
     const input = JSON.stringify({ session_id: 's', hook_event_name: 'PermissionRequest', tool_name: 'Bash', tool_input: { command: 'ls' } });
     const t0 = Date.now();
     // O Claude Code troca ${CLAUDE_PLUGIN_ROOT} no comando e também o exporta; o sh expande do ambiente igual.
@@ -131,7 +131,7 @@ describe('plugin habblaud-permissoes', () => {
     expect(Date.now() - t0).toBeLessThan(5_000);
   });
 
-  it('o caminho antigo (scripts/permission-hook.mjs, das instalações até a 0.2) continua funcionando como atalho', () => {
+  it('the old path (scripts/permission-hook.mjs, from installations up to 0.2) keeps working as a shortcut', () => {
     const input = JSON.stringify({ session_id: 's', hook_event_name: 'PermissionRequest', tool_name: 'Bash', tool_input: { command: 'ls' } });
     const r = spawnSync(process.execPath, [join(ROOT, 'scripts', 'permission-hook.mjs')], {
       input,

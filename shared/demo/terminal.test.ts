@@ -5,7 +5,7 @@ import { DemoSimulator } from './simulator';
 import { demoTerminalEntries } from './terminal';
 import { setLocale } from '../i18n';
 
-const ROOT = '/Users/dev/projetos/loja-virtual';
+const ROOT = '/Users/dev/projects/online-store';
 const T0 = 1_000_000;
 
 function agent(over: Partial<AgentInfo> = {}): AgentInfo {
@@ -69,7 +69,7 @@ function history(): Activity[] {
     act(SPECIAL.turnDone(130_000)),
     act({ kind: 'compact', icon: '🧹', text: 'Tidying up memory (compacting)' }),
     act({ kind: 'error', icon: '⚠️', text: 'Error in Bash', detail: 'Exit code 1' }),
-    act(describeTool('SendMessage', { to: 'Bruno', message: 'pode revisar?' })),
+    act(describeTool('SendMessage', { to: 'Bruno', message: 'can you review?' })),
   ];
 }
 
@@ -78,7 +78,7 @@ const byActivity = (entries: TerminalEntry[], h: Activity[]) => h.map((a) => ent
 describe('demoTerminalEntries', () => {
   afterEach(() => setLocale('en'));
 
-  it('é determinístico e não altera a entrada', () => {
+  it('is deterministic and does not change the input', () => {
     const h = history();
     const before = JSON.stringify(h);
     const a = demoTerminalEntries(agent(), h);
@@ -87,7 +87,7 @@ describe('demoTerminalEntries', () => {
     expect(JSON.stringify(h)).toBe(before);
   });
 
-  it('cada atividade vira entradas com ids derivados dela, únicos, e cada ferramenta tem resultado', () => {
+  it('each activity becomes entries with ids derived from it, unique, and each tool has a result', () => {
     const h = history();
     const e = demoTerminalEntries(agent(), h);
     expect(new Set(e.map((x) => x.id)).size).toBe(e.length);
@@ -102,7 +102,7 @@ describe('demoTerminalEntries', () => {
     expect(e.map((x) => x.at)).toEqual([...e.map((x) => x.at)].sort((x, y) => x - y));
   });
 
-  it('cobre os tipos de atividade com entradas coerentes', () => {
+  it('covers the activity types with coherent entries', () => {
     const h = history();
     const groups = byActivity(demoTerminalEntries(agent(), h), h);
     const kinds = (i: number) => groups[i].map((x) => x.kind);
@@ -175,7 +175,7 @@ describe('demoTerminalEntries', () => {
     expect(mixedBack.done).toBe('Turn completed in 2min 10s');
   });
 
-  it('ids e conteúdo das entradas antigas não mudam quando chegam atividades novas', () => {
+  it('ids and content of the old entries do not change when new activities arrive', () => {
     const h = history();
     const full = demoTerminalEntries(agent(), h);
     for (const n of [1, 5, 10, 16, 18, 21]) {
@@ -188,7 +188,7 @@ describe('demoTerminalEntries', () => {
     expect(slid.length).toBeGreaterThan(10);
   });
 
-  it('sem atividades, o título abre a conversa; depois, os prompts vêm das atividades', () => {
+  it('without activities, the title opens the conversation; afterwards, the prompts come from the activities', () => {
     const empty = demoTerminalEntries(agent(), []);
     expect(empty).toEqual([expect.objectContaining({ kind: 'user', text: 'Build the checkout page with an order summary', at: T0 })]);
     expect(demoTerminalEntries(agent({ title: undefined }), [])).toEqual([]);
@@ -197,7 +197,7 @@ describe('demoTerminalEntries', () => {
     expect(withPrompt[0].id).not.toBe(empty[0].id);
   });
 
-  it('com o simulador: conversa de principais e subagentes, estável entre ticks', () => {
+  it('with the simulator: conversation of main agents and subagents, stable between ticks', () => {
     const sim = new DemoSimulator({ seed: 5, idPrefix: 'demo:', speed: 8, sessions: 5 }, 0);
     const lists = new Map<string, TerminalEntry[]>();
     let checked = 0;
@@ -224,8 +224,8 @@ describe('demoTerminalEntries', () => {
   });
 });
 
-describe('demoTerminalEntries: agente do Codex', () => {
-  it('comandos no shell (inclusive ler e buscar), apply_patch com o patch, update_plan, web_search e spawn_agent', () => {
+describe('demoTerminalEntries: Codex agent', () => {
+  it('commands in the shell (including reading and searching), apply_patch with the patch, update_plan, web_search and spawn_agent', () => {
     const h = history();
     const e = demoTerminalEntries(agent({ provider: 'codex', account: 'demo:.codex' }), h);
     expect(new Set(e.map((x) => x.id)).size).toBe(e.length);
@@ -255,7 +255,7 @@ describe('demoTerminalEntries: agente do Codex', () => {
     expect(e.some((x) => x.kind === 'tool' && ['Read', 'Edit', 'Write', 'Grep', 'Glob', 'Bash', 'TodoWrite', 'Agent', 'WebSearch', 'WebFetch'].includes(x.tool))).toBe(false);
   });
 
-  it('com o simulador: os agentes do Codex ganham a conversa do Codex', () => {
+  it('with the simulator: the Codex agents get the Codex conversation', () => {
     const sim = new DemoSimulator({ seed: 2, speed: 8, sessions: 5 }, 0);
     for (let t = 0; t < 120_000; t += 250) sim.tick(t);
     const codex = sim.snapshot(120_000).agents.filter((a) => a.provider === 'codex' && a.recent.length);

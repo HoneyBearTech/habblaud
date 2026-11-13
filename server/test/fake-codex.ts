@@ -30,7 +30,7 @@ if (args[0] !== 'queue' || args.some((a) => /^(-c|--config|--enable|--disable|--
   process.stderr.write('Error: failed to queue session message: thread/queue/add failed: failed to read thread: invalid thread-store request: no rollout found for thread id ' + thread + ' (code -32603)\\n');
   process.exit(1);
 } else if (thread.startsWith('0199bbbb')) {
-  setTimeout(() => process.stdout.write('tarde demais\\n'), 10000);
+  setTimeout(() => process.stdout.write('too late\\n'), 10000);
 } else {
   process.stdout.write('Queued message 01a11fb4-27d1-7450-947c-e3c97aa47303 for thread ' + thread + '.\\n');
 }

@@ -75,7 +75,7 @@ async function serveMessages(opts: { enabled?: boolean; demo?: boolean; registry
   });
   await new Promise<void>((ok) => server.listen(0, '127.0.0.1', ok));
   const port = (server.address() as AddressInfo).port;
-  office.addMain({ id: MAIN, account: 'acc', sessionId: SESSION, cwd: '/p/loja', role: 'Main agent', startedAt: Date.now(), status: 'idle' });
+  office.addMain({ id: MAIN, account: 'acc', sessionId: SESSION, cwd: '/p/store', role: 'Main agent', startedAt: Date.now(), status: 'idle' });
   if (opts.demo) office.setDemo(true);
   return {
     base: `http://127.0.0.1:${port}`,
@@ -104,8 +104,8 @@ const post = (s: MessageServer, path: string, body: unknown, headers?: Record<st
 const snapshot = async (s: MessageServer) => (await request(s.base, '/api/snapshot')).json as OfficeSnapshot;
 const sleep = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
 
-describe('trava das mensagens (config)', () => {
-  it('messagesOffReason: a trava do terminal e HABBLAUD_MENSAGENS (0/false/off/no desligam)', () => {
+describe('messages lock (config)', () => {
+  it('messagesOffReason: the terminal lock and HABBLAUD_MENSAGENS (0/false/off/no turn it off)', () => {
     expect(messagesOffReason({}, '127.0.0.1', false)).toBeUndefined();
     for (const v of ['1', 'true', 'sim', '']) expect(messagesOffReason({ HABBLAUD_MENSAGENS: v }, '127.0.0.1', false), v).toBeUndefined();
     for (const v of ['0', 'false', 'off', 'no']) expect(messagesOffReason({ HABBLAUD_MENSAGENS: v }, '127.0.0.1', false)).toBe(`HABBLAUD_MENSAGENS=${v}`);
@@ -117,7 +117,7 @@ describe('trava das mensagens (config)', () => {
     expect(messagesOffReason({ HABBLAUD_MENSAGENS: '1' }, '0.0.0.0', true)).toMatch(/HABBLAUD_BIND/);
   });
 
-  it('loadConfig preenche ServerConfig.messages', () => {
+  it('loadConfig fills in ServerConfig.messages', () => {
     const tmp = tempDir();
     try {
       const cfg = (env: NodeJS.ProcessEnv) => loadConfig({ HOME: tmp.dir, HABBLAUD_IN_DOCKER: '0', ...env }, []);
@@ -132,7 +132,7 @@ describe('trava das mensagens (config)', () => {
   });
 });
 
-describe('trava das rotas', () => {
+describe('route lock', () => {
   const ROUTES: Array<[string, string]> = [
     ['POST', '/api/messages'],
     ['GET', '/api/messages/x'],
@@ -140,7 +140,7 @@ describe('trava das rotas', () => {
     ['POST', '/api/mod/inbox/ack'],
   ];
 
-  it('desligado: 403 em todas as rotas; health e snapshot dizem messages: false; /api/mod/summary continua no ar', async () => {
+  it('off: 403 on all routes; health and snapshot say messages: false; /api/mod/summary stays up', async () => {
     srv = await serveMessages({ enabled: false });
     for (const [method, path] of ROUTES) {
       const r = await request(srv.base, path, { method, body: method === 'POST' ? {} : undefined });
@@ -154,7 +154,7 @@ describe('trava das rotas', () => {
     expect(summary.json).toMatchObject({ version: 't', agents: 1 });
   });
 
-  it('Host que não é local (proxy/túnel de HABBLAUD_ALLOWED_HOSTS ou IP da rede): 403', async () => {
+  it('Host that is not local (proxy/tunnel from HABBLAUD_ALLOWED_HOSTS or network IP): 403', async () => {
     srv = await serveMessages();
     expect((await request(srv.base, '/api/health')).json).toMatchObject({ messages: true });
     expect((await snapshot(srv)).meta.messages).toBe(true);
@@ -168,26 +168,26 @@ describe('trava das rotas', () => {
     expect((await post(srv, '/api/mod/inbox', { session: SESSION }, { Host: 'localhost:4747' })).status).toBe(200);
   });
 
-  it('guard: POST sem JSON (415) ou de outra origem (403) é barrado antes da rota', async () => {
+  it('guard: POST with no JSON (415) or from another origin (403) is blocked before the route', async () => {
     srv = await serveMessages();
-    expect((await post(srv, '/api/messages', 'agentId=x&text=oi', { 'Content-Type': 'application/x-www-form-urlencoded' })).status).toBe(415);
+    expect((await post(srv, '/api/messages', 'agentId=x&text=hi', { 'Content-Type': 'application/x-www-form-urlencoded' })).status).toBe(415);
     expect((await post(srv, '/api/mod/inbox', { session: SESSION }, { Origin: 'https://evil.example' })).status).toBe(403);
-    expect((await post(srv, '/api/messages', { agentId: MAIN, text: 'oi' }, { Origin: 'https://evil.example' })).status).toBe(403);
+    expect((await post(srv, '/api/messages', { agentId: MAIN, text: 'hi' }, { Origin: 'https://evil.example' })).status).toBe(403);
   });
 });
 
-describe('rotas', () => {
-  it('400 (corpo inválido, vazio, longo demais), 404 (agente ou mensagem desconhecidos), 405, 409 e 429', async () => {
+describe('routes', () => {
+  it('400 (invalid body, empty, too long), 404 (unknown agent or message), 405, 409 and 429', async () => {
     srv = await serveMessages();
-    for (const body of [{}, '{quebrado', { agentId: MAIN }, { agentId: MAIN, text: '   ' }, { agentId: MAIN, text: 'x'.repeat(20_001) }]) {
+    for (const body of [{}, '{broken', { agentId: MAIN }, { agentId: MAIN, text: '   ' }, { agentId: MAIN, text: 'x'.repeat(20_001) }]) {
       const r = await post(srv, '/api/messages', body);
       expect(r.status, JSON.stringify(body).slice(0, 40)).toBe(400);
       expect(r.json).toMatchObject({ error: expect.any(String) });
     }
-    expect((await post(srv, '/api/messages', { agentId: 'nao-existe', text: 'oi' })).status).toBe(404);
-    expect((await request(srv.base, '/api/messages/nao-existe')).status).toBe(404);
+    expect((await post(srv, '/api/messages', { agentId: 'does-not-exist', text: 'hi' })).status).toBe(404);
+    expect((await request(srv.base, '/api/messages/does-not-exist')).status).toBe(404);
     // Sessão sem o plugin conectado.
-    const noPlugin = await post(srv, '/api/messages', { agentId: MAIN, text: 'oi' });
+    const noPlugin = await post(srv, '/api/messages', { agentId: MAIN, text: 'hi' });
     expect(noPlugin.status).toBe(409);
     expect(noPlugin.json).toMatchObject({ error: expect.stringMatching(/habblaud-mensagens/) });
     expect((await request(srv.base, '/api/messages')).status).toBe(405);
@@ -200,31 +200,31 @@ describe('rotas', () => {
     // Com o plugin: 5 na fila, a 6ª recebe 429.
     expect((await post(srv, '/api/mod/inbox', { session: SESSION, account: 'acc' })).json).toEqual({ messages: [] });
     for (let i = 0; i < 5; i++) expect((await post(srv, '/api/messages', { agentId: MAIN, text: `m${i}` })).status).toBe(201);
-    const full = await post(srv, '/api/messages', { agentId: MAIN, text: 'demais' });
+    const full = await post(srv, '/api/messages', { agentId: MAIN, text: 'too many' });
     expect(full.status).toBe(429);
     expect(full.json).toMatchObject({ error: expect.stringMatching(/5 messages/) });
   });
 
-  it('caixa de entrada de sessão desconhecida: 200 com nenhuma mensagem (nunca 404)', async () => {
+  it('inbox of an unknown session: 200 with no messages (never 404)', async () => {
     srv = await serveMessages();
-    const r = await post(srv, '/api/mod/inbox', { session: 'nao-existe', account: 'acc' });
+    const r = await post(srv, '/api/mod/inbox', { session: 'does-not-exist', account: 'acc' });
     expect(r).toMatchObject({ status: 200, json: { messages: [] } });
-    expect((await post(srv, '/api/mod/inbox/ack', { session: 'nao-existe', results: [{ id: 'x', ok: true }] })).json).toEqual({ ok: true });
+    expect((await post(srv, '/api/mod/inbox/ack', { session: 'does-not-exist', results: [{ id: 'x', ok: true }] })).json).toEqual({ ok: true });
   });
 
-  it('fluxo: plugin conecta (canMessage) → página manda (201) → plugin busca → confirma → página consulta (delivered) e o feed mostra', async () => {
+  it('flow: plugin connects (canMessage) → page sends (201) → plugin fetches → confirms → page checks (delivered) and the feed shows it', async () => {
     srv = await serveMessages();
     expect((await snapshot(srv)).agents.find((a) => a.id === MAIN)?.canMessage).toBeUndefined();
     expect((await post(srv, '/api/mod/inbox', { session: SESSION, account: 'acc' })).json).toEqual({ messages: [] });
     await sleep(30);
     expect((await snapshot(srv)).agents.find((a) => a.id === MAIN)?.canMessage).toBe(true);
 
-    const text = 'Agora roda os testes de novo\ne me diga o que falhou ';
+    const text = 'Now run the tests again\nand tell me what failed ';
     const created = await post(srv, '/api/messages', { agentId: MAIN, text });
     expect(created.status).toBe(201);
     const msg = created.json as OutboxMessage;
     expect(msg).toMatchObject({ agentId: MAIN, status: 'queued' });
-    expect(created.text).not.toContain('testes');
+    expect(created.text).not.toContain('tests');
     expect(((await request(srv.base, `/api/messages/${encodeURIComponent(msg.id)}`)).json as OutboxMessage).status).toBe('queued');
 
     const inbox = (await post(srv, '/api/mod/inbox', { session: SESSION, account: 'acc' })).json as { messages: InboxMessage[] };
@@ -236,28 +236,28 @@ describe('rotas', () => {
     expect(done).toMatchObject({ id: msg.id, status: 'delivered' });
     expect(done.updatedAt).toBeGreaterThanOrEqual(done.createdAt);
     const agent = (await snapshot(srv)).agents.find((a) => a.id === MAIN)!;
-    expect(agent.recent.at(-1)).toMatchObject({ icon: '✉️', text: 'Message via Habblaud', detail: 'Agora roda os testes de novo e me diga o que falhou' });
+    expect(agent.recent.at(-1)).toMatchObject({ icon: '✉️', text: 'Message via Habblaud', detail: 'Now run the tests again and tell me what failed' });
   });
 
-  it('a sessão some (sem rodadas): canMessage volta a falso e a mensagem na fila falha no prazo', async () => {
+  it('the session goes away (no rounds): canMessage goes back to false and the message in the queue fails at the deadline', async () => {
     let now = 1_000_000;
     srv = await serveMessages({ registry: { now: () => now, presenceMs: 100, queuedTimeoutMs: 150 } });
     await post(srv, '/api/mod/inbox', { session: SESSION });
-    const created = await post(srv, '/api/messages', { agentId: MAIN, text: 'oi' });
+    const created = await post(srv, '/api/messages', { agentId: MAIN, text: 'hi' });
     expect(created.status).toBe(201);
     const msg = created.json as OutboxMessage;
     now += 250;
     srv.registry!.tick();
     expect((await snapshot(srv)).agents.find((a) => a.id === MAIN)?.canMessage).toBeUndefined();
     expect((await request(srv.base, `/api/messages/${encodeURIComponent(msg.id)}`)).json).toMatchObject({ status: 'failed', error: expect.stringMatching(/didn't fetch/) });
-    expect((await post(srv, '/api/messages', { agentId: MAIN, text: 'oi' })).status).toBe(409);
+    expect((await post(srv, '/api/messages', { agentId: MAIN, text: 'hi' })).status).toBe(409);
   });
 
-  it('demo: a mensagem a um agente fictício é entregue sem passar por sessão nenhuma', async () => {
+  it('demo: the message to a fictional agent is delivered without going through any session', async () => {
     srv = await serveMessages({ demo: true, registry: { demoDeliveryMs: 50 } });
     const demo = (await snapshot(srv)).agents.find((a) => a.id.startsWith('demo:') && a.kind === 'main' && a.status !== 'offline')!;
     expect(demo.canMessage).toBe(true);
-    const created = await post(srv, '/api/messages', { agentId: demo.id, text: 'oi, demo' });
+    const created = await post(srv, '/api/messages', { agentId: demo.id, text: 'hi, demo' });
     expect(created.status).toBe(201);
     const msg = created.json as OutboxMessage;
     expect((await post(srv, '/api/mod/inbox', { session: demo.sessionId })).json).toEqual({ messages: [] });
@@ -265,10 +265,10 @@ describe('rotas', () => {
     expect((await request(srv.base, `/api/messages/${encodeURIComponent(msg.id)}`)).json).toMatchObject({ status: 'delivered' });
     srv.office.tick();
     const after = (await snapshot(srv)).agents.find((a) => a.id === demo.id)!;
-    expect(after.recent.some((a) => a.text === 'Message via Habblaud' && a.detail === 'oi, demo')).toBe(true);
+    expect(after.recent.some((a) => a.text === 'Message via Habblaud' && a.detail === 'hi, demo')).toBe(true);
   });
 
-  it('demo com o recurso desligado: os agentes fictícios também não recebem', async () => {
+  it('demo with the feature off: the fictional agents do not receive either', async () => {
     srv = await serveMessages({ enabled: false, demo: true });
     expect((await snapshot(srv)).agents.filter((a) => a.canMessage)).toEqual([]);
   });

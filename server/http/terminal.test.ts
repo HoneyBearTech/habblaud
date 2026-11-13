@@ -22,23 +22,23 @@ import { MAX_STREAMS, TerminalStreams, type TerminalOptions } from './terminal';
 
 setQuiet(true);
 
-describe('trava do terminal (config)', () => {
-  it('isLoopbackBind: 127.0.0.0/8, ::1 e localhost', () => {
+describe('terminal lock (config)', () => {
+  it('isLoopbackBind: 127.0.0.0/8, ::1 and localhost', () => {
     for (const v of ['127.0.0.1', '127.1.2.3', ' 127.0.0.1 ', '::1', '[::1]', '0:0:0:0:0:0:0:1', 'localhost', 'LocalHost']) expect(isLoopbackBind(v)).toBe(true);
-    for (const v of [undefined, '', '0.0.0.0', '::', '[::]', '192.168.0.10', '10.0.0.5', 'fe80::1', '128.0.0.1', 'meu-mac.local', 'app.localhost', '127.0.0.1.nip.io']) {
+    for (const v of [undefined, '', '0.0.0.0', '::', '[::]', '192.168.0.10', '10.0.0.5', 'fe80::1', '128.0.0.1', 'my-mac.local', 'app.localhost', '127.0.0.1.nip.io']) {
       expect(isLoopbackBind(v)).toBe(false);
     }
   });
 
-  it('Node: decide o HABBLAUD_HOST', () => {
+  it('Node: HABBLAUD_HOST decides', () => {
     for (const host of ['127.0.0.1', 'localhost', '::1']) expect(terminalOffReason({}, host, false)).toBeUndefined();
     expect(terminalOffReason({}, '0.0.0.0', false)).toBe('the port is exposed on the network: HABBLAUD_HOST=0.0.0.0');
-    for (const host of ['::', '192.168.0.10', 'meu-mac.local']) expect(terminalOffReason({}, host, false)).toMatch(/exposed on the network/);
+    for (const host of ['::', '192.168.0.10', 'my-mac.local']) expect(terminalOffReason({}, host, false)).toMatch(/exposed on the network/);
     // HABBLAUD_BIND só vale no Docker: não liga o modo Node exposto.
     expect(terminalOffReason({ HABBLAUD_BIND: '127.0.0.1' }, '0.0.0.0', false)).toBeDefined();
   });
 
-  it('Docker: decide o HABBLAUD_BIND (ausente ou vazio = desligado)', () => {
+  it('Docker: HABBLAUD_BIND decides (missing or empty = off)', () => {
     expect(terminalOffReason({ HABBLAUD_BIND: '127.0.0.1' }, '0.0.0.0', true)).toBeUndefined();
     expect(terminalOffReason({ HABBLAUD_BIND: '[::1]' }, '0.0.0.0', true)).toBeUndefined();
     expect(terminalOffReason({}, '0.0.0.0', true)).toMatch(/HABBLAUD_BIND didn't reach/);
@@ -49,8 +49,8 @@ describe('trava do terminal (config)', () => {
     expect(terminalOffReason({ HABBLAUD_BIND: '0.0.0.0' }, '127.0.0.1', true)).toBeDefined();
   });
 
-  it('HABBLAUD_TERMINAL só desliga: não há como ligar com a porta exposta', () => {
-    for (const v of ['0', 'false', 'off', 'nao']) {
+  it('HABBLAUD_TERMINAL only turns it off: there is no way to turn it on with the port exposed', () => {
+    for (const v of ['0', 'false', 'off', 'no']) {
       expect(terminalOffReason({ HABBLAUD_TERMINAL: v }, '127.0.0.1', false)).toBe(`HABBLAUD_TERMINAL=${v}`);
       expect(terminalOffReason({ HABBLAUD_TERMINAL: v, HABBLAUD_BIND: '127.0.0.1' }, '0.0.0.0', true)).toMatch(/HABBLAUD_TERMINAL/);
     }
@@ -60,7 +60,7 @@ describe('trava do terminal (config)', () => {
     expect(terminalOffReason({ HABBLAUD_TERMINAL: 'sim', HABBLAUD_BIND: '0.0.0.0' }, '0.0.0.0', true)).toBeDefined();
   });
 
-  it('loadConfig preenche ServerConfig.terminal', () => {
+  it('loadConfig fills in ServerConfig.terminal', () => {
     const tmp = tempDir();
     try {
       const terminal = (env: NodeJS.ProcessEnv) => loadConfig({ HOME: tmp.dir, HABBLAUD_IN_DOCKER: '0', ...env }, []).terminal;
@@ -82,7 +82,7 @@ describe('trava do terminal (config)', () => {
 function fakeParser(): TerminalParser {
   return {
     push(raw) {
-      if (raw === 'boom') throw new Error('falhou');
+      if (raw === 'boom') throw new Error('failed');
       try {
         const j = JSON.parse(raw) as { id?: string; text?: string };
         return j.id ? [user(j.id, j.text)] : [];
@@ -134,7 +134,7 @@ async function serve(opts: { terminal?: boolean; streams?: Partial<TerminalOptio
   });
   await new Promise<void>((ok) => server.listen(0, '127.0.0.1', ok));
   const port = String((server.address() as AddressInfo).port);
-  office.addMain({ id: MAIN, account: 'acc', sessionId: 's1', cwd: '/p/loja', role: 'Main agent', startedAt: Date.now(), status: 'working' });
+  office.addMain({ id: MAIN, account: 'acc', sessionId: 's1', cwd: '/p/store', role: 'Main agent', startedAt: Date.now(), status: 'working' });
   return {
     base: `http://127.0.0.1:${port}`,
     port,
@@ -221,8 +221,8 @@ const waitFor = (fn: () => void) => vi.waitFor(fn, { timeout: 3_000, interval: 1
 
 // ------------------------------------------------------------------ rota
 
-describe('terminal: rota', () => {
-  it('recurso desligado: 403 JSON; /api/health e meta.terminal dizem false', async () => {
+describe('terminal: route', () => {
+  it('feature off: 403 JSON; /api/health and meta.terminal say false', async () => {
     const env = await serve({ terminal: false });
     try {
       env.paths.set(MAIN, join(env.dir, 'x.jsonl'));
@@ -237,7 +237,7 @@ describe('terminal: rota', () => {
     }
   });
 
-  it('Host que não é local (IP da rede ou nome de HABBLAUD_ALLOWED_HOSTS): 403; localhost abre', async () => {
+  it('Host that is not local (network IP or a name from HABBLAUD_ALLOWED_HOSTS): 403; localhost opens', async () => {
     const env = await serve();
     try {
       const file = join(env.dir, 't.jsonl');
@@ -258,10 +258,10 @@ describe('terminal: rota', () => {
     }
   });
 
-  it('404 para agente ou transcript desconhecido; 405 para outros métodos', async () => {
+  it('404 for unknown agent or transcript; 405 for other methods', async () => {
     const env = await serve();
     try {
-      for (const id of ['nao-existe', 'demo:nao-existe']) {
+      for (const id of ['does-not-exist', 'demo:does-not-exist']) {
         const r = await open(env.base, route(id));
         expect(r.status).toBe(404);
         expect(JSON.parse(r.body)).toEqual({ error: 'agent not found' });
@@ -280,7 +280,7 @@ describe('terminal: rota', () => {
     }
   });
 
-  it(`429 acima de ${MAX_STREAMS} terminais abertos; fechar um libera a vaga`, async () => {
+  it(`429 above ${MAX_STREAMS} open terminals; closing one frees the spot`, async () => {
     const env = await serve();
     try {
       const file = join(env.dir, 't.jsonl');
@@ -307,12 +307,12 @@ describe('terminal: rota', () => {
 
 // ------------------------------------------------------------------ transporte
 
-describe('terminal: transporte', () => {
-  it('init com a conversa do transcript; depois append só com as linhas novas', async () => {
+describe('terminal: transport', () => {
+  it('init with the conversation from the transcript; then append with only the new lines', async () => {
     const env = await serve();
     try {
       const file = join(env.dir, 't.jsonl');
-      writeLines(file, [line('a'), 'lixo', line('b')]);
+      writeLines(file, [line('a'), 'junk', line('b')]);
       env.paths.set(MAIN, file);
       const s = await open(env.base, route(MAIN));
       expect(s.status).toBe(200);
@@ -335,7 +335,7 @@ describe('terminal: transporte', () => {
     }
   });
 
-  it('transcript truncado ou substituído: parser novo e init de novo', async () => {
+  it('transcript truncated or replaced: new parser and init again', async () => {
     let parsers = 0;
     const env = await serve({ streams: { createParser: () => (parsers++, fakeParser()) } });
     try {
@@ -351,7 +351,7 @@ describe('terminal: transporte', () => {
       expect(inits(s).length).toBeGreaterThanOrEqual(2);
       expect(parsers).toBe(inits(s).length);
       // Substituído (outro arquivo no mesmo caminho, inode novo).
-      const tmp = join(env.dir, 'novo.jsonl');
+      const tmp = join(env.dir, 'new.jsonl');
       writeLines(tmp, [line('y'), line('z'), line('w'), line('v')]);
       const before = inits(s).length;
       renameSync(tmp, file);
@@ -363,7 +363,7 @@ describe('terminal: transporte', () => {
     }
   });
 
-  it('truncated: janela do fim do arquivo (offset > 0) ou entradas descartadas', async () => {
+  it('truncated: window at the end of the file (offset > 0) or discarded entries', async () => {
     const env = await serve({ streams: { initTailBytes: 60, initEntries: 3 } });
     try {
       const big = join(env.dir, 'big.jsonl');
@@ -390,10 +390,10 @@ describe('terminal: transporte', () => {
     }
   });
 
-  it('transcript que ainda não existe (ou sumiu): init vazio e continua tentando', async () => {
+  it('transcript that does not exist yet (or is gone): empty init and keeps trying', async () => {
     const env = await serve();
     try {
-      const file = join(env.dir, 'depois', 't.jsonl');
+      const file = join(env.dir, 'later', 't.jsonl');
       env.paths.set(MAIN, file);
       const s = await open(env.base, route(MAIN));
       await waitFor(() => expect(inits(s)).toHaveLength(1));
@@ -407,30 +407,30 @@ describe('terminal: transporte', () => {
     }
   });
 
-  it('/clear no mesmo processo: o transcript do principal muda e chega um init do novo', async () => {
+  it('/clear in the same process: the transcript of the main agent changes and an init of the new one arrives', async () => {
     const env = await serve();
     try {
       const first = join(env.dir, 's1.jsonl');
       const second = join(env.dir, 's2.jsonl');
       writeLines(first, [line('a')]);
-      writeLines(second, [line('novo')]);
+      writeLines(second, [line('new')]);
       env.paths.set(MAIN, first);
       const s = await open(env.base, route(MAIN));
       await waitFor(() => expect(inits(s)).toHaveLength(1));
       env.paths.set(MAIN, second);
       await waitFor(() => expect(inits(s)).toHaveLength(2));
-      expect(inits(s)[1].entries.map((e) => e.id)).toEqual(['novo']);
+      expect(inits(s)[1].entries.map((e) => e.id)).toEqual(['new']);
       // Sessão encerrada (o watcher esquece o caminho): continua no último transcript.
       env.paths.delete(MAIN);
-      appendLines(second, [line('fim')]);
-      await waitFor(() => expect(view(s)).toEqual(['novo', 'fim']));
+      appendLines(second, [line('end')]);
+      await waitFor(() => expect(view(s)).toEqual(['new', 'end']));
       s.close();
     } finally {
       await env.close();
     }
   });
 
-  it('stop() encerra os streams abertos', async () => {
+  it('stop() ends the open streams', async () => {
     const env = await serve();
     try {
       const file = join(env.dir, 't.jsonl');
@@ -445,7 +445,7 @@ describe('terminal: transporte', () => {
     }
   });
 
-  it('parser por agente (parserFor, o da ferramenta dele); sem parser próprio, o padrão; um novo a cada init', async () => {
+  it('parser per agent (parserFor, the one of its tool); with no parser of its own, the default; a new one on every init', async () => {
     const OTHER = '.codex:019a0000-0000-7000-8000-000000000001';
     let codexParsers = 0;
     /** Parser "de outra ferramenta": as mesmas linhas viram entradas com o prefixo "cx-". */
@@ -458,7 +458,7 @@ describe('terminal: transporte', () => {
     const parserFor = (id: string) => (asked.push(id), id === OTHER ? codexParser() : undefined);
     const env = await serve({ streams: { parserFor } });
     try {
-      env.office.addMain({ id: OTHER, provider: 'codex', account: '.codex', sessionId: 'thr', cwd: '/p/loja', role: 'Main agent', startedAt: Date.now(), status: 'working' });
+      env.office.addMain({ id: OTHER, provider: 'codex', account: '.codex', sessionId: 'thr', cwd: '/p/store', role: 'Main agent', startedAt: Date.now(), status: 'working' });
       const a = join(env.dir, 'a.jsonl');
       const b = join(env.dir, 'b.jsonl');
       writeLines(a, [line('a1')]);
@@ -490,8 +490,8 @@ describe('terminal: transporte', () => {
 
 // ------------------------------------------------------------------ demo
 
-describe('terminal: agentes do demo', () => {
-  it('conversa fictícia (demoTerminalEntries): init com o id do agente', async () => {
+describe('terminal: demo agents', () => {
+  it('fictional conversation (demoTerminalEntries): init with the id of the agent', async () => {
     const env = await serve();
     try {
       env.office.setDemo(true);
@@ -509,7 +509,7 @@ describe('terminal: agentes do demo', () => {
     }
   });
 
-  it('append só com ids novos; o agente sumiu = para o polling (o stream continua aberto)', async () => {
+  it('append with only new ids; the agent is gone = stops the polling (the stream stays open)', async () => {
     const items = [user('d1'), user('d2')];
     const env = await serve({ streams: { demoEntries: () => items.slice() } });
     try {
@@ -540,22 +540,22 @@ describe('terminal: agentes do demo', () => {
 // ------------------------------------------------------------------ watcher
 
 describe('ClaudeWatcher.transcriptPathOf', () => {
-  it('principal "<conta>:<pid>" e subagente "<sessionId>:<agentId>"', () => {
+  it('main "<conta>:<pid>" and subagent "<sessionId>:<agentId>"', () => {
     const tmp = tempDir();
     const dir = join(tmp.dir, '.claude');
-    const cwd = '/projetos/loja';
+    const cwd = '/projects/store';
     mkdirSync(join(dir, 'sessions'), { recursive: true });
     const transcript = join(dir, 'projects', encodeCwd(cwd), 'sess-a.jsonl');
-    writeLines(transcript, [L.prompt('Arruma o carrinho')]);
+    writeLines(transcript, [L.prompt('Fix the cart')]);
     writeFileSync(
       join(dir, 'sessions', '100.json'),
       JSON.stringify({ pid: 100, sessionId: 'sess-a', cwd, startedAt: Date.now() - 60_000, kind: 'interactive', status: 'busy' }),
     );
     const subDir = join(dir, 'projects', encodeCwd(cwd), 'sess-a', 'subagents');
     mkdirSync(subDir, { recursive: true });
-    writeFileSync(join(subDir, 'agent-b1.meta.json'), JSON.stringify({ agentType: 'Explore', description: 'Mapear', requestShape: 'foreground' }));
+    writeFileSync(join(subDir, 'agent-b1.meta.json'), JSON.stringify({ agentType: 'Explore', description: 'Map', requestShape: 'foreground' }));
     const subPath = join(subDir, 'agent-b1.jsonl');
-    writeLines(subPath, [L.prompt('Mapeie', { agentId: 'b1' }), L.assistant([L.tool('r1', 'Read', { file_path: `${cwd}/a.ts` })], { agentId: 'b1' })]);
+    writeLines(subPath, [L.prompt('Map it', { agentId: 'b1' }), L.assistant([L.tool('r1', 'Read', { file_path: `${cwd}/a.ts` })], { agentId: 'b1' })]);
     const accounts = new AccountsService({ dirs: [dir], home: tmp.dir, env: {}, onChange: () => {} });
     const office = new Office({
       names: new NameStore(null),
@@ -571,7 +571,7 @@ describe('ClaudeWatcher.transcriptPathOf', () => {
       expect(watcher.transcriptPathOf('.claude:100')).toBe(transcript);
       expect(office.has('sess-a:b1')).toBe(true);
       expect(watcher.transcriptPathOf('sess-a:b1')).toBe(subPath);
-      expect(watcher.transcriptPathOf('sess-a:outro')).toBeUndefined();
+      expect(watcher.transcriptPathOf('sess-a:other')).toBeUndefined();
       expect(watcher.transcriptPathOf('.claude:999')).toBeUndefined();
     } finally {
       watcher.stop();

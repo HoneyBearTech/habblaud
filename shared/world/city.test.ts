@@ -18,44 +18,44 @@ const take = <T>(gen: Iterable<T>, n: number): T[] => {
 const none = () => false;
 const all = () => true;
 
-describe('city.ts: constantes', () => {
-  it('lote 14×12, quarteirão 3×2 lotes = 42×24, passo 51×33', () => {
+describe('city.ts: constants', () => {
+  it('lot 14×12, block 3×2 lots = 42×24, step 51×33', () => {
     expect(BLOCK_TILES).toEqual({ w: 42, h: 24 });
     expect(BLOCK_STRIDE).toEqual({ x: 51, y: 33 });
     expect(cityVersion).toBe(1);
   });
 });
 
-describe('city.ts: espiral', () => {
-  it('quarteirões: leste, sul, oeste, norte, com passos 1, 1, 2, 2, 3…', () => {
+describe('city.ts: spiral', () => {
+  it('blocks: east, south, west, north, with steps 1, 1, 2, 2, 3…', () => {
     expect(take(blockSpiral(), 11)).toEqual([
       { x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }, { x: -1, y: 1 }, { x: -1, y: 0 },
       { x: -1, y: -1 }, { x: 0, y: -1 }, { x: 1, y: -1 }, { x: 2, y: -1 }, { x: 2, y: 0 },
     ]);
   });
 
-  it('os 12 primeiros lotes (vetor dos dois lados)', () => {
+  it('the first 12 lots (vector for both sides)', () => {
     expect(take(lotSpiral(), 12).map((l) => `(${l.x},${l.y})`).join(' ')).toBe(
       '(3,0) (4,0) (5,0) (3,1) (4,1) (5,1) (3,2) (4,2) (5,2) (3,3) (4,3) (5,3)',
     );
   });
 
-  it('nunca dá lote na praça nem repete', () => {
+  it('never gives a lot in the square or repeats', () => {
     const lots = take(lotSpiral(), 600);
     expect(lots.some((l) => blockOf(l).x === 0 && blockOf(l).y === 0)).toBe(false);
     expect(new Set(lots.map((l) => `${l.x},${l.y}`)).size).toBe(600);
   });
 });
 
-describe('city.ts: lote, quarteirão e porta', () => {
-  it('blockOf com floor nos negativos', () => {
+describe('city.ts: lot, block and door', () => {
+  it('blockOf with floor in the negatives', () => {
     expect(blockOf({ x: 5, y: 1 })).toEqual({ x: 1, y: 0 });
     expect(blockOf({ x: -1, y: -1 })).toEqual({ x: -1, y: -1 });
     expect(blockOf({ x: -3, y: -2 })).toEqual({ x: -1, y: -1 });
     expect(blockOf({ x: -4, y: -3 })).toEqual({ x: -2, y: -2 });
   });
 
-  it('origem dos lotes em tiles', () => {
+  it('origin of the lots in tiles', () => {
     expect(blockOrigin({ x: 1, y: 0 })).toEqual({ x: 51, y: 0 });
     expect(lotOrigin({ x: 3, y: 0 })).toEqual({ x: 51, y: 0 });
     expect(lotOrigin({ x: 4, y: 1 })).toEqual({ x: 65, y: 12 });
@@ -63,7 +63,7 @@ describe('city.ts: lote, quarteirão e porta', () => {
     expect(lotOrigin({ x: -1, y: -1 })).toEqual({ x: -23, y: -21 });
   });
 
-  it('fileira de cima: porta ao norte, dando na calçada norte', () => {
+  it('top row: door to the north, opening onto the north sidewalk', () => {
     const d = lotDoor({ x: 3, y: 0 });
     expect(d).toEqual({ side: 'n', tiles: [{ x: 57, y: 0 }, { x: 58, y: 0 }], front: { x: 58, y: -1 } });
     expect(isWalkable(d.front.x, d.front.y, all)).toBe(true);
@@ -71,7 +71,7 @@ describe('city.ts: lote, quarteirão e porta', () => {
     expect(lotDoor({ x: 4, y: 2 })).toEqual({ side: 'n', tiles: [{ x: 71, y: 33 }, { x: 72, y: 33 }], front: { x: 72, y: 32 } });
   });
 
-  it('fileira de baixo: porta ao sul, dando na calçada sul', () => {
+  it('bottom row: door to the south, opening onto the south sidewalk', () => {
     const d = lotDoor({ x: 3, y: 1 });
     expect(d).toEqual({ side: 's', tiles: [{ x: 57, y: 23 }, { x: 58, y: 23 }], front: { x: 58, y: 24 } });
     expect(isWalkable(d.front.x, d.front.y, all)).toBe(true);
@@ -80,7 +80,7 @@ describe('city.ts: lote, quarteirão e porta', () => {
     expect(lotDoor({ x: -1, y: -2 }).side).toBe('n');
   });
 
-  it('a frente de toda porta é caminhável e lotAt volta ao lote', () => {
+  it('the front of every door is walkable and lotAt goes back to the lot', () => {
     for (const lot of take(lotSpiral(), 300)) {
       const d = lotDoor(lot);
       expect(isWalkable(d.front.x, d.front.y, all)).toBe(true);
@@ -94,7 +94,7 @@ describe('city.ts: lote, quarteirão e porta', () => {
 });
 
 describe('city.ts: chunks', () => {
-  it('2×2 quarteirões, floor nos negativos', () => {
+  it('2×2 blocks, floor in the negatives', () => {
     expect(chunkOf({ x: 0, y: 0 })).toEqual({ x: 0, y: 0 });
     expect(chunkOf({ x: 1, y: 1 })).toEqual({ x: 0, y: 0 });
     expect(chunkOf({ x: 2, y: 1 })).toEqual({ x: 1, y: 0 });
@@ -103,14 +103,14 @@ describe('city.ts: chunks', () => {
     expect(chunkOf({ x: -3, y: 0 })).toEqual({ x: -2, y: 0 });
   });
 
-  it('id e volta', () => {
+  it('id and back', () => {
     expect(chunkId('centro', { x: -1, y: 0 })).toBe('centro:-1,0');
     expect(parseChunkId('centro:-1,0')).toEqual({ district: 'centro', chunk: { x: -1, y: 0 } });
     expect(parseChunkId('centro:1')).toBeNull();
     expect(parseChunkId('centro:1.5,0')).toBeNull();
   });
 
-  it('quarteirões de um chunk e os 3×3 em volta', () => {
+  it('blocks of a chunk and the 3×3 around it', () => {
     expect(blocksOfChunk({ x: -1, y: -1 })).toEqual([{ x: -2, y: -2 }, { x: -1, y: -2 }, { x: -2, y: -1 }, { x: -1, y: -1 }]);
     for (const b of blocksOfChunk({ x: 3, y: -2 })) expect(chunkOf(b)).toEqual({ x: 3, y: -2 });
     const around = chunksAround({ x: 0, y: 0 });
@@ -119,7 +119,7 @@ describe('city.ts: chunks', () => {
     expect(around[8]).toEqual({ x: 1, y: 1 });
   });
 
-  it('blockAt: quarteirão mais calçada e meia rua', () => {
+  it('blockAt: block plus sidewalk and half a street', () => {
     expect(blockAt(21, 15)).toEqual({ x: 0, y: 0 });
     expect(blockAt(46.4, 5)).toEqual({ x: 0, y: 0 });
     expect(blockAt(46.6, 5)).toEqual({ x: 1, y: 0 });
@@ -134,10 +134,10 @@ describe('city.ts: chunks', () => {
   });
 });
 
-describe('city.ts: caminhável', () => {
+describe('city.ts: walkable', () => {
   const walk = (x: number, y: number, occupied: (l: CityPoint) => boolean = none) => isWalkable(x, y, occupied);
 
-  it('calçada e pista sim', () => {
+  it('sidewalk and roadway yes', () => {
     expect(walk(42, 5)).toBe(true); // calçada leste da praça
     expect(walk(43, 5)).toBe(true);
     expect(walk(46, 5)).toBe(true); // pista
@@ -150,7 +150,7 @@ describe('city.ts: caminhável', () => {
     expect(walk(-9, 5)).toBe(true); // calçada leste do quarteirão (-1, 0)
   });
 
-  it('lote não, com ou sem prédio', () => {
+  it('lot no, with or without a building', () => {
     expect(walk(51, 0)).toBe(false);
     expect(walk(60, 5)).toBe(false);
     expect(walk(60, 5, all)).toBe(false);
@@ -159,7 +159,7 @@ describe('city.ts: caminhável', () => {
     expect(walk(-51, -33)).toBe(false);
   });
 
-  it('praça inteira, menos a fonte', () => {
+  it('the whole square, except the fountain', () => {
     expect(walk(0, 0)).toBe(true);
     expect(walk(41, 23)).toBe(true);
     for (let x = FOUNTAIN.x; x < FOUNTAIN.x + FOUNTAIN.w; x++) {
@@ -173,18 +173,18 @@ describe('city.ts: caminhável', () => {
     expect(walk(51 + 19, 10)).toBe(false);
   });
 
-  it('decimais: vale o tile que contém a posição', () => {
+  it('decimals: the tile that contains the position counts', () => {
     expect(walk(57.5, -0.01)).toBe(true);
     expect(walk(57.5, 0)).toBe(false);
     expect(walk(41.99, 30)).toBe(true);
   });
 
-  it('número inválido não anda', () => {
+  it('invalid number does not walk', () => {
     expect(walk(Number.NaN, 0)).toBe(false);
     expect(walk(0, Number.POSITIVE_INFINITY)).toBe(false);
   });
 
-  it('nasce na praça, ao sul da fonte', () => {
+  it('spawns in the square, south of the fountain', () => {
     const s = spawnPoint();
     expect(s).toEqual({ x: 21, y: 15 });
     expect(walk(s.x, s.y)).toBe(true);

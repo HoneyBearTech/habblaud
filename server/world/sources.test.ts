@@ -7,9 +7,9 @@ import { describe, expect, it } from 'vitest';
 
 const read = (file: string) => readFileSync(join(import.meta.dirname, '..', '..', 'shared', 'world', file), 'utf8');
 
-describe('arquivos copiados para o servidor do mundo', () => {
+describe('files copied to the world server', () => {
   for (const file of ['protocol.ts', 'city.ts']) {
-    it(`${file}: sem imports, sem Node nem DOM, com o aviso no topo`, () => {
+    it(`${file}: no imports, no Node or DOM, with the notice at the top`, () => {
       const src = read(file);
       expect(src).not.toMatch(/^\s*import\s/m);
       expect(src).not.toMatch(/\brequire\(|\bprocess\.|\bwindow\.|\bdocument\./);

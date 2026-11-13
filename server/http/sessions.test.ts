@@ -25,7 +25,7 @@ setQuiet(true);
 
 const SID = '00000000-0000-4000-8000-0000000000a1';
 const OPEN_SID = '00000000-0000-4000-8000-0000000000b2';
-const CWD = '/projetos/loja';
+const CWD = '/projects/store';
 
 interface Served {
   base: string;
@@ -44,11 +44,11 @@ async function serve(opts: { terminal?: boolean; extra?: (root: string) => Histo
   const now = Date.now();
   const transcript = join(dir, 'projects', encodeCwd(CWD), `${SID}.jsonl`);
   writeLines(transcript, [
-    L.prompt('Arruma o carrinho', { at: now - 60_000 }),
-    L.assistant([L.text('Pronto: o carrinho soma o frete.')], { at: now - 50_000, stop: 'end_turn' }),
-    L.raw('ai-title', { aiTitle: 'Carrinho de compras' }),
+    L.prompt('Fix the cart', { at: now - 60_000 }),
+    L.assistant([L.text('Done: the cart adds the shipping.')], { at: now - 50_000, stop: 'end_turn' }),
+    L.raw('ai-title', { aiTitle: 'Shopping cart' }),
   ]);
-  writeLines(join(dir, 'projects', encodeCwd(CWD), `${OPEN_SID}.jsonl`), [L.prompt('Ainda aberta', { at: now - 10_000 })]);
+  writeLines(join(dir, 'projects', encodeCwd(CWD), `${OPEN_SID}.jsonl`), [L.prompt('Still open', { at: now - 10_000 })]);
   const accounts = new AccountsService({ dirs: [dir], home: tmp.dir, env: {}, onChange: () => {} });
   const office = new Office({
     names: new NameStore(null),
@@ -134,8 +134,8 @@ function request(base: string, path: string, opts: { method?: string; headers?: 
 const terminalRoute = (account: string, sid: string) => `/api/sessions/${encodeURIComponent(account)}/${encodeURIComponent(sid)}/terminal`;
 const waitFor = (fn: () => void) => vi.waitFor(fn, { timeout: 3_000, interval: 10 });
 
-describe('histórico de sessões: trava', () => {
-  it('recurso desligado: 403 nas duas rotas', async () => {
+describe('session history: lock', () => {
+  it('feature off: 403 on both routes', async () => {
     const env = await serve({ terminal: false });
     try {
       for (const path of ['/api/sessions/recent', terminalRoute('.claude', SID)]) {
@@ -149,7 +149,7 @@ describe('histórico de sessões: trava', () => {
     }
   });
 
-  it('Host que não é local (IP da rede ou nome de HABBLAUD_ALLOWED_HOSTS): 403; localhost abre', async () => {
+  it('Host that is not local (network IP or a name from HABBLAUD_ALLOWED_HOSTS): 403; localhost opens', async () => {
     const env = await serve();
     try {
       for (const host of [`192.168.0.10:${env.port}`, `habblaud.lan:${env.port}`]) {
@@ -168,8 +168,8 @@ describe('histórico de sessões: trava', () => {
   });
 });
 
-describe('histórico de sessões: listagem', () => {
-  it('GET /api/sessions/recent: aberta (com o agente) e encerrada, da mais recente para a mais antiga', async () => {
+describe('session history: listing', () => {
+  it('GET /api/sessions/recent: open (with the agent) and ended, from most recent to oldest', async () => {
     const env = await serve();
     try {
       const r = await request(env.base, '/api/sessions/recent');
@@ -181,13 +181,13 @@ describe('histórico de sessões: listagem', () => {
         [OPEN_SID, true, '.claude:7'],
         [SID, false, undefined],
       ]);
-      expect(body.sessions[1]).toMatchObject({ account: '.claude', title: 'Carrinho de compras', projectDir: encodeCwd(CWD) });
+      expect(body.sessions[1]).toMatchObject({ account: '.claude', title: 'Shopping cart', projectDir: encodeCwd(CWD) });
     } finally {
       await env.close();
     }
   });
 
-  it('métodos: POST/PUT -> 405; HEAD vale só na listagem; subrota desconhecida -> 404', async () => {
+  it('methods: POST/PUT -> 405; HEAD works only on the listing; unknown subroute -> 404', async () => {
     const env = await serve();
     try {
       const json = { 'Content-Type': 'application/json' };
@@ -208,13 +208,13 @@ describe('histórico de sessões: listagem', () => {
   });
 });
 
-describe('histórico de sessões: validação (path traversal)', () => {
-  it('id que não é UUID: 400; conta desconhecida ou fora de projects/: 404; nunca abre o arquivo de fora', async ({ skip }) => {
+describe('session history: validation (path traversal)', () => {
+  it('id that is not a UUID: 400; unknown account or outside projects/: 404; never opens the file from outside', async ({ skip }) => {
     const env = await serve();
     try {
-      writeFileSync(join(env.root, 'segredo.jsonl'), `${L.prompt('não pode sair')}\n`);
+      writeFileSync(join(env.root, 'secret.jsonl'), `${L.prompt('must not get out')}\n`);
       const bad400 = [
-        `/api/sessions/.claude/..%2F..%2Fsegredo/terminal`,
+        `/api/sessions/.claude/..%2F..%2Fsecret/terminal`,
         `/api/sessions/.claude/${SID}%2F..%2F${SID}/terminal`,
         `/api/sessions/.claude/${SID}.jsonl/terminal`,
         `/api/sessions/.claude/%E0%A4%A/terminal`,
@@ -229,10 +229,10 @@ describe('histórico de sessões: validação (path traversal)', () => {
         `/api/sessions/..%2F..%2F/${SID}/terminal`,
         `/api/sessions/.claude%2F..%2F.claude/${SID}/terminal`,
         `/api/sessions/${encodeURIComponent(env.dir)}/${SID}/terminal`,
-        `/api/sessions/.claude-outra/${SID}/terminal`,
+        `/api/sessions/.claude-other/${SID}/terminal`,
         terminalRoute('.claude', '00000000-0000-4000-8000-000000000999'),
         // Segmentos ".." (crus ou %2e%2e): a URL normalizada sai de /api/sessions/ (rota desconhecida).
-        `/api/sessions/.claude/../../segredo/terminal`,
+        `/api/sessions/.claude/../../secret/terminal`,
         `/api/sessions/.claude/%2e%2e/terminal`,
       ];
       for (const path of bad404) {
@@ -242,8 +242,8 @@ describe('histórico de sessões: validação (path traversal)', () => {
       }
       // Link dentro de projects/ apontando para fora: 404.
       const linked = '00000000-0000-4000-8000-0000000000c3';
-      symlinkOrSkip(skip, join(env.root, 'segredo.jsonl'), join(env.dir, 'projects', encodeCwd(CWD), `${linked}.jsonl`));
-      mkdirSync(join(env.dir, 'projects', 'vazio'), { recursive: true });
+      symlinkOrSkip(skip, join(env.root, 'secret.jsonl'), join(env.dir, 'projects', encodeCwd(CWD), `${linked}.jsonl`));
+      mkdirSync(join(env.dir, 'projects', 'empty'), { recursive: true });
       const r = await request(env.base, terminalRoute('.claude', linked));
       expect(r.status).toBe(404);
       expect(JSON.parse(r.body)).toEqual({ error: 'session not found' });
@@ -254,7 +254,7 @@ describe('histórico de sessões: validação (path traversal)', () => {
   });
 });
 
-describe('histórico de sessões: outra ferramenta', () => {
+describe('session history: another tool', () => {
   const XID = '019a0000-0000-7000-8000-0000000000d4';
   /** Provedor fictício da conta ".codex": uma sessão, lida com um parser próprio (cada linha vira "cx-<n>"). */
   const codexHistory = (root: string): HistoryProvider => {
@@ -272,7 +272,7 @@ describe('histórico de sessões: outra ferramenta', () => {
     };
   };
 
-  it('listagem junta as ferramentas; o terminal da sessão usa o parser da ferramenta dela', async () => {
+  it('the listing joins the tools; the session terminal uses the parser of its tool', async () => {
     const env = await serve({ extra: codexHistory });
     try {
       const body = JSON.parse((await request(env.base, '/api/sessions/recent')).body) as RecentSessionsResponse;
@@ -294,16 +294,16 @@ describe('histórico de sessões: outra ferramenta', () => {
       expect((c.events[0].data as TerminalInit).entries.map((e) => e.kind)).toEqual(['user', 'assistant']);
       c.close();
       expect((await request(env.base, terminalRoute('.codex', '00000000-0000-4000-8000-000000000999'))).status).toBe(404);
-      expect(JSON.parse((await request(env.base, terminalRoute('.outra', SID))).body)).toEqual({ error: 'unknown account' });
-      expect((await request(env.base, terminalRoute('.outra', 'x'))).status).toBe(400);
+      expect(JSON.parse((await request(env.base, terminalRoute('.other', SID))).body)).toEqual({ error: 'unknown account' });
+      expect((await request(env.base, terminalRoute('.other', 'x'))).status).toBe(400);
     } finally {
       await env.close();
     }
   });
 });
 
-describe('histórico de sessões: SSE da sessão encerrada', () => {
-  it('init com a conversa do transcript (parser real); depois append do que for acrescentado', async () => {
+describe('session history: SSE of the ended session', () => {
+  it('init with the conversation from the transcript (real parser); then append of whatever is added', async () => {
     const env = await serve();
     try {
       const s = await request(env.base, terminalRoute('.claude', SID));
@@ -314,15 +314,15 @@ describe('histórico de sessões: SSE da sessão encerrada', () => {
       expect(init.agentId).toBe(`session:.claude:${SID}`);
       expect(init.truncated).toBe(false);
       expect(init.entries.map((e) => [e.kind, 'text' in e ? e.text : undefined])).toEqual([
-        ['user', 'Arruma o carrinho'],
-        ['assistant', 'Pronto: o carrinho soma o frete.'],
+        ['user', 'Fix the cart'],
+        ['assistant', 'Done: the cart adds the shipping.'],
       ]);
       expect(env.terminals.size).toBe(1);
       // Retomada com /resume: o transcript cresce e o stream acompanha.
-      appendLines(env.transcript, [L.prompt('Mais uma coisa')]);
+      appendLines(env.transcript, [L.prompt('One more thing')]);
       await waitFor(() => {
         const appended = s.events.filter((e) => e.event === 'append').flatMap((e) => e.data as TerminalEntry[]);
-        expect(appended.map((e) => e.kind === 'user' && e.text)).toEqual(['Mais uma coisa']);
+        expect(appended.map((e) => e.kind === 'user' && e.text)).toEqual(['One more thing']);
       });
       s.close();
       await waitFor(() => expect(env.terminals.size).toBe(0));

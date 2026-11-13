@@ -8,21 +8,21 @@ import { sampleBuildingDetail } from '../../../../shared/world/visit-sample';
 import { CityState } from './state';
 
 function building(id: string, x: number, y: number, extra: Partial<WorldBuildingPublic> = {}): WorldBuildingPublic {
-  return { id, lot: { district: 'centro', x, y }, owner: { id, name: `Dono ${id}`, country: 'BR' }, state: 'online', theme: 'none', floors: 3, agents: { total: 3, working: 1, waiting: 1, idle: 1 }, rev: 1, likes: 2, sinceMonth: '2026-10', ...extra };
+  return { id, lot: { district: 'centro', x, y }, owner: { id, name: `Owner ${id}`, country: 'BR' }, state: 'online', theme: 'none', floors: 3, agents: { total: 3, working: 1, waiting: 1, idle: 1 }, rev: 1, likes: 2, sinceMonth: '2026-10', ...extra };
 }
 
 function player(id: string, x: number, y: number): WorldPlayerPublic {
-  return { id, name: `Jogador ${id}`, look: 'f', parts: {}, traits: ['games', 'piadas'], likesReceived: 1, pos: { x, y, dir: 's', moving: false }, where: 'street' };
+  return { id, name: `Player ${id}`, look: 'f', parts: {}, traits: ['games', 'piadas'], likesReceived: 1, pos: { x, y, dir: 's', moving: false }, where: 'street' };
 }
 
-const ME: WorldSceneMe = { id: 'p_me', name: 'Eu', look: 'm', parts: {}, traits: ['cafeina'] };
+const ME: WorldSceneMe = { id: 'p_me', name: 'Me', look: 'm', parts: {}, traits: ['cafeina'] };
 
 function snap(extra: Partial<WorldSceneSnapshot> = {}): WorldSceneSnapshot {
   return { stream: 's1', connected: true, viewing: true, district: 'centro', afk: false, me: ME, chunks: [], players: [], minimap: null, ...extra };
 }
 
-describe('snapshot do servidor local (WorldSceneSnapshot)', () => {
-  it('lê stream, conexão, eu com o id do prédio, posição, afk, chunks e minimapa nulo', () => {
+describe('snapshot from the local server (WorldSceneSnapshot)', () => {
+  it('reads stream, connection, me with the building id, position, afk, chunks and null minimap', () => {
     const s = new CityState();
     s.applySnapshot(snap({ afk: true, me: { ...ME, buildingId: 'm' }, pos: { x: 58, y: 24, dir: 's', moving: false }, chunks: [{ chunk: 'centro:0,0', rev: 4, buildings: [building('m', 4, 1)] }], players: [player('x', 1, 1)] }), 0);
     expect(s).toMatchObject({ connected: true, afk: true, district: 'centro', startPos: { x: 58, y: 24 }, myBuildingId: 'm' });
@@ -32,13 +32,13 @@ describe('snapshot do servidor local (WorldSceneSnapshot)', () => {
     expect(s.connected).toBe(false);
   });
 
-  it('sem `buildingId` no welcome (o prédio nasceu depois dele), o meu prédio é o que tem o meu id', () => {
+  it('without `buildingId` in the welcome (the building was born after it), my building is the one that has my id', () => {
     const s = new CityState();
     s.applySnapshot(snap({ chunks: [{ chunk: 'centro:0,0', rev: 1, buildings: [building('p_me', 3, 0), building('a', 4, 0)] }] }), 0);
     expect(s.myBuilding()?.lot).toMatchObject({ x: 3, y: 0 });
   });
 
-  it('um snapshot novo troca o estado inteiro (reconexão): quem não veio sai', () => {
+  it('a new snapshot replaces the whole state (reconnection): whoever did not come leaves', () => {
     const s = new CityState();
     s.applySnapshot(snap({ chunks: [{ chunk: 'c', rev: 1, buildings: [building('a', 3, 0)] }], players: [player('x', 1, 1)] }), 0);
     s.applySnapshot(snap({ chunks: [{ chunk: 'c', rev: 7, buildings: [building('b', 4, 0)] }] }), 10);
@@ -50,7 +50,7 @@ describe('snapshot do servidor local (WorldSceneSnapshot)', () => {
 });
 
 describe('CityState', () => {
-  it('snapshot: prédios por lote, meu prédio, jogadores (menos eu) e minimapa', () => {
+  it('snapshot: buildings by lot, my building, players (except me) and minimap', () => {
     const s = new CityState();
     s.applySnapshot(snap({ me: { ...ME, buildingId: 'm' }, chunks: [{ chunk: 'centro:0,0', rev: 3, buildings: [building('a', 3, 0), building('m', 4, 1)] }], players: [player('x', 1, 1), player('p_me', 2, 2)], minimap: [{ x: 1, y: 0, lit: 4 }] }), 0);
     expect(s.buildingAt({ x: 3, y: 0 })?.id).toBe('a');
@@ -60,7 +60,7 @@ describe('CityState', () => {
     expect(s.minimap).toEqual([{ x: 1, y: 0, lit: 4 }]);
   });
 
-  it('area substitui o chunk inteiro (quem saiu da lista sai da cidade)', () => {
+  it('area replaces the whole chunk (whoever left the list leaves the city)', () => {
     const s = new CityState();
     s.apply({ t: 'area', chunk: 'c:0,0', rev: 1, buildings: [building('a', 3, 0), building('b', 4, 0)] }, 0);
     const v = s.version;
@@ -71,19 +71,19 @@ describe('CityState', () => {
     expect(s.version).toBeGreaterThan(v);
   });
 
-  it('area.patch mescla só os campos mudados, aceita prédio novo inteiro e remove os de `removed`', () => {
+  it('area.patch merges only the changed fields, accepts a whole new building and removes those in `removed`', () => {
     const s = new CityState();
     s.apply({ t: 'area', chunk: 'c:0,0', rev: 1, buildings: [building('a', 3, 0), building('b', 4, 0)] }, 0);
-    s.apply({ t: 'area.patch', chunk: 'c:0,0', rev: 2, changes: [{ id: 'a', state: 'away' }, building('n', 5, 0), { id: 'desconhecido', likes: 3 }], removed: ['b'] }, 0);
+    s.apply({ t: 'area.patch', chunk: 'c:0,0', rev: 2, changes: [{ id: 'a', state: 'away' }, building('n', 5, 0), { id: 'unknown', likes: 3 }], removed: ['b'] }, 0);
     expect(s.buildings.get('a')?.state).toBe('away');
-    expect(s.buildings.get('a')?.owner.name).toBe('Dono a');
+    expect(s.buildings.get('a')?.owner.name).toBe('Owner a');
     expect(s.buildingAt({ x: 5, y: 0 })?.id).toBe('n');
     expect(s.buildings.has('b')).toBe(false);
-    expect(s.buildings.has('desconhecido')).toBe(false);
+    expect(s.buildings.has('unknown')).toBe(false);
     expect(s.chunkRev.get('c:0,0')).toBe(2);
   });
 
-  it('item de area.patch com `lot` substitui o prédio inteiro: o campo que sumiu (modo discreto) some', () => {
+  it('area.patch item with `lot` replaces the whole building: the field that went away (discreet mode) disappears', () => {
     const s = new CityState();
     s.apply({ t: 'area', chunk: 'c:0,0', rev: 1, buildings: [building('a', 3, 0, { closed: true })] }, 0);
     const { agents: _agents, closed: _closed, ...discreet } = building('a', 3, 0, { rev: 2 });
@@ -96,7 +96,7 @@ describe('CityState', () => {
     expect(s.buildings.get('a')?.lot).toEqual({ district: 'centro', x: 3, y: 0 });
   });
 
-  it('um prédio que muda de lote libera o lote antigo', () => {
+  it('a building that changes lots frees the old lot', () => {
     const s = new CityState();
     s.apply({ t: 'area', chunk: 'c:0,0', rev: 1, buildings: [building('a', 3, 0)] }, 0);
     s.apply({ t: 'area.patch', chunk: 'c:0,0', rev: 2, changes: [building('a', 4, 0, { rev: 2 })] }, 0);
@@ -104,25 +104,25 @@ describe('CityState', () => {
     expect(s.buildingAt({ x: 4, y: 0 })?.id).toBe('a');
   });
 
-  it('ficam só os chunks dos 3×3 em volta da posição (o servidor não avisa quando deixa de assinar)', () => {
+  it('only the chunks of the 3×3 around the position stay (the server does not tell when it stops subscribing)', () => {
     const s = new CityState();
     // chunk (0,0) = quarteirões 0..1 × 0..1; chunk (2,0) = quarteirões 4..5: longe da praça
-    s.applySnapshot(snap({ chunks: [{ chunk: 'centro:0,0', rev: 1, buildings: [building('perto', 3, 0)] }, { chunk: 'centro:2,0', rev: 5, buildings: [building('longe', 12, 0)] }] }), 0);
+    s.applySnapshot(snap({ chunks: [{ chunk: 'centro:0,0', rev: 1, buildings: [building('near', 3, 0)] }, { chunk: 'centro:2,0', rev: 5, buildings: [building('far', 12, 0)] }] }), 0);
     expect(s.keepAround(21, 15)).toBe(true);
-    expect([...s.buildings.keys()]).toEqual(['perto']);
+    expect([...s.buildings.keys()]).toEqual(['near']);
     expect(s.buildingAt({ x: 12, y: 0 })).toBeUndefined();
     expect(s.chunkRev.has('centro:2,0')).toBe(false);
     expect(s.keepAround(21, 15)).toBe(false);
     // no quarteirão (2,0) (chunk 1,0) os dois são vizinhos; um `area` traz o de lá de novo
-    s.apply({ t: 'area', chunk: 'centro:2,0', rev: 1, buildings: [building('longe', 12, 0)] }, 0);
+    s.apply({ t: 'area', chunk: 'centro:2,0', rev: 1, buildings: [building('far', 12, 0)] }, 0);
     expect(s.keepAround(2 * 51 + 2, 15)).toBe(false);
     expect(s.buildings.size).toBe(2);
     // no quarteirão (4,0) (chunk 2,0), a praça fica de fora
     expect(s.keepAround(4 * 51 + 2, 15)).toBe(true);
-    expect([...s.buildings.keys()]).toEqual(['longe']);
+    expect([...s.buildings.keys()]).toEqual(['far']);
   });
 
-  it('jogadores: entram, andam (amostras em ordem), saem; o próprio id e desconhecidos são ignorados', () => {
+  it('players: join, walk (samples in order), leave; my own id and unknown ones are ignored', () => {
     const s = new CityState();
     s.applySnapshot(snap(), 0);
     s.apply({ t: 'player.join', player: player('x', 1, 1) }, 100);
@@ -138,7 +138,7 @@ describe('CityState', () => {
     expect(s.players.size).toBe(0);
   });
 
-  it('efeitos para a cena: pos, afk, profile e notice', () => {
+  it('effects for the scene: pos, afk, profile and notice', () => {
     const s = new CityState();
     s.apply({ t: 'player.join', player: player('x', 1, 1) }, 0);
     expect(s.apply({ t: 'pos', x: 3, y: 4 }, 0)).toEqual({ type: 'pos', x: 3, y: 4 });
@@ -150,11 +150,11 @@ describe('CityState', () => {
     expect(s.players.get('x')!.info.pos.x).toBe(1);
     expect(s.apply({ t: 'notice', level: 'warn', text: 'rate_limited' }, 0)).toEqual({ type: 'notice', level: 'warn', text: 'rate_limited' });
     expect(s.apply({ t: 'pos', x: 'a' }, 0)).toBeNull();
-    expect(s.apply({ t: 'desconhecida' }, 0)).toBeNull();
-    expect(s.apply('lixo', 0)).toBeNull();
+    expect(s.apply({ t: 'unknown' }, 0)).toBeNull();
+    expect(s.apply('junk', 0)).toBeNull();
   });
 
-  it('like.update e minimap', () => {
+  it('like.update and minimap', () => {
     const s = new CityState();
     s.apply({ t: 'area', chunk: 'c:0,0', rev: 1, buildings: [building('a', 3, 0)] }, 0);
     s.apply({ t: 'like.update', buildingId: 'a', likes: 40, likedByMe: true }, 0);
@@ -166,8 +166,8 @@ describe('CityState', () => {
   });
 });
 
-describe('CityState: visita (Fase 4)', () => {
-  it('building vira o efeito com o interior; building.patch passa como veio; o snapshot com `inside` diz que estou dentro', () => {
+describe('CityState: visit (Phase 4)', () => {
+  it('building becomes the effect with the interior; building.patch passes through as it came; the snapshot with `inside` says that I am inside', () => {
     const s = new CityState();
     const d = sampleBuildingDetail();
     expect(s.apply({ t: 'building', rev: 4, detail: d }, 0)).toEqual({ type: 'building', inside: { id: d.building.id, rev: 4, detail: d } });

@@ -22,7 +22,7 @@ vi.mock('node:fs', async (importOriginal) => {
 /** Espera o relógio do sistema de arquivos andar (o ext4 grava os tempos em ticks de alguns ms). */
 const tick = () => new Promise((ok) => setTimeout(ok, 15));
 
-describe('FileTail com stat que não ajuda', () => {
+describe('FileTail with a stat that does not help', () => {
   let tmp: ReturnType<typeof tempDir>;
   let file: string;
   beforeEach(() => {
@@ -35,7 +35,7 @@ describe('FileTail com stat que não ajuda', () => {
     tmp.cleanup();
   });
 
-  it('Linux sem statx (birthtime = ctime): linhas acrescentadas não contam como troca', async () => {
+  it('Linux without statx (birthtime = ctime): appended lines do not count as a swap', async () => {
     sim.birthIsCtime = true;
     writeFileSync(file, '{"a":1}\n');
     const t = new FileTail(file);
@@ -48,20 +48,20 @@ describe('FileTail com stat que não ajuda', () => {
     }
   });
 
-  it('inode reaproveitado: a troca aparece pelo começo do arquivo, com ou sem birthtime de verdade', async () => {
+  it('reused inode: the swap shows up through the beginning of the file, with or without a real birthtime', async () => {
     sim.sameIno = true;
     // No NTFS, o arquivo recriado com o mesmo nome em menos de 15 s herda o birthtime do apagado ("tunneling"): com o
     // inode simulado igual, o FileTail não tem por onde notar a troca. Lá o inode não se repete (o id do arquivo muda),
     // então só a variante com birthtime = ctime vale.
     for (const birthIsCtime of process.platform === 'win32' ? [true] : [false, true]) {
       sim.birthIsCtime = birthIsCtime;
-      writeFileSync(file, 'velho-1\n');
+      writeFileSync(file, 'old-1\n');
       const t = new FileTail(file);
       t.read();
       await tick();
       rmSync(file);
-      writeFileSync(file, 'novo-1\nnovo-2\n');
-      expect(t.read()).toMatchObject({ reset: true, lines: ['novo-1', 'novo-2'] });
+      writeFileSync(file, 'new-1\nnew-2\n');
+      expect(t.read()).toMatchObject({ reset: true, lines: ['new-1', 'new-2'] });
     }
   });
 });

@@ -19,7 +19,7 @@ const LIMITS: SessionRateLimit[] = [
 const CONTEXT = { window: 200_000, tokens: 1_000, percent: 0.5 }
 
 function waiting(name: string, room: string, over: Partial<WaitingAgent> = {}): WaitingAgent {
-  return { id: `.claude:${name}`, name, room, account: '.claude', waitingFor: 'aprovar uma permissão', answerable: false, ...over }
+  return { id: `.claude:${name}`, name, room, account: '.claude', waitingFor: 'approve a permission', answerable: false, ...over }
 }
 
 function summary(list: WaitingAgent[], over: Partial<Summary> = {}): Summary {
@@ -39,7 +39,7 @@ interface World {
 /** Registra todos os stubs (antes da primeira chamada em $, como o kit exige) e devolve o que foi capturado. */
 function world(on: On, w: World = {}) {
   const clock = mock.clock(on, { now: NOW })
-  mock.env(on, w.env ?? { HOME: '/home/fulano', CLAUDE_CONFIG_DIR: '~/.claude-conta2,/outra/pasta', HABBLAUD_PORT: PORT })
+  mock.env(on, w.env ?? { HOME: '/home/someone', CLAUDE_CONFIG_DIR: '~/.claude-conta2,/other/folder', HABBLAUD_PORT: PORT })
   const writes: Array<{ path: string; text: string }> = []
   const fetches: string[] = []
   const statuses: Array<string | undefined> = []
@@ -54,7 +54,7 @@ function world(on: On, w: World = {}) {
   on('session.id', () => ({ value: 'sess-1' }))
   on('session.surfaces', () => ({ value: w.surfaces ?? ['terminal'] }))
   on('fs.write', ($, e) => {
-    if (w.writeFails) return { deny: 'EACCES: permissão negada' }
+    if (w.writeFails) return { deny: 'EACCES: permission denied' }
     writes.push({ path: e.path, text: e.text })
     return { value: undefined }
   })
@@ -68,7 +68,7 @@ function world(on: On, w: World = {}) {
     if (a === 'offline') return { deny: 'connect ECONNREFUSED 127.0.0.1:4850' }
     if (a === 'hang') {
       await clock.sleep(60_000)
-      return { deny: 'tarde demais' }
+      return { deny: 'too late' }
     }
     return { value: 'status' in a ? response(a.status, a.text) : response(200, JSON.stringify(a)) }
   })
@@ -83,18 +83,18 @@ function response(status: number, text: string): HttpResponse {
   return { status, ok: status >= 200 && status < 300, headers: { 'content-type': 'application/json' }, text }
 }
 
-describe('uso do plano', () => {
-  test('session.start grava o arquivo no formato do tap, com source "mod"', async ($, on) => {
+describe('plan usage', () => {
+  test('session.start writes the file in the format of the tap, with source "mod"', async ($, on) => {
     const w = world(on)
     await $.session.start(START)
     expect(w.commands).toEqual(['habblaud'])
     expect(w.writes.length).toBe(1)
     // O kit passa o caminho gravado pelo path da máquina que roda o teste (no Windows, C:\home\...): sem o drive.
-    expect(w.writes[0]?.path.replace(/\\/g, '/').replace(/^[A-Za-z]:/, '')).toBe('/home/fulano/.habblaud/usage/.claude-conta2.json')
+    expect(w.writes[0]?.path.replace(/\\/g, '/').replace(/^[A-Za-z]:/, '')).toBe('/home/someone/.habblaud/usage/.claude-conta2.json')
     expect(w.writes[0]?.text.endsWith('}\n')).toBe(true)
     expect(JSON.parse(w.writes[0]?.text ?? '')).toEqual({
       accountId: '.claude-conta2',
-      configDir: '/home/fulano/.claude-conta2',
+      configDir: '/home/someone/.claude-conta2',
       fetchedAt: NOW,
       five_hour: { utilization: 42, resets_at: SEC('2026-10-06T14:00:00Z') },
       seven_day: { utilization: 15.5, resets_at: SEC('2026-10-09T23:00:00Z') },
@@ -102,23 +102,23 @@ describe('uso do plano', () => {
     })
   })
 
-  test('HABBLAUD_USAGE_DIR com ~ e, sem CLAUDE_CONFIG_DIR, a conta ~/.claude', async ($, on) => {
-    const w = world(on, { env: { HOME: '/home/fulano', HABBLAUD_USAGE_DIR: '~/uso/' } })
+  test('HABBLAUD_USAGE_DIR with ~ and, with no CLAUDE_CONFIG_DIR, the account ~/.claude', async ($, on) => {
+    const w = world(on, { env: { HOME: '/home/someone', HABBLAUD_USAGE_DIR: '~/usage/' } })
     await $.session.measure({ context: CONTEXT, rateLimits: LIMITS, changed: ['rateLimits'] })
-    expect(w.writes.map((x) => x.path.replace(/\\/g, '/').replace(/^[A-Za-z]:/, ''))).toEqual(['/home/fulano/uso/.claude.json'])
-    expect(JSON.parse(w.writes[0]?.text ?? '')).toMatchObject({ accountId: '.claude', configDir: '/home/fulano/.claude' })
+    expect(w.writes.map((x) => x.path.replace(/\\/g, '/').replace(/^[A-Za-z]:/, ''))).toEqual(['/home/someone/usage/.claude.json'])
+    expect(JSON.parse(w.writes[0]?.text ?? '')).toMatchObject({ accountId: '.claude', configDir: '/home/someone/.claude' })
   })
 
-  test('Windows: sem HOME vale o USERPROFILE, e CLAUDE_CONFIG_DIR com \\ dá a mesma conta', async ($, on) => {
-    const w = world(on, { env: { USERPROFILE: 'C:\\Users\\fulano', CLAUDE_CONFIG_DIR: 'C:\\Users\\fulano\\.claude-conta2\\', HABBLAUD_PORT: PORT } })
+  test('Windows: with no HOME the USERPROFILE is used, and CLAUDE_CONFIG_DIR with \\ gives the same account', async ($, on) => {
+    const w = world(on, { env: { USERPROFILE: 'C:\\Users\\someone', CLAUDE_CONFIG_DIR: 'C:\\Users\\someone\\.claude-conta2\\', HABBLAUD_PORT: PORT } })
     await $.session.start(START)
     expect(w.writes.length).toBe(1)
     // O kit passa o caminho gravado pelo path da máquina que roda o teste: confere só o fim.
-    expect(w.writes[0]?.path).toMatch(/fulano[\\/]\.habblaud[\\/]usage[\\/]\.claude-conta2\.json$/)
-    expect(JSON.parse(w.writes[0]?.text ?? '')).toMatchObject({ accountId: '.claude-conta2', configDir: 'C:/Users/fulano/.claude-conta2' })
+    expect(w.writes[0]?.path).toMatch(/someone[\\/]\.habblaud[\\/]usage[\\/]\.claude-conta2\.json$/)
+    expect(JSON.parse(w.writes[0]?.text ?? '')).toMatchObject({ accountId: '.claude-conta2', configDir: 'C:/Users/someone/.claude-conta2' })
   })
 
-  test('session.measure: não regrava valores iguais em menos de 10 s; regrava se mudou ou depois disso', async ($, on) => {
+  test('session.measure: does not rewrite equal values in less than 10 s; rewrites if it changed or after that', async ($, on) => {
     const w = world(on, { surfaces: [] })
     await $.session.start(START)
     expect(w.writes.length).toBe(1)
@@ -135,14 +135,14 @@ describe('uso do plano', () => {
     expect(JSON.parse(w.writes[2]?.text ?? '')).toMatchObject({ fetchedAt: NOW + 15_000 })
   })
 
-  test('sem janela do plano (fora de assinatura, só spend_limit) não grava nada', async ($, on) => {
+  test('with no plan window (outside a subscription, only spend_limit) it writes nothing', async ($, on) => {
     const w = world(on, { limits: [] })
     await $.session.start(START)
     await $.session.measure({ context: CONTEXT, rateLimits: [{ kind: 'spend_limit', percentUsed: 80 }], changed: ['rateLimits'] })
     expect(w.writes).toEqual([])
   })
 
-  test('falha ao gravar = silêncio: a sessão começa e o comando é registrado', async ($, on) => {
+  test('failure to write = silence: the session starts and the command is registered', async ($, on) => {
     const w = world(on, { writeFails: true })
     expect(await $.session.start(START)).toEqual({ cwd: '/work' })
     expect(await $.session.measure({ context: CONTEXT, rateLimits: LIMITS, changed: ['rateLimits'] })).toEqual({ changed: ['rateLimits'] })
@@ -151,8 +151,8 @@ describe('uso do plano', () => {
   })
 })
 
-describe('linha embaixo do prompt', () => {
-  test('ninguém, uma, várias pessoas (corta em 3 nomes); só chama $.ui.status quando o texto muda', async ($, on) => {
+describe('line below the prompt', () => {
+  test('nobody, one, several people (cuts at 3 names); only calls $.ui.status when the text changes', async ($, on) => {
     let list: WaitingAgent[] = []
     const w = world(on, { answer: () => summary(list) })
     await $.session.start(START)
@@ -160,26 +160,26 @@ describe('linha embaixo do prompt', () => {
     await w.clock.advance(5_000)
     expect(w.fetches).toEqual([`${SUMMARY_URL}?account=.claude-conta2&session=sess-1`])
     expect(w.statuses).toEqual([undefined])
-    list = [waiting('Valentina', 'loja-virtual')]
+    list = [waiting('Valentina', 'online-store')]
     await w.clock.advance(5_000)
-    expect(w.statuses.at(-1)).toBe('🏢 Valentina needs you in loja-virtual')
+    expect(w.statuses.at(-1)).toBe('🏢 Valentina needs you in online-store')
     await w.clock.advance(5_000)
     expect(w.statuses.length).toBe(2)
-    list = [waiting('Valentina', 'loja-virtual'), waiting('Elias', 'app-mobile')]
+    list = [waiting('Valentina', 'online-store'), waiting('Elias', 'app-mobile')]
     await w.clock.advance(5_000)
-    expect(w.statuses.at(-1)).toBe('🏢 2 need you: Valentina (loja-virtual), Elias (app-mobile)')
+    expect(w.statuses.at(-1)).toBe('🏢 2 need you: Valentina (online-store), Elias (app-mobile)')
     list = [...list, waiting('Bia', 'site'), waiting('Caio', 'api'), waiting('Dora', 'docs')]
     await w.clock.advance(5_000)
-    expect(w.statuses.at(-1)).toBe('🏢 5 need you: Valentina (loja-virtual), Elias (app-mobile), Bia (site) and 2 more')
+    expect(w.statuses.at(-1)).toBe('🏢 5 need you: Valentina (online-store), Elias (app-mobile), Bia (site) and 2 more')
     list = []
     await w.clock.advance(5_000)
     expect(w.statuses.at(-1)).toBeUndefined()
     expect(w.statuses.length).toBe(5)
   })
 
-  test('Habblaud fora do ar: limpa a linha e recua para 30 s até voltar', async ($, on) => {
+  test('Habblaud down: clears the line and backs off to 30 s until it is back', async ($, on) => {
     let up = false
-    const w = world(on, { answer: () => (up ? summary([waiting('Valentina', 'loja-virtual')]) : 'offline') })
+    const w = world(on, { answer: () => (up ? summary([waiting('Valentina', 'online-store')]) : 'offline') })
     await $.session.start(START)
     await w.clock.advance(5_000)
     expect(w.fetches.length).toBe(1)
@@ -189,25 +189,25 @@ describe('linha embaixo do prompt', () => {
     up = true
     await w.clock.advance(5_000)
     expect(w.fetches.length).toBe(2)
-    expect(w.statuses.at(-1)).toBe('🏢 Valentina needs you in loja-virtual')
+    expect(w.statuses.at(-1)).toBe('🏢 Valentina needs you in online-store')
     await w.clock.advance(5_000)
     expect(w.fetches.length).toBe(3)
   })
 
-  test('Habblaud travado: desiste depois de 2 s e limpa a linha', async ($, on) => {
+  test('Habblaud stuck: gives up after 2 s and clears the line', async ($, on) => {
     let hang = false
-    const w = world(on, { answer: () => (hang ? 'hang' : summary([waiting('Valentina', 'loja-virtual')])) })
+    const w = world(on, { answer: () => (hang ? 'hang' : summary([waiting('Valentina', 'online-store')])) })
     await $.session.start(START)
     await w.clock.advance(5_000)
-    expect(w.statuses).toEqual(['🏢 Valentina needs you in loja-virtual'])
+    expect(w.statuses).toEqual(['🏢 Valentina needs you in online-store'])
     hang = true
     await w.clock.advance(5_000)
     expect(w.statuses.length).toBe(1)
     await w.clock.advance(2_000)
-    expect(w.statuses).toEqual(['🏢 Valentina needs you in loja-virtual', undefined])
+    expect(w.statuses).toEqual(['🏢 Valentina needs you in online-store', undefined])
   })
 
-  test('sessão sem superfície (claude -p, SDK): nem pergunta ao Habblaud', async ($, on) => {
+  test('session with no surface (claude -p, SDK): does not even ask Habblaud', async ($, on) => {
     const w = world(on, { surfaces: [] })
     await $.session.start({ cwd: '/work', surface: null, isInteractive: false })
     await w.clock.advance(15_000)
@@ -217,9 +217,9 @@ describe('linha embaixo do prompt', () => {
 })
 
 describe('/habblaud', () => {
-  test('no ar: versão, endereço, contagem e uma linha por quem espera (o escritório inteiro)', async ($, on) => {
+  test('up: version, address, count and one line per person waiting (the whole office)', async ($, on) => {
     const w = world(on, {
-      answer: () => summary([waiting('Valentina', 'loja-virtual', { answerable: true }), waiting('Elias', 'app-mobile', { waitingFor: 'responder no terminal' })]),
+      answer: () => summary([waiting('Valentina', 'online-store', { answerable: true }), waiting('Elias', 'app-mobile', { waitingFor: 'answer in the terminal' })]),
     })
     const out = await $.command.run(RUN)
     expect(w.fetches).toEqual([SUMMARY_URL])
@@ -227,27 +227,27 @@ describe('/habblaud', () => {
       [
         'Habblaud 0.3.0 at http://localhost:4850',
         '7 agents · 3 working · 2 need you',
-        '✋ Valentina (loja-virtual): aprovar uma permissão · you can reply from the office',
-        '✋ Elias (app-mobile): responder no terminal',
+        '✋ Valentina (online-store): approve a permission · you can reply from the office',
+        '✋ Elias (app-mobile): answer in the terminal',
       ].join('\n'),
     )
   })
 
-  test('no ar e ninguém esperando', async ($, on) => {
+  test('up and nobody waiting', async ($, on) => {
     world(on, { answer: () => summary([], { agents: 1, working: 0 }) })
     const out = await $.command.run(RUN)
     expect(out.text).toBe('Habblaud 0.3.0 at http://localhost:4850\n1 agent · 0 working · nobody needs you')
   })
 
-  test('fora do ar: diz como subir', async ($, on) => {
+  test('down: says how to start it', async ($, on) => {
     world(on, { answer: () => 'offline' })
     const out = await $.command.run(RUN)
     expect(out.text).toBe('Habblaud did not answer at http://localhost:4850. To start it: npm run docker:up in the Habblaud folder.')
   })
 
-  test('Habblaud de antes do mod (404 "rota desconhecida"): pede para atualizar', async ($, on) => {
+  test('Habblaud from before the mod (404 "unknown route"): asks to update', async ($, on) => {
     let text = '{"error":"rota desconhecida"}'
-    world(on, { env: { HOME: '/home/fulano' }, answer: () => ({ status: 404, text }) })
+    world(on, { env: { HOME: '/home/someone' }, answer: () => ({ status: 404, text }) })
     const out = await $.command.run(RUN)
     expect(out.text).toMatch(/^Habblaud at http:\/\/localhost:4747 is on a version without the mod's route/)
     // The same answer from a server whose texts are in English ("unknown route").
@@ -259,8 +259,8 @@ describe('/habblaud', () => {
   })
 })
 
-describe('funções puras', () => {
-  test('caminhos, conta e pasta de uso como o tap calcula', () => {
+describe('pure functions', () => {
+  test('paths, account and usage folder as the tap computes them', () => {
     expect(normalizePath('/a//b/./c/../d/')).toBe('/a/b/d')
     expect(configDirOf(' ~/.claude-conta2 , /x', '/home/f')).toBe('/home/f/.claude-conta2')
     expect(configDirOf(undefined, '/home/f/')).toBe('/home/f/.claude')
@@ -269,7 +269,7 @@ describe('funções puras', () => {
     expect(usageDirOf(undefined, undefined)).toBeUndefined()
   })
 
-  test('caminhos do Windows: \\ vira /, o drive conta como raiz e ~\\ também é o HOME', () => {
+  test('Windows paths: \\ becomes /, the drive counts as root and ~\\ is also the HOME', () => {
     expect(normalizePath('C:\\Users\\f\\.claude-conta2\\')).toBe('C:/Users/f/.claude-conta2')
     expect(normalizePath('C:\\Users\\..\\..\\x')).toBe('C:/x')
     expect(configDirOf('C:\\Users\\f\\.claude-conta2', undefined)).toBe('C:/Users/f/.claude-conta2')
@@ -279,23 +279,23 @@ describe('funções puras', () => {
     expect(usageDirOf(undefined, 'C:\\Users\\f')).toBe('C:/Users/f/.habblaud/usage')
   })
 
-  test('UNC continua UNC, e fora do Windows a \\ é parte do nome', () => {
-    expect(normalizePath('\\\\nas\\share\\uso\\')).toBe('//nas/share/uso')
-    expect(usageDirOf('\\\\nas\\share\\uso', undefined)).toBe('//nas/share/uso')
+  test('UNC stays UNC, and outside Windows the \\ is part of the name', () => {
+    expect(normalizePath('\\\\nas\\share\\usage\\')).toBe('//nas/share/usage')
+    expect(usageDirOf('\\\\nas\\share\\usage', undefined)).toBe('//nas/share/usage')
     expect(normalizePath('/home/u/proj\\x')).toBe('/home/u/proj\\x')
-    expect(accountIdOf(normalizePath('/home/u/conta\\2'))).toBe('conta\\2')
+    expect(accountIdOf(normalizePath('/home/u/account\\2'))).toBe('account\\2')
   })
 
-  test('janela: percentual limitado a 0–100, reinício em segundos; data inválida fica de fora', () => {
+  test('window: percentage limited to 0–100, reset in seconds; an invalid date is left out', () => {
     expect(windowOf({ kind: 'five_hour', percentUsed: 101.5, resetsAt: '2026-10-06T14:00:00.400Z' })).toEqual({ utilization: 100, resets_at: SEC('2026-10-06T14:00:00Z') })
-    expect(windowOf({ kind: 'five_hour', percentUsed: 7, resetsAt: 'amanhã' })).toEqual({ utilization: 7 })
+    expect(windowOf({ kind: 'five_hour', percentUsed: 7, resetsAt: 'tomorrow' })).toEqual({ utilization: 7 })
     expect(windowOf({ kind: 'five_hour', percentUsed: Number.NaN })).toBeUndefined()
   })
 
-  test('resumo: formato estranho = fora do ar; textos viram uma linha só', () => {
+  test('summary: odd format = down; texts become a single line', () => {
     expect(parseSummary('<html>')).toBeUndefined()
     expect(parseSummary('{"version":"1"}')).toBeUndefined()
-    const s = parseSummary(JSON.stringify({ version: '0.3.0', agents: 2, working: 1, waiting: [{ name: 'Ana\nB', room: 'r', answerable: 'sim' }, { room: 'sem nome' }] }))
+    const s = parseSummary(JSON.stringify({ version: '0.3.0', agents: 2, working: 1, waiting: [{ name: 'Ana\nB', room: 'r', answerable: 'yes' }, { room: 'no name' }] }))
     expect(s?.waiting).toEqual([{ id: 'Ana B', name: 'Ana B', room: 'r', account: '', waitingFor: 'answer in the terminal', answerable: false }])
     expect(statusText([])).toBeUndefined()
   })

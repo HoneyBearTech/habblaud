@@ -33,8 +33,8 @@ const INTRO_EN: Record<string, string> = {
   hello: 'Hi, nice to meet you!',
 };
 
-describe('frases de apresentação', () => {
-  it('os 20 ids com o texto do contrato, traduzidos nos 3 idiomas', () => {
+describe('intro phrases', () => {
+  it('the 20 ids with the text of the contract, translated in the 3 languages', () => {
     expect(Object.keys(INTRO_EN)).toEqual([...INTRO_IDS]);
     for (const id of INTRO_IDS) {
       expect(introLabel(id)).toBe(INTRO_EN[id]);
@@ -43,7 +43,7 @@ describe('frases de apresentação', () => {
     expect(introOptions().map((o) => o.id)).toEqual([...INTRO_IDS]);
   });
 
-  it('o rótulo segue o idioma ativo na hora', () => {
+  it('the label follows the language active at the time', () => {
     setLocale('pt-BR');
     expect(introLabel('coffee')).toBe(PT_BR['Powered by coffee']);
     expect(introLabel('coffee')).toBe('Movido a café');
@@ -51,7 +51,7 @@ describe('frases de apresentação', () => {
     expect(introLabel('coffee')).toBe('Powered by coffee');
   });
 
-  it('id desconhecido (servidor mais novo) vira o próprio id, sem quebrar', () => {
+  it('unknown id (newer server) becomes the id itself, without breaking', () => {
     expect(introLabel('emacs' as never)).toBe('emacs');
   });
 
@@ -62,27 +62,27 @@ describe('frases de apresentação', () => {
   });
 });
 
-describe('traços', () => {
-  it('TRAITS na ordem de TRAIT_IDS (o sorteio de personaFor depende dela)', () => {
+describe('traits', () => {
+  it('TRAITS in the order of TRAIT_IDS (the draw of personaFor depends on it)', () => {
     expect(Object.keys(TRAITS)).toEqual([...TRAIT_IDS]);
     for (const id of TRAIT_IDS) expect(TRAITS[id].id).toBe(id);
   });
 
-  it('pares que não combinam, nos dois sentidos', () => {
+  it('pairs that do not go together, in both directions', () => {
     expect(traitsClash('timidez', 'piadas')).toBe(true);
     expect(traitsClash('piadas', 'timidez')).toBe(true);
     expect(traitsClash('calma', 'competicao')).toBe(true);
     expect(traitsClash('games', 'leitura')).toBe(false);
   });
 
-  it('escolha do jogador: 2 ou 3, conhecidos, sem repetir e sem conflito', () => {
+  it('player choice: 2 or 3, known, without repeating and without conflict', () => {
     expect(parsePlayerTraits(['games', 'cafeina'])).toEqual(['games', 'cafeina']);
     expect(parsePlayerTraits(['games', 'cafeina', 'leitura'])).toEqual(['games', 'cafeina', 'leitura']);
     expect(parsePlayerTraits(['games'])).toBeNull();
     expect(parsePlayerTraits(['games', 'cafeina', 'leitura', 'calma'])).toBeNull();
     expect(parsePlayerTraits(['games', 'games'])).toBeNull();
     expect(parsePlayerTraits(['timidez', 'piadas'])).toBeNull();
-    expect(parsePlayerTraits(['games', 'xadrez'])).toBeNull();
+    expect(parsePlayerTraits(['games', 'chess'])).toBeNull();
     expect(parsePlayerTraits('games')).toBeNull();
     expect(isTraitId('sonecas')).toBe(true);
     expect(isTraitId('soneca')).toBe(false);

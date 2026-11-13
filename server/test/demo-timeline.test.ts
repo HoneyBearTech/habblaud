@@ -16,7 +16,7 @@ describe('demo-timeline', () => {
   });
   afterEach(() => tmp.cleanup());
 
-  it('argumentos', () => {
+  it('arguments', () => {
     const now = new Date(2026, 9, 8, 15).getTime();
     const o = parseArgs([], now);
     expect(o).toMatchObject({ date: '2026-10-07', startMin: 540, hours: 10, sessions: 6, pace: 0.25, seed: 1, force: false });
@@ -34,7 +34,7 @@ describe('demo-timeline', () => {
     expect(parseArgs(['-h']).help).toBe(true);
   });
 
-  it('formato do dia: começa e termina vazio, com pico de manhã e à tarde', () => {
+  it('shape of the day: starts and ends empty, with a peak in the morning and in the afternoon', () => {
     expect(sessionsAt(0, 6)).toBe(1);
     expect(sessionsAt(1, 6)).toBe(0);
     expect(sessionsAt(0.2, 6)).toBe(6);
@@ -42,7 +42,7 @@ describe('demo-timeline', () => {
     expect(sessionsAt(-1, 6)).toBe(sessionsAt(0, 6));
   });
 
-  it('grava um dia fictício só com agentes marcados como demonstração', () => {
+  it('writes a fictional day only with agents marked as demo', () => {
     const opts = { date: '2026-10-07', startMin: 9 * 60, hours: 3, sessions: 4, pace: 0.5, seed: 7, dataDir: tmp.dir, force: false };
     const r = generateDemoTimeline(opts);
     const file = join(tmp.dir, 'timeline', '2026-10-07.jsonl');

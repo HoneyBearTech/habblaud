@@ -73,8 +73,8 @@ function insideOwnRoom(sim: Sim, ch: Character): boolean {
   return !!room && inRect(room.layout.rect, ch.tx, ch.ty);
 }
 
-describe('visita a um prédio do mundo no Sim', () => {
-  it('todos os personagens existem, na sala do andar deles e no comportamento do status', () => {
+describe('visit to a world building in the Sim', () => {
+  it('all the characters exist, in the room of their floor and in the behavior of the status', () => {
     const detail = sampleBuildingDetail();
     const { sim, clock, snap } = enter(detail);
     run(sim, clock, 3);
@@ -124,7 +124,7 @@ describe('visita a um prédio do mundo no Sim', () => {
     for (const ch of sim.chars.values()) expect(ch.leaving).toBe(false);
   });
 
-  it('modo discreto: as salas aparecem, com a luz acesa, sem ninguém', () => {
+  it('discreet mode: the rooms show up, with the light on, with nobody', () => {
     const { sim, clock } = enter(sampleBuildingDetail('discreet'));
     run(sim, clock, 5);
     expect(sim.rooms.size).toBe(3);
@@ -135,14 +135,14 @@ describe('visita a um prédio do mundo no Sim', () => {
     expect(sim.chars.size).toBe(0);
   });
 
-  it('prédio apagado: as salas existem e ninguém aparece (a cena apaga as luzes)', () => {
+  it('building off: the rooms exist and nobody shows up (the scene turns off the lights)', () => {
     const { sim, clock } = enter(sampleBuildingDetail('away'));
     run(sim, clock, 5);
     expect([...sim.rooms.keys()]).toEqual(['f_0a1b2c3d4e', 'f_1b2c3d4e5f', 'f_2c3d4e5f60']);
     expect(sim.chars.size).toBe(0);
   });
 
-  it('patch: agente que troca de status, andar que some (todos vão embora) e andar novo (construído, com quem chega)', () => {
+  it('patch: agent that changes status, floor that goes away (everyone leaves) and new floor (built, with whoever arrives)', () => {
     const { sim, clock, snap } = enter(sampleBuildingDetail());
     run(sim, clock, 3);
     const floors = sampleBuildingDetail().floors.filter((f) => f.label !== 'aurora');
@@ -180,7 +180,7 @@ describe('visita a um prédio do mundo no Sim', () => {
     expect([...sim.chars.values()].map((c) => c.info.name).sort()).toEqual(['Beatriz', 'Camila', 'Marina', 'Rafael', 'Thiago']);
   });
 
-  it('o prédio ficou discreto no meio da visita: todo mundo vai embora e as salas ficam', () => {
+  it('the building went discreet in the middle of the visit: everyone leaves and the rooms stay', () => {
     const { sim, clock, snap } = enter(sampleBuildingDetail());
     run(sim, clock, 3);
     const { snapshot } = applyBuildingPatch(snap, { rev: 13, building: sampleBuildingDetail('discreet').building }, clock.now);
@@ -205,8 +205,8 @@ function visit(detail: WorldBuildingDetail, light: VisitLight = 'live'): { sim: 
   return { sim, clock, snap };
 }
 
-describe('Sim da visita (visit: true)', () => {
-  it('nenhum tempo do status: quem espera um shell fica de braços cruzados (sem pipoca, teia ou cochilo) e o ocioso não cochila', () => {
+describe('Sim of the visit (visit: true)', () => {
+  it('no status time: whoever waits on a shell stays with arms crossed (no popcorn, cobweb or nap) and the idle one does not nap', () => {
     const { sim, clock } = visit(sampleBuildingDetail());
     expect(sim.visit).toBe(true);
     // 40 min depois (o tempo da visita não é o tempo do status: nada escala)
@@ -237,7 +237,7 @@ describe('Sim da visita (visit: true)', () => {
     expect(office.longIdle(charByName(office, 'Larissa'), c2.now)).toBe(true);
   });
 
-  it('apagado: as salas entram escuras e ficam assim; discreto: acesas e vazias; o prédio que acende chama os agentes, que acendem a luz', () => {
+  it('off: the rooms come in dark and stay that way; discreet: lit and empty; the building that lights up calls the agents, who turn on the light', () => {
     const away = visit(sampleBuildingDetail('away'), 'away');
     for (const r of away.sim.rooms.values()) expect(r.lightOn, r.id).toBe(false);
     run(away.sim, away.clock, 5);
@@ -257,7 +257,7 @@ describe('Sim da visita (visit: true)', () => {
   });
 });
 
-describe('o visitante', () => {
+describe('the visitor', () => {
   const ME = { name: 'Pixel Dev', look: 'f' as const, parts: {} };
 
   function withVisitor(detail = sampleBuildingDetail()) {
@@ -268,7 +268,7 @@ describe('o visitante', () => {
     return { ...v, ch };
   }
 
-  it('chega pelo elevador da recepção, com o crachá de visitante, fora dos agentes (snapshot, vida social, lugares)', () => {
+  it('arrives by the reception elevator, with the visitor badge, outside the agents (snapshot, social life, places)', () => {
     const { sim, clock, ch, snap } = withVisitor();
     expect(ch.id).toBe(VISITOR_ID);
     expect(ch.appearance.lanyard).toBe(VISITOR_LANYARD);
@@ -292,7 +292,7 @@ describe('o visitante', () => {
     expect(sim.social.wallets.get(VISITOR_ID)).toBeUndefined();
   });
 
-  it('anda com o teclado e não atravessa parede nem assento; o clique leva por um caminho', () => {
+  it('walks with the keyboard and does not go through a wall or a seat; the click leads along a path', () => {
     const { sim, clock, ch } = withVisitor();
     const start = { x: ch.x, y: ch.y };
     sim.visitorIntent = { dx: 0, dy: 1, run: false };
@@ -324,7 +324,7 @@ describe('o visitante', () => {
     expect(ch.seated).toBe(false);
   });
 
-  it('sai pelo elevador: entra, some e só então a cena manda o leave; ocupado, não anda nem sai de novo', () => {
+  it('leaves by the elevator: gets in, disappears and only then the scene sends the leave; when busy, does not walk or leave again', () => {
     const { sim, clock, ch } = withVisitor();
     sim.visitorIntent = { dx: 1, dy: 1, run: false };
     run(sim, clock, 1);
@@ -343,7 +343,7 @@ describe('o visitante', () => {
     expect([...sim.people()].some((c) => c.id === VISITOR_ID)).toBe(false);
   });
 
-  it('a aba voltou do segundo plano no meio da chegada ou da saída: termina na hora (e a saída acontece)', () => {
+  it('the tab came back from the background in the middle of the arrival or the exit: finishes right away (and the exit happens)', () => {
     const v = visit(sampleBuildingDetail());
     const ch = v.sim.setVisitor(visitorInfo(ME, v.clock.now), v.clock.now)!;
     v.sim.fastForward(v.clock.now);
@@ -356,8 +356,8 @@ describe('o visitante', () => {
   });
 });
 
-describe('stepFree e canStand (puros)', () => {
-  it('sem intenção não anda; diagonal normalizada; desliza na parede por um eixo', () => {
+describe('stepFree and canStand (pure)', () => {
+  it('with no intent it does not walk; normalized diagonal; slides along the wall on one axis', () => {
     const sim = visitSim();
     const grid = sim.building.grid;
     const el = sim.spots.get(sim.elevators[0]!.spotId)!;

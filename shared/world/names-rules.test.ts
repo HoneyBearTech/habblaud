@@ -4,7 +4,7 @@ import { RESERVED_PLAYER_NAMES } from './protocol';
 
 const ok = (raw: unknown) => {
   const r = parsePlayerName(raw);
-  if (!r.ok) throw new Error(`recusado (${r.problem}): ${JSON.stringify(raw)}`);
+  if (!r.ok) throw new Error(`refused (${r.problem}): ${JSON.stringify(raw)}`);
   return r;
 };
 const problem = (raw: unknown): PlayerNameProblem | undefined => {
@@ -13,13 +13,13 @@ const problem = (raw: unknown): PlayerNameProblem | undefined => {
 };
 
 describe('parsePlayerName', () => {
-  it('aceita nomes comuns e arruma espaços (trim e repetidos)', () => {
+  it('accepts common names and tidies spaces (trim and repeated)', () => {
     expect(ok('Ana')).toEqual({ ok: true, name: 'Ana', key: 'ana' });
     expect(ok('  Márcio   Jr  ')).toEqual({ ok: true, name: 'Márcio Jr', key: 'marcio jr' });
     expect(ok('dev_ninja-42.x').name).toBe('dev_ninja-42.x');
   });
 
-  it('acentos: NFC antes de contar, e o decomposto vira o composto', () => {
+  it('accents: NFC before counting, and the decomposed becomes the composed', () => {
     const r = ok('Márcio');
     expect(r.name).toBe('Márcio');
     expect(r.name).toBe('Márcio'.normalize('NFC'));
@@ -27,7 +27,7 @@ describe('parsePlayerName', () => {
     expect(ok('Ñandú João Ü').key).toBe('nandu joao u');
   });
 
-  it('tamanho: 3 a 20 caracteres (pontos de código), depois de arrumar', () => {
+  it('length: 3 to 20 characters (code points), after tidying', () => {
     expect(problem('Al')).toBe('length');
     expect(problem('  Al   ')).toBe('length');
     expect(ok('Ali').name).toBe('Ali');
@@ -38,7 +38,7 @@ describe('parsePlayerName', () => {
     expect(ok('𝒜𝒷𝒸').name).toBe('𝒜𝒷𝒸');
   });
 
-  it('recusa invisíveis, controle, marcas de direção e espaços especiais', () => {
+  it('rejects invisibles, control, direction marks and special spaces', () => {
     const cases = [
       'Ana​', // espaço de largura zero
       'A‍na', // ZWJ
@@ -59,8 +59,8 @@ describe('parsePlayerName', () => {
     for (const c of cases) expect(problem(c), JSON.stringify(c)).toBe('invisible');
   });
 
-  it('recusa caracteres fora da lista e acentos empilhados', () => {
-    for (const c of ['Ana!', 'Ana😀', 'ana@x', 'a/b/c', 'Ana٣', 'Ana４', '<b>oi</b>', '⠀⠀⠀']) {
+  it('rejects characters outside the list and stacked accents', () => {
+    for (const c of ['Ana!', 'Ana😀', 'ana@x', 'a/b/c', 'Ana٣', 'Ana４', '<b>hi</b>', '⠀⠀⠀']) {
       expect(problem(c), c).toBe('chars');
     }
     // Acento solto no começo e "zalgo".
@@ -70,7 +70,7 @@ describe('parsePlayerName', () => {
     expect(ok('กี้ไทย').name).toBe('กี้ไทย'); // tailandês: 2 marcas seguidas é normal
   });
 
-  it('um sistema de escrita só (japonês, coreano e chinês contam como um)', () => {
+  it('only one writing system (Japanese, Korean and Chinese count as one)', () => {
     expect(problem('Pаulo')).toBe('scripts'); // "а" cirílico no meio do latino
     expect(problem('Ana山')).toBe('scripts');
     expect(problem('Иван Smith')).toBe('scripts');
@@ -81,13 +81,13 @@ describe('parsePlayerName', () => {
     expect(ok('Иван_2000').name).toBe('Иван_2000');
   });
 
-  it('precisa de pelo menos uma letra', () => {
+  it('needs at least one letter', () => {
     expect(problem('123')).toBe('no_letter');
     expect(problem('...')).toBe('no_letter');
     expect(problem('_-_')).toBe('no_letter');
   });
 
-  it('reservados viram name_blocked, comparados pela chave sem separadores', () => {
+  it('reserved ones become name_blocked, compared by the key without separators', () => {
     for (const name of RESERVED_PLAYER_NAMES) {
       const r = parsePlayerName(name.toUpperCase());
       expect(r, name).toEqual({ ok: false, code: 'name_blocked', problem: 'reserved' });
@@ -97,7 +97,7 @@ describe('parsePlayerName', () => {
     expect(ok('Claudete').name).toBe('Claudete');
   });
 
-  it('o resto dá name_invalid; não-texto também', () => {
+  it('the rest gives name_invalid; non-text too', () => {
     expect(parsePlayerName(42)).toEqual({ ok: false, code: 'name_invalid', problem: 'type' });
     expect(parsePlayerName(undefined)).toMatchObject({ ok: false, code: 'name_invalid' });
     expect(parsePlayerName('A!b')).toMatchObject({ ok: false, code: 'name_invalid' });
@@ -105,7 +105,7 @@ describe('parsePlayerName', () => {
 });
 
 describe('playerNameKey', () => {
-  it('NFKC, minúsculas, sem diacríticos e espaços colapsados', () => {
+  it('NFKC, lowercase, no diacritics and collapsed spaces', () => {
     expect(playerNameKey('Márcio')).toBe('marcio');
     expect(playerNameKey('MARCIO')).toBe('marcio');
     expect(playerNameKey('ｍａｒｃｉｏ')).toBe('marcio');
@@ -115,7 +115,7 @@ describe('playerNameKey', () => {
     expect(playerNameKey('Ἀθηνᾶ')).toBe('αθηνα');
   });
 
-  it('nomes diferentes de verdade continuam diferentes', () => {
+  it('names that are really different stay different', () => {
     expect(playerNameKey('Ana')).not.toBe(playerNameKey('Anna'));
     expect(playerNameKey('Pаulo')).not.toBe(playerNameKey('Paulo')); // cirílico "а" (recusado antes, de todo modo)
   });

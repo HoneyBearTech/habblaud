@@ -36,20 +36,20 @@ const GOLDEN: Array<[number, string, string, string, string]> = [
   [2718281828, "#bd8560|#3f2c22|short|#2b2236|#2f4c7d|#4a86d8|blouse|#2e3e5e|pants|#2b2b33|none|#2b2b33|none|-|f", "#bd8560|#3f2c22|short|#2b2236|#2f4c7d|#4a86d8|blouse|#2e3e5e|pants|#2b2b33|none|#2b2b33|none|-|f", "#bd8560|#3f2c22|short|#2b2236|#262a33|#e8e3d6|jacket|#2e3e5e|pants|#2b2b33|none|#2b2b33|none|#36b0b0|m", "#bd8560|#3f2c22|bob|#2b2236|#4a86d8|#4a86d8|blouse|#2e3e5e|pants|#2b2b33|cap|#2b2b33|none|-|f"],
 ];
 
-describe('appearanceFromSeed (movida para shared/world)', () => {
-  it('as mesmas aparências do módulo antigo em 20 sementes', () => {
+describe('appearanceFromSeed (moved to shared/world)', () => {
+  it('the same appearances as the old module in 20 seeds', () => {
     expect(GOLDEN).toHaveLength(20);
     for (const [seed, plain, f, mSub, parts] of GOLDEN) {
-      expect(sig(appearanceFromSeed(seed)), `semente ${seed}`).toBe(plain);
-      expect(sig(appearanceFromSeed(seed, { look: 'f' })), `semente ${seed} f`).toBe(f);
-      expect(sig(appearanceFromSeed(seed, { look: 'm', sub: true })), `semente ${seed} m sub`).toBe(mSub);
-      expect(sig(appearanceFromSeed(seed, { look: 'f', parts: { hairStyle: 'bob', top: '#4a86d8', accessory: 'cap' } })), `semente ${seed} peças`).toBe(parts);
+      expect(sig(appearanceFromSeed(seed)), `seed ${seed}`).toBe(plain);
+      expect(sig(appearanceFromSeed(seed, { look: 'f' })), `seed ${seed} f`).toBe(f);
+      expect(sig(appearanceFromSeed(seed, { look: 'm', sub: true })), `seed ${seed} m sub`).toBe(mSub);
+      expect(sig(appearanceFromSeed(seed, { look: 'f', parts: { hairStyle: 'bob', top: '#4a86d8', accessory: 'cap' } })), `seed ${seed} parts`).toBe(parts);
     }
   });
 });
 
 describe('flattenAppearance', () => {
-  it('só as 13 peças de PART_KEYS, nessa ordem, sem lanyard, look nem semente', () => {
+  it('only the 13 parts of PART_KEYS, in that order, without lanyard, look or seed', () => {
     for (const seed of [0, 1, 99, hash32('a_3f9d2c7e'), 4294967295]) {
       const flat = flattenAppearance(seed);
       expect(Object.keys(flat)).toEqual([...PART_KEYS]);
@@ -58,7 +58,7 @@ describe('flattenAppearance', () => {
     }
   });
 
-  it('é o sorteio da semente com o look pedido, e as peças do editor vão por cima', () => {
+  it('it is the draw of the seed with the requested look, and the parts from the editor go on top', () => {
     const seed = hash32('a_71c0b5a9');
     const a = appearanceFromSeed(seed, { look: 'm' });
     const flat = flattenAppearance(seed, undefined, 'm');
@@ -71,7 +71,7 @@ describe('flattenAppearance', () => {
     expect(flattenAppearance(seed, { skin: undefined }, 'm').skin).toBe(a.skin);
   });
 
-  it('look feminino nunca leva barba', () => {
+  it('female look never gets a beard', () => {
     for (let i = 0; i < 200; i++) expect(flattenAppearance(hash32(`a_${i}`), undefined, 'f').facialHair).toBe('none');
   });
 });

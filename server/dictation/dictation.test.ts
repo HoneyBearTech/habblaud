@@ -3,8 +3,8 @@ import { AUDIO_MAX_BYTES, DictationService, HOST_PRESENCE_MS, parseAudio } from 
 
 const audio = (n = 2_000) => ({ type: 'audio/mp4', data: Buffer.alloc(n, 1).toString('base64') });
 
-describe('ditado', () => {
-  it('parseAudio: só áudio, base64 válido, nem curto nem longo demais', () => {
+describe('dictation', () => {
+  it('parseAudio: only audio, valid base64, neither too short nor too long', () => {
     expect(parseAudio(audio())).toMatchObject({ type: 'audio/mp4' });
     expect(parseAudio({ type: 'audio/webm;codecs=opus', data: audio().data })).toMatchObject({ type: 'audio/webm;codecs=opus' });
     expect(parseAudio({ type: 'video/mp4', data: audio().data })).toHaveProperty('error');
@@ -13,7 +13,7 @@ describe('ditado', () => {
     expect(parseAudio(audio(AUDIO_MAX_BYTES + 1))).toHaveProperty('error');
   });
 
-  it('modo Node: transcreve aqui e guarda texto e idioma', async () => {
+  it('Node mode: transcribes here and keeps text and language', async () => {
     const s = new DictationService({ transcriber: async () => ({ text: 'olá mundo', lang: 'pt' }), newId: () => 'd1' });
     expect(s.available()).toBe(true);
     expect(s.submit(audio())).toMatchObject({ dictation: { id: 'd1' } });
@@ -21,14 +21,14 @@ describe('ditado', () => {
     expect(s.get('d1')).toEqual({ id: 'd1', status: 'done', text: 'olá mundo', lang: 'pt' });
   });
 
-  it('modo Node: erro do Whisper vira falha legível', async () => {
-    const s = new DictationService({ transcriber: async () => { throw new Error('o Whisper falhou (x)'); }, newId: () => 'd2' });
+  it('Node mode: a Whisper error becomes a readable failure', async () => {
+    const s = new DictationService({ transcriber: async () => { throw new Error('Whisper failed (x)'); }, newId: () => 'd2' });
     s.submit(audio());
     await new Promise((ok) => setTimeout(ok, 0));
-    expect(s.get('d2')).toMatchObject({ status: 'failed', error: 'o Whisper falhou (x)' });
+    expect(s.get('d2')).toMatchObject({ status: 'failed', error: 'Whisper failed (x)' });
   });
 
-  it('Docker: só aceita com o auxiliar presente; o áudio sai da memória no poll; o ack traz o texto', () => {
+  it('Docker: only accepts with the helper present; the audio leaves memory on the poll; the ack brings the text', () => {
     let now = 1_000;
     const s = new DictationService({ now: () => now, newId: () => 'd3' });
     expect(s.submit(audio())).toMatchObject({ error: 'unavailable' });
@@ -43,7 +43,7 @@ describe('ditado', () => {
     expect(s.available()).toBe(false);
   });
 
-  it('Docker: auxiliar que some deixa o pedido falhar com motivo', () => {
+  it('Docker: a helper that goes away lets the request fail with a reason', () => {
     let now = 0;
     const s = new DictationService({ now: () => now, newId: () => 'd4' });
     s.poll();

@@ -5,8 +5,8 @@ import { mulberry32 } from '../hash';
 import { demoGitHubEvent } from './github';
 import { DemoSimulator } from './simulator';
 
-describe('demo: eventos do GitHub', () => {
-  it('sala com alarme tende a ver o CI voltar a passar', () => {
+describe('demo: GitHub events', () => {
+  it('room with an alarm tends to see the CI pass again', () => {
     const rng = mulberry32(42);
     const kinds = Array.from({ length: 200 }, () => demoGitHubEvent(rng, { branch: 'main', alarm: true, pr: 10 }).kind);
     expect(kinds.filter((k) => k === 'ci_passed').length).toBeGreaterThan(120);
@@ -14,7 +14,7 @@ describe('demo: eventos do GitHub', () => {
     for (const k of ['pr_opened', 'pr_merged', 'ci_failed', 'ci_passed', 'release']) expect(free).toContain(k);
   });
 
-  it('de tempos em tempos: avisos, atividades e festa/alarme nas salas (o alarme acaba)', () => {
+  it('from time to time: notices, activities and party/alarm in the rooms (the alarm ends)', () => {
     const sim = new DemoSimulator({ seed: 5, speed: 4, sessions: 5 }, 0);
     const seen = { party: 0, alarm: 0, recovered: 0, notices: 0, feed: 0 };
     let first = Infinity;

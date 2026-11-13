@@ -52,14 +52,14 @@ const HELD: HeldItem[] = [
 const SCREEN_MODES: ScreenMode[] = ['off', 'standby', 'idle', 'code', 'terminal', 'browser', 'search', 'chat', 'docs', 'tasks', 'alert', 'progress', 'show', 'game'];
 
 describe('appearanceFromSeed', () => {
-  it('é determinística', () => {
+  it('is deterministic', () => {
     for (const seed of [0, 1, 42, 123456, 0xffffffff]) {
       expect(appearanceFromSeed(seed)).toEqual(appearanceFromSeed(seed));
       expect(appearanceFromSeed(seed, { look: 'f', sub: true })).toEqual(appearanceFromSeed(seed, { look: 'f', sub: true }));
     }
   });
 
-  it('gera grande variedade em 40 sementes', () => {
+  it('produces wide variety across 40 seeds', () => {
     const list = Array.from({ length: 40 }, (_, i) => appearanceFromSeed(i + 1));
     const distinct = (f: (a: (typeof list)[number]) => string) => new Set(list.map(f)).size;
     expect(new Set(list.map(appearanceKey)).size).toBe(40);
@@ -70,7 +70,7 @@ describe('appearanceFromSeed', () => {
     expect(distinct((a) => a.accessory)).toBeGreaterThanOrEqual(5);
   });
 
-  it('cobre todos os estilos de cabelo e roupa ao longo de muitas sementes', () => {
+  it('covers all hair and clothing styles across many seeds', () => {
     const hair = new Set<string>();
     const tops = new Set<string>();
     for (let i = 0; i < 2000; i++) {
@@ -82,7 +82,7 @@ describe('appearanceFromSeed', () => {
     expect(tops.size).toBe(7);
   });
 
-  it('respeita look (sem barba para f) e crachá para subagentes', () => {
+  it('respects look (no beard for f) and badge for subagents', () => {
     for (let i = 0; i < 300; i++) {
       const f = appearanceFromSeed(i, { look: 'f' });
       expect(f.look).toBe('f');
@@ -94,10 +94,10 @@ describe('appearanceFromSeed', () => {
   });
 });
 
-describe('templates de cabeça e cabelo', () => {
+describe('head and hair templates', () => {
   const allowedHair = new Set('.ohHdDzka');
   const allowedHead = new Set('.sSLeEbmr');
-  it('têm linhas de mesmo comprimento e só caracteres conhecidos', () => {
+  it('have rows of the same length and only known characters', () => {
     for (const tpl of Object.values(HEAD_BASE)) {
       for (const row of tpl.rows) {
         expect(row.length).toBe(14);
@@ -119,9 +119,9 @@ describe('templates de cabeça e cabelo', () => {
   });
 });
 
-describe('personagens', () => {
+describe('characters', () => {
   const a = appearanceFromSeed(7, { sub: true });
-  it('renderizam todas as poses × direções × quadros × itens', () => {
+  it('render all poses × directions × frames × items', () => {
     for (const pose of POSES) {
       for (const dir of DIRS) {
         for (let frame = 0; frame < POSE_FRAMES[pose]; frame++) {
@@ -138,7 +138,7 @@ describe('personagens', () => {
     }
   });
 
-  it('em pé, os pés tocam a âncora', () => {
+  it('standing, the feet touch the anchor', () => {
     for (const dir of DIRS) {
       const s = renderCharacter({ appearance: a, dir, pose: 'stand', frame: 0 });
       let feet = 0;
@@ -147,13 +147,13 @@ describe('personagens', () => {
     }
   });
 
-  it('a direção direita espelha a esquerda', () => {
+  it('the right direction mirrors the left', () => {
     const l = renderCharacter({ appearance: a, dir: 'left', pose: 'walk', frame: 1 });
     const r = renderCharacter({ appearance: a, dir: 'right', pose: 'walk', frame: 1 });
     expect(r.buf.flipped().data).toEqual(l.buf.data);
   });
 
-  it('variações de estilo geram sprites diferentes', () => {
+  it('style variations produce different sprites', () => {
     const keys = new Set<string>();
     for (let i = 0; i < 40; i++) {
       const s = renderCharacter({ appearance: appearanceFromSeed(i), dir: 'down', pose: 'stand', frame: 0 });
@@ -163,7 +163,7 @@ describe('personagens', () => {
   });
 });
 
-describe("pose 'wait' (esperando o shell) e o balde de pipoca", () => {
+describe("pose 'wait' (waiting for the shell) and the popcorn bucket", () => {
   /** Listras vermelhas do balde (iluminada e base). */
   const red = (b: PixelBuf) => countColor(b, '#d8413f') + countColor(b, '#ef6457');
   const KERNEL = '#fff9e6';
@@ -180,7 +180,7 @@ describe("pose 'wait' (esperando o shell) e o balde de pipoca", () => {
   const wait = (a: (typeof cast)[number], dir: Dir, frame: number, held: HeldItem) =>
     renderCharacter({ appearance: a, dir, pose: 'wait', frame, held, seated: true });
 
-  it('é sentada, com 2 quadros e duração própria', () => {
+  it('is seated, with 2 frames and its own duration', () => {
     expect(POSE_FRAMES.wait).toBe(2);
     expect(POSE_DURATION.wait).toBeGreaterThanOrEqual(300);
     expect(POSE_DURATION.wait).toBeLessThanOrEqual(800);
@@ -188,7 +188,7 @@ describe("pose 'wait' (esperando o shell) e o balde de pipoca", () => {
     expect(isSeated('wait', false)).toBe(true);
   });
 
-  it('anima (os 2 quadros diferem) e é determinística em todas as direções, com e sem pipoca', () => {
+  it('animates (the 2 frames differ) and is deterministic in all directions, with and without popcorn', () => {
     for (const a of cast) {
       for (const dir of DIRS) {
         for (const held of ['popcorn', 'none'] as const) {
@@ -201,7 +201,7 @@ describe("pose 'wait' (esperando o shell) e o balde de pipoca", () => {
     }
   });
 
-  it('recosta 1 px para trás: de frente sobe, de costas desce, de perfil vai para trás', () => {
+  it('leans back 1 px: from the front it goes up, from behind it goes down, in profile it goes backward', () => {
     const a = { ...cast[0], hairStyle: 'buzz' as const, accessory: 'none' as const };
     const top = (dir: Dir, pose: Pose) => renderCharacter({ appearance: a, dir, pose, frame: 0, seated: true }).buf.bounds()?.y ?? -1;
     expect(top('down', 'wait')).toBe(top('down', 'sit') - 1);
@@ -211,7 +211,7 @@ describe("pose 'wait' (esperando o shell) e o balde de pipoca", () => {
     expect(headX('wait')).toBe(headX('sit') + 1);
   });
 
-  it('pipoca legível na mesa: de frente acima da desk_back e de costas fora do encosto', () => {
+  it('popcorn readable at the desk: from the front above the desk_back and from behind outside the backrest', () => {
     for (const a of cast) {
       for (const frame of [0, 1]) {
         // De frente: office_chair_front, a pessoa e, 1 tile ao sul, a desk_back por cima (todas as variações).
@@ -221,17 +221,17 @@ describe("pose 'wait' (esperando o shell) e o balde de pipoca", () => {
             [wait(a, 'down', frame, 'popcorn'), X, Y - FOOT],
             [renderFurniture('desk_back', 'white', 0, seed).base, X, Y + TILE],
           );
-          expect(red(scene), `frente seed ${seed} q${frame}`).toBeGreaterThanOrEqual(6);
+          expect(red(scene), `front seed ${seed} f${frame}`).toBeGreaterThanOrEqual(6);
         }
         // De costas: office_chair com o encosto (front) desenhado por cima.
         const chair = renderFurniture('office_chair', 'blue');
         const back = compose([chair.base, X, Y], [wait(a, 'up', frame, 'popcorn'), X, Y - FOOT], [chair.front as BufSprite, X, Y]);
-        expect(red(back), `costas q${frame}`).toBeGreaterThanOrEqual(6);
+        expect(red(back), `back f${frame}`).toBeGreaterThanOrEqual(6);
       }
     }
   });
 
-  it('pipoca também no sofá, na poltrona e na banqueta', () => {
+  it('popcorn also on the sofa, the armchair and the stool', () => {
     const a = cast[0];
     const sofa = renderFurniture('sofa', 'down');
     expect(red(compose([sofa.base, X, Y], [wait(a, 'down', 0, 'popcorn'), X, Y - FOOT]))).toBeGreaterThanOrEqual(8);
@@ -242,7 +242,7 @@ describe("pose 'wait' (esperando o shell) e o balde de pipoca", () => {
     expect(red(compose([renderFurniture('stool').base, X, Y], [wait(a, 'down', 1, 'popcorn'), X, Y - FOOT]))).toBeGreaterThanOrEqual(8);
   });
 
-  it('comendo: no quadro 1 a mão leva uma pipoca até a boca (de frente e de perfil)', () => {
+  it('eating: in frame 1 the hand brings a piece of popcorn to the mouth (from the front and in profile)', () => {
     for (const a of cast) {
       for (const dir of ['down', 'left'] as const) {
         // A coroa de pipoca do balde começa na linha 20; acima dela só a pipoca na mão.
@@ -253,7 +253,7 @@ describe("pose 'wait' (esperando o shell) e o balde de pipoca", () => {
     }
   });
 
-  it('o balde aparece na mão em pé e andando, nas 4 direções', () => {
+  it('the bucket shows in the hand standing and walking, in the 4 directions', () => {
     for (const pose of ['stand', 'walk'] as const) {
       for (const dir of DIRS) {
         for (let frame = 0; frame < POSE_FRAMES[pose]; frame++) {
@@ -265,7 +265,7 @@ describe("pose 'wait' (esperando o shell) e o balde de pipoca", () => {
     }
   });
 
-  it('sem item: braços cruzados acima do tampo da desk_back, com a mão batendo os dedos', () => {
+  it('no item: arms crossed above the top of the desk_back, with the hand drumming its fingers', () => {
     for (const a of cast) {
       const skin = (frame: number) => countColor(wait(a, 'down', frame, 'none').buf.crop(5, 20, 3, 6), a.skin);
       // A mão sobre o braço esquerdo aparece nos dois quadros e muda de altura (dedos batendo).
@@ -284,7 +284,7 @@ describe("pose 'wait' (esperando o shell) e o balde de pipoca", () => {
   });
 });
 
-describe('vida social: poses, itens e gestos', () => {
+describe('social life: poses, items and gestures', () => {
   /** Aparência fixa (pele clara, sem acessório): cores previsíveis para contar pixels. */
   const A: Appearance = {
     skin: '#f6cfb0',
@@ -327,7 +327,7 @@ describe('vida social: poses, itens e gestos', () => {
     return c;
   };
 
-  it('2 quadros cada, com duração própria; groom é sempre em pé, as demais sentam quando pedido', () => {
+  it('2 frames each, with their own duration; groom is always standing, the others sit when asked', () => {
     for (const pose of SOCIAL) {
       expect(POSE_FRAMES[pose], pose).toBe(2);
       expect(POSE_DURATION[pose], pose).toBeGreaterThan(100);
@@ -336,7 +336,7 @@ describe('vida social: poses, itens e gestos', () => {
     }
   });
 
-  it('animam (os 2 quadros diferem) em todas as direções, em pé e sentado, e são determinísticas', () => {
+  it('animate (the 2 frames differ) in all directions, standing and seated, and are deterministic', () => {
     const cases: [Pose, HeldItem][] = [['cheer', 'none'], ['laugh', 'none'], ['game', 'controller'], ['rps', 'none'], ['rps', 'paper'], ['groom', 'lipstick'], ['groom', 'comb'], ['sulk', 'none']];
     for (const [pose, held] of cases) {
       for (const dir of DIRS) {
@@ -349,7 +349,7 @@ describe('vida social: poses, itens e gestos', () => {
     }
   });
 
-  it("'cheer': punhos acima da cabeça dos dois lados e, em pé, pulinho no quadro 1 (pés saem do chão)", () => {
+  it("'cheer': fists above the head on both sides and, standing, a little jump in frame 1 (feet leave the ground)", () => {
     for (const dir of ['down', 'up'] as const) {
       const b = draw('cheer', dir, 0);
       expect(skinIn(b, 0, 5, 0, 12), dir).toBeGreaterThan(0);
@@ -364,7 +364,7 @@ describe('vida social: poses, itens e gestos', () => {
     expect(skinIn(draw('cheer', 'left', 0), 17, CHAR_W, 0, 12)).toBeGreaterThan(0);
   });
 
-  it("'laugh': olhos de riso (sem pupila) e boca larga no quadro 0", () => {
+  it("'laugh': laughing eyes (no pupil) and wide mouth in frame 0", () => {
     const pupil = '#1d1826';
     const open = '#7a2e35';
     expect(countColor(draw('stand', 'down', 0), pupil)).toBeGreaterThanOrEqual(2);
@@ -373,7 +373,7 @@ describe('vida social: poses, itens e gestos', () => {
     expect(countColor(draw('laugh', 'left', 0), open)).toBeGreaterThanOrEqual(2);
   });
 
-  it("'game': controle visível de frente e de perfil; de costas fica escondido pelo corpo", () => {
+  it("'game': controller visible from the front and in profile; from behind it is hidden by the body", () => {
     const red = '#e8545a';
     expect(countColor(draw('game', 'down', 0, 'controller'), red)).toBeGreaterThan(0);
     expect(countColor(draw('game', 'left', 0, 'controller'), red)).toBeGreaterThan(0);
@@ -382,7 +382,7 @@ describe('vida social: poses, itens e gestos', () => {
     expect(countColor(draw('game', 'down', 1, 'controller', true), red)).toBeGreaterThan(0);
   });
 
-  it("'rps': pedra, papel e tesoura são diferentes em todas as direções; papel é a mão maior", () => {
+  it("'rps': rock, paper and scissors are different in all directions; paper is the biggest hand", () => {
     for (const dir of DIRS) {
       const d = (['rock', 'paper', 'scissors'] as const).map((g) => digest(draw('rps', dir, 0, g).data));
       expect(new Set(d).size, dir).toBe(3);
@@ -395,7 +395,7 @@ describe('vida social: poses, itens e gestos', () => {
     expect(skinIn(draw('rps', 'down', 0), 17, CHAR_W, 8, 15)).toBeGreaterThan(skinIn(draw('rps', 'down', 1), 17, CHAR_W, 8, 15));
   });
 
-  it("'groom': de costas o cotovelo sobe para fora e a mão fica na lateral da cabeça; batom e pente aparecem", () => {
+  it("'groom': from behind the elbow goes up and out and the hand stays at the side of the head; lipstick and comb show", () => {
     expect(opaqueIn(draw('stand', 'up', 0), 20, CHAR_W, 8, 17)).toBe(0);
     expect(opaqueIn(draw('groom', 'up', 0), 20, CHAR_W, 8, 17)).toBeGreaterThan(0);
     expect(countColor(draw('groom', 'down', 0, 'lipstick'), '#d8365a')).toBeGreaterThan(0);
@@ -403,23 +403,23 @@ describe('vida social: poses, itens e gestos', () => {
     expect(countColor(draw('groom', 'up', 0, 'comb'), '#3d4252')).toBeGreaterThan(0);
   });
 
-  it("'sulk': cabeça mais baixa que em pé parado", () => {
+  it("'sulk': head lower than when standing still", () => {
     for (const dir of DIRS) {
       const top = (b: PixelBuf) => b.bounds()!.y;
       expect(top(draw('sulk', dir, 0)), dir).toBeGreaterThan(top(draw('stand', dir, 0)));
     }
   });
 
-  it('celular com a tela acesa: lendo em pé e sentado', () => {
+  it('phone with the screen lit: reading standing and seated', () => {
     for (const [pose, seated] of [['read', false], ['read', true], ['sit', true]] as const) {
       expect(countColor(draw(pose, 'down', 0, 'phone', seated), '#6fbdf0'), `${pose}/${seated}`).toBeGreaterThan(0);
     }
   });
 });
 
-describe('móveis', () => {
+describe('furniture', () => {
   const kinds = Object.keys(FURNITURE) as FurnitureKind[];
-  it('todos os kinds/variantes/estados renderizam com âncora e regiões coerentes', () => {
+  it('all kinds/variants/states render with coherent anchor and regions', () => {
     for (const kind of kinds) {
       const def = FURNITURE[kind];
       for (const v of def.variants ?? [undefined]) {
@@ -456,7 +456,7 @@ describe('móveis', () => {
     }
   });
 
-  it('preenche as regiões dinâmicas pedidas pelo contrato', () => {
+  it('fills the dynamic regions the contract asks for', () => {
     expect(renderFurniture('desk', 'wood').base.rects?.screen).toBeDefined();
     expect(renderFurniture('whiteboard').base.rects?.board).toBeDefined();
     expect(renderFurniture('window').base.rects?.glass).toBeDefined();
@@ -472,7 +472,7 @@ describe('móveis', () => {
     expect(scr?.h).toBe(9);
   });
 
-  it('assentos com encosto ao sul têm sprite `front`', () => {
+  it('seats with the backrest to the south have a `front` sprite', () => {
     expect(renderFurniture('office_chair').front).toBeDefined();
     expect(renderFurniture('cafe_chair', 'up').front).toBeDefined();
     expect(renderFurniture('sofa', 'up').front).toBeDefined();
@@ -480,7 +480,7 @@ describe('móveis', () => {
     expect(renderFurniture('office_chair_front').front).toBeUndefined();
   });
 
-  it('normaliza variantes, estados e sementes', () => {
+  it('normalizes variants, states and seeds', () => {
     expect(normalizeFurniture('desk', 'xyz').variant).toBe('wood');
     expect(normalizeFurniture('elevator', undefined, 99).state).toBe(4);
     expect(normalizeFurniture('elevator', undefined, -3).state).toBe(0);
@@ -489,7 +489,7 @@ describe('móveis', () => {
   });
 });
 
-describe('legibilidade das mesas, sofá e olhos', () => {
+describe('readability of the desks, sofa and eyes', () => {
   /** Luminância (0–1) do pixel (x, y) do buffer, em coordenadas do footprint do móvel. */
   function lumAt(s: { buf: { w: number; data: Uint8ClampedArray }; ax: number; ay: number }, fw: number, fh: number, fx: number, fy: number): number {
     const x = s.ax - (fw * TILE) / 2 + fx;
@@ -498,7 +498,7 @@ describe('legibilidade das mesas, sofá e olhos', () => {
     return (0.2126 * s.buf.data[i] + 0.7152 * s.buf.data[i + 1] + 0.0722 * s.buf.data[i + 2]) / 255;
   }
 
-  it('o verso do monitor (desk_back) é plástico claro/médio, nunca escuro como tela', () => {
+  it('the back of the monitor (desk_back) is light/medium plastic, never dark like a screen', () => {
     for (const v of ['white', 'wood', 'dark']) {
       for (let seed = 0; seed < 4; seed++) {
         const f = renderFurniture('desk_back', v, 0, seed);
@@ -510,7 +510,7 @@ describe('legibilidade das mesas, sofá e olhos', () => {
     }
   });
 
-  it('a 2ª tela (monitor/notebook) vem ligada com conteúdo e é exposta em rects.screen2', () => {
+  it('the 2nd screen (monitor/laptop) comes turned on with content and is exposed in rects.screen2', () => {
     for (const seed of [1, 2, 4]) {
       const f = renderFurniture('desk', 'wood', 0, seed);
       const r = f.base.rects?.screen2;
@@ -532,7 +532,7 @@ describe('legibilidade das mesas, sofá e olhos', () => {
     expect(renderFurniture('desk', 'wood', 0, 0).base.rects?.screen2).toBeUndefined();
   });
 
-  it('teclado e papéis não somem na mesa branca', () => {
+  it('keyboard and papers do not disappear on the white desk', () => {
     // Variação 0: teclado em x 11..20, y -1..1 sobre o tampo branco.
     const f = renderFurniture('desk', 'white', 0, 0);
     const top = lumAt(f.base, 2, 1, 4, -3);
@@ -540,7 +540,7 @@ describe('legibilidade das mesas, sofá e olhos', () => {
     expect(top - kb).toBeGreaterThan(0.12);
   });
 
-  it("sofá 'up' (de costas): encosto contínuo, sem as divisões de assento da frente", () => {
+  it("sofa 'up' (from behind): continuous backrest, without the seat divisions of the front", () => {
     const f = renderFurniture('sofa', 'up');
     const front = f.front;
     expect(front).toBeDefined();
@@ -554,7 +554,7 @@ describe('legibilidade das mesas, sofá e olhos', () => {
     expect(f.base.buf.alpha(f.base.ax - 24 + 2, f.base.ay - 16 - 4)).toBeGreaterThan(200);
   });
 
-  it('olhos mantêm contraste com a pele em todos os tons (brilho nos tons escuros)', () => {
+  it('eyes keep contrast with the skin in all tones (highlight in the dark tones)', () => {
     const base = appearanceFromSeed(11);
     for (const skin of ['#ffe2cc', '#d69f78', '#9a6444', '#7a4a31', '#5a3623']) {
       const a = { ...base, skin, hairStyle: 'buzz' as const, accessory: 'none' as const, eyes: '#4a2f22' };
@@ -572,9 +572,9 @@ describe('legibilidade das mesas, sofá e olhos', () => {
   });
 });
 
-describe('pisos e paredes', () => {
+describe('floors and walls', () => {
   const floors: FloorKind[] = ['carpet', 'wood', 'tile_check', 'tile_white', 'concrete', 'marble', 'grass', 'sidewalk', 'street'];
-  it('blocos de piso são opacos e determinísticos', () => {
+  it('floor blocks are opaque and deterministic', () => {
     for (const k of floors) {
       const a = floorChunk(k, 2, -1, { seed: 3, tint: '#c9d1dc', tint2: '#bdc6d3' });
       expect(a.countOpaque(), k).toBe(CHUNK_PX * CHUNK_PX);
@@ -582,7 +582,7 @@ describe('pisos e paredes', () => {
     }
   });
 
-  it('a madeira continua entre blocos vizinhos (sem emenda na borda)', () => {
+  it('the wood continues between neighboring blocks (no seam at the edge)', () => {
     const left = floorChunk('wood', 0, 0, { seed: 1 });
     const right = floorChunk('wood', 1, 0, { seed: 1 });
     let differ = 0;
@@ -595,7 +595,7 @@ describe('pisos e paredes', () => {
     expect(differ).toBeLessThan(CHUNK_PX / 3);
   });
 
-  it('paredes renderizam todos os padrões', () => {
+  it('walls render all patterns', () => {
     const patterns: WallPattern[] = ['plain', 'stripes', 'tiles', 'wood_panel', 'brick', 'glass', 'marble'];
     for (const p of patterns) {
       const face = wallFaceTile({ base: '#eef1f4', trim: '#9fb0c4', pattern: p }, 1, 0);
@@ -607,8 +607,8 @@ describe('pisos e paredes', () => {
   });
 });
 
-describe('ícones e temas', () => {
-  it('os 24 ícones existem com contorno', () => {
+describe('icons and themes', () => {
+  it('the 24 icons exist with an outline', () => {
     expect(ICON_NAMES.length).toBe(24);
     for (const n of ['hourglass', 'hourglass_flip', 'cobweb', 'storm', 'coin', 'sparkle', 'trophy', 'hand_rock', 'hand_paper', 'hand_scissors'] as const) {
       expect(ICON_NAMES).toContain(n);
@@ -632,11 +632,11 @@ describe('ícones e temas', () => {
     }
   });
 
-  it('ícones são determinísticos', () => {
+  it('icons are deterministic', () => {
     for (const n of ICON_NAMES) expect(digest(renderIcon(n).buf.data), n).toBe(digest(renderIcon(n).buf.data));
   });
 
-  it('ampulheta: em pé e deitada (para alternar e parecer girando), mesma areia e madeira', () => {
+  it('hourglass: upright and lying down (to alternate and look like it is spinning), same sand and wood', () => {
     const up = renderIcon('hourglass');
     const flip = renderIcon('hourglass_flip');
     // Em pé é mais alta que larga; deitada, mais larga que alta.
@@ -650,7 +650,7 @@ describe('ícones e temas', () => {
     expect(top).toBeGreaterThan(countColor(up.buf, sand) / 2);
   });
 
-  it('teia: contorno translúcido (quase nada nas células) e uma aranha escura', () => {
+  it('cobweb: translucent outline (almost nothing in the cells) and a dark spider', () => {
     const s = renderIcon('cobweb');
     const d = s.buf.data;
     let soft = 0;
@@ -665,14 +665,14 @@ describe('ícones e temas', () => {
     expect(countColor(s.buf, '#ffffff')).toBeGreaterThan(30);
   });
 
-  it('tempestade: nuvem escura, gotas azuis e raio amarelo', () => {
+  it('storm: dark cloud, blue drops and yellow lightning bolt', () => {
     const s = renderIcon('storm');
     expect(countColor(s.buf, '#ffd84d')).toBeGreaterThan(6);
     expect(countColor(s.buf, '#9fd2f6')).toBeGreaterThan(2);
     expect(countColor(s.buf, '#6b7489')).toBeGreaterThan(6);
   });
 
-  it('temas vizinhos são diferentes e determinísticos', () => {
+  it('neighboring themes are different and deterministic', () => {
     for (let i = 0; i < 30; i++) {
       expect(roomTheme(i)).toEqual(roomTheme(i));
       expect(roomTheme(i).carpet).not.toBe(roomTheme(i + 1).carpet);
@@ -683,7 +683,7 @@ describe('ícones e temas', () => {
   });
 });
 
-describe('desenhos por quadro', () => {
+describe('per-frame drawings', () => {
   /** Contexto falso que registra os fillRect (únicas chamadas permitidas). */
   function fakeCtx() {
     const rects: [number, number, number, number][] = [];
@@ -698,7 +698,7 @@ describe('desenhos por quadro', () => {
   const inside = (rects: [number, number, number, number][], r: { x: number; y: number; w: number; h: number }) =>
     rects.every(([x, y, w, h]) => x >= r.x && y >= r.y && x + w <= r.x + r.w && y + h <= r.y + r.h && w > 0 && h > 0);
 
-  it('drawScreen fica dentro do retângulo em todos os modos e tamanhos', () => {
+  it('drawScreen stays inside the rectangle in all modes and sizes', () => {
     const modes = SCREEN_MODES;
     for (const r of [{ x: 10, y: 20, w: 14, h: 9 }, { x: 3, y: 4, w: 28, h: 15 }, { x: 0, y: 0, w: 10, h: 7 }]) {
       for (const m of modes) {
@@ -713,7 +713,7 @@ describe('desenhos por quadro', () => {
     }
   });
 
-  it('drawScreen tem custo independente de t (o mundo passa Date.now())', () => {
+  it('drawScreen has a cost independent of t (the world passes Date.now())', () => {
     // Regressão: o modo terminal percorria todas as linhas desde t = 0 (~10^9 iterações por
     // monitor com t ≈ 1,8e12), congelando o app inteiro. Agora cada chamada é O(tamanho da tela).
     const modes = SCREEN_MODES;
@@ -733,7 +733,7 @@ describe('desenhos por quadro', () => {
     expect(performance.now() - t0).toBeLessThan(1000);
   });
 
-  it("tela 'off' é azul-marinho fosco (não quase preta) e 'standby' é azul com logo", () => {
+  it("'off' screen is matte navy blue (not almost black) and 'standby' is blue with a logo", () => {
     const fills: string[] = [];
     const ctx = {
       fillStyle: '',
@@ -753,7 +753,7 @@ describe('desenhos por quadro', () => {
     expect(Math.max(...fills.map(lum))).toBeGreaterThan(0.6); // logo claro
   });
 
-  it('terminal: a linha atual avança com o tempo e digita aos poucos', () => {
+  it('terminal: the current line advances with time and types little by little', () => {
     const r = { x: 0, y: 0, w: 14, h: 9 };
     const snap = (t: number) => {
       const { ctx, rects } = fakeCtx();
@@ -768,7 +768,7 @@ describe('desenhos por quadro', () => {
     }
   });
 
-  it("tela 'progress': barra que enche com o tempo, spinner girando, e recomeça (determinística)", () => {
+  it("'progress' screen: bar that fills with time, spinner spinning, and starts over (deterministic)", () => {
     const r = { x: 0, y: 0, w: 14, h: 9 };
     /** Largura da parte cheia da barra (cores do enchimento) num instante. */
     const snap = (t: number, seed = 2) => {
@@ -801,7 +801,7 @@ describe('desenhos por quadro', () => {
     expect(bg).toMatchObject({ x: 0, y: 0, w: 14, h: 9 });
   });
 
-  it("'show' e 'game': programa fixo pela semente (futebol/novela/desenho; corrida/luta)", () => {
+  it("'show' and 'game': program fixed by the seed (soccer/soap opera/cartoon; racing/fighting)", () => {
     const r = { x: 3, y: 4, w: 28, h: 15 };
     const colors = (m: ScreenMode, seed: number, t = 1234) => {
       const fills: string[] = [];
@@ -815,14 +815,14 @@ describe('desenhos por quadro', () => {
       return fills;
     };
     for (const k of [0, 3, 6]) {
-      expect(colors('show', k), `futebol ${k}`).toContain('#3f9a4a');
-      expect(colors('show', k + 1), `novela ${k + 1}`).not.toContain('#3f9a4a');
-      expect(colors('show', k + 1), `novela ${k + 1}`).not.toContain('#7fd3ff');
-      expect(colors('show', k + 2), `desenho ${k + 2}`).toContain('#7fd3ff');
+      expect(colors('show', k), `soccer ${k}`).toContain('#3f9a4a');
+      expect(colors('show', k + 1), `soap opera ${k + 1}`).not.toContain('#3f9a4a');
+      expect(colors('show', k + 1), `soap opera ${k + 1}`).not.toContain('#7fd3ff');
+      expect(colors('show', k + 2), `cartoon ${k + 2}`).toContain('#7fd3ff');
     }
     for (const k of [0, 2, 4]) {
-      expect(colors('game', k), `corrida ${k}`).toContain('#6a7280');
-      expect(colors('game', k + 1), `luta ${k + 1}`).toContain('#3b2a6b');
+      expect(colors('game', k), `race ${k}`).toContain('#6a7280');
+      expect(colors('game', k + 1), `fight ${k + 1}`).toContain('#3b2a6b');
     }
     // O "GOL" (faixa escura + letras) aparece no fim de cada lance; o "KO", no fim do round.
     const banner = 'rgba(12,16,28,0.78)';
@@ -835,13 +835,13 @@ describe('desenhos por quadro', () => {
     expect(some('show', 1, 7000)).toBe(false);
   });
 
-  it('drawWindowView, drawBoard e drawClock ficam dentro do retângulo', () => {
+  it('drawWindowView, drawBoard and drawClock stay inside the rectangle', () => {
     const r = { x: 4, y: 6, w: 24, h: 15 };
     for (const hour of [0, 3, 5.8, 7, 12, 17.5, 18.4, 19.6, 22, 23.99]) {
       for (const t of [0, 5000, 60000]) {
         const { ctx, rects } = fakeCtx();
         drawWindowView(ctx, r, hour, t, 9);
-        expect(inside(rects, r), `hora ${hour}`).toBe(true);
+        expect(inside(rects, r), `hour ${hour}`).toBe(true);
       }
     }
     const board = { x: 2, y: 2, w: 40, h: 15 };
@@ -865,12 +865,12 @@ const STYLE_LISTS_MATCH: [
   Same<(typeof BOTTOM_STYLES)[number], NonNullable<Appearance['bottomStyle']>>,
 ] = [true, true, true, true, true];
 
-describe('editor do personagem (arte)', () => {
-  it('listas de estilos de shared/appearance batem com a arte', () => {
+describe('character editor (art)', () => {
+  it('style lists from shared/appearance match the art', () => {
     expect(STYLE_LISTS_MATCH.every(Boolean)).toBe(true);
   });
 
-  it('parts sobrepõe só as peças escolhidas, sem mudar o resto do sorteio', () => {
+  it('parts overrides only the chosen pieces, without changing the rest of the random pick', () => {
     const base = appearanceFromSeed(5, { look: 'f' });
     expect(appearanceFromSeed(5, { look: 'f', parts: { hairStyle: 'mohawk', skin: '#5a3623' } })).toEqual({ ...base, hairStyle: 'mohawk', skin: '#5a3623' });
     expect(appearanceFromSeed(5, { look: 'f', parts: {} })).toEqual(base);
@@ -878,17 +878,17 @@ describe('editor do personagem (arte)', () => {
     expect(appearanceFromSeed(5, { look: 'f', parts: { hairStyle: undefined, skin: undefined } })).toEqual(base);
   });
 
-  it('toda aparência sorteada usa valores que o editor oferece (paletas e estilos)', () => {
+  it('every randomly picked appearance uses values the editor offers (palettes and styles)', () => {
     for (let i = 0; i < 300; i++) {
       for (const look of ['f', 'm'] as const) {
         const a = appearanceFromSeed(i, { look });
         const o = editorOptions(a);
-        for (const k of PART_KEYS) expect(o[k], `${k} da seed ${i} (${look})`).toContain(a[k]);
+        for (const k of PART_KEYS) expect(o[k], `${k} of seed ${i} (${look})`).toContain(a[k]);
       }
     }
   });
 
-  it('as cores da parte de cima e do acessório dependem do estilo', () => {
+  it('the colors of the top and of the accessory depend on the style', () => {
     const a = appearanceFromSeed(1);
     const shirt = editorOptions({ ...a, topStyle: 'shirt_tie' });
     expect(shirt.top).toContain('#f4f4f0');
@@ -899,7 +899,7 @@ describe('editor do personagem (arte)', () => {
     expect(editorOptions(a).eyes.length).toBe(new Set(editorOptions(a).eyes).size);
   });
 
-  it('combinações que o sorteio evita ficam desabilitadas, nos dois sentidos', () => {
+  it('combinations the random pick avoids are disabled, in both directions', () => {
     const a = appearanceFromSeed(1);
     expect(editorConflict({ ...a, hairStyle: 'afro' }, 'accessory', 'cap')).toMatch(/hair/);
     expect(editorConflict({ ...a, hairStyle: 'afro' }, 'accessory', 'glasses')).toBeUndefined();
@@ -909,7 +909,7 @@ describe('editor do personagem (arte)', () => {
     expect(editorConflict({ ...a, accessory: 'none' }, 'hairStyle', 'bald')).toBeUndefined();
   });
 
-  it('fitToOptions: depois de trocar o estilo, a cor fora da paleta nova cai na primeira dela', () => {
+  it('fitToOptions: after changing the style, the color outside the new palette falls to its first one', () => {
     const a = { ...appearanceFromSeed(1), topStyle: 'shirt_tie' as const, top: '#e2604f', topAccent: '#e2604f' };
     expect(fitToOptions(a)).toMatchObject({ top: '#f4f4f0', topAccent: '#c0392b' });
     const ok = { ...appearanceFromSeed(1), topStyle: 'tshirt' as const, top: '#e2604f' };

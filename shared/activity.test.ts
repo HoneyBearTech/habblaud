@@ -13,14 +13,14 @@ import {
 } from './activity';
 
 describe('describeCommand', () => {
-  it('só a primeira linha decide (heredoc não confunde)', () => {
-    expect(describeCommand("cat > /tmp/x/notas.md <<'EOF'\nrodar vitest depois\nEOF").text).toBe('Writing notas.md');
+  it('only the first line decides (heredoc does not confuse it)', () => {
+    expect(describeCommand("cat > /tmp/x/notes.md <<'EOF'\nrun vitest later\nEOF").text).toBe('Writing notes.md');
     expect(describeCommand("cat <<'EOF' > server/README.md\n# x\nEOF").text).toBe('Writing README.md');
     expect(describeCommand("python3 - <<'EOF'\nimport os\nEOF").text).toBe('Running a Python script');
     expect(describeCommand("node -e 'console.log(1)'").text).toBe('Running a Node script');
   });
 
-  it('comandos comuns', () => {
+  it('common commands', () => {
     expect(describeCommand('npx vitest run server').text).toBe('Running tests');
     expect(describeCommand('cd /x && git commit -m "feat"').text).toBe('Committing');
     expect(describeCommand('node scripts/shot.mjs http://x out.png').text).toBe('Running shot.mjs');
@@ -29,13 +29,13 @@ describe('describeCommand', () => {
   });
 });
 
-describe('describeCommand em português (casos reais que caíam no inglês)', () => {
+describe('describeCommand in words (real cases that fell into the raw English description)', () => {
   const t = (cmd: string, desc?: string) => describeCommand(cmd, desc).text;
 
-  it('primeira linha com comando de verdade; prefixos e atribuições não contam', () => {
+  it('first line with a real command; prefixes and assignments do not count', () => {
     expect(t('S=/tmp/x\nnode scripts/shot.mjs x $S/a.png', 'Screenshot real-data UI on port 4763')).toBe('Running shot.mjs');
     expect(t('HABBLAUD_PORT=1 nohup npx tsx server/index.ts --dev > /tmp/s.log 2>&1 &', 'Start real-data server')).toBe('Running index.ts');
-    expect(t('set -e\nexport A=1\n# comentário\nnpm test')).toBe('Running tests');
+    expect(t('set -e\nexport A=1\n# comment\nnpm test')).toBe('Running tests');
     expect(t('sleep 5 && curl -s localhost:4771/')).toBe('Testing the local server (:4771/)');
     expect(t('(cd client && npm test)')).toBe('Running tests');
     expect(t('bash -c "npm run build"')).toBe('Building the project');
@@ -43,7 +43,7 @@ describe('describeCommand em português (casos reais que caíam no inglês)', ()
     expect(t('S=/tmp/x; NOW=$(date +%s); echo "{\\"a\\":$((NOW+1))}" | HOME=$S node scripts/statusline-tap.mjs; ls $S')).toBe('Running statusline-tap.mjs');
   });
 
-  it('leitores cortados no primeiro |, ; ou &&', () => {
+  it('readers cut at the first |, ; or &&', () => {
     expect(t('sed -n 1,80p rug.ts', 'Read art rug implementation')).toBe('Reading rug.ts');
     expect(t("sed -n '140,700p' server/sources/transcript.ts")).toBe('Reading transcript.ts');
     expect(t('cat a.ts b.ts | head -700')).toBe('Reading a.ts and b.ts');
@@ -55,7 +55,7 @@ describe('describeCommand em português (casos reais que caíam no inglês)', ()
     expect(t('echo "---"; tail -n 20 server.log')).toBe('Reading server.log');
   });
 
-  it('processos, rede, busca e edição', () => {
+  it('processes, network, search and editing', () => {
     expect(t('pkill -f "vite.*4771"', 'Stop preview')).toBe('Stopping a process');
     expect(t('ps aux | grep vite')).toBe('Checking processes');
     expect(t('lsof -i :4771')).toBe("Checking who's using port 4771");
@@ -64,19 +64,19 @@ describe('describeCommand em português (casos reais que caíam no inglês)', ()
     expect(t('curl -o out.png -sS https://www.example.com/x.png')).toBe('Calling example.com');
     expect(t('grep "a\\|b" file.ts')).toBe('Searching for “a | b”');
     expect(t('sed -i "" "s/a/b/" src/x.ts')).toBe('Editing x.ts');
-    expect(t('echo "oi" > saida.txt')).toBe('Writing saida.txt');
+    expect(t('echo "hi" > output.txt')).toBe('Writing output.txt');
     expect(t('npx tsc --noEmit -p server/tsconfig.json')).toBe('Checking types (TypeScript)');
     expect(t('VITE_PORT=4771 nohup npx vite --config vite.config.ts --strictPort > x.log 2>&1 &')).toBe('Starting the dev server');
     expect(t('git -C /x status --short')).toBe('Checking git status');
     expect(t('npm run docker:up -- --no-build')).toBe('Running script docker:up');
   });
 
-  it('laços: o corpo decide', () => {
+  it('loops: the body decides', () => {
     expect(t('for f in a.ts b.ts; do wc -l $f; done')).toBe('Counting lines');
     expect(t('for f in *.ts\ndo\n  cat $f\ndone')).toBe('Reading a file');
   });
 
-  it('description só vira texto em português; senão, texto genérico em PT-BR e description no detalhe', () => {
+  it('description only becomes the text when in Portuguese; otherwise, generic text and description in the detail', () => {
     expect(t('ffmpeg -i a.mp4 b.gif', 'Converte o vídeo para gif')).toBe('Converte o vídeo para gif');
     const en = describeCommand('ffmpeg -i a.mp4 b.gif', 'Convert video to gif');
     expect(en.text).toBe('Running ffmpeg');
@@ -87,8 +87,8 @@ describe('describeCommand em português (casos reais que caíam no inglês)', ()
   });
 });
 
-describe('segredos mascarados', () => {
-  it('comandos com tokens, senhas e chaves', () => {
+describe('masked secrets', () => {
+  it('commands with tokens, passwords and keys', () => {
     const d = describeCommand('curl -sS -H "Authorization: Bearer FAKE_TOKEN_123" https://api.example.com/v1');
     expect(d.text).toBe('Calling api.example.com');
     expect(d.detail).toBe('curl -sS -H "Authorization: ***" https://api.example.com/v1');
@@ -101,10 +101,10 @@ describe('segredos mascarados', () => {
     expect(maskSecrets('{"password": "x", "max_tokens": 100}')).toBe('{"password": "***", "max_tokens": 100}');
     expect(maskSecrets('AKIAABCDEFGHIJKLMNOP eyJhbGciOiJIUzI1.eyJzdWIiOiIxMjM0.SflKxwRJSMeKKF2QT4f')).toBe('AKIA*** eyJ***');
     // Prompt do usuário com um token colado.
-    expect(describePrompt('usa a chave sk-proj-0123456789abcdef pra testar').detail).toBe('usa a chave sk-*** pra testar');
+    expect(describePrompt('use the key sk-proj-0123456789abcdef to test').detail).toBe('use the key sk-*** to test');
   });
 
-  it('webhooks e tokens npm_/hf_ (o segredo some, o host fica)', () => {
+  it('webhooks and npm_/hf_ tokens (the secret disappears, the host stays)', () => {
     // Montado em partes: o URL inteiro no fonte dispara o push protection do GitHub.
     const slack = ['https://hooks.slack.com/services', 'T00000000', 'B00000000', 'X'.repeat(24)].join('/');
     expect(maskSecrets(`curl -X POST ${slack}`)).toBe(
@@ -119,32 +119,32 @@ describe('segredos mascarados', () => {
     expect(maskSecrets('curl https://api.telegram.org/bot123456789:AAHdqTcvCH1vGWJxfSeofSAs0K5PALDsawX/sendMessage')).toBe(
       'curl https://api.telegram.org/bot***/sendMessage',
     );
-    expect(maskSecrets('usa npm_1234567890abcdef1234567890abcdef1234 no ci')).toBe('usa npm_*** no ci');
-    expect(maskSecrets('chave hf_abcdefghijklmnopqrstuvwxyz01234567 solta')).toBe('chave hf_*** solta');
+    expect(maskSecrets('uses npm_1234567890abcdef1234567890abcdef1234 in ci')).toBe('uses npm_*** in ci');
+    expect(maskSecrets('key hf_abcdefghijklmnopqrstuvwxyz01234567 lying around')).toBe('key hf_*** lying around');
   });
 
-  it('texto comum com npm ou hf não é segredo', () => {
-    const s = 'rode npm test e npm run build; o modelo hf da huggingface usa npm_config_cache';
+  it('common text with npm or hf is not a secret', () => {
+    const s = 'run npm test and npm run build; the hf model from huggingface uses npm_config_cache';
     expect(maskSecrets(s)).toBe(s);
   });
 
-  it('shell: palavras e segmentos', () => {
+  it('shell: words and segments', () => {
     expect(shellWords(`a 'b c' "d \\"e\\"" f\\ g ''`)).toEqual(['a', 'b c', 'd "e"', 'f g', '']);
     expect(splitShell('a && b | c; d & e 2>&1 || f "x|y" $(g; h)')).toEqual(['a', 'b', 'c', 'd', 'e 2>&1', 'f "x|y" $(g; h)']);
     expect(shellWords('X=$(date +%s) y `a b` z')).toEqual(['X=$(date +%s)', 'y', '`a b`', 'z']);
   });
 });
 
-describe('atividades', () => {
-  it('TodoWrite ignora itens que não são objetos e tolera tarefas sem status', () => {
+describe('activities', () => {
+  it('TodoWrite ignores items that are not objects and tolerates tasks without status', () => {
     expect(describeTool('TodoWrite', { todos: [null] })).toEqual({ kind: 'plan', icon: '🗒️', text: 'Updating the task list' });
     expect(describeTool('TodoWrite', {
-      todos: [null, undefined, 'inválido', 42, false, { content: 'Sem status' }, { content: 'Pronta', status: 'completed' }, { content: 'Pendente', status: 'pending' }],
+      todos: [null, undefined, 'invalid', 42, false, { content: 'No status' }, { content: 'Done', status: 'completed' }, { content: 'Pending', status: 'pending' }],
     }).detail).toBe('1/3 done');
   });
 
-  it('ferramentas e especiais em PT-BR', () => {
-    expect(describeTool('Agent', { description: 'Revisar código', subagent_type: 'Explore' })).toMatchObject({ kind: 'delegate', text: 'Delegating: Revisar código' });
+  it('tools and specials as text', () => {
+    expect(describeTool('Agent', { description: 'Review code', subagent_type: 'Explore' })).toMatchObject({ kind: 'delegate', text: 'Delegating: Review code' });
     expect(SPECIAL.rejected('Write').text).toBe('You denied: Write');
     expect(SPECIAL.cleared().kind).toBe('compact');
     expect(describeWaitingFor('worker request')).toBe("approve a worker's request");
@@ -153,9 +153,9 @@ describe('atividades', () => {
 });
 
 describe('shells', () => {
-  it('rótulo do job: description (mascarada) ou resumo do comando; comando mascarado no detalhe', () => {
-    expect(describeShellJob('Bash', { command: 'vendor/bin/phpunit', description: 'Rodar a suíte completa em grupos com phpunit' })).toEqual({
-      label: 'Rodar a suíte completa em grupos com phpunit',
+  it('job label: description (masked) or command summary; masked command in the detail', () => {
+    expect(describeShellJob('Bash', { command: 'vendor/bin/phpunit', description: 'Run the full suite in groups with phpunit' })).toEqual({
+      label: 'Run the full suite in groups with phpunit',
       command: 'vendor/bin/phpunit',
       kind: 'shell',
     });
@@ -164,10 +164,10 @@ describe('shells', () => {
       command: 'GITHUB_TOKEN=*** npm run build',
       kind: 'shell',
     });
-    expect(describeShellJob('Bash', { command: 'x', description: 'Deploy com --token abc123def456 em produção de um serviço muito importante' }).label).toBe(
-      'Deploy com --token *** em produção de um serv…',
+    expect(describeShellJob('Bash', { command: 'x', description: 'Deploy with --token abc123def456 to production of a very important service' }).label).toBe(
+      'Deploy with --token *** to production of a ve…',
     );
-    expect(describeShellJob('Monitor', { description: 'erros no deploy.log', command: 'tail -f deploy.log' })).toMatchObject({ label: 'erros no deploy.log', kind: 'monitor' });
+    expect(describeShellJob('Monitor', { description: 'errors in deploy.log', command: 'tail -f deploy.log' })).toMatchObject({ label: 'errors in deploy.log', kind: 'monitor' });
     expect(describeShellJob('Monitor', { ws: { url: 'wss://events.example.com/stream' } })).toEqual({
       label: 'Listening to events.example.com',
       command: 'wss://events.example.com/stream',
@@ -175,61 +175,61 @@ describe('shells', () => {
     });
   });
 
-  it('balão de espera e fim do shell (marcadores para o mundo), sempre em até 46 caracteres com a duração inteira', () => {
-    expect(SPECIAL.waitingShell('Rodar a suíte')).toMatchObject({ kind: 'wait', icon: '⏳', text: 'Waiting on shell: Rodar a suíte', tool: 'ShellWait' });
+  it('waiting speech bubble and shell end (markers for the world), always within 46 characters with the whole duration', () => {
+    expect(SPECIAL.waitingShell('Run the suite')).toMatchObject({ kind: 'wait', icon: '⏳', text: 'Waiting on shell: Run the suite', tool: 'ShellWait' });
     expect(SPECIAL.waitingShell('Build', 3).text).toBe('Waiting on 3 shells: Build');
     expect(SPECIAL.waitingShell(undefined).text).toBe('Waiting on shell');
-    const ok = SPECIAL.shellDone('Rodar a suíte completa em grupos com phpunit', 'ok', 482_000, 'vendor/bin/phpunit');
-    expect(ok).toEqual({ kind: 'run', icon: '✅', text: 'Shell finished: Rodar a suíte compl… (8min 2s)', detail: 'vendor/bin/phpunit', tool: 'ShellDone' });
+    const ok = SPECIAL.shellDone('Run the full suite in groups with phpunit', 'ok', 482_000, 'vendor/bin/phpunit');
+    expect(ok).toEqual({ kind: 'run', icon: '✅', text: 'Shell finished: Run the full suite… (8min 2s)', detail: 'vendor/bin/phpunit', tool: 'ShellDone' });
     expect(ok.text.length).toBeLessThanOrEqual(46);
-    expect(SPECIAL.shellDone('Migração', 'failed')).toEqual({ kind: 'run', icon: '❌', text: 'Shell failed: Migração', tool: 'ShellDone', error: true });
-    expect(SPECIAL.shellDone('Migração', 'killed')).toMatchObject({ icon: '🛑', text: 'Shell interrupted: Migração', error: true });
+    expect(SPECIAL.shellDone('Migration', 'failed')).toEqual({ kind: 'run', icon: '❌', text: 'Shell failed: Migration', tool: 'ShellDone', error: true });
+    expect(SPECIAL.shellDone('Migration', 'killed')).toMatchObject({ icon: '🛑', text: 'Shell interrupted: Migration', error: true });
   });
 });
 
-describe('AskUserQuestion no escritório', () => {
-  it('leva as perguntas completas, com opções, para o cartão "Precisa de você"', () => {
+describe('AskUserQuestion in the office', () => {
+  it('carries the complete questions, with options, to the "Needs you" card', () => {
     const d = describeTool('AskUserQuestion', {
       questions: [
         {
-          question: 'Qual banco usar?',
-          header: 'Banco',
+          question: 'Which database to use?',
+          header: 'Database',
           multiSelect: false,
           options: [
-            { label: 'Postgres', description: 'Relacional, já usado no projeto' },
+            { label: 'Postgres', description: 'Relational, already used in the project' },
             { label: 'SQLite' },
           ],
         },
-        { question: 'Quais testes rodar?', multiSelect: true, options: [{ label: 'Unit' }, { label: 'E2E' }] },
+        { question: 'Which tests to run?', multiSelect: true, options: [{ label: 'Unit' }, { label: 'E2E' }] },
       ],
     });
-    expect(d).toMatchObject({ kind: 'ask', text: 'Asking you a question', detail: 'Qual banco usar?' });
+    expect(d).toMatchObject({ kind: 'ask', text: 'Asking you a question', detail: 'Which database to use?' });
     expect(d.questions).toEqual([
       {
         index: 0,
-        question: 'Qual banco usar?',
-        header: 'Banco',
+        question: 'Which database to use?',
+        header: 'Database',
         options: [
-          { index: 0, label: 'Postgres', description: 'Relacional, já usado no projeto' },
+          { index: 0, label: 'Postgres', description: 'Relational, already used in the project' },
           { index: 1, label: 'SQLite' },
         ],
       },
-      { index: 1, question: 'Quais testes rodar?', multiSelect: true, options: [{ index: 0, label: 'Unit' }, { index: 1, label: 'E2E' }] },
+      { index: 1, question: 'Which tests to run?', multiSelect: true, options: [{ index: 0, label: 'Unit' }, { index: 1, label: 'E2E' }] },
     ]);
   });
 
-  it('mascara segredos e ignora entradas inválidas', () => {
+  it('masks secrets and ignores invalid entries', () => {
     const d = describeTool('AskUserQuestion', {
-      questions: [null, { question: '' }, { question: 'Usar a chave sk-ant-api03-abcdefghijklmnopqrstuvwxyz0123456789?', options: [{ label: '' }, { label: 'Sim' }] }],
+      questions: [null, { question: '' }, { question: 'Use the key sk-ant-api03-abcdefghijklmnopqrstuvwxyz0123456789?', options: [{ label: '' }, { label: 'Yes' }] }],
     });
     expect(d.questions).toHaveLength(1);
     expect(d.questions![0]!.question).not.toContain('abcdefghijklmnop');
     // As posições são as do original (a resposta pelo escritório volta por elas), com as inválidas contadas.
     expect(d.questions![0]!.index).toBe(2);
-    expect(d.questions![0]!.options).toEqual([{ index: 1, label: 'Sim' }]);
+    expect(d.questions![0]!.options).toEqual([{ index: 1, label: 'Yes' }]);
   });
 
-  it('sem perguntas válidas, não cria o campo', () => {
+  it('without valid questions, does not create the field', () => {
     expect(describeTool('AskUserQuestion', {}).questions).toBeUndefined();
   });
 });

@@ -7,13 +7,13 @@ const H = 3_600_000;
 const T0 = 1_760_000_000_000;
 
 describe('WorldIds', () => {
-  it('formato do contrato: f_ + 10 hex e a_ + 8 hex', () => {
+  it('contract format: f_ + 10 hex and a_ + 8 hex', () => {
     const ids = new WorldIds();
-    expect(ids.floorId('/Users/ana/projeto', T0)).toMatch(/^f_[0-9a-f]{10}$/);
+    expect(ids.floorId('/Users/ana/project', T0)).toMatch(/^f_[0-9a-f]{10}$/);
     expect(ids.agentId('.claude:1234', T0)).toMatch(/^a_[0-9a-f]{8}$/);
   });
 
-  it('aleatórios, não derivados: a mesma chave dá ids diferentes em outra instância (outro processo)', () => {
+  it('random, not derived: the same key gives different ids in another instance (another process)', () => {
     const a = new WorldIds();
     const b = new WorldIds();
     const keys = Array.from({ length: 20 }, (_, i) => `/p/${i}`);
@@ -23,7 +23,7 @@ describe('WorldIds', () => {
     expect(new Set(fa).size).toBe(20);
   });
 
-  it('o mesmo id enquanto vale; troca entre 18 h e 30 h, cada id com o seu sorteio', () => {
+  it('the same id while it is valid; changes between 18 h and 30 h, each id with its own draw', () => {
     let j = 0;
     const jitters = [-ID_JITTER_MS, ID_JITTER_MS, 0];
     const ids = new WorldIds({ jitter: () => jitters[j++ % jitters.length] });
@@ -42,7 +42,7 @@ describe('WorldIds', () => {
     expect(ids.floorId('/p/b', T0 + 30 * H)).not.toBe(f2);
   });
 
-  it('o sorteio padrão fica entre 18 h e 30 h', () => {
+  it('the default draw is between 18 h and 30 h', () => {
     const ids = new WorldIds();
     for (let i = 0; i < 50; i++) {
       const key = `/p/${i}`;
@@ -52,7 +52,7 @@ describe('WorldIds', () => {
     }
   });
 
-  it('quem some e volta renasce com id novo; a memória não cresce', () => {
+  it('whoever disappears and comes back is reborn with a new id; the memory does not grow', () => {
     const ids = new WorldIds();
     const f = ids.floorId('/p/a', T0);
     const a = ids.agentId('m1', T0);
@@ -70,7 +70,7 @@ describe('WorldIds', () => {
     expect(ids.floorId('/p/a', T0 + 3000)).not.toBe(f);
   });
 
-  it('sem repetir id entre chaves, nem ao trocar', () => {
+  it('no repeated id between keys, nor when changing', () => {
     let n = 0;
     // Fonte "ruim": repete o mesmo valor algumas vezes antes de mudar.
     const ids = new WorldIds({ randomBytes: (len) => new Uint8Array(len).fill(Math.floor(n++ / 3)), jitter: () => 0 });
@@ -82,7 +82,7 @@ describe('WorldIds', () => {
     expect(c).not.toBe(b);
   });
 
-  it('clear esquece tudo', () => {
+  it('clear forgets everything', () => {
     const ids = new WorldIds();
     const f = ids.floorId('/p/a', T0);
     ids.clear();

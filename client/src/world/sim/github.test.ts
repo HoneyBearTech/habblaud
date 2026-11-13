@@ -70,16 +70,16 @@ function snap(rooms: RoomInfo[], agents: AgentInfo[], serverTime = T0, rev = 1):
     serverTime,
     rooms,
     agents,
-    accounts: [{ id: '.claude', short: 'C', name: 'Conta C', color: '#f08a3c', configDir: '~/.claude', sessions: 1, usageStatus: 'ok' }],
+    accounts: [{ id: '.claude', short: 'C', name: 'Account C', color: '#f08a3c', configDir: '~/.claude', sessions: 1, usageStatus: 'ok' }],
     meta: { demo: true, sources: [], startedAt: T0, version: 't' },
   };
 }
 
-const party = (at: number, agentId?: string): RoomEffect => ({ kind: 'party', text: 'PR #12 mergeado!', at, until: at + 12_000, ...(agentId ? { agentId } : {}) });
-const alarm = (at: number, agentId?: string): RoomEffect => ({ kind: 'alarm', text: 'CI falhou (main)', at, until: at + 600_000, ...(agentId ? { agentId } : {}) });
+const party = (at: number, agentId?: string): RoomEffect => ({ kind: 'party', text: 'PR #12 merged!', at, until: at + 12_000, ...(agentId ? { agentId } : {}) });
+const alarm = (at: number, agentId?: string): RoomEffect => ({ kind: 'alarm', text: 'CI failed (main)', at, until: at + 600_000, ...(agentId ? { agentId } : {}) });
 
-describe('efeitos das salas no mundo', () => {
-  it('converte para o relógio do navegador (relógios divergentes não importam)', () => {
+describe('room effects in the world', () => {
+  it('converts to the browser clock (diverging clocks do not matter)', () => {
     const fx = new RoomFxState();
     // servidor 1 h adiantado; a festa começou há 2 s no servidor
     const server = T0 + 3_600_000;
@@ -89,7 +89,7 @@ describe('efeitos das salas no mundo', () => {
     expect(fx.get('/a', T0 + 10_000)).toBeUndefined();
   });
 
-  it('mesmo efeito em snapshots seguidos é o mesmo (não recomeça); outro `at` recomeça', () => {
+  it('same effect in consecutive snapshots is the same (does not restart); another `at` restarts', () => {
     const fx = new RoomFxState();
     fx.sync([room('/a', 0, party(T0))], T0, T0);
     const first = fx.active.get('/a')!;
@@ -100,7 +100,7 @@ describe('efeitos das salas no mundo', () => {
     expect(fx.active.get('/a')!.cheered.size).toBe(0);
   });
 
-  it('some quando sai do snapshot (CI verde apagou o alarme) ou vence; o forçado pela depuração fica', () => {
+  it('disappears when it leaves the snapshot (green CI cleared the alarm) or expires; the one forced by debugging stays', () => {
     const fx = new RoomFxState();
     fx.sync([room('/a', 0, alarm(T0, 'ana')), room('/b', 1, alarm(T0))], T0, T0);
     expect(fx.alarmOwner('ana', T0 + 1)?.roomId).toBe('/a');
@@ -114,7 +114,7 @@ describe('efeitos das salas no mundo', () => {
     expect(fx.get('/c', T0)).toBeUndefined();
   });
 
-  it('giroflex: de frente, à direita, de costas, à esquerda; fade de entrada e saída', () => {
+  it('flashing beacon: facing front, to the right, facing back, to the left; fade in and out', () => {
     expect([0, 0.25, 0.5, 0.75, 0.95].map(beaconFrame)).toEqual([0, 1, 2, 3, 0]);
     expect(beaconFacing(0)).toBe(1);
     expect(beaconFacing(0.5)).toBe(0);
@@ -124,7 +124,7 @@ describe('efeitos das salas no mundo', () => {
   });
 });
 
-describe('festa: a sala comemora', () => {
+describe('party: the room celebrates', () => {
   function run(sim: Sim, clock: { now: number }, seconds: number): void {
     for (let i = 0; i < Math.round(seconds * 30); i++) {
       clock.now += 1000 / 30;
@@ -132,7 +132,7 @@ describe('festa: a sala comemora', () => {
     }
   }
 
-  it('quem está na mesa levanta e dá pulinhos; o responsável ganha estrela e confete; quem precisa de você não', () => {
+  it('whoever is at the desk gets up and hops; the one responsible gets a star and confetti; whoever needs you does not', () => {
     const sim = new Sim(art, () => ({ ...DEFAULT_WORLD_OPTIONS, liveliness: 'calm' }));
     const clock = { now: T0 };
     const agents = [agent('ana', '/a', 'working'), agent('bia', '/a', 'idle'), agent('caio', '/a', 'waiting'), agent('davi', '/b', 'working')];
@@ -162,7 +162,7 @@ describe('festa: a sala comemora', () => {
     expect(cheered.size).toBe(0);
   });
 
-  it('cada um começa num instante (a sala não pula em uníssono)', () => {
+  it('each one starts at its own instant (the room does not jump in unison)', () => {
     const delays = ['ana', 'bia', 'caio', 'davi', 'eva'].map(cheerDelay);
     expect(new Set(delays).size).toBeGreaterThan(1);
     for (const d of delays) expect(d).toBeLessThan(700);

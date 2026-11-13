@@ -89,65 +89,65 @@ function numbersIn(v: unknown, out: number[] = []): number[] {
 // O escritório cheio de canários
 // ---------------------------------------------------------------------------------------------------------------
 
-const CANARY_ROOM = '/Users/canario-usuario/projetos/CANARIO-PROJETO-SECRETO';
-const CANARY_ROOM_2 = '/home/canario2/CANARIO-CLIENTE-X';
-const MAIN_ID = '.claude-CANARIO-CONTA:91827';
-const SUB_ID = 'CANARIO-SESSAO-123:agent-CANARIO-456';
-const CODEX_ID = '.codex-CANARIO:thread-CANARIO-789';
+const CANARY_ROOM = '/Users/canary-user/projects/CANARY-SECRET-PROJECT';
+const CANARY_ROOM_2 = '/home/canary2/CANARY-CLIENT-X';
+const MAIN_ID = '.claude-CANARY-ACCOUNT:91827';
+const SUB_ID = 'CANARY-SESSION-123:agent-CANARY-456';
+const CODEX_ID = '.codex-CANARY:thread-CANARY-789';
 const SECRET_NUMBERS = { seed: 3141592653, cost: 1234.5678, lines: 98765, removed: 45678, tools: 7777, tokensIn: 5_550_001, tokensOut: 4_440_001 };
 
 function canaryOffice(): { rooms: RoomInfo[]; agents: AgentInfo[] } {
   const rooms = [
-    room(CANARY_ROOM, { name: 'CANARIO-NOME-DA-SALA (alias CANARIO-APELIDO)' }),
-    room(CANARY_ROOM_2, { name: 'CANARIO-SALA-2', effect: { kind: 'party', text: 'CANARIO-PR #12 mergeado', at: NOW, until: NOW + 12_000 } }),
+    room(CANARY_ROOM, { name: 'CANARY-ROOM-NAME (alias CANARY-NICKNAME)' }),
+    room(CANARY_ROOM_2, { name: 'CANARY-ROOM-2', effect: { kind: 'party', text: 'CANARY-PR #12 merged', at: NOW, until: NOW + 12_000 } }),
   ];
   const activity = {
-    id: 'act-CANARIO',
+    id: 'act-CANARY',
     kind: 'run' as const,
     icon: '🏃',
-    text: 'CANARIO-ATIVIDADE rodando testes',
-    detail: 'CANARIO-COMANDO npm test -- --secret=CANARIO-SEGREDO',
+    text: 'CANARY-ACTIVITY running tests',
+    detail: 'CANARY-COMMAND npm test -- --secret=CANARY-SECRET',
     tool: 'Bash',
     at: NOW - 500,
   };
   const common: Partial<AgentInfo> = {
-    title: 'CANARIO-TITULO corrigir o login de canario@exemplo.com',
+    title: 'CANARY-TITLE fix the login of canary@example.com',
     activity,
-    recent: [activity, { ...activity, id: 'act-CANARIO-2', text: 'CANARIO-RECENTE', kind: 'compact', icon: '🧹' }],
+    recent: [activity, { ...activity, id: 'act-CANARY-2', text: 'CANARY-RECENT', kind: 'compact', icon: '🧹' }],
     tasks: [
-      { id: '1', title: 'CANARIO-TAREFA escrever testes', status: 'completed', activeForm: 'CANARIO-TAREFA-GERUNDIO' },
-      { id: '2', title: 'CANARIO-TAREFA-2', status: 'in_progress' },
+      { id: '1', title: 'CANARY-TASK write tests', status: 'completed', activeForm: 'CANARY-TASK-GERUND' },
+      { id: '2', title: 'CANARY-TASK-2', status: 'in_progress' },
     ],
-    shells: [{ id: 'sh-CANARIO', label: 'CANARIO-SHELL', command: 'CANARIO-COMANDO-SHELL rm -rf /tmp/x', startedAt: NOW - 9000, background: true, kind: 'shell' }],
-    model: 'claude-CANARIO-MODELO-opus',
-    gitBranch: 'feat/CANARIO-BRANCH',
-    permissionMode: 'CANARIO-PERMISSAO',
-    waitingFor: 'CANARIO-ESPERA aprovar canario@exemplo.com',
+    shells: [{ id: 'sh-CANARY', label: 'CANARY-SHELL', command: 'CANARY-SHELL-COMMAND rm -rf /tmp/x', startedAt: NOW - 9000, background: true, kind: 'shell' }],
+    model: 'claude-CANARY-MODEL-opus',
+    gitBranch: 'feat/CANARY-BRANCH',
+    permissionMode: 'CANARY-PERMISSION',
+    waitingFor: 'CANARY-WAIT approve canary@example.com',
     stats: { toolCalls: SECRET_NUMBERS.tools, tokensIn: SECRET_NUMBERS.tokensIn, tokensOut: SECRET_NUMBERS.tokensOut, costUSD: SECRET_NUMBERS.cost, linesAdded: SECRET_NUMBERS.lines, linesRemoved: SECRET_NUMBERS.removed, subagents: 1 },
     seed: SECRET_NUMBERS.seed,
     startedAt: 1_700_000_000_123,
     lastEventAt: 1_700_000_000_456,
     statusSince: 1_700_000_000_789,
-    role: 'CANARIO-PAPEL',
+    role: 'CANARY-ROLE',
     canMessage: true,
   };
   const agents = [
     agent(MAIN_ID, CANARY_ROOM, {
       ...common,
-      name: 'CANARIONOMEEDITADO Silva',
+      name: 'CANARYEDITEDNAME Silva',
       custom: true,
       parts: { hair: '#e47aa8', hairStyle: 'afro' },
-      account: '.claude-CANARIO-CONTA',
-      sessionId: 'CANARIO-SESSAO-123',
+      account: '.claude-CANARY-ACCOUNT',
+      sessionId: 'CANARY-SESSION-123',
       status: 'waiting',
     }),
-    agent(SUB_ID, CANARY_ROOM, { ...common, kind: 'sub', parentId: MAIN_ID, name: 'Caio', look: 'm', account: '.claude-CANARIO-CONTA', background: true, sessionId: 'CANARIO-SESSAO-123' }),
-    agent(CODEX_ID, CANARY_ROOM_2, { ...common, provider: 'codex', name: 'Rafael', look: 'm', account: '.codex-CANARIO', status: 'shell' }),
+    agent(SUB_ID, CANARY_ROOM, { ...common, kind: 'sub', parentId: MAIN_ID, name: 'Caio', look: 'm', account: '.claude-CANARY-ACCOUNT', background: true, sessionId: 'CANARY-SESSION-123' }),
+    agent(CODEX_ID, CANARY_ROOM_2, { ...common, provider: 'codex', name: 'Rafael', look: 'm', account: '.codex-CANARY', status: 'shell' }),
   ];
   return { rooms, agents };
 }
 
-describe('projeção: lista fechada', () => {
+describe('projection: closed list', () => {
   const { rooms, agents } = canaryOffice();
   const ids = new FakeIds();
   const u = project(
@@ -157,7 +157,7 @@ describe('projeção: lista fechada', () => {
   );
   const json = JSON.stringify(u);
 
-  it('o pacote passa no schema.json e tem o que o escritório tem', () => {
+  it('the packet passes schema.json and has what the office has', () => {
     expect(validate(u)).toEqual([]);
     expect(u.floors).toHaveLength(2);
     expect(agentsOf(u)).toHaveLength(3);
@@ -167,19 +167,19 @@ describe('projeção: lista fechada', () => {
     expect(json).toContain('"compacted"');
   });
 
-  it('teste de chaves: toda chave, em qualquer nível, está na lista fechada tirada do schema.json', () => {
+  it('key test: every key, at any level, is in the closed list taken from schema.json', () => {
     for (const path of jsonKeyPaths(u)) expect(ALLOWED, path).toContain(path);
     expect(ALLOWED.size).toBe(32);
   });
 
-  it('teste de canários: nenhum texto do escritório aparece no JSON', () => {
-    expect(json.toLowerCase()).not.toContain('canario');
-    for (const s of [CANARY_ROOM, CANARY_ROOM_2, MAIN_ID, SUB_ID, CODEX_ID, '@exemplo.com', 'Silva', 'Bash', 'opus', 'feat/', '/Users', '/home', '.claude', '.codex', 'sess-', 'Main agent']) {
+  it('canary test: no text from the office appears in the JSON', () => {
+    expect(json.toLowerCase()).not.toContain('canary');
+    for (const s of [CANARY_ROOM, CANARY_ROOM_2, MAIN_ID, SUB_ID, CODEX_ID, '@example.com', 'Silva', 'Bash', 'opus', 'feat/', '/Users', '/home', '.claude', '.codex', 'sess-', 'Main agent']) {
       expect(json, s).not.toContain(s);
     }
   });
 
-  it('nenhum número além de v, tasksDone e tokens; nada que pareça horário (1e12 a 2e12)', () => {
+  it('no number besides v, tasksDone and tokens; nothing that looks like a time (1e12 to 2e12)', () => {
     const nums = numbersIn(u);
     for (const n of nums) expect(n < 1e12 || n > 2e12, String(n)).toBe(true);
     const allowed = new Set([1, 0, 2, 3, u.tokens!.day, u.tokens!.week]);
@@ -188,22 +188,22 @@ describe('projeção: lista fechada', () => {
     expect(json).not.toContain(String(SECRET_NUMBERS.seed));
   });
 
-  it('ids só do mundo, nunca do escritório', () => {
+  it('ids only from the world, never from the office', () => {
     for (const f of u.floors) expect(f.id).toMatch(/^f_[0-9a-f]{10}$/);
     for (const a of agentsOf(u)) expect(a.id).toMatch(/^a_[0-9a-f]{8}$/);
     expect(u.floors.map((f) => f.id).sort()).toEqual([ids.floors.get(CANARY_ROOM), ids.floors.get(CANARY_ROOM_2)].sort());
   });
 });
 
-describe('projeção: regras', () => {
-  it('demonstração nunca entra (nem pede id do mundo)', () => {
+describe('projection: rules', () => {
+  it('demo never gets in (nor asks for a world id)', () => {
     const ids = new FakeIds();
-    const rooms = [room('/p/real'), room('demo:/sala-demo')];
+    const rooms = [room('/p/real'), room('demo:/demo-room')];
     const agents = [
       agent('acc:1', '/p/real'),
-      agent('demo:agente-1', 'demo:/sala-demo'),
-      agent('demo:agente-2', '/p/real'),
-      agent('acc:2', 'demo:/sala-demo'),
+      agent('demo:agent-1', 'demo:/demo-room'),
+      agent('demo:agent-2', '/p/real'),
+      agent('acc:2', 'demo:/demo-room'),
     ];
     const u = project(input(rooms, agents), ids, NOW);
     expect(u.floors).toHaveLength(1);
@@ -213,8 +213,8 @@ describe('projeção: regras', () => {
     expect(project(input([room('demo:/x')], [agent('demo:a', 'demo:/x')]), new FakeIds(), NOW).floors).toEqual([]);
   });
 
-  it('só agentes presentes: done e offline somem, e a sala sem ninguém presente não vira andar', () => {
-    const rooms = [room('/p/a'), room('/p/b'), room('/p/vazia')];
+  it('only present agents: done and offline disappear, and the room with nobody present does not become a floor', () => {
+    const rooms = [room('/p/a'), room('/p/b'), room('/p/empty')];
     const agents = [
       agent('m1', '/p/a', { status: 'working' }),
       agent('m2', '/p/a', { status: 'idle' }),
@@ -228,7 +228,7 @@ describe('projeção: regras', () => {
     expect(agentsOf(u).map((a) => a.status).sort()).toEqual(['idle', 'shell', 'waiting', 'working']);
   });
 
-  it('ordem pelo id do mundo, não pela chegada; principais antes dos subagentes', () => {
+  it('order by the world id, not by arrival; main agents before the subagents', () => {
     const rooms = Array.from({ length: 6 }, (_, i) => room(`/p/${i}`));
     const agents = rooms.flatMap((r, i) => [agent(`m${i}`, r.id), agent(`s${i}`, r.id, { kind: 'sub', parentId: `m${i}` }), agent(`n${i}`, r.id)]);
     const u = project(input(rooms, agents), new FakeIds(), NOW);
@@ -241,9 +241,9 @@ describe('projeção: regras', () => {
     }
   });
 
-  it('nome sempre do pool, do mesmo look, sem repetir, e independente do nome do escritório', () => {
+  it('name always from the pool, of the same look, without repeating, and independent of the office name', () => {
     const rooms = [room('/p/a')];
-    const agents = Array.from({ length: 40 }, (_, i) => agent(`m${i}`, '/p/a', { name: i % 2 ? 'Fulano de Tal' : 'Ana', look: i % 3 ? 'f' : 'm' }));
+    const agents = Array.from({ length: 40 }, (_, i) => agent(`m${i}`, '/p/a', { name: i % 2 ? 'John Doe' : 'Ana', look: i % 3 ? 'f' : 'm' }));
     const ids = new FakeIds();
     const u = project(input(rooms, agents), ids, NOW);
     const names = agentsOf(u).map((a) => a.name);
@@ -253,11 +253,11 @@ describe('projeção: regras', () => {
       expect(LOOK_OF.get(a.name), a.name).toBe(a.look);
     }
     // Trocar o nome (editado) no escritório não muda nada no mundo.
-    const renamed = agents.map((a) => ({ ...a, name: 'Nome Real Da Pessoa', custom: true as const }));
+    const renamed = agents.map((a) => ({ ...a, name: 'Real Name Of The Person', custom: true as const }));
     expect(project(input(rooms, renamed), ids, NOW)).toEqual(u);
   });
 
-  it('pool esgotado: sufixo numérico, ainda do pool', () => {
+  it('pool exhausted: numeric suffix, still from the pool', () => {
     const agents = Array.from({ length: 64 }, (_, i) => agent(`m${i}`, '/p/a', { look: 'm' }));
     const u = project(input([room('/p/a')], agents), new FakeIds(), NOW);
     const names = agentsOf(u).map((a) => a.name);
@@ -267,7 +267,7 @@ describe('projeção: regras', () => {
     expect(validate(u)).toEqual([]);
   });
 
-  it('o nome fica enquanto o id do mundo não troca, mesmo com outro agente saindo', () => {
+  it('the name stays while the world id does not change, even with another agent leaving', () => {
     const rooms = [room('/p/a')];
     const agents = Array.from({ length: 30 }, (_, i) => agent(`m${i}`, '/p/a', { look: 'f' }));
     const ids = new FakeIds();
@@ -276,11 +276,11 @@ describe('projeção: regras', () => {
     const second = project(input(rooms, agents.slice(5), { previousNames: previous }), ids, NOW);
     for (const a of agentsOf(second)) expect(a.name).toBe(previous.get(a.id));
     // Nome anterior fora do pool (ou de outro look) não é aceito.
-    const bad = new Map([[agentsOf(first)[0].id, 'Nome Inventado']]);
-    expect(agentsOf(project(input(rooms, agents, { previousNames: bad }), ids, NOW))[0].name).not.toBe('Nome Inventado');
+    const bad = new Map([[agentsOf(first)[0].id, 'Made Up Name']]);
+    expect(agentsOf(project(input(rooms, agents, { previousNames: bad }), ids, NOW))[0].name).not.toBe('Made Up Name');
   });
 
-  it('aparência: sorteada do id do mundo (nunca da semente) com as peças do editor por cima', () => {
+  it('appearance: drawn from the world id (never from the seed) with the parts from the editor on top', () => {
     const ids = new FakeIds();
     const a = agent('m1', '/p/a', { seed: 111, look: 'm' });
     const u1 = project(input([room('/p/a')], [a]), ids, NOW);
@@ -293,7 +293,7 @@ describe('projeção: regras', () => {
     expect(agentsOf(edited)[0].parts).toEqual({ ...flattenAppearance(hash32(wid), undefined, 'm'), skin: '#5a3623', topStyle: 'polo' });
   });
 
-  it('parentId vira o id do mundo do pai; subagente sem o pai no pacote vai sem parentId', () => {
+  it('parentId becomes the world id of the parent; subagent without the parent in the packet goes without parentId', () => {
     const ids = new FakeIds();
     const rooms = [room('/p/a')];
     const agents = [
@@ -302,7 +302,7 @@ describe('projeção: regras', () => {
       agent('s2', '/p/a', { kind: 'sub', parentId: 's1' }),
       agent('m2', '/p/a', { status: 'offline' }),
       agent('s3', '/p/a', { kind: 'sub', parentId: 'm2' }),
-      agent('s4', '/p/a', { kind: 'sub', parentId: 'nao-existe' }),
+      agent('s4', '/p/a', { kind: 'sub', parentId: 'does-not-exist' }),
     ];
     const u = project(input(rooms, agents), ids, NOW);
     const byId = new Map(agentsOf(u).map((a) => [a.id, a]));
@@ -317,12 +317,12 @@ describe('projeção: regras', () => {
     expect(validate(u)).toEqual([]);
   });
 
-  it('provider ausente é claude; codex continua codex', () => {
+  it('absent provider is claude; codex stays codex', () => {
     const u = project(input([room('/p/a')], [agent('m1', '/p/a'), agent('m2', '/p/a', { provider: 'codex' })]), new FakeIds(), NOW);
     expect(agentsOf(u).map((a) => a.provider).sort()).toEqual(['claude', 'codex']);
   });
 
-  it('tokens só com tokensVisible, arredondados a 2 algarismos', () => {
+  it('tokens only with tokensVisible, rounded to 2 digits', () => {
     const base = input([room('/p/a')], [agent('m1', '/p/a')], { tokens: { day: 1_234_567, week: 98_765_432.7 } });
     expect(project(base, new FakeIds(), NOW).tokens).toEqual({ day: 1_200_000, week: 99_000_000 });
     expect(project({ ...base, options: { ...base.options, tokensVisible: false } }, new FakeIds(), NOW).tokens).toBeUndefined();
@@ -330,7 +330,7 @@ describe('projeção: regras', () => {
     expect([0, -5, NaN, 7, 99, 100, 149, 150, 12_345, 850_123, 1e16].map(roundTokens)).toEqual([0, 0, 0, 7, 99, 100, 150, 150, 12_000, 850_000, 1e15]);
   });
 
-  it('compacted só com o opt-in e só para quem compactou', () => {
+  it('compacted only with the opt-in and only for whoever compacted', () => {
     const agents = [agent('m1', '/p/a'), agent('m2', '/p/a')];
     const ids = new FakeIds();
     const on = project(input([room('/p/a')], agents, { options: { compactions: true, tokensVisible: true }, compacted: new Set(['m1']) }), ids, NOW);
@@ -340,7 +340,7 @@ describe('projeção: regras', () => {
     expect(JSON.stringify(off)).not.toContain('compacted');
   });
 
-  it('tasksDone: faixa das concluídas no dia (a contagem do chamador vale sobre a lista)', () => {
+  it('tasksDone: range of the ones completed in the day (the count from the caller wins over the list)', () => {
     expect([0, 1, 2, 3, 5, 6, 40, -1, NaN].map(tasksBand)).toEqual([0, 1, 1, 2, 2, 3, 3, 0, 0]);
     const done = (n: number) => Array.from({ length: n }, (_, i) => ({ id: String(i), title: 'x', status: 'completed' as const }));
     const agents = [agent('m1', '/p/a', { tasks: done(4) }), agent('m2', '/p/a', { tasks: done(1) })];
@@ -351,14 +351,14 @@ describe('projeção: regras', () => {
     expect(by.get(ids.agents.get('m2')!)).toBe(3);
   });
 
-  it('tema e versão como vieram', () => {
+  it('theme and version as they came', () => {
     const u = project(input([], [], { theme: 'halloween', version: '1.2.3' }), new FakeIds(), NOW);
     expect(u).toEqual({ v: 1, version: '1.2.3', theme: 'halloween', floors: [] });
   });
 });
 
-describe('projeção: limites', () => {
-  it('64 andares no máximo; o resto fica de fora e é avisado', () => {
+describe('projection: limits', () => {
+  it('64 floors at most; the rest is left out and is reported', () => {
     const rooms = Array.from({ length: 70 }, (_, i) => room(`/p/${i}`));
     const r = projectWithReport(input(rooms, rooms.map((x, i) => agent(`m${i}`, x.id))), new FakeIds(), NOW);
     expect(r.uplink.floors).toHaveLength(UPLINK_LIMITS.floors);
@@ -366,7 +366,7 @@ describe('projeção: limites', () => {
     expect(validate(r.uplink)).toEqual([]);
   });
 
-  it('64 agentes por andar; principais ficam, subagentes saem primeiro', () => {
+  it('64 agents per floor; main agents stay, subagents leave first', () => {
     const agents = [
       ...Array.from({ length: 50 }, (_, i) => agent(`m${i}`, '/p/a')),
       ...Array.from({ length: 30 }, (_, i) => agent(`s${i}`, '/p/a', { kind: 'sub', parentId: `m${i}` })),
@@ -378,7 +378,7 @@ describe('projeção: limites', () => {
     expect(r.truncated).toEqual({ floors: 0, agents: 16 });
   });
 
-  it('256 agentes no total e 64 KB: corta, continua válido e nenhum subagente aponta para fora do pacote', () => {
+  it('256 agents in total and 64 KB: cuts, stays valid and no subagent points outside the packet', () => {
     const rooms = Array.from({ length: 10 }, (_, i) => room(`/p/${i}`));
     const agents = rooms.flatMap((r, i) => [
       ...Array.from({ length: 15 }, (_, j) => agent(`m${i}-${j}`, r.id, { look: j % 2 ? 'f' : 'm' })),
@@ -396,7 +396,7 @@ describe('projeção: limites', () => {
     for (const f of r.uplink.floors) expect(f.agents.length).toBeGreaterThan(0);
   });
 
-  it('um escritório comum (3 projetos, 5 agentes) cabe em uns 2 KB e não é cortado', () => {
+  it('an ordinary office (3 projects, 5 agents) fits in about 2 KB and is not cut', () => {
     const rooms = [room('/p/a'), room('/p/b'), room('/p/c')];
     const agents = [agent('m1', '/p/a'), agent('s1', '/p/a', { kind: 'sub', parentId: 'm1' }), agent('m2', '/p/b'), agent('m3', '/p/c'), agent('m4', '/p/c')];
     const r = projectWithReport(input(rooms, agents, { tokens: { day: 850_000, week: 12_000_000 } }), new FakeIds(), NOW);

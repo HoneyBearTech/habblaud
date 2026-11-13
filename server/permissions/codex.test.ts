@@ -31,9 +31,9 @@ function setup() {
     permissions: () => permissions?.snapshot() ?? new Map(),
     now: clock.now,
   });
-  office.addMain({ id: MAIN, provider: 'codex', account: '.codex', sessionId: THREAD, cwd: '/p/loja', role: 'Main agent', startedAt: 0, status: 'working' });
+  office.addMain({ id: MAIN, provider: 'codex', account: '.codex', sessionId: THREAD, cwd: '/p/store', role: 'Main agent', startedAt: 0, status: 'working' });
   office.addSub({ id: SUB, parentId: MAIN, sessionId: CHILD, role: 'worker', background: false, startedAt: 0 });
-  office.addMain({ id: CLAUDE, account: 'acc', sessionId: 'sess-1', cwd: '/p/loja', role: 'Main agent', startedAt: 0, status: 'working' });
+  office.addMain({ id: CLAUDE, account: 'acc', sessionId: 'sess-1', cwd: '/p/store', role: 'Main agent', startedAt: 0, status: 'working' });
   const scans: string[] = [];
   permissions = new PermissionRegistry({
     office,
@@ -42,7 +42,7 @@ function setup() {
       scans.push(id);
       return undefined;
     },
-    codexAccount: (account, codexHome) => (codexHome === '/u/.codex-dois' ? '.codex~2' : account),
+    codexAccount: (account, codexHome) => (codexHome === '/u/.codex-two' ? '.codex~2' : account),
     now: clock.now,
   });
   return { office, registry: permissions, clock, scans };
@@ -54,7 +54,7 @@ function codexInput(over: Record<string, unknown> = {}) {
     account: '.codex',
     codexHome: '/u/.codex',
     session_id: THREAD,
-    cwd: '/p/loja',
+    cwd: '/p/store',
     tool_name: 'Bash',
     tool_input: { command: 'npm test', description: 'Run the tests' },
     timeout_ms: 25_000,
@@ -63,14 +63,14 @@ function codexInput(over: Record<string, unknown> = {}) {
 }
 
 function registered(r: ReturnType<PermissionRegistry['register']>): string {
-  if ('skip' in r) throw new Error(`pulou: ${r.skip}`);
+  if ('skip' in r) throw new Error(`skipped: ${r.skip}`);
   return r.id;
 }
 
 const snapAgent = (office: Office, id: string) => office.commit().snapshot.agents.find((a) => a.id === id);
 
-describe('PermissionRegistry: pedidos do Codex', () => {
-  it('publica no agente do Codex: provider codex, "aprovar um comando", sem sugestões', () => {
+describe('PermissionRegistry: Codex requests', () => {
+  it('publishes on the Codex agent: provider codex, "approve a command", no suggestions', () => {
     const { office, registry } = setup();
     const permission_suggestions = [{ type: 'addRules', rules: [{ toolName: 'Bash' }], behavior: 'allow', destination: 'localSettings' }];
     const id = registered(registry.register(codexInput({ permission_suggestions })));
@@ -83,7 +83,7 @@ describe('PermissionRegistry: pedidos do Codex', () => {
     expect(snapAgent(office, CLAUDE)!.permission).toBeUndefined();
   });
 
-  it('casa pelo thread: agent_id do subagente conhecido vai para ele; desconhecido vai para o principal com o tipo', () => {
+  it('matches by the thread: agent_id of a known subagent goes to it; unknown goes to the main agent with the type', () => {
     const { office, registry } = setup();
     registered(registry.register(codexInput({ agent_id: CHILD, agent_type: 'worker' })));
     expect(snapAgent(office, SUB)!.permission).toMatchObject({ provider: 'codex' });
@@ -92,24 +92,24 @@ describe('PermissionRegistry: pedidos do Codex', () => {
     expect(snapAgent(office, MAIN)!.permission).toMatchObject({ subagent: 'explorer' });
   });
 
-  it('a conta só desempata (pela pasta CODEX_HOME); thread desconhecido ou agente do Claude Code: unknown-session', () => {
+  it('the account only breaks the tie (by the CODEX_HOME folder); unknown thread or Claude Code agent: unknown-session', () => {
     const { office, registry } = setup();
     office.addMain({ id: `.codex~2:${THREAD}`, provider: 'codex', account: '.codex~2', sessionId: THREAD, cwd: '/p/api', role: 'Main agent', startedAt: 0, status: 'working' });
-    registered(registry.register(codexInput({ account: '.codex-dois', codexHome: '/u/.codex-dois' })));
+    registered(registry.register(codexInput({ account: '.codex-two', codexHome: '/u/.codex-two' })));
     expect(snapAgent(office, `.codex~2:${THREAD}`)!.permission).toBeDefined();
     expect(snapAgent(office, MAIN)!.permission).toBeUndefined();
     // Conta que ninguém tem: vale o thread.
-    registered(registry.register(codexInput({ account: '.codex-x', codexHome: '/outra' })));
+    registered(registry.register(codexInput({ account: '.codex-x', codexHome: '/other' })));
     expect(snapAgent(office, MAIN)!.permission).toBeDefined();
     expect(registry.register(codexInput({ session_id: 'sess-1' }))).toEqual({ skip: 'unknown-session' });
     // Pedido do Claude Code (sem provider) com o thread do Codex: não acha o agente do Codex.
     expect(registry.register({ session_id: THREAD, tool_name: 'Bash', tool_input: { command: 'ls' } })).toEqual({ skip: 'unknown-session' });
   });
 
-  it('decisões: allow e deny com motivo valem; interromper e "sempre permitir" = unsupported; answer = invalid-answer; terminal libera', async () => {
+  it('decisions: allow and deny with a reason count; interrupting and "always allow" = unsupported; answer = invalid-answer; terminal releases', async () => {
     const { registry } = setup();
     const id = registered(registry.register(codexInput()));
-    expect(registry.decide(id, { behavior: 'deny', message: 'não', interrupt: true })).toBe('unsupported');
+    expect(registry.decide(id, { behavior: 'deny', message: 'no', interrupt: true })).toBe('unsupported');
     expect(registry.decide(id, { behavior: 'allow', suggestion: 0 })).toBe('unsupported');
     expect(registry.decide(id, { behavior: 'answer', answers: [{ question: 0, options: [0] }] })).toBe('invalid-answer');
     const w = registry.wait(id, 10_000)!;
@@ -122,14 +122,14 @@ describe('PermissionRegistry: pedidos do Codex', () => {
     expect(await w2.result).toEqual({ status: 'released', reason: 'terminal' });
   });
 
-  it('AskUserQuestion vindo do Codex não é pergunta: aprova-se como os outros pedidos', () => {
+  it('AskUserQuestion coming from Codex is not a question: it is approved like the other requests', () => {
     const { registry } = setup();
-    const id = registered(registry.register(codexInput({ tool_name: 'AskUserQuestion', tool_input: { questions: [{ question: 'Qual?', options: [{ label: 'A' }] }] } })));
+    const id = registered(registry.register(codexInput({ tool_name: 'AskUserQuestion', tool_input: { questions: [{ question: 'Which?', options: [{ label: 'A' }] }] } })));
     expect(registry.detail(id)!.questions).toBeUndefined();
     expect(registry.decide(id, { behavior: 'allow' })).toBe('ok');
   });
 
-  it('sem a busca da resposta no terminal: o transcript nunca é lido e o principal que deixa de esperar não libera o pedido', () => {
+  it('without the lookup of the answer in the terminal: the transcript is never read and the main agent that stops waiting does not release the request', () => {
     const { office, registry, clock, scans } = setup();
     const id = registered(registry.register(codexInput()));
     const w = registry.wait(id, 25_000)!;
@@ -145,29 +145,29 @@ describe('PermissionRegistry: pedidos do Codex', () => {
   });
 });
 
-describe('codexToolView: nomes de ferramenta do Codex', () => {
-  it('Bash: título e resumo; acesso à rede com título próprio', () => {
+describe('codexToolView: Codex tool names', () => {
+  it('Bash: title and summary; network access with its own title', () => {
     expect(codexToolView('Bash', { command: 'npm test' }, '/p')).toMatchObject({ title: 'Bash(npm test)', input: 'npm test', inputKind: 'command' });
-    const net = codexToolView('Bash', { command: 'curl https://api.exemplo.dev', description: 'network-access api.exemplo.dev:443' });
-    expect(net).toMatchObject({ title: 'Network(api.exemplo.dev:443)', text: 'Access the network: api.exemplo.dev:443', icon: '🌐', input: 'curl https://api.exemplo.dev' });
+    const net = codexToolView('Bash', { command: 'curl https://api.example.dev', description: 'network-access api.example.dev:443' });
+    expect(net).toMatchObject({ title: 'Network(api.example.dev:443)', text: 'Access the network: api.example.dev:443', icon: '🌐', input: 'curl https://api.example.dev' });
   });
 
-  it('apply_patch: arquivos do patch no título e o patch como diff', () => {
-    const patch = ['*** Begin Patch', '*** Update File: /p/src/app.ts', '@@', '-antes', '+depois', '*** Add File: /p/src/novo.ts', '+export {};', '*** End Patch'].join('\n');
+  it('apply_patch: files of the patch in the title and the patch as a diff', () => {
+    const patch = ['*** Begin Patch', '*** Update File: /p/src/app.ts', '@@', '-before', '+after', '*** Add File: /p/src/new.ts', '+export {};', '*** End Patch'].join('\n');
     expect(patchFiles(patch)).toEqual([
       { op: 'Update', path: '/p/src/app.ts' },
-      { op: 'Add', path: '/p/src/novo.ts' },
+      { op: 'Add', path: '/p/src/new.ts' },
     ]);
     const v = codexToolView('apply_patch', { command: patch }, '/p');
     expect(v).toMatchObject({ title: 'apply_patch(src/app.ts +1)', text: 'Editing 2 files', inputKind: 'diff' });
-    expect(v.input).toContain('-antes\n+depois');
-    expect(codexToolView('apply_patch', { command: '*** Begin Patch\n*** Add File: novo.md\n+oi\n*** End Patch' })).toMatchObject({ title: 'apply_patch(novo.md)', text: 'Creating novo.md', icon: '📝' });
-    expect(codexToolView('apply_patch', { command: '*** Begin Patch\n*** Delete File: velho.md\n*** End Patch' })).toMatchObject({ text: 'Deleting velho.md', icon: '🗑️' });
+    expect(v.input).toContain('-before\n+after');
+    expect(codexToolView('apply_patch', { command: '*** Begin Patch\n*** Add File: new.md\n+hi\n*** End Patch' })).toMatchObject({ title: 'apply_patch(new.md)', text: 'Creating new.md', icon: '📝' });
+    expect(codexToolView('apply_patch', { command: '*** Begin Patch\n*** Delete File: old.md\n*** End Patch' })).toMatchObject({ text: 'Deleting old.md', icon: '🗑️' });
   });
 
-  it('request_permissions, mcp__ e write_stdin (session_id ali é de processo; o texto só no detalhe, mascarado)', () => {
-    expect(codexToolView('request_permissions', { reason: 'Preciso gravar fora do projeto', permissions: { fileSystem: { write: ['/tmp/x'] } } })).toMatchObject({
-      title: 'request_permissions(Preciso gravar fora do projeto)',
+  it('request_permissions, mcp__ and write_stdin (session_id there is for a process; the text only in the detail, masked)', () => {
+    expect(codexToolView('request_permissions', { reason: 'I need to write outside the project', permissions: { fileSystem: { write: ['/tmp/x'] } } })).toMatchObject({
+      title: 'request_permissions(I need to write outside the project)',
       text: 'Asking for more permissions',
       icon: '🔐',
       inputKind: 'json',

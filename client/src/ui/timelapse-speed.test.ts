@@ -92,7 +92,7 @@ function press(el: FakeEl, key: string): { defaultPrevented: boolean; stopped: b
   return ev;
 }
 
-describe('timelapse: velocidade', () => {
+describe('timelapse: speed', () => {
   let restore: (() => void) | null = null;
 
   afterEach(() => {
@@ -100,7 +100,7 @@ describe('timelapse: velocidade', () => {
     restore = null;
   });
 
-  it('ArrowRight no rádio focado escolhe a próxima velocidade', () => {
+  it('ArrowRight on the focused radio picks the next speed', () => {
     restore = installDom();
     const player = new TimelapsePlayer({ invalidate() {} } as UiContext);
     const radios = radiosOf(player.el as unknown as FakeEl);

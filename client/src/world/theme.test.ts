@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { seasonalThemeFor } from './api';
 
-describe('tema do escritório', () => {
+describe('office theme', () => {
   const at = (month: number, day: number, hour = 12) => new Date(2026, month - 1, day, hour);
 
-  it('automático segue o calendário (hora local)', () => {
+  it('automatic follows the calendar (local time)', () => {
     expect(seasonalThemeFor('auto', at(9, 30, 23))).toBe('none');
     expect(seasonalThemeFor('auto', at(10, 1, 0))).toBe('halloween');
     expect(seasonalThemeFor('auto', at(10, 31, 23))).toBe('halloween');
@@ -17,7 +17,7 @@ describe('tema do escritório', () => {
     expect(seasonalThemeFor(undefined, at(10, 13))).toBe('halloween');
   });
 
-  it('escolha fixa vale o ano todo', () => {
+  it('fixed choice holds all year', () => {
     for (const date of [at(1, 1), at(10, 13), at(12, 1)]) {
       expect(seasonalThemeFor('none', date)).toBe('none');
       expect(seasonalThemeFor('christmas', date)).toBe('christmas');

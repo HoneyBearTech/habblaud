@@ -15,7 +15,7 @@ const CLAUDE_LINE = JSON.stringify({
   uuid: '00000000-0000-4000-8000-000000000001',
   timestamp: new Date(1_000).toISOString(),
   sessionId: 's',
-  message: { role: 'user', content: 'oi' },
+  message: { role: 'user', content: 'hi' },
 });
 
 /** Parser marcado: cada linha vira uma entrada 'user' com o id `${tag}-${n}`. */
@@ -38,7 +38,7 @@ function fakeSource(provider: Provider, opts: Partial<AgentSource> & { paths?: R
 }
 
 describe('SourceSet', () => {
-  it('fontes, transcript e parser por agente (o da fonte dona; senão o do Claude Code)', () => {
+  it('sources, transcript and parser per agent (that of the owning source; otherwise that of Claude Code)', () => {
     const claude = fakeSource('claude', { paths: { 'c:1': '/t/c1.jsonl' } });
     const codex = fakeSource('codex', {
       paths: { '.codex:t1': '/t/rollout.jsonl', '.codex:t2': '/t/rollout2.jsonl' },
@@ -55,7 +55,7 @@ describe('SourceSet', () => {
     ]);
     expect(set.transcriptPathOf('c:1')).toBe('/t/c1.jsonl');
     expect(set.transcriptPathOf('.codex:t1')).toBe('/t/rollout.jsonl');
-    expect(set.transcriptPathOf('ninguem')).toBeUndefined();
+    expect(set.transcriptPathOf('nobody')).toBeUndefined();
 
     // Agente do Codex: o parser da fonte dele, um novo a cada chamada.
     const p1 = set.parserFor('.codex:t1');
@@ -64,13 +64,13 @@ describe('SourceSet', () => {
     expect(p1.push('x').map((e) => e.id)).toEqual(['cx-1']);
     expect(p2.push('x').map((e) => e.id)).toEqual(['cx-1']);
     // Fonte sem parser próprio (ou que não devolve um), agente desconhecido: o do Claude Code.
-    for (const id of ['c:1', '.codex:t2', 'ninguem']) {
+    for (const id of ['c:1', '.codex:t2', 'nobody']) {
       const entries = set.parserFor(id).push(CLAUDE_LINE);
-      expect(entries).toMatchObject([{ kind: 'user', text: 'oi' }]);
+      expect(entries).toMatchObject([{ kind: 'user', text: 'hi' }]);
     }
   });
 
-  it('start na ordem (as síncronas terminam ali); a falha de uma fonte não derruba as outras', async () => {
+  it('start in order (the synchronous ones finish there); the failure of one source does not bring down the others', async () => {
     const log: string[] = [];
     let release!: () => void;
     const slow = new Promise<void>((ok) => (release = ok));
@@ -85,13 +85,13 @@ describe('SourceSet', () => {
       }),
       fakeSource('codex', {
         start: () => {
-          throw new Error('quebrou');
+          throw new Error('broke');
         },
         stop: () => {
-          throw new Error('quebrou de novo');
+          throw new Error('broke again');
         },
       }),
-      fakeSource('codex', { start: () => Promise.reject(new Error('assíncrona quebrou')) }),
+      fakeSource('codex', { start: () => Promise.reject(new Error('async one broke')) }),
     ]);
     const done = set.start();
     // As síncronas já rodaram; a assíncrona segue.
@@ -107,7 +107,7 @@ describe('SourceSet', () => {
     expect(log.slice(-2)).toEqual(['stop:claude', 'stop:codex']);
   });
 
-  it('boot contado no Office: pronto só quando a fonte assíncrona termina', async () => {
+  it('boot counted in the Office: ready only when the asynchronous source finishes', async () => {
     const office = new Office({
       names: new NameStore(null),
       version: 't',
@@ -160,7 +160,7 @@ function fakeHistory(provider: Provider, accounts: string[], list: () => Promise
 }
 
 describe('HistorySet', () => {
-  it('junta as listas de todas as ferramentas: da mais recente para a mais antiga, até o limite', async () => {
+  it('joins the lists from all the tools: from the most recent to the oldest, up to the limit', async () => {
     const claude = fakeHistory('claude', ['.claude'], async () => [session(undefined, '.claude', 'c2', 50), session(undefined, '.claude', 'c1', 10)]);
     const codex = fakeHistory('codex', ['.codex'], async () => [session('codex', '.codex', 'x1', 30), session('codex', '.codex', 'x0', 5)]);
     expect((await new HistorySet([claude, codex]).list()).map((s) => s.sessionId)).toEqual(['c2', 'x1', 'c1', 'x0']);
@@ -170,21 +170,21 @@ describe('HistorySet', () => {
     expect(await new HistorySet().list()).toEqual([]);
   });
 
-  it('um provedor que falha fica de fora; todos falhando, a falha sobe', async () => {
+  it('a provider that fails is left out; with all failing, the failure goes up', async () => {
     const ok = fakeHistory('claude', ['.claude'], async () => [session(undefined, '.claude', 'c1', 10)]);
-    const bad = fakeHistory('codex', ['.codex'], () => Promise.reject(new Error('ilegível')));
+    const bad = fakeHistory('codex', ['.codex'], () => Promise.reject(new Error('unreadable')));
     expect((await new HistorySet([ok, bad]).list()).map((s) => s.sessionId)).toEqual(['c1']);
-    await expect(new HistorySet([bad]).list()).rejects.toThrow('ilegível');
+    await expect(new HistorySet([bad]).list()).rejects.toThrow('unreadable');
   });
 
-  it('resolve: pelo provedor da conta; conta desconhecida vai para o primeiro (o do Claude Code)', () => {
+  it('resolve: by the provider of the account; an unknown account goes to the first (the Claude Code one)', () => {
     const parser = () => tagged('cx');
     const claude = fakeHistory('claude', ['.claude'], async () => []);
     const codex = fakeHistory('codex', ['.codex'], async () => [], { path: '/r/rollout.jsonl', createParser: parser });
     const set = new HistorySet([claude, codex]);
     expect(set.resolve('.codex', 'abc')).toEqual({ path: '/r/rollout.jsonl', createParser: parser });
     expect(set.resolve('.claude', 'abc')).toEqual({ status: 404, error: 'claude:.claude:abc' });
-    expect(set.resolve('.outra', 'abc')).toEqual({ status: 404, error: 'claude:.outra:abc' });
+    expect(set.resolve('.other', 'abc')).toEqual({ status: 404, error: 'claude:.other:abc' });
     expect(new HistorySet().resolve('.claude', 'abc')).toEqual({ status: 404, error: 'unknown account' });
   });
 });

@@ -13,14 +13,14 @@ const src = (m: WorldMeta | undefined, fake = false): WorldSource => ({ client: 
 const LOCAL: WorldGate = { remote: false, local: true, terminal: true, fake: false };
 
 describe('citySceneAvailable', () => {
-  it('com a cena disponível e a página do próprio computador', () => {
+  it('with the scene available and the page from the computer itself', () => {
     expect(citySceneAvailable(src(meta({ available: true })), LOCAL)).toBe(true);
     expect(citySceneAvailable(src(meta({ available: false })), LOCAL)).toBe(false);
     expect(citySceneAvailable(src(meta()), LOCAL)).toBe(false);
     expect(citySceneAvailable(src(undefined), LOCAL)).toBe(false);
   });
 
-  it('nunca pelo celular nem sem a trava do terminal; no modo demonstração, sem as travas', () => {
+  it('never from the phone or without the terminal lock; in demo mode, without the locks', () => {
     const on = meta({ available: true });
     expect(citySceneAvailable(src(on), { ...LOCAL, remote: true })).toBe(false);
     expect(citySceneAvailable(src(on), { ...LOCAL, local: false })).toBe(false);
@@ -77,7 +77,7 @@ describe('SceneSwitch.leaveFor', () => {
     return { host, ctx, sw, onChange, selected, inCityAtSelect, setSelection: (s: Selection) => (selection = s) };
   }
 
-  it('com a cidade aberta, escolher um agente ou uma sala volta ao escritório antes de selecionar', () => {
+  it('with the city open, choosing an agent or a room goes back to the office before selecting', () => {
     for (const sel of [{ type: 'agent', id: 'a1' }, { type: 'room', id: 'r1' }] as const) {
       const { host, ctx, sw, onChange, inCityAtSelect } = setup();
       host.open = true;
@@ -89,7 +89,7 @@ describe('SceneSwitch.leaveFor', () => {
     }
   });
 
-  it('desmarcar (null) não fecha a cidade, e fora da cidade nada muda', () => {
+  it('deselecting (null) does not close the city, and outside the city nothing changes', () => {
     const a = setup();
     a.host.open = true;
     a.ctx.select(null);
@@ -103,7 +103,7 @@ describe('SceneSwitch.leaveFor', () => {
     expect(b.onChange).not.toHaveBeenCalled();
   });
 
-  it('abrir a cidade com um agente selecionado desmarca sem voltar ao escritório', async () => {
+  it('opening the city with an agent selected deselects without going back to the office', async () => {
     const { host, sw, selected, setSelection } = setup();
     setSelection({ type: 'agent', id: 'a1' });
     await sw.open();

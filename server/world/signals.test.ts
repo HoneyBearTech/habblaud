@@ -20,7 +20,7 @@ const tasks = (done: number, pending = 1): TaskItem[] => [
 const act = (id: string, d: ReturnType<typeof SPECIAL.compact>): Activity => ({ id, at: T0, ...d });
 
 describe('AgentSignals', () => {
-  it('tarefas do dia: só o que sobe, a lista trocada não desconta, a virada do dia zera', () => {
+  it('tasks of the day: only what goes up, the swapped list does not subtract, the day rollover resets', () => {
     const s = new AgentSignals(dayKey);
     expect(s.observe([agent('m1', tasks(2))], T0).tasksToday.get('m1')).toBe(2);
     expect(s.observe([agent('m1', tasks(4))], T0 + 1000).tasksToday.get('m1')).toBe(4);
@@ -31,14 +31,14 @@ describe('AgentSignals', () => {
     expect(s.observe([agent('m1', tasks(3, 0))], T0 + DAY + 1000).tasksToday.get('m1')).toBe(2);
   });
 
-  it('compactação nova vira pendente até a remessa sair; a do /clear e as antigas não contam', () => {
+  it('new compaction becomes pending until the upload goes out; the one from /clear and the old ones do not count', () => {
     const s = new AgentSignals(dayKey);
-    const old = act('c-velha', SPECIAL.compact());
+    const old = act('c-old', SPECIAL.compact());
     expect(s.observe([agent('m1', [], [old])], T0).compacted.size).toBe(0);
     const clear = act('x#clear:1', SPECIAL.cleared());
     expect(isCompaction(clear)).toBe(false);
     expect(s.observe([agent('m1', [], [old, clear])], T0 + 1).compacted.size).toBe(0);
-    const fresh = act('c-nova', SPECIAL.compact());
+    const fresh = act('c-new', SPECIAL.compact());
     expect([...s.observe([agent('m1', [], [old, clear, fresh])], T0 + 2).compacted]).toEqual(['m1']);
     // Sem remessa, continua pendente.
     expect([...s.observe([agent('m1', [], [old, clear, fresh])], T0 + 3).compacted]).toEqual(['m1']);
@@ -46,7 +46,7 @@ describe('AgentSignals', () => {
     expect(s.observe([agent('m1', [], [old, clear, fresh])], T0 + 4).compacted.size).toBe(0);
   });
 
-  it('quem some é esquecido', () => {
+  it('whoever disappears is forgotten', () => {
     const s = new AgentSignals(dayKey);
     s.observe([agent('m1', tasks(3)), agent('m2')], T0);
     expect([...s.observe([agent('m2')], T0 + 1).tasksToday.keys()]).toEqual(['m2']);

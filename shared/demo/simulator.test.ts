@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { DemoSimulator } from './simulator';
 
 describe('DemoSimulator', () => {
-  it('no ?mock=1 imita as contas C e D (e a do Codex, por último)', () => {
+  it('in ?mock=1 it imitates accounts C and D (and the Codex one, last)', () => {
     const sim = new DemoSimulator({ seed: 1 }, 1_000);
     expect(sim.snapshot(1_000).accounts.map((a) => [a.id, a.short, a.provider])).toEqual([
       ['.claude', 'C', undefined],
@@ -11,7 +11,7 @@ describe('DemoSimulator', () => {
     ]);
   });
 
-  it('com idPrefix usa contas próprias e ids que não colidem com dados reais', () => {
+  it('with idPrefix it uses its own accounts and ids that do not collide with real data', () => {
     const sim = new DemoSimulator({ seed: 1, idPrefix: 'demo:', sessions: 5 }, 1_000);
     const snap = sim.snapshot(1_000);
     expect(snap.accounts.map((a) => [a.id, a.short, a.name])).toEqual([
@@ -23,7 +23,7 @@ describe('DemoSimulator', () => {
     expect(snap.rooms.every((r) => r.id.startsWith('demo:'))).toBe(true);
   });
 
-  it('ids de atividades não se repetem entre instâncias (religar o demo)', () => {
+  it('activity ids do not repeat between instances (turning the demo back on)', () => {
     const ids = new Set<string>();
     for (const start of [1_000, 2_000]) {
       const sim = new DemoSimulator({ seed: 7, idPrefix: 'demo:', speed: 20 }, start);
@@ -35,7 +35,7 @@ describe('DemoSimulator', () => {
     expect(ids.size).toBeGreaterThan(10);
   });
 
-  it('abre com alguém esperando um shell em segundo plano (com job e balão), e o shell termina com ShellDone', () => {
+  it('opens with someone waiting for a background shell (with job and speech bubble), and the shell ends with ShellDone', () => {
     const start = 5_000;
     const sim = new DemoSimulator({ seed: 3 }, start);
     const waiting = sim.snapshot(start).agents.filter((a) => a.status === 'shell');
@@ -51,7 +51,7 @@ describe('DemoSimulator', () => {
     expect(done).toContain(a.id);
   });
 
-  it('com o tempo: shells em segundo plano (status shell), comandos longos em primeiro plano e falhas', () => {
+  it('over time: background shells (shell status), long foreground commands and failures', () => {
     for (const seed of [1, 2, 3]) {
       const sim = new DemoSimulator({ seed, speed: 10, sessions: 5 }, 0);
       const seen = { shell: 0, foreground: 0, ok: 0, failed: 0, noticeWait: 0 };
@@ -85,7 +85,7 @@ describe('DemoSimulator', () => {
 describe('DemoSimulator: Codex', () => {
   const MIN = 60_000;
 
-  it('abre com uma sala de Claude Code e Codex juntos (e o resto das sessões no Claude Code)', () => {
+  it('opens with a room of Claude Code and Codex together (and the rest of the sessions in Claude Code)', () => {
     for (const seed of [1, 2, 3, 4, 5]) {
       const snap = new DemoSimulator({ seed }, 1_000).snapshot(1_000);
       const mains = snap.agents.filter((a) => a.kind === 'main');
@@ -102,7 +102,7 @@ describe('DemoSimulator: Codex', () => {
     }
   });
 
-  it('determinístico: a mesma semente gera o mesmo escritório', () => {
+  it('deterministic: the same seed generates the same office', () => {
     const run = () => {
       const sim = new DemoSimulator({ seed: 9, speed: 6, sessions: 6 }, 0);
       for (let t = 0; t < 600_000; t += 250) sim.tick(t);
@@ -111,7 +111,7 @@ describe('DemoSimulator: Codex', () => {
     expect(run()).toEqual(run());
   });
 
-  it('com o tempo, ~30% das sessões novas são do Codex; os subagentes herdam a ferramenta', () => {
+  it('over time, ~30% of the new sessions are from Codex; the subagents inherit the tool', () => {
     const sim = new DemoSimulator({ seed: 11, speed: 10, sessions: 6 }, 0);
     const seen = new Map<string, boolean>();
     let codexSub = false;
@@ -131,7 +131,7 @@ describe('DemoSimulator: Codex', () => {
     expect(codexSub).toBe(true);
   });
 
-  it('uso do Codex: "arquivos do Codex", lido na última atividade de uma sessão dele (envelhece sem sessão)', () => {
+  it('Codex usage: "Codex files", read at the last activity of one of its sessions (ages without a session)', () => {
     const sim = new DemoSimulator({ seed: 3 }, 0);
     const acc = () => sim.snapshot(t).accounts.find((a) => a.provider === 'codex')!;
     let t = 0;
@@ -149,7 +149,7 @@ describe('DemoSimulator: Codex', () => {
     expect(acc().usage!.sevenDayOpus).toBeUndefined();
   });
 
-  it('"sem cota": sem janelas (nunca 0%), sempre com a opção e de vez em quando sem ela', () => {
+  it('"no quota": no windows (never 0%), always with the option and once in a while without it', () => {
     const forced = new DemoSimulator({ seed: 3, codexNoQuota: true }, 0).snapshot(0).accounts.find((a) => a.provider === 'codex')!;
     expect(forced.usage).toEqual({ source: 'codex', noQuota: true, fetchedAt: forced.usage!.fetchedAt });
     const sim = new DemoSimulator({ seed: 4, speed: 4, sessions: 6 }, 0);
@@ -168,11 +168,11 @@ describe('DemoSimulator: Codex', () => {
     expect(numbers).toBeGreaterThan(noQuota);
   });
 
-  it('mensagem para o Codex: entra na fila e só vira atividade quando a sessão fica ociosa', () => {
+  it('message to Codex: goes into the queue and only becomes an activity when the session goes idle', () => {
     const start = 10_000;
     const sim = new DemoSimulator({ seed: 6 }, start);
     const codex = sim.snapshot(start).agents.find((a) => a.provider === 'codex')!;
-    expect(sim.receiveMessage(codex.id, 'roda o lint também', start)).toBe(true);
+    expect(sim.receiveMessage(codex.id, 'run the lint too', start)).toBe(true);
     // Na hora, nada aparece (está na fila).
     expect(sim.snapshot(start).agents.find((a) => a.id === codex.id)!.recent.some((r) => r.text === 'Message via Habblaud')).toBe(false);
     let t = start;
@@ -186,7 +186,7 @@ describe('DemoSimulator: Codex', () => {
       if (m) {
         deliveredAt = m.at;
         statusAtDelivery = a.recent[a.recent.indexOf(m) - 1]?.kind ?? '';
-        expect(m.detail).toBe('roda o lint também');
+        expect(m.detail).toBe('run the lint too');
       }
     }
     expect(deliveredAt).toBeGreaterThan(start);

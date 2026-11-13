@@ -47,7 +47,7 @@ function batches(...list: Answer[]): () => Answer {
 /** Registra todos os stubs (antes da primeira chamada em $, como o kit exige) e devolve o que foi capturado. */
 function world(on: On, w: World = {}) {
   const clock = mock.clock(on, { now: NOW })
-  mock.env(on, w.env ?? { HOME: '/home/fulano', CLAUDE_CONFIG_DIR: '~/.claude-conta2', HABBLAUD_PORT: PORT })
+  mock.env(on, w.env ?? { HOME: '/home/someone', CLAUDE_CONFIG_DIR: '~/.claude-conta2', HABBLAUD_PORT: PORT })
   const sent: Sent[] = []
   const submits: Array<{ text: string; origin: unknown }> = []
   on('session.start', ($, e) => ({ cwd: e.cwd }))
@@ -61,7 +61,7 @@ function world(on: On, w: World = {}) {
       if (a === 'offline') return { deny: 'connect ECONNREFUSED 127.0.0.1:4850' }
       if (a === 'hang') {
         await clock.sleep(60_000)
-        return { deny: 'tarde demais' }
+        return { deny: 'too late' }
       }
       return { value: response(200, '{"ok":true}') }
     }
@@ -69,15 +69,15 @@ function world(on: On, w: World = {}) {
     if (a === 'offline') return { deny: 'connect ECONNREFUSED 127.0.0.1:4850' }
     if (a === 'hang') {
       await clock.sleep(60_000)
-      return { deny: 'tarde demais' }
+      return { deny: 'too late' }
     }
     return { value: Array.isArray(a) ? response(200, JSON.stringify({ messages: a })) : response(a.status, a.text) }
   })
   on('prompt.submit', async ($, e) => {
     submits.push({ text: e.text, origin: e.origin })
     const fate = w.fate ? w.fate(e.text) : 'ok'
-    if (fate === 'drop') return { drop: `recusada por um hook: ${e.text}` }
-    if (fate === 'throw') throw new Error('a sessão\nfechou')
+    if (fate === 'drop') return { drop: `refused by a hook: ${e.text}` }
+    if (fate === 'throw') throw new Error('the session\nclosed')
     if (fate === 'hang') await clock.sleep(60_000)
     return { text: e.text }
   })
@@ -93,8 +93,8 @@ function world(on: On, w: World = {}) {
 
 const START = { cwd: '/work', surface: 'terminal', isInteractive: true } as const
 
-describe('rodadas', () => {
-  test('a cada 2 s pergunta ao Habblaud (marca a presença); sem mensagens, nada vai para a sessão e não há ack', async ($, on) => {
+describe('rounds', () => {
+  test('every 2 s it asks Habblaud (marks presence); with no messages, nothing goes to the session and there is no ack', async ($, on) => {
     const w = world(on)
     await $.session.start(START)
     expect(w.sent).toEqual([])
@@ -106,12 +106,12 @@ describe('rodadas', () => {
     expect(w.submits).toEqual([])
   })
 
-  test('entrega na ordem, como se você tivesse digitado (texto intacto), e confirma tudo num POST só', async ($, on) => {
-    const typed = '  e depois:\n- abre o PR\n\n(sem pressa)  '
-    const w = world(on, { inbox: batches([{ id: 'm1', text: 'roda os testes' }, { id: 'm2', text: typed }]) })
+  test('delivers in order, as if you had typed it (text intact), and confirms everything in a single POST', async ($, on) => {
+    const typed = '  and then:\n- open the PR\n\n(no rush)  '
+    const w = world(on, { inbox: batches([{ id: 'm1', text: 'run the tests' }, { id: 'm2', text: typed }]) })
     await $.session.start(START)
     await w.clock.advance(2_000)
-    expect(w.texts()).toEqual(['roda os testes', typed])
+    expect(w.texts()).toEqual(['run the tests', typed])
     expect(w.submits[0]?.origin).toEqual({ kind: 'plugin', name: 'habblaud-mensagens', asUser: true })
     expect(w.acks()).toEqual([{ url: ACK_URL, method: 'POST', headers: JSON_HEADERS, body: { session: 'sess-1', results: [{ id: 'm1', ok: true }, { id: 'm2', ok: true }] } }])
     await w.clock.advance(2_000)
@@ -119,30 +119,30 @@ describe('rodadas', () => {
     expect(w.submits.length).toBe(2)
   })
 
-  test('recusa de um hook e exceção viram falha com o motivo; sem texto, falha sem ir para a sessão', async ($, on) => {
+  test('a refusal from a hook and an exception become a failure with the reason; with no text, fails without going to the session', async ($, on) => {
     const raw = JSON.stringify({
       messages: [
-        { id: 'a', text: 'pode ir' },
-        { id: 'b', text: 'proibida' },
-        { id: 'c', text: 'quebra' },
+        { id: 'a', text: 'go ahead' },
+        { id: 'b', text: 'forbidden' },
+        { id: 'c', text: 'breaks' },
         { id: 'd', text: '  \n ' },
         { id: 'e', text: 42 },
         // sem id: não há como confirmar, fica de fora
-        { text: 'órfã' },
+        { text: 'orphan' },
       ],
     })
     const w = world(on, {
       inbox: batches({ status: 200, text: raw }),
-      fate: (t) => (t === 'proibida' ? 'drop' : t === 'quebra' ? 'throw' : 'ok'),
+      fate: (t) => (t === 'forbidden' ? 'drop' : t === 'breaks' ? 'throw' : 'ok'),
     })
     await $.session.start(START)
     await w.clock.advance(2_000)
-    expect(w.texts()).toEqual(['pode ir', 'proibida', 'quebra'])
+    expect(w.texts()).toEqual(['go ahead', 'forbidden', 'breaks'])
     expect(w.acks()[0]?.body).toEqual({
       session: 'sess-1',
       results: [
         { id: 'a', ok: true },
-        { id: 'b', ok: false, error: 'recusada por um hook: proibida' },
+        { id: 'b', ok: false, error: 'refused by a hook: forbidden' },
         // O hook de baixo que lança é pulado e, sem nada embaixo dele, a chamada rejeita: o motivo é o do kit.
         { id: 'c', ok: false, error: expect.stringMatching(/\S/) },
         { id: 'd', ok: false, error: 'empty message' },
@@ -151,21 +151,21 @@ describe('rodadas', () => {
     })
   })
 
-  test('sessão ocupada: passou de 2 s, conta como entregue e as seguintes vão em seguida, na ordem; as rodadas seguem', async ($, on) => {
+  test('busy session: past 2 s, it counts as delivered and the next ones go right after, in order; the rounds go on', async ($, on) => {
     const w = world(on, {
       inbox: batches([
-        { id: 'm1', text: 'primeira' },
-        { id: 'm2', text: 'segunda' },
-        { id: 'm3', text: 'terceira' },
+        { id: 'm1', text: 'first' },
+        { id: 'm2', text: 'second' },
+        { id: 'm3', text: 'third' },
       ]),
-      fate: (t) => (t === 'primeira' ? 'hang' : 'ok'),
+      fate: (t) => (t === 'first' ? 'hang' : 'ok'),
     })
     await $.session.start(START)
     await w.clock.advance(2_000)
-    expect(w.texts()).toEqual(['primeira'])
+    expect(w.texts()).toEqual(['first'])
     expect(w.acks()).toEqual([])
     await w.clock.advance(2_000)
-    expect(w.texts()).toEqual(['primeira', 'segunda', 'terceira'])
+    expect(w.texts()).toEqual(['first', 'second', 'third'])
     expect(w.acks().map((a) => a.body)).toEqual([
       {
         session: 'sess-1',
@@ -181,8 +181,8 @@ describe('rodadas', () => {
     expect(w.inboxes().length).toBeGreaterThan(asked)
   })
 
-  test('uma rodada por vez: com a sessão ocupada e o ack travado, a pergunta do meio é pulada', async ($, on) => {
-    const w = world(on, { inbox: batches([{ id: 'm1', text: 'primeira' }]), fate: () => 'hang', ack: () => 'hang' })
+  test('one round at a time: with the session busy and the ack stuck, the question in the middle is skipped', async ($, on) => {
+    const w = world(on, { inbox: batches([{ id: 'm1', text: 'first' }]), fate: () => 'hang', ack: () => 'hang' })
     await $.session.start(START)
     await w.clock.advance(2_000)
     // A rodada vai de 2 s (pergunta) a 4 s (prazo do submit) e daí a 6 s (prazo do ack): a de 4 s não começa.
@@ -191,20 +191,20 @@ describe('rodadas', () => {
     expect(w.acks().length).toBe(1)
     await w.clock.advance(3_000)
     expect(w.inboxes().length).toBeGreaterThan(1)
-    expect(w.texts()).toEqual(['primeira'])
+    expect(w.texts()).toEqual(['first'])
   })
 
-  test('ack que falha = silêncio: as rodadas seguem', async ($, on) => {
-    const w = world(on, { inbox: batches([{ id: 'm1', text: 'oi' }]), ack: () => 'offline' })
+  test('ack that fails = silence: the rounds go on', async ($, on) => {
+    const w = world(on, { inbox: batches([{ id: 'm1', text: 'hi' }]), ack: () => 'offline' })
     await $.session.start(START)
     await w.clock.advance(2_000)
     expect(w.acks().length).toBe(1)
     await w.clock.advance(2_000)
     expect(w.inboxes().length).toBe(2)
-    expect(w.texts()).toEqual(['oi'])
+    expect(w.texts()).toEqual(['hi'])
   })
 
-  test('Habblaud fora do ar, 403 (mensagens desligadas) ou 404 (versão sem a rota): recua para 30 s até voltar', async ($, on) => {
+  test('Habblaud down, 403 (messages turned off) or 404 (version without the route): backs off to 30 s until it is back', async ($, on) => {
     let answer: Answer = 'offline'
     const w = world(on, { inbox: () => answer })
     await $.session.start(START)
@@ -212,10 +212,10 @@ describe('rodadas', () => {
     expect(w.inboxes().length).toBe(1)
     await w.clock.advance(28_000)
     expect(w.inboxes().length).toBe(1)
-    answer = { status: 403, text: '{"error":"mensagens pelo escritório desligadas"}' }
+    answer = { status: 403, text: '{"error":"messages from the office disabled"}' }
     await w.clock.advance(2_000)
     expect(w.inboxes().length).toBe(2)
-    answer = { status: 404, text: '{"error":"rota desconhecida"}' }
+    answer = { status: 404, text: '{"error":"unknown route"}' }
     await w.clock.advance(30_000)
     expect(w.inboxes().length).toBe(3)
     answer = []
@@ -226,7 +226,7 @@ describe('rodadas', () => {
     expect(w.acks()).toEqual([])
   })
 
-  test('Habblaud travado: desiste em 2 s e recua para 30 s', async ($, on) => {
+  test('Habblaud stuck: gives up in 2 s and backs off to 30 s', async ($, on) => {
     let hang = true
     const w = world(on, { inbox: () => (hang ? 'hang' : []) })
     await $.session.start(START)
@@ -239,21 +239,21 @@ describe('rodadas', () => {
     expect(w.inboxes().length).toBe(2)
   })
 
-  test('sessão sem superfície (claude -p, SDK): nem pergunta ao Habblaud', async ($, on) => {
+  test('session with no surface (claude -p, SDK): does not even ask Habblaud', async ($, on) => {
     const w = world(on, { surfaces: [] })
     await $.session.start({ cwd: '/work', surface: null, isInteractive: false })
     await w.clock.advance(10_000)
     expect(w.sent).toEqual([])
   })
 
-  test('sessão do app desktop fora da tela (SDK sem superfície): pergunta mesmo assim', async ($, on) => {
-    const w = world(on, { surfaces: [], env: { HOME: '/home/fulano', CLAUDE_CODE_ENTRYPOINT: 'claude-desktop', HABBLAUD_PORT: PORT } })
+  test('desktop app session off screen (SDK with no surface): asks anyway', async ($, on) => {
+    const w = world(on, { surfaces: [], env: { HOME: '/home/someone', CLAUDE_CODE_ENTRYPOINT: 'claude-desktop', HABBLAUD_PORT: PORT } })
     await $.session.start({ cwd: '/work', surface: null, isInteractive: false })
     await w.clock.advance(2_000)
     expect(w.inboxes().length).toBe(1)
   })
 
-  test('sem HOME nem CLAUDE_CONFIG_DIR: pergunta sem a conta, na porta padrão', async ($, on) => {
+  test('with no HOME or CLAUDE_CONFIG_DIR: asks without the account, on the default port', async ($, on) => {
     const w = world(on, { env: {} })
     await $.session.start(START)
     await w.clock.advance(2_000)
@@ -261,8 +261,8 @@ describe('rodadas', () => {
   })
 })
 
-describe('funções puras', () => {
-  test('inbox: formato estranho = fora do ar; item sem id fica de fora; sem texto vira texto vazio', () => {
+describe('pure functions', () => {
+  test('inbox: odd format = down; item with no id is left out; no text becomes empty text', () => {
     expect(parseInbox('<html>')).toBeUndefined()
     expect(parseInbox('[]')).toBeUndefined()
     expect(parseInbox('{"messages":{}}')).toBeUndefined()
@@ -273,30 +273,30 @@ describe('funções puras', () => {
     ])
   })
 
-  test('corpos das duas rotas', () => {
+  test('bodies of the two routes', () => {
     expect(JSON.parse(inboxBody('s', '.claude'))).toEqual({ session: 's', account: '.claude' })
     expect(JSON.parse(inboxBody('s', undefined))).toEqual({ session: 's' })
-    expect(JSON.parse(ackBody('s', [{ id: 'a', ok: true }, { id: 'b', ok: false, error: 'não' }]))).toEqual({
+    expect(JSON.parse(ackBody('s', [{ id: 'a', ok: true }, { id: 'b', ok: false, error: 'no' }]))).toEqual({
       session: 's',
       results: [
         { id: 'a', ok: true },
-        { id: 'b', ok: false, error: 'não' },
+        { id: 'b', ok: false, error: 'no' },
       ],
     })
   })
 
-  test('motivo da falha: uma linha, tamanho limitado, e o padrão quando não há texto', () => {
-    expect(reasonText('um\nhook\t recusou ', 'padrão')).toBe('um hook recusou')
-    expect(reasonText(new Error('boom'), 'padrão')).toBe('boom')
-    expect(reasonText({ message: 'de outro mundo' }, 'padrão')).toBe('de outro mundo')
-    expect(reasonText('   ', 'padrão')).toBe('padrão')
-    expect(reasonText(undefined, 'padrão')).toBe('padrão')
-    const long = reasonText('x'.repeat(2_000), 'padrão')
+  test('failure reason: one line, limited size, and the default when there is no text', () => {
+    expect(reasonText('a\nhook\t refused ', 'default')).toBe('a hook refused')
+    expect(reasonText(new Error('boom'), 'default')).toBe('boom')
+    expect(reasonText({ message: 'from another world' }, 'default')).toBe('from another world')
+    expect(reasonText('   ', 'default')).toBe('default')
+    expect(reasonText(undefined, 'default')).toBe('default')
+    const long = reasonText('x'.repeat(2_000), 'default')
     expect(long.length).toBe(MAX_REASON)
     expect(long.endsWith('…')).toBe(true)
   })
 
-  test('conta e porta como o mod habblaud calcula (também no Windows)', () => {
+  test('account and port as the habblaud mod computes them (on Windows too)', () => {
     expect(normalizePath('/a//b/./c/../d/')).toBe('/a/b/d')
     expect(configDirOf(' ~/.claude-conta2 , /x', '/home/f')).toBe('/home/f/.claude-conta2')
     expect(configDirOf(undefined, '/home/f/')).toBe('/home/f/.claude')

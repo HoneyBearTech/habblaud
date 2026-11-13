@@ -35,7 +35,7 @@ function setup(opts: { names?: string[]; noLocks?: boolean; env?: (dirs: string[
   const accounts = new AccountsService({ dirs: [], home: home.home, env: {}, now, onChange: () => late.office?.markDirty() });
   const office = new Office({
     names: new NameStore(null),
-    version: 'teste',
+    version: 'test',
     startedAt: clock,
     accounts: (s) => accounts.list(s),
     sources: () => [],
@@ -76,15 +76,15 @@ function setup(opts: { names?: string[]; noLocks?: boolean; env?: (dirs: string[
   };
 }
 
-describe('fonte do Codex: presença pelos locks', () => {
-  it('lock + rollout: agente principal na sala do projeto, com título, modelo, branch, tokens e status', () => {
+describe('Codex source: presence by the locks', () => {
+  it('lock + rollout: main agent in the project room, with title, model, branch, tokens and status', () => {
     const ctx = setup();
     const t0 = ctx.now();
     const path = ctx.home.rollout(T, [
-      R.meta(T, { at: t0 - 50_000, cwd: '/projetos/loja', branch: 'feat/x' }),
-      R.turnContext({ at: t0 - 49_000, model: 'gpt-teste-codex' }),
+      R.meta(T, { at: t0 - 50_000, cwd: '/projects/store', branch: 'feat/x' }),
+      R.turnContext({ at: t0 - 49_000, model: 'gpt-test-codex' }),
       R.taskStarted('turn1', t0 - 48_000),
-      R.user(T, 'turn1', 'u1', 'Rode os testes da loja', t0 - 47_000),
+      R.user(T, 'turn1', 'u1', 'Run the store tests', t0 - 47_000),
       R.command(T, 'turn1', 'call_1', 'npm test', { at: t0 - 46_000, output: 'ok' }),
       R.tokens({ input: 2_000, cached: 1_500, output: 300, at: t0 - 45_000 }),
     ]);
@@ -96,11 +96,11 @@ describe('fonte do Codex: presença pelos locks', () => {
       provider: 'codex',
       account: '.codex',
       sessionId: T,
-      roomId: '/projetos/loja',
+      roomId: '/projects/store',
       role: 'Main agent (Codex)',
       status: 'working',
-      title: 'Rode os testes da loja',
-      model: 'gpt-teste-codex',
+      title: 'Run the store tests',
+      model: 'gpt-test-codex',
       gitBranch: 'feat/x',
     });
     expect(a.stats).toMatchObject({ tokensIn: 2_000, tokensOut: 300, toolCalls: 1 });
@@ -112,7 +112,7 @@ describe('fonte do Codex: presença pelos locks', () => {
 
     // Turno concluído: ociosa.
     ctx.advance(1_000);
-    ctx.home.append(path, [R.agent(T, 'turn1', 'a1', 'Todos passaram.', ctx.now()), R.taskComplete('turn1', ctx.now() + 1)]);
+    ctx.home.append(path, [R.agent(T, 'turn1', 'a1', 'All passed.', ctx.now()), R.taskComplete('turn1', ctx.now() + 1)]);
     ctx.poll();
     expect(ctx.agent()?.status).toBe('idle');
     expect(ctx.agent()?.activity?.kind).toBe('done');
@@ -127,29 +127,29 @@ describe('fonte do Codex: presença pelos locks', () => {
     expect(ctx.notices.some((n) => n.text.includes('ended'))).toBe(true);
   });
 
-  it('hook de thread revertido troca o rollout aberto e o caminho do terminal na hora', () => {
+  it('hook of a reverted thread swaps the open rollout and the terminal path right away', () => {
     const ctx = setup();
     const at = ctx.now() - 10_000;
     const old = ctx.home.rollout(T, [
       R.meta(T, { at }),
       R.taskStarted('t1', at),
-      R.user(T, 't1', 'u1', 'Turno antigo', at + 1),
+      R.user(T, 't1', 'u1', 'Old turn', at + 1),
       R.command(T, 't1', 'c1', 'npm test', { at: at + 2 }),
       R.taskComplete('t1', at + 3),
     ], { mtime: at + 3 });
     ctx.home.lock(T, at);
     ctx.source.boot();
-    expect(ctx.agent()).toMatchObject({ status: 'idle', title: 'Turno antigo', stats: { toolCalls: 1 } });
+    expect(ctx.agent()).toMatchObject({ status: 'idle', title: 'Old turn', stats: { toolCalls: 1 } });
     const path = old.replace('.jsonl', `_${C}.jsonl`);
     writeFileSync(path, [
       R.meta(T, { at }),
       R.taskStarted('t2', ctx.now()),
-      R.user(T, 't2', 'u2', 'Turno revertido', ctx.now() + 1),
+      R.user(T, 't2', 'u2', 'Reverted turn', ctx.now() + 1),
     ].join('\n') + '\n');
     ctx.home.touch(path, ctx.now());
     expect(ctx.hook({ hook_event_name: 'SessionStart', session_id: T, transcript_path: path })).toBe(true);
     expect(ctx.source.transcriptPathOf(KEY)).toBe(realpathSync(path));
-    expect(ctx.agent()).toMatchObject({ status: 'working', title: 'Turno revertido', stats: { toolCalls: 0 } });
+    expect(ctx.agent()).toMatchObject({ status: 'working', title: 'Reverted turn', stats: { toolCalls: 0 } });
     // Continua lendo só o novo: a escrita no antigo não encerra o turno revertido.
     ctx.home.append(old, [R.taskComplete('t1', ctx.now() + 2)]);
     ctx.poll();
@@ -159,10 +159,10 @@ describe('fonte do Codex: presença pelos locks', () => {
     expect(ctx.agent()?.status).toBe('idle');
   });
 
-  it('rollout aberto pelo hook não é recarregado à toa (caminho com symlink, varredura e hook repetido)', () => {
+  it('rollout opened by the hook is not reloaded for nothing (path with symlink, scan and repeated hook)', () => {
     const ctx = setup();
     const at = ctx.now() - 10_000;
-    const path = ctx.home.rollout(T, [R.meta(T, { at }), R.taskStarted('t1', at), R.user(T, 't1', 'u1', 'Turno', at + 1)], { mtime: at + 1 });
+    const path = ctx.home.rollout(T, [R.meta(T, { at }), R.taskStarted('t1', at), R.user(T, 't1', 'u1', 'Turn', at + 1)], { mtime: at + 1 });
     ctx.home.lock(T, at);
     ctx.source.boot();
     // O tmpdir do macOS passa por symlink (/var -> /private/var): o índice guarda um caminho e o hook manda o outro.
@@ -180,19 +180,19 @@ describe('fonte do Codex: presença pelos locks', () => {
   it.each([
     { date: '2026/10/09', wait: 3_000 },
     { date: '2026/01/02', wait: 30_000 },
-  ])('sem hook, revalida o rollout de thread revertido em $date sem perder as leituras entre varreduras', ({ date, wait }) => {
+  ])('without a hook, revalidates the rollout of a reverted thread in $date without losing the reads between scans', ({ date, wait }) => {
     const ctx = setup();
     const at = ctx.now() - 10_000;
-    const old = ctx.home.rollout(T, [R.meta(T, { at }), R.user(T, 't1', 'u1', 'Turno antigo', at + 1), R.taskComplete('t1', at + 2)], { date, mtime: at + 2 });
+    const old = ctx.home.rollout(T, [R.meta(T, { at }), R.user(T, 't1', 'u1', 'Old turn', at + 1), R.taskComplete('t1', at + 2)], { date, mtime: at + 2 });
     // A pasta antiga fica fora da varredura dos dois dias mais recentes.
     ctx.home.rollout(threadId(3), [], { date: '2026/10/10' });
     ctx.home.rollout(threadId(4), [], { date: '2026/10/09' });
     ctx.home.lock(T, at);
     ctx.source.boot();
     expect(ctx.source.transcriptPathOf(KEY)).toBe(old);
-    expect(ctx.agent()).toMatchObject({ status: 'idle', title: 'Turno antigo' });
+    expect(ctx.agent()).toMatchObject({ status: 'idle', title: 'Old turn' });
     const path = old.replace('.jsonl', `_${C}.jsonl`);
-    writeFileSync(path, [R.meta(T, { at }), R.taskStarted('t2', ctx.now()), R.user(T, 't2', 'u2', 'Turno revertido', ctx.now() + 1)].join('\n') + '\n');
+    writeFileSync(path, [R.meta(T, { at }), R.taskStarted('t2', ctx.now()), R.user(T, 't2', 'u2', 'Reverted turn', ctx.now() + 1)].join('\n') + '\n');
     ctx.home.touch(path, ctx.now());
     // Antes da próxima varredura, o tail atual ainda recebe linhas normalmente.
     ctx.home.append(old, [R.command(T, 't1', 'c1', 'npm test', { at: at + 3 })]);
@@ -203,29 +203,29 @@ describe('fonte do Codex: presença pelos locks', () => {
     ctx.advance(wait);
     ctx.poll();
     expect(ctx.source.transcriptPathOf(KEY)).toBe(path);
-    expect(ctx.agent()).toMatchObject({ status: 'working', title: 'Turno revertido', stats: { toolCalls: 0 } });
+    expect(ctx.agent()).toMatchObject({ status: 'working', title: 'Reverted turn', stats: { toolCalls: 0 } });
   });
 
-  it('mantém o rollout em leitura quando seu mtime atual é mais novo que o de outro arquivo do thread', () => {
+  it('keeps the rollout being read when its current mtime is newer than that of another file of the thread', () => {
     const ctx = setup();
     const at = ctx.now() - 10_000;
-    const path = ctx.home.rollout(T, [R.meta(T, { at }), R.user(T, 't1', 'u1', 'Turno atual', at + 1), R.taskComplete('t1', at + 2)], { mtime: at + 2 });
+    const path = ctx.home.rollout(T, [R.meta(T, { at }), R.user(T, 't1', 'u1', 'Current turn', at + 1), R.taskComplete('t1', at + 2)], { mtime: at + 2 });
     ctx.home.lock(T, at);
     ctx.source.boot();
     const other = path.replace('.jsonl', `_${C}.jsonl`);
-    writeFileSync(other, [R.meta(T, { at }), R.user(T, 't2', 'u2', 'Outro rollout', at + 3), R.taskComplete('t2', at + 4)].join('\n') + '\n');
+    writeFileSync(other, [R.meta(T, { at }), R.user(T, 't2', 'u2', 'Other rollout', at + 3), R.taskComplete('t2', at + 4)].join('\n') + '\n');
     ctx.home.touch(other, at + 4);
     ctx.home.append(path, [R.taskStarted('t3', ctx.now())]);
     ctx.home.touch(path, ctx.now());
     ctx.advance(3_000);
     ctx.poll();
     expect(ctx.source.transcriptPathOf(KEY)).toBe(path);
-    expect(ctx.agent()).toMatchObject({ status: 'working', title: 'Turno atual' });
+    expect(ctx.agent()).toMatchObject({ status: 'working', title: 'Current turn' });
   });
 
-  it('lock rápido (manutenção) não vira sessão; o que persiste uns segundos, vira', () => {
+  it('quick lock (maintenance) does not become a session; one that persists a few seconds does', () => {
     const ctx = setup();
-    ctx.home.rollout(T, [R.meta(T, { at: ctx.now() - 3_600_000 }), R.user(T, 't', 'u', 'antiga', ctx.now() - 3_600_000)], { mtime: ctx.now() - 3_600_000 });
+    ctx.home.rollout(T, [R.meta(T, { at: ctx.now() - 3_600_000 }), R.user(T, 't', 'u', 'old', ctx.now() - 3_600_000)], { mtime: ctx.now() - 3_600_000 });
     ctx.source.boot();
     ctx.home.lock(T, ctx.now());
     ctx.poll();
@@ -245,58 +245,58 @@ describe('fonte do Codex: presença pelos locks', () => {
     expect(ctx.agent()?.status).toBe('idle');
   });
 
-  it('lock velho de crash (rollout parado há mais de 12 h, sem hook) fica fora; escrita nova reabre', () => {
+  it('old lock from a crash (rollout stopped for more than 12 h, no hook) stays out; a new write reopens it', () => {
     const ctx = setup();
     const old = ctx.now() - 13 * 3600_000;
-    const path = ctx.home.rollout(T, [R.meta(T, { at: old }), R.taskStarted('t', old), R.user(T, 't', 'u', 'oi', old)], { mtime: old });
+    const path = ctx.home.rollout(T, [R.meta(T, { at: old }), R.taskStarted('t', old), R.user(T, 't', 'u', 'hi', old)], { mtime: old });
     ctx.home.lock(T, old);
     ctx.source.boot();
     expect(ctx.agent()).toBeUndefined();
     ctx.advance(1_000);
-    ctx.home.append(path, [R.taskStarted('t2', ctx.now()), R.user(T, 't2', 'u2', 'voltei', ctx.now())]);
+    ctx.home.append(path, [R.taskStarted('t2', ctx.now()), R.user(T, 't2', 'u2', 'I am back', ctx.now())]);
     ctx.poll();
     expect(ctx.agent()).toMatchObject({ status: 'working' });
   });
 
-  it('thread antigo retomado agora (lock novo, rollout parado há dias) aparece', () => {
+  it('old thread resumed now (new lock, rollout stopped for days) shows up', () => {
     const ctx = setup();
     const old = ctx.now() - 3 * 86_400_000;
-    ctx.home.rollout(T, [R.meta(T, { at: old, cwd: '/projetos/velho' }), R.user(T, 't', 'u', 'antigo', old), R.taskComplete('t', old + 10)], { mtime: old });
+    ctx.home.rollout(T, [R.meta(T, { at: old, cwd: '/projects/old' }), R.user(T, 't', 'u', 'old', old), R.taskComplete('t', old + 10)], { mtime: old });
     ctx.home.lock(T, ctx.now() - 30_000);
     ctx.source.boot();
-    expect(ctx.agent()).toMatchObject({ roomId: '/projetos/velho', status: 'idle', title: 'antigo' });
+    expect(ctx.agent()).toMatchObject({ roomId: '/projects/old', status: 'idle', title: 'old' });
     // Lock sem rollout esquecido há mais de 12 h (crash antes do primeiro prompt): fora.
     ctx.home.lock(C, ctx.now() - 13 * 3600_000);
     ctx.poll();
     expect(ctx.agent(`.codex:${C}`)).toBeUndefined();
   });
 
-  it('lock sem rollout (CLI aberta, ainda sem mensagem): fica fora até o projeto aparecer e entra direto na sala dele', () => {
+  it('lock without a rollout (CLI open, no message yet): stays out until the project shows up and goes straight into its room', () => {
     const ctx = setup();
     ctx.home.lock(T, ctx.now() - 20_000);
     ctx.source.boot();
     // O lock não diz a pasta: sem projeto, sem sala (nada de sala provisória).
     expect(ctx.agent()).toBeUndefined();
     expect(ctx.office.commit().snapshot.rooms).toEqual([]);
-    ctx.home.rollout(T, [R.meta(T, { at: ctx.now(), cwd: '/projetos/api' }), R.taskStarted('t1', ctx.now()), R.user(T, 't1', 'u1', 'Comece', ctx.now())]);
+    ctx.home.rollout(T, [R.meta(T, { at: ctx.now(), cwd: '/projects/api' }), R.taskStarted('t1', ctx.now()), R.user(T, 't1', 'u1', 'Start', ctx.now())]);
     ctx.advance(3_100);
     ctx.poll();
-    expect(ctx.agent()).toMatchObject({ roomId: '/projetos/api', status: 'working', title: 'Comece' });
+    expect(ctx.agent()).toMatchObject({ roomId: '/projects/api', status: 'working', title: 'Start' });
     const rooms = ctx.office.commit().snapshot.rooms.map((r) => r.id);
-    expect(rooms).toEqual(['/projetos/api']);
+    expect(rooms).toEqual(['/projects/api']);
   });
 
-  it('lock sem rollout: um hook que diz o projeto faz o agente entrar na hora, já na sala certa', () => {
+  it('lock without a rollout: a hook that tells the project makes the agent come in right away, already in the right room', () => {
     const ctx = setup();
     ctx.source.boot();
     ctx.home.lock(T, ctx.now() - 60_000);
     ctx.poll();
     expect(ctx.agent()).toBeUndefined();
-    expect(ctx.hook({ hook_event_name: 'SessionStart', session_id: T, cwd: '/projetos/api', transcript_path: null, model: 'gpt-teste-codex', source: 'startup' })).toBe(true);
-    expect(ctx.agent()).toMatchObject({ roomId: '/projetos/api', status: 'idle', provider: 'codex' });
+    expect(ctx.hook({ hook_event_name: 'SessionStart', session_id: T, cwd: '/projects/api', transcript_path: null, model: 'gpt-test-codex', source: 'startup' })).toBe(true);
+    expect(ctx.agent()).toMatchObject({ roomId: '/projects/api', status: 'idle', provider: 'codex' });
   });
 
-  it('threads internos (guardian, revisão) ficam fora', () => {
+  it('internal threads (guardian, review) stay out', () => {
     const ctx = setup();
     const at = ctx.now() - 5_000;
     ctx.home.rollout(T, [R.meta(T, { at, source: SOURCES.guardian() }), R.taskStarted('t', at)]);
@@ -307,25 +307,25 @@ describe('fonte do Codex: presença pelos locks', () => {
     expect(ctx.agents()).toEqual([]);
   });
 
-  it('sem thread-writer-locks/: presença pelo rollout modificado nos últimos 30 min', () => {
+  it('without thread-writer-locks/: presence by the rollout modified in the last 30 min', () => {
     const ctx = setup({ noLocks: true });
     const old = ctx.now() - 2 * 3600_000;
-    ctx.home.rollout(T, [R.meta(T, { at: ctx.now() - 60_000 }), R.user(T, 't', 'u', 'recente', ctx.now() - 60_000)]);
-    ctx.home.rollout(C, [R.meta(C, { at: old }), R.user(C, 't', 'u', 'velha', old)], { mtime: old });
+    ctx.home.rollout(T, [R.meta(T, { at: ctx.now() - 60_000 }), R.user(T, 't', 'u', 'recent', ctx.now() - 60_000)]);
+    ctx.home.rollout(C, [R.meta(C, { at: old }), R.user(C, 't', 'u', 'old', old)], { mtime: old });
     ctx.source.boot();
     expect(ctx.agents().map((a) => a.id)).toEqual([KEY]);
   });
 });
 
-describe('fonte do Codex: subagentes', () => {
-  it('subagente entra como sub do pai enquanto trabalha e entrega ao concluir o turno', () => {
+describe('Codex source: subagents', () => {
+  it('subagent comes in as a sub of the parent while it works and delivers when the turn is completed', () => {
     const ctx = setup();
     const at = ctx.now() - 10_000;
-    ctx.home.rollout(T, [R.meta(T, { at }), R.taskStarted('p1', at), R.user(T, 'p1', 'u', 'Investigue com ajuda', at)]);
+    ctx.home.rollout(T, [R.meta(T, { at }), R.taskStarted('p1', at), R.user(T, 'p1', 'u', 'Investigate with help', at)]);
     const sub = ctx.home.rollout(C, [
       R.meta(C, { at: at + 1_000, sessionId: T, source: SOURCES.sub(T, 'explorer') }),
       R.taskStarted('s1', at + 1_000),
-      R.user(C, 's1', 'su', 'Procure onde o login é validado', at + 1_100),
+      R.user(C, 's1', 'su', 'Find where the login is validated', at + 1_100),
     ]);
     ctx.home.lock(T, at);
     ctx.home.lock(C, at + 1_000);
@@ -336,12 +336,12 @@ describe('fonte do Codex: subagentes', () => {
       parentId: KEY,
       sessionId: C,
       role: 'Explorer',
-      title: 'Procure onde o login é validado',
+      title: 'Find where the login is validated',
       status: 'working',
-      roomId: '/projetos/loja',
+      roomId: '/projects/store',
     });
     ctx.advance(1_000);
-    ctx.home.append(sub, [R.agent(C, 's1', 'sa', 'Está em auth.ts', ctx.now()), R.taskComplete('s1', ctx.now() + 1)]);
+    ctx.home.append(sub, [R.agent(C, 's1', 'sa', 'It is in auth.ts', ctx.now()), R.taskComplete('s1', ctx.now() + 1)]);
     ctx.poll();
     expect(ctx.agent(`.codex:${C}`)?.status).toBe('done');
     expect(ctx.notices.some((n) => n.text.includes('delivered'))).toBe(true);
@@ -360,7 +360,7 @@ describe('fonte do Codex: subagentes', () => {
     expect(ctx.agent()?.status).toBe('working');
   });
 
-  it('subagente já ocioso ao subir não aparece', () => {
+  it('subagent already idle at startup does not show up', () => {
     const ctx = setup();
     const at = ctx.now() - 10_000;
     ctx.home.rollout(T, [R.meta(T, { at })]);
@@ -372,8 +372,8 @@ describe('fonte do Codex: subagentes', () => {
   });
 });
 
-describe('fonte do Codex: uso do plano', () => {
-  it('o rate_limits mais recente entre as sessões vai para a conta, com o plano; sem cota', () => {
+describe('Codex source: plan usage', () => {
+  it('the most recent rate_limits among the sessions goes to the account, with the plan; no quota', () => {
     const ctx = setup();
     const at = ctx.now() - 60_000;
     ctx.home.rollout(T, [R.meta(T, { at }), R.tokens({ input: 1, output: 1, at, rateLimits: { primary: { used: 30 }, plan: 'pro' } })]);
@@ -389,7 +389,7 @@ describe('fonte do Codex: uso do plano', () => {
     expect(ctx.accounts.list(new Map())[0].usage).toEqual({ source: 'codex', fetchedAt: ctx.now(), noQuota: true });
   });
 
-  it('conta sem sessão aberta: o uso do último rollout (com a idade dele)', () => {
+  it('account with no open session: the usage from the last rollout (with its age)', () => {
     const ctx = setup();
     const at = ctx.now() - 2 * 3600_000;
     ctx.home.rollout(T, [R.meta(T, { at }), R.tokens({ input: 1, output: 1, at, rateLimits: { plan: 'plus' } })], { mtime: at });
@@ -398,7 +398,7 @@ describe('fonte do Codex: uso do plano', () => {
     expect(ctx.accounts.list(new Map())[0]).toMatchObject({ plan: 'Plus', usageStatus: 'stale', usage: { fetchedAt: at } });
   });
 
-  it('conta sem sessão aberta: pula o rollout mais recente sem números e acha o uso numa pasta de data antiga', () => {
+  it('account with no open session: skips the most recent rollout without numbers and finds the usage in an old date folder', () => {
     const ctx = setup();
     const at = ctx.now() - 5 * 3600_000;
     // Sessão retomada: o arquivo fica na pasta da criação (antiga), mas foi mexido há pouco.
@@ -411,29 +411,29 @@ describe('fonte do Codex: uso do plano', () => {
   });
 });
 
-describe('fonte do Codex: eventos de hook', () => {
+describe('Codex source: hook events', () => {
   const ev = (name: string, extra: Record<string, unknown> = {}) => ({
     hook_event_name: name,
     session_id: T,
-    cwd: '/projetos/api',
+    cwd: '/projects/api',
     transcript_path: null,
-    model: 'gpt-teste-codex',
+    model: 'gpt-test-codex',
     permission_mode: 'default',
     turn_id: 'turn1',
     ...extra,
   });
 
-  it('SessionStart: o agente aparece já, na sala do cwd do evento, antes do lock e do rollout', () => {
+  it('SessionStart: the agent shows up right away, in the room of the event cwd, before the lock and the rollout', () => {
     const ctx = setup();
     ctx.source.boot();
     expect(ctx.hook(ev('SessionStart', { source: 'startup' }))).toBe(true);
-    expect(ctx.agent()).toMatchObject({ roomId: '/projetos/api', provider: 'codex', status: 'idle' });
+    expect(ctx.agent()).toMatchObject({ roomId: '/projects/api', provider: 'codex', status: 'idle' });
   });
 
-  it('prompt, ferramenta (sem duplicar com o item concluído), aprovação e fim do turno', () => {
+  it('prompt, tool (without duplicating with the completed item), approval and end of the turn', () => {
     const ctx = setup();
     ctx.source.boot();
-    expect(ctx.hook(ev('UserPromptSubmit', { prompt: 'rode os testes' }))).toBe(true);
+    expect(ctx.hook(ev('UserPromptSubmit', { prompt: 'run the tests' }))).toBe(true);
     expect(ctx.agent()?.status).toBe('working');
     expect(ctx.hook(ev('PreToolUse', { tool_name: 'Bash', tool_use_id: 'call_7', tool_input: { command: 'npm test' } }))).toBe(true);
     expect(ctx.agent()?.activity).toMatchObject({ id: `${KEY}#call_7`, text: 'Running tests', tool: 'Bash' });
@@ -441,7 +441,7 @@ describe('fonte do Codex: eventos de hook', () => {
     expect(ctx.agent()).toMatchObject({ status: 'waiting', waitingFor: 'approve a command' });
     // O rollout aparece com a linha antiga do turno: não desfaz a espera.
     ctx.advance(10);
-    const path = ctx.home.rollout(T, [R.meta(T, { at: ctx.now() - 5_000, cwd: '/projetos/api' }), R.taskStarted('turn1', ctx.now() - 4_000)]);
+    const path = ctx.home.rollout(T, [R.meta(T, { at: ctx.now() - 5_000, cwd: '/projects/api' }), R.taskStarted('turn1', ctx.now() - 4_000)]);
     ctx.home.lock(T, ctx.now() - 5_000);
     ctx.advance(3_100);
     ctx.poll();
@@ -457,7 +457,7 @@ describe('fonte do Codex: eventos de hook', () => {
     expect(ctx.agent()?.status).toBe('idle');
   });
 
-  it('apply_patch e MCP: as mesmas atividades do Claude Code', () => {
+  it('apply_patch and MCP: the same activities as Claude Code', () => {
     const ctx = setup();
     ctx.source.boot();
     ctx.hook(ev('PreToolUse', { tool_name: 'apply_patch', tool_use_id: 'c1', tool_input: { command: '*** Begin Patch\n*** Update File: src/app.ts\n@@\n-a\n+b\n*** End Patch' } }));
@@ -466,7 +466,7 @@ describe('fonte do Codex: eventos de hook', () => {
     expect(ctx.agent()?.activity).toMatchObject({ text: 'GitHub: merge pull request', tool: 'mcp__github__merge_pull_request' });
   });
 
-  it('agent_id vs session_id: o evento de subagente vai para o filho, que entra como sub do pai', () => {
+  it('agent_id vs session_id: the subagent event goes to the child, which comes in as a sub of the parent', () => {
     const ctx = setup();
     ctx.source.boot();
     ctx.hook(ev('SessionStart'));
@@ -482,27 +482,27 @@ describe('fonte do Codex: eventos de hook', () => {
     expect(ctx.agent(`.codex:${C}`)?.status).toBe('done');
   });
 
-  it('evento desconhecido, sessão inválida ou sem conta que case: false', () => {
-    const ctx = setup({ names: ['.codex', '.codex-trabalho'] });
+  it('unknown event, invalid session or no matching account: false', () => {
+    const ctx = setup({ names: ['.codex', '.codex-work'] });
     ctx.source.boot();
-    expect(ctx.hook(ev('Desconhecido'))).toBe(false);
-    expect(ctx.hook(ev('SessionStart', { session_id: 'nao-e-uuid' }))).toBe(false);
+    expect(ctx.hook(ev('Unknown'))).toBe(false);
+    expect(ctx.hook(ev('SessionStart', { session_id: 'not-a-uuid' }))).toBe(false);
     // Duas contas e nada que diga qual: não casa.
     expect(ctx.hook(ev('SessionStart'))).toBe(false);
     // Pelo id da conta, pela pasta ou pelo transcript_path.
-    expect(ctx.hook(ev('SessionStart'), '.codex-trabalho')).toBe(true);
-    expect(ctx.agent(`.codex-trabalho:${T}`)?.account).toBe('.codex-trabalho');
+    expect(ctx.hook(ev('SessionStart'), '.codex-work')).toBe(true);
+    expect(ctx.agent(`.codex-work:${T}`)?.account).toBe('.codex-work');
     expect(ctx.hook(ev('SessionStart', { session_id: C }), ctx.homes[0].dir)).toBe(true);
     expect(ctx.agent(`.codex:${C}`)).toBeDefined();
     const T3 = threadId(3);
     const tp = join(ctx.homes[1].dir, 'sessions', '2026', '10', '09', `rollout-2026-10-09T09-00-00-${T3}.jsonl`);
     expect(ctx.hook(ev('SessionStart', { session_id: T3, transcript_path: tp }))).toBe(true);
-    expect(ctx.agent(`.codex-trabalho:${T3}`)).toBeDefined();
+    expect(ctx.agent(`.codex-work:${T3}`)).toBeDefined();
     // SessionEnd de sessão que ninguém conhece: false.
     expect(ctx.hook(ev('SessionEnd', { session_id: threadId(4), reason: 'other' }), '.codex')).toBe(false);
   });
 
-  it('subagente cujo primeiro evento é um pedido de aprovação entra já esperando', () => {
+  it('subagent whose first event is an approval request comes in already waiting', () => {
     const ctx = setup();
     ctx.source.boot();
     ctx.hook(ev('SessionStart'));
@@ -510,7 +510,7 @@ describe('fonte do Codex: eventos de hook', () => {
     expect(ctx.agent(`.codex:${C}`)).toMatchObject({ kind: 'sub', parentId: KEY, status: 'waiting', waitingFor: 'approve a command' });
   });
 
-  it('Docker: o hook roda no host e casa a conta pela pasta do HOST (configDir) ou pelo transcript_path de lá', () => {
+  it('Docker: the hook runs on the host and matches the account by the HOST folder (configDir) or by the transcript_path from there', () => {
     const ctx = setup({
       names: ['.codex', '.codex-b'],
       env: (dirs) => ({
@@ -533,7 +533,7 @@ describe('fonte do Codex: eventos de hook', () => {
     expect(ctx.agent(`.codex:${C}`)).toBeDefined();
   });
 
-  it('a presença do hook dura 60 s sem lock; SessionEnd fecha', () => {
+  it('the hook presence lasts 60 s without a lock; SessionEnd closes it', () => {
     const ctx = setup();
     ctx.source.boot();
     ctx.hook(ev('SessionStart'));
@@ -560,7 +560,7 @@ describe('fonte do Codex: eventos de hook', () => {
     expect(ctx.agent()?.status).toBe('offline');
   });
 
-  it('Docker sem a pasta de locks montada: o hook dá presença; sem eventos por 60 s, sai', () => {
+  it('Docker without the locks folder mounted: the hook gives presence; with no events for 60 s, it leaves', () => {
     const ctx = setup({ noLocks: true });
     ctx.source.boot();
     ctx.hook(ev('UserPromptSubmit', { prompt: 'x' }));
@@ -573,19 +573,19 @@ describe('fonte do Codex: eventos de hook', () => {
   });
 });
 
-describe('fonte do Codex: contas', () => {
-  it('duas contas: nomes "Codex X", letras e cores sem colidir; ids devolvidos pelo AccountsService', () => {
-    const ctx = setup({ names: ['.codex', '.codex-trabalho'] });
+describe('Codex source: accounts', () => {
+  it('two accounts: names "Codex X", letters and colors without colliding; ids returned by the AccountsService', () => {
+    const ctx = setup({ names: ['.codex', '.codex-work'] });
     const list = ctx.accounts.list(new Map());
     expect(list.map((a) => [a.id, a.provider, a.short, a.name])).toEqual([
       ['.codex', 'codex', 'X', 'Codex X'],
-      ['.codex-trabalho', 'codex', 'T', 'Codex T'],
+      ['.codex-work', 'codex', 'W', 'Codex W'],
     ]);
     expect(new Set(list.map((a) => a.color)).size).toBe(2);
-    expect(ctx.source.accountEntries().map((e) => e.id)).toEqual(['.codex', '.codex-trabalho']);
+    expect(ctx.source.accountEntries().map((e) => e.id)).toEqual(['.codex', '.codex-work']);
   });
 
-  it('rollout compactado (.zst) sozinho: ignorado (com aviso no log), a sessão fica fora por falta de projeto', () => {
+  it('compressed rollout (.zst) alone: ignored (with a warning in the log), the session stays out for lack of a project', () => {
     const ctx = setup();
     const dir = join(ctx.home.dir, 'sessions', '2026', '10', '01');
     mkdirSync(dir, { recursive: true });
@@ -598,24 +598,24 @@ describe('fonte do Codex: contas', () => {
   });
 });
 
-describe('scanPrefix do Codex', () => {
-  it('ignora linha acima do teto e lê as vizinhas', async () => {
+describe('Codex scanPrefix', () => {
+  it('ignores a line above the cap and reads the neighboring ones', async () => {
     const dir = join(tmpdir(), `habblaud-codex-prefix-${process.pid}`);
     mkdirSync(dir, { recursive: true });
     const warn = vi.spyOn(log, 'warnOnce').mockImplementation(() => {});
     try {
       const file = join(dir, 'rollout.jsonl');
       const body = Buffer.concat([
-        Buffer.from(`${R.turnContext({ model: 'antes' })}\n`),
+        Buffer.from(`${R.turnContext({ model: 'before' })}\n`),
         Buffer.from('{"timestamp":"2026-10-10T00:00:00.000Z","type":"turn_context","payload":{"model":"'),
         Buffer.alloc(MAX_LINE_BYTES, 0x6e),
         Buffer.from('"}}\n'),
         Buffer.from(`${R.taskStarted('t1')}\n`),
       ]);
       writeFileSync(file, body);
-      const { state } = await scanPrefix(file, body.length, 'codex:teste', 0);
+      const { state } = await scanPrefix(file, body.length, 'codex:test', 0);
       // Booleano de propósito: o valor errado seria a linha gigante, e o diff não pode imprimi-la.
-      expect(state.model === 'antes').toBe(true);
+      expect(state.model === 'before').toBe(true);
       expect(state.turnOpen).toBe(true);
       expect(warn).toHaveBeenCalledWith(`oversize-line:${file}`, expect.stringContaining('8 MiB'));
     } finally {

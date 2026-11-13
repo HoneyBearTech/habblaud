@@ -17,8 +17,8 @@ import { agentRow, findAgent, statusText, visitBanner, visitLightOf, visitPanel 
 const ID = 'o_7a8b9c0d1e2f';
 const inside = (detail: WorldBuildingDetail = sampleBuildingDetail(), rev = 1) => ({ id: detail.building.id, rev, detail });
 
-describe('model da visita', () => {
-  it('faixa: de quem é, andares, agentes; discreto e apagado no lugar dos agentes; o próprio prédio', () => {
+describe('visit model', () => {
+  it('banner: whose it is, floors, agents; discreet and off in place of the agents; your own building', () => {
     expect(visitBanner(sampleBuildingDetail(), false)).toEqual({ title: "Helena's building", details: ['3 floors', '6 agents'], mode: null });
     expect(visitBanner(sampleBuildingDetail('discreet'), false)).toEqual({ title: "Helena's building", details: ['3 floors', 'discreet mode'], mode: 'discreet' });
     expect(visitBanner(sampleBuildingDetail('away'), false)).toMatchObject({ details: ['3 floors', 'lights off'], mode: 'away' });
@@ -29,13 +29,13 @@ describe('model da visita', () => {
     expect(visitBanner(d, false).details).toEqual(['3 floors', 'discreet mode']);
   });
 
-  it('luzes: apagado, discreto ou ao vivo', () => {
+  it('lights: off, discreet or live', () => {
     expect(visitLightOf(sampleBuildingDetail().building)).toBe('live');
     expect(visitLightOf(sampleBuildingDetail('discreet').building)).toBe('discreet');
     expect(visitLightOf(sampleBuildingDetail('away').building)).toBe('away');
   });
 
-  it('painel: salas com o nome fictício traduzido e agentes com nome, papel, ferramenta e status (nada de tempo)', () => {
+  it('panel: rooms with the fictional name translated and agents with name, role, tool and status (no time at all)', () => {
     const p = visitPanel(sampleBuildingDetail());
     expect(p.empty).toBeNull();
     expect(p.rooms.map((r) => [r.name, r.agents.length])).toEqual([
@@ -52,13 +52,13 @@ describe('model da visita', () => {
     expect(visitPanel(sampleBuildingDetail('discreet'))).toMatchObject({ empty: expect.stringContaining('Discreet mode') });
     expect(visitPanel(sampleBuildingDetail('away')).rooms.every((r) => r.agents.length === 0)).toBe(true);
     // status de uma versão mais nova do servidor: à toa
-    expect(agentRow({ ...sampleBuildingDetail().floors[0]!.agents[0]!, status: 'dormindo' as never }).status).toBe('idle');
+    expect(agentRow({ ...sampleBuildingDetail().floors[0]!.agents[0]!, status: 'sleeping' as never }).status).toBe('idle');
     expect(statusText('idle')).toBe('idle');
   });
 
-  it('cartão: o agente pelo id do escritório da visita, com a sala; discreto, nenhum', () => {
+  it('card: the agent by the id of the visit office, with the room; discreet, none', () => {
     expect(findAgent(sampleBuildingDetail(), 'world:a_3c4d5e6f')).toMatchObject({ name: 'Beatriz', room: 'Project Jade', tool: 'Codex' });
-    expect(findAgent(sampleBuildingDetail(), 'world:nao_existe')).toBeNull();
+    expect(findAgent(sampleBuildingDetail(), 'world:does_not_exist')).toBeNull();
     expect(findAgent(sampleBuildingDetail('discreet'), 'world:a_3c4d5e6f')).toBeNull();
   });
 });
@@ -72,7 +72,7 @@ function controller(detail = sampleBuildingDetail(), rev = 1) {
 }
 
 describe('VisitController', () => {
-  it('publica o escritório do interior ao entrar; o patch seguinte aplica, o repetido e o velho não', () => {
+  it('publishes the office of the interior on entering; the next patch applies, the repeated one and the old one do not', () => {
     const { c, pushed } = controller();
     expect(pushed).toHaveLength(1);
     expect(c.snapshot.agents).toHaveLength(6);
@@ -91,7 +91,7 @@ describe('VisitController', () => {
     expect(pushed).toHaveLength(2);
   });
 
-  it('o prédio ficou discreto (só `building` no patch): salas vazias; as luzes seguem o prédio', () => {
+  it('the building went discreet (only `building` in the patch): empty rooms; the lights follow the building', () => {
     const { c } = controller();
     expect(c.light).toBe('live');
     expect(c.patch({ rev: 2, building: sampleBuildingDetail('discreet').building })).toBe('apply');
@@ -104,7 +104,7 @@ describe('VisitController', () => {
     expect(c.light).toBe('away');
   });
 
-  it('salto no rev: pede resync {building} (no máximo um a cada 5 s); o interior inteiro substitui tudo, como patch', () => {
+  it('jump in rev: asks for resync {building} (at most one every 5 s); the whole interior replaces everything, as a patch', () => {
     const { c, clock, sent } = controller();
     const marina = () => c.snapshot.agents.find((a) => a.name === 'Marina')!;
     const since = marina().statusSince;
@@ -125,7 +125,7 @@ describe('VisitController', () => {
     expect(c.patch({ rev: 8, visitors: 1 })).toBe('apply');
   });
 
-  it('sair: um leave só, e nada de move nem view', () => {
+  it('leaving: a single leave, and no move or view at all', () => {
     const { c, sent } = controller();
     expect(c.leave()).toBe(true);
     expect(c.leave()).toBe(false);
@@ -158,10 +158,10 @@ const appearance: Appearance = {
 const theme: RoomTheme = { carpet: '#4f6d8f', carpet2: '#486685', wall: { base: '#e6e2da', trim: '#9a8f80', pattern: 'plain' }, accent: '#3f7fd8', deskVariant: 'wood', chairVariant: 'black' };
 const art = { appearanceFromSeed: () => appearance, roomTheme: () => theme } as unknown as ArtModule;
 
-describe('rotas durante a visita', () => {
+describe('routes during the visit', () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  it('uma visita inteira (entrar, patches, andar, sair) só fala com /api/world/* (nada de terminal, mensagens, permissões...)', async () => {
+  it('a whole visit (enter, patches, walk, leave) only talks to /api/world/* (no terminal, messages, permissions...)', async () => {
     const urls: string[] = [];
     // qualquer fetch fora do stream (store, mundo, interface) também é registrado
     vi.stubGlobal('fetch', (input: unknown) => {
@@ -269,8 +269,8 @@ function importGraph(entry: string): Set<string> {
   return seen;
 }
 
-describe('bloqueio por construção', () => {
-  it('a cena Visita não importa nada da interface do escritório além do DOM básico (nem terminal, gaveta, feed, permissões, mensagens...)', () => {
+describe('blocked by construction', () => {
+  it('the Visit scene imports nothing from the office interface beyond the basic DOM (no terminal, drawer, feed, permissions, messages...)', () => {
     expect(Object.keys(SOURCES)).toContain('world/visit/index.ts');
     const files = importGraph('world/visit/index.ts');
     expect(files.has('world/index.ts')).toBe(true);

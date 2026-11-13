@@ -30,7 +30,7 @@ function fakeStats(perDay: Record<string, [number, number]>, today = '2026-10-15
 }
 
 describe('BuildingTokens', () => {
-  it('hoje e os 7 dias corridos (hoje + 6), arredondados; dia sem dados conta zero', () => {
+  it('today and the 7 consecutive days (today + 6), rounded; a day without data counts as zero', () => {
     const stats = fakeStats({
       '2026-10-15': [1_000_000, 234_567],
       '2026-10-14': [5_000_000, 1_000],
@@ -43,7 +43,7 @@ describe('BuildingTokens', () => {
     expect(stats.calls.map(([d]) => d).sort()).toEqual(['2026-10-09', '2026-10-10', '2026-10-11', '2026-10-12', '2026-10-13', '2026-10-14', '2026-10-15']);
   });
 
-  it('dias passados ficam guardados; hoje é relido depois do prazo', () => {
+  it('past days stay stored; today is reread after the deadline', () => {
     const per: Record<string, [number, number]> = { '2026-10-15': [100, 0], '2026-10-14': [50, 0] };
     const stats = fakeStats(per);
     let now = T0;
@@ -57,20 +57,20 @@ describe('BuildingTokens', () => {
     expect(stats.calls.filter(([d]) => d === '2026-10-14')).toHaveLength(1);
   });
 
-  it('com o DayStatsService de verdade e o demo ligado: só os tokens dos agentes reais', () => {
+  it('with the real DayStatsService and the demo on: only the tokens of the real agents', () => {
     let now = T0;
     const real: AgentInfo = {
-      id: '.claude:1', kind: 'main', roomId: '/p/loja', name: 'Ana', look: 'f', role: 'Main agent', sessionId: 'sess-1',
+      id: '.claude:1', kind: 'main', roomId: '/p/store', name: 'Ana', look: 'f', role: 'Main agent', sessionId: 'sess-1',
       account: '.claude', status: 'working', recent: [], tasks: [], startedAt: T0 - 60_000, lastEventAt: T0, statusSince: T0,
       stats: { toolCalls: 0, tokensIn: 0, tokensOut: 0, subagents: 0 }, seed: 1,
     };
-    const demo: AgentInfo = { ...real, id: 'demo:abc-1', roomId: '/demo/loja', account: 'demo:.claude', sessionId: 'sess-demo' };
+    const demo: AgentInfo = { ...real, id: 'demo:abc-1', roomId: '/demo/store', account: 'demo:.claude', sessionId: 'sess-demo' };
     let agents = [real, demo];
     const snap = (): Pick<OfficeSnapshot, 'agents' | 'rooms' | 'accounts' | 'meta'> => ({
       agents,
       rooms: [],
       accounts: [],
-      meta: { demo: true, sources: [], startedAt: 0, version: 'teste' },
+      meta: { demo: true, sources: [], startedAt: 0, version: 'test' },
     });
     const svc = new DayStatsService({ dir: null, tz: 'UTC', now: () => now, snapshot: snap });
     const step = (until: number) => {

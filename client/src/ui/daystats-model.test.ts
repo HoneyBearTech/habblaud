@@ -27,10 +27,10 @@ const counts = (p: Partial<DayStats['totals']['counts']> = {}) => ({ prompts: 0,
 const totals = (p: Partial<RoomDayStats> = {}) => ({ ms: ms(), counts: counts(), sessions: 0, subagents: 0, waits: 0, longestWaitMs: 0, ...p });
 const clock = (t: number) => new Date(t).toISOString().slice(11, 16);
 
-describe('Meu dia com o Codex', () => {
+describe('My day with Codex', () => {
   const acc = (id: string, p: Partial<AccountDayStats> = {}): AccountDayStats => ({ id, name: id, short: 'X', color: '#000', ...totals(), ...p });
 
-  it('custo só do Claude Code: a conta do Codex mostra tokens, sem custo', () => {
+  it('cost only from Claude Code: the Codex account shows tokens, no cost', () => {
     const cards = accountCards(
       [acc('.claude', { ms: ms({ working: H }), counts: counts({ tokensIn: 10, costUSD: 1.5 }) }), acc('.codex', { ms: ms({ working: H }), counts: counts({ tokensIn: 2_000_000 }) })],
       (id) => id === '.codex',
@@ -43,7 +43,7 @@ describe('Meu dia com o Codex', () => {
     expect(accountCards([acc('.codex', { ms: ms({ working: H }) })])[0]).toMatchObject({ codex: false, cost: '—' });
   });
 
-  it('dica do custo diz que o Codex não grava custo', () => {
+  it('cost hint says Codex does not record cost', () => {
     const day = (c: Partial<DayStats['totals']['counts']>) => ({ totals: { ...totals(), counts: counts(c), waitWallMs: 0 }, waits: [] }) as unknown as DayStats;
     expect(highlights(day({ tokensIn: 5, costUSD: 2 }), clock, true).costHint).toBe("Claude Code only: Codex doesn't record cost, only tokens");
     expect(highlights(day({ tokensIn: 5 }), clock, true).costHint).toBe("Codex doesn't record cost, only tokens");
@@ -51,8 +51,8 @@ describe('Meu dia com o Codex', () => {
   });
 });
 
-describe('formatação', () => {
-  it('tempo de agente não vira "dias"', () => {
+describe('formatting', () => {
+  it('agent time does not become "days"', () => {
     expect(formatAgentTime(12_500)).toBe('12 s');
     expect(formatAgentTime(3 * MIN + 59_000)).toBe('3 min');
     expect(formatAgentTime(2 * H)).toBe('2 h');
@@ -61,12 +61,12 @@ describe('formatação', () => {
     expect(formatAgentTime(Number.NaN)).toBe('0 s');
   });
 
-  it('resumo dos status para leitores de tela', () => {
+  it('status summary for screen readers', () => {
     expect(statusSummary(ms({ waiting: 12 * MIN, working: 65 * MIN }))).toBe('waiting on you 12 min, working 1 h 5 min');
     expect(statusSummary(ms({ idle: MIN }), new Set(['working']))).toBe('no time recorded');
   });
 
-  it('rótulos de dia e URLs da API', () => {
+  it('day labels and API URLs', () => {
     expect(dayLabel('2026-10-08', '2026-10-08')).toBe('Today');
     expect(dayLabel('2026-10-07', '2026-10-08')).toBe('Yesterday');
     expect(dayLabel('2026-10-01', '2026-10-08')).toMatch(/^Thu, 10\/01$/);
@@ -80,8 +80,8 @@ describe('formatação', () => {
   });
 });
 
-describe('barras empilhadas', () => {
-  it('pedaços só dos status visíveis e não vazios, em % da escala', () => {
+describe('stacked bars', () => {
+  it('segments only for the visible and non-empty statuses, in % of the scale', () => {
     const s = segments(ms({ waiting: 10, working: 30, idle: 0, shell: 10 }), ALL_VISIBLE, 100);
     expect(s).toEqual([
       { status: 'waiting', ms: 10, pct: 10 },
@@ -91,7 +91,7 @@ describe('barras empilhadas', () => {
     expect(segments(ms({ working: 5 }), ALL_VISIBLE, 0)).toEqual([]);
   });
 
-  it('projetos: escala comum, ordem da API, sem projetos vazios e com status escondidos', () => {
+  it('projects: common scale, API order, without empty projects and with hidden statuses', () => {
     const rooms: RoomDayStats[] = [
       { id: '/p/a', name: 'a', ...totals({ ms: ms({ waiting: 30 * MIN, working: 30 * MIN }) }) },
       { id: '/p/b', name: 'b', ...totals({ ms: ms({ working: 2 * H, idle: 2 * H }) }) },
@@ -111,8 +111,8 @@ describe('barras empilhadas', () => {
   });
 });
 
-describe('por hora', () => {
-  it('eixo vertical redondo', () => {
+describe('by hour', () => {
+  it('round vertical axis', () => {
     expect(niceAxis(0)).toEqual({ max: 5 * MIN, ticks: [5 * MIN] });
     expect(niceAxis(50 * MIN)).toEqual({ max: H, ticks: [15 * MIN, 30 * MIN, 45 * MIN, H] });
     expect(niceAxis(80 * MIN).ticks).toEqual([30 * MIN, H, 90 * MIN]);
@@ -123,7 +123,7 @@ describe('por hora', () => {
     expect(axisLabel(90 * MIN)).toBe('1 h 30');
   });
 
-  it('colunas: escala comum, hora em curso, horas futuras e marcas a cada 3 h', () => {
+  it('columns: common scale, current hour, future hours and marks every 3 h', () => {
     const t0 = Date.UTC(2026, 9, 8, 3);
     const hours: HourDayStats[] = Array.from({ length: 24 }, (_, i) => ({ t: t0 + i * H, hour: i, ms: ms(i === 9 ? { working: 40 * MIN, waiting: 10 * MIN } : {}) }));
     const now = t0 + 9 * H + 20 * MIN;
@@ -140,14 +140,14 @@ describe('por hora', () => {
   });
 });
 
-describe('contas, esperas e destaques', () => {
+describe('accounts, waits and highlights', () => {
   const accounts: AccountDayStats[] = [
     { id: '.c', name: 'Account C', short: 'C', color: '#f08a3c', ...totals({ ms: ms({ working: 3 * H, waiting: 20 * MIN }), sessions: 2, subagents: 3, counts: counts({ tokensIn: 1_200_000, tokensOut: 30_000, costUSD: 4.5 }) }) },
     { id: '.d', name: 'Account D', short: 'D', color: '#4aa8e8', ...totals({ ms: ms({ working: H }), sessions: 1 }) },
     { id: '.e', name: 'Account E', short: 'E', color: '#5cc97b', ...totals() },
   ];
 
-  it('cartões das contas com a fatia do trabalho', () => {
+  it('account cards with the share of the work', () => {
     const cards = accountCards(accounts);
     expect(cards.map((c) => [c.short, c.share])).toEqual([
       ['C', 75],
@@ -157,20 +157,20 @@ describe('contas, esperas e destaques', () => {
     expect(cards[1]).toMatchObject({ sessions: '1 session', cost: '—' });
   });
 
-  it('ranking das esperas', () => {
+  it('ranking of the waits', () => {
     const t = Date.UTC(2026, 9, 8, 14, 32);
     const waits: WaitDayStats[] = [
-      { agentId: 'a', agentName: 'Marina', roomId: '/p/loja', roomName: 'loja', account: '.c', start: t, end: t + 12 * MIN, ms: 12 * MIN, reason: 'approve a permission' },
+      { agentId: 'a', agentName: 'Marina', roomId: '/p/store', roomName: 'store', account: '.c', start: t, end: t + 12 * MIN, ms: 12 * MIN, reason: 'approve a permission' },
       { agentId: 'b', agentName: 'Caio', roomId: '/p/api', roomName: 'api', account: '.d', start: t + H, end: t + H + 3 * MIN, ms: 3 * MIN, ongoing: true },
     ];
     const rows = waitRows(waits, clock);
     expect(rows[0]).toMatchObject({ rank: 1, duration: '12 min', pct: 100, when: '14:32–14:44', ongoing: false });
-    expect(rows[0].label).toBe('#1: 12 min, Marina in loja, 14:32–14:44, for approve a permission');
+    expect(rows[0].label).toBe('#1: 12 min, Marina in store, 14:32–14:44, for approve a permission');
     expect(rows[1]).toMatchObject({ rank: 2, pct: 25, when: 'since 15:32', ongoing: true });
     expect(rows[1].label).toContain('still waiting');
   });
 
-  it('destaques do dia', () => {
+  it('day highlights', () => {
     const t = Date.UTC(2026, 9, 8, 14, 32);
     const stats: DayStats = {
       day: '2026-10-08',
@@ -181,13 +181,13 @@ describe('contas, esperas e destaques', () => {
       rooms: [],
       accounts: [],
       hours: [],
-      waits: [{ agentId: 'a', agentName: 'Marina', roomId: '/p/loja', roomName: 'loja', account: '.c', start: t, end: t + 12 * MIN, ms: 12 * MIN }],
+      waits: [{ agentId: 'a', agentName: 'Marina', roomId: '/p/store', roomName: 'store', account: '.c', start: t, end: t + 12 * MIN, ms: 12 * MIN }],
     };
     const h = highlights(stats, clock);
     expect(h).toMatchObject({
       waiting: '48 min',
       waits: '4 waits',
-      longest: '12 min · Marina in loja, at 14:32',
+      longest: '12 min · Marina in store, at 14:32',
       wall: 'Someone waited on you for 35 min of the day',
       working: '5 h 20 min',
       sessions: '3',
@@ -204,9 +204,9 @@ describe('contas, esperas e destaques', () => {
     expect(highlights(empty, clock)).toMatchObject({ waits: 'no waits', longest: '', wall: '', costHint: 'No spending recorded' });
   });
 
-  it('tabela equivalente', () => {
-    const t = statusTable([{ name: 'loja', ms: ms({ waiting: 5 * MIN, working: H }) }], (r) => r.name, new Set(['waiting', 'working']));
+  it('equivalent table', () => {
+    const t = statusTable([{ name: 'store', ms: ms({ waiting: 5 * MIN, working: H }) }], (r) => r.name, new Set(['waiting', 'working']));
     expect(t.head).toEqual(['Waiting on you', 'Working', 'Total']);
-    expect(t.rows).toEqual([['loja', '5 min', '1 h', '1 h 5 min']]);
+    expect(t.rows).toEqual([['store', '5 min', '1 h', '1 h 5 min']]);
   });
 });

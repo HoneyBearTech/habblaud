@@ -6,13 +6,13 @@ import { checkFile } from './files';
 const ok = (p: string) => ({ path: p, size: 3 });
 
 describe('FileFetcher', () => {
-  it('Node: lê direto do disco, com a checagem', async () => {
+  it('Node: reads straight from disk, with the check', async () => {
     const f = new FileFetcher({ direct: true, check: ok, read: () => Buffer.from('abc') });
     expect(await f.get('/a/x.png')).toEqual({ data: Buffer.from('abc') });
     const denied = new FileFetcher({ direct: true, check: () => ({ error: 'protected file' }) });
     expect(await denied.get('/a/.ssh/x.png')).toEqual({ error: 'protected file', status: 403 });
     // The check's "file not found" is recognized (404, not 403) in English and in Portuguese.
-    const missing = () => new FileFetcher({ direct: true, check: checkFile }).get('/nao/existe.png');
+    const missing = () => new FileFetcher({ direct: true, check: checkFile }).get('/does/not/exist.png');
     expect(await missing()).toEqual({ error: 'file not found', status: 404 });
     setLocale('pt-BR');
     try {
@@ -22,7 +22,7 @@ describe('FileFetcher', () => {
     }
   });
 
-  it('Docker: pasta montada lê aqui; o resto vai pelo auxiliar (poll → ack) e fica no cache', async () => {
+  it('Docker: a mounted folder is read here; the rest goes through the helper (poll → ack) and stays in the cache', async () => {
     let now = 1_000;
     const reads: string[] = [];
     const f = new FileFetcher({
@@ -44,7 +44,7 @@ describe('FileFetcher', () => {
     expect(await f.get('/tmp/x.png')).toEqual({ data: Buffer.from('png') });
   });
 
-  it('auxiliar recusa: o erro dele chega ao navegador', async () => {
+  it('helper refuses: its error reaches the browser', async () => {
     const f = new FileFetcher({ check: ok });
     f.poll();
     const pending = f.get('/tmp/y.png');
@@ -53,7 +53,7 @@ describe('FileFetcher', () => {
     expect(await pending).toEqual({ error: 'protected file', status: 404 });
   });
 
-  it('rodada com espera (?wait=1): o auxiliar fica parado até a página pedir um arquivo, e conta como presente', async () => {
+  it('round with wait (?wait=1): the helper stays parked until the page asks for a file, and counts as present', async () => {
     const f = new FileFetcher({ mapHostPath: () => undefined });
     expect(f.hostAvailable()).toBe(false);
     const round = f.pollWait(60_000);

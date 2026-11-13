@@ -57,7 +57,7 @@ async function start(extra: Partial<ApiDeps> = {}, officeExtra: Partial<OfficeDe
   });
   await new Promise<void>((ok) => server.listen(0, '127.0.0.1', ok));
   const port = (server.address() as AddressInfo).port;
-  office.addMain({ id: '.claude:1', account: '.claude', sessionId: 's1', cwd: '/p/loja', role: 'Main agent', startedAt: Date.now(), status: 'working' });
+  office.addMain({ id: '.claude:1', account: '.claude', sessionId: 's1', cwd: '/p/store', role: 'Main agent', startedAt: Date.now(), status: 'working' });
   return {
     base: `http://127.0.0.1:${port}`,
     office,
@@ -92,7 +92,7 @@ function raw(base: string, path: string, opts: { method?: string; headers?: Reco
   });
 }
 
-describe('API HTTP', () => {
+describe('HTTP API', () => {
   let env: Awaited<ReturnType<typeof start>>;
   beforeEach(async () => {
     env = await start();
@@ -113,7 +113,7 @@ describe('API HTTP', () => {
     expect(snap.meta.version).toBe('9.9.9');
   });
 
-  it('GET /api/stream envia retry, snapshot e feed; depois as mudanças', async () => {
+  it('GET /api/stream sends retry, snapshot and feed; then the changes', async () => {
     const ctrl = new AbortController();
     const res = await fetch(`${env.base}/api/stream`, { signal: ctrl.signal });
     expect(res.headers.get('content-type')).toMatch(/^text\/event-stream/);
@@ -131,16 +131,16 @@ describe('API HTTP', () => {
     ctrl.abort();
   });
 
-  it('GET /api/agents/:id e /api/health', async () => {
+  it('GET /api/agents/:id and /api/health', async () => {
     const ok = await fetch(`${env.base}/api/agents/${encodeURIComponent('.claude:1')}`);
     expect(ok.status).toBe(200);
     expect(await ok.json()).toMatchObject({ agent: { id: '.claude:1' }, history: [] });
-    expect((await fetch(`${env.base}/api/agents/nao-existe`)).status).toBe(404);
+    expect((await fetch(`${env.base}/api/agents/does-not-exist`)).status).toBe(404);
     const health = await (await fetch(`${env.base}/api/health`)).json();
     expect(health).toMatchObject({ ok: true, version: '9.9.9', demo: false, docker: false, terminal: false, accounts: [{ id: '.claude', usageStatus: 'disabled' }] });
   });
 
-  it('GET /api/updates e POST /api/updates/check sem verificador: desligado', async () => {
+  it('GET /api/updates and POST /api/updates/check with no checker: off', async () => {
     expect(await (await fetch(`${env.base}/api/updates`)).json()).toEqual({ version: '9.9.9', state: 'off', available: false });
     const check = await fetch(`${env.base}/api/updates/check`, { method: 'POST', headers: JSON_HEADERS, body: '{}' });
     expect(await check.json()).toMatchObject({ state: 'off' });
@@ -148,8 +148,8 @@ describe('API HTTP', () => {
     expect(((await (await fetch(`${env.base}/api/health`)).json()) as { updates: unknown }).updates).toEqual({ state: 'off', available: false });
   });
 
-  it('com verificador: GET devolve o status e o POST pede uma verificação manual', async () => {
-    const status: UpdateStatus = { state: 'ok', repo: 'dono/nome', checkedAt: 1, latest: '10.0.0', url: 'https://github.com/dono/nome/releases/tag/v10.0.0', available: true };
+  it('with a checker: GET returns the status and the POST asks for a manual check', async () => {
+    const status: UpdateStatus = { state: 'ok', repo: 'owner/name', checkedAt: 1, latest: '10.0.0', url: 'https://github.com/owner/name/releases/tag/v10.0.0', available: true };
     const calls: { manual?: boolean }[] = [];
     const other = await start({ updates: { status: () => status, check: async (o) => (calls.push(o), status) } });
     try {
@@ -164,14 +164,14 @@ describe('API HTTP', () => {
     }
   });
 
-  it('terminal desligado: 403 JSON e meta.terminal false', async () => {
+  it('terminal off: 403 JSON and meta.terminal false', async () => {
     const res = await fetch(`${env.base}/api/agents/${encodeURIComponent('.claude:1')}/terminal`);
     expect(res.status).toBe(403);
     expect(((await res.json()) as { error: string }).error).toMatch(/disabled/);
     expect((await snapshotOf(env.base)).meta.terminal).toBe(false);
   });
 
-  it('personagem: PUT e DELETE desligados sem o terminal (403)', async () => {
+  it('character: PUT and DELETE off without the terminal (403)', async () => {
     const res = await fetch(`${env.base}/api/agents/${encodeURIComponent('.claude:1')}/character`, {
       method: 'PUT',
       headers: JSON_HEADERS,
@@ -184,7 +184,7 @@ describe('API HTTP', () => {
     expect(((await del.json()) as { error: string }).error).toMatch(/disabled/);
   });
 
-  it('POST /api/demo liga e desliga', async () => {
+  it('POST /api/demo turns it on and off', async () => {
     const on = await fetch(`${env.base}/api/demo`, { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ enabled: true }) });
     expect(await on.json()).toEqual({ ok: true, demo: true });
     expect((await snapshotOf(env.base)).meta.demo).toBe(true);
@@ -193,7 +193,7 @@ describe('API HTTP', () => {
     expect((await fetch(`${env.base}/api/demo`)).status).toBe(405);
   });
 
-  it('DNS rebinding: Host de outro domínio é recusado em qualquer rota', async () => {
+  it('DNS rebinding: a Host from another domain is refused on any route', async () => {
     const port = new URL(env.base).port;
     for (const path of ['/api/snapshot', '/api/stream', '/', '/bundle/main-abc12345.js']) {
       const r = await raw(env.base, path, { headers: { Host: `attacker.example:${port}` } });
@@ -206,7 +206,7 @@ describe('API HTTP', () => {
     expect((await raw(env.base, '/api/health', { headers: { Host: `habblaud.lan:${port}` } })).status).toBe(200);
   });
 
-  it('CSRF: POST exige JSON e origem local', async () => {
+  it('CSRF: POST requires JSON and a local origin', async () => {
     const demoOn = JSON.stringify({ enabled: true });
     // Formulário/fetch "simples" de outro site: text/plain, sem preflight.
     const plain = await fetch(`${env.base}/api/demo`, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: demoOn });
@@ -221,23 +221,23 @@ describe('API HTTP', () => {
     expect(same.status).toBe(200);
   });
 
-  it('respostas JSON com nosniff e CORP same-origin; sem CORS', async () => {
+  it('JSON responses with nosniff and CORP same-origin; no CORS', async () => {
     const res = await fetch(`${env.base}/api/snapshot`, { headers: { Origin: 'http://attacker.example' } });
     expect(res.headers.get('x-content-type-options')).toBe('nosniff');
     expect(res.headers.get('cross-origin-resource-policy')).toBe('same-origin');
     expect(res.headers.get('access-control-allow-origin')).toBeNull();
   });
 
-  it('rotas desconhecidas: 404 JSON (inclusive o antigo POST /api/usage, que não existe mais)', async () => {
-    const res = await fetch(`${env.base}/api/nada`);
+  it('unknown routes: 404 JSON (including the old POST /api/usage, which no longer exists)', async () => {
+    const res = await fetch(`${env.base}/api/nothing`);
     expect(res.status).toBe(404);
     expect(await res.json()).toEqual({ error: 'unknown route' });
     const usage = await fetch(`${env.base}/api/usage`, { method: 'POST', headers: JSON_HEADERS, body: '{"accounts":[]}' });
     expect(usage.status).toBe(404);
   });
 
-  it('estáticos: SPA fallback, immutable só no /bundle (hash) e revalidação no resto', async () => {
-    const page = await fetch(`${env.base}/sala/qualquer`);
+  it('static files: SPA fallback, immutable only on /bundle (hash) and revalidation on the rest', async () => {
+    const page = await fetch(`${env.base}/room/anything`);
     expect(page.status).toBe(200);
     expect(await page.text()).toContain('<title>Habblaud</title>');
     expect(page.headers.get('cache-control')).toBe(REVALIDATE);
@@ -257,18 +257,18 @@ describe('API HTTP', () => {
       expect(again.status).toBe(304);
       const since = await fetch(`${env.base}${path}`, { headers: { 'If-Modified-Since': res.headers.get('last-modified')! } });
       expect(since.status).toBe(304);
-      const stale = await fetch(`${env.base}${path}`, { headers: { 'If-None-Match': 'W/"outro"' } });
+      const stale = await fetch(`${env.base}${path}`, { headers: { 'If-None-Match': 'W/"other"' } });
       expect(stale.status).toBe(200);
     }
-    expect((await fetch(`${env.base}/assets/nao-existe.js`)).status).toBe(404);
-    expect((await fetch(`${env.base}/bundle/nao-existe.js`)).status).toBe(404);
+    expect((await fetch(`${env.base}/assets/does-not-exist.js`)).status).toBe(404);
+    expect((await fetch(`${env.base}/bundle/does-not-exist.js`)).status).toBe(404);
     // Tentativa de sair da pasta cai no index.html, nunca em arquivos de fora.
     const escape = await fetch(`${env.base}/..%2F..%2Fetc%2Fpasswd`);
     expect(await escape.text()).toContain('<title>Habblaud</title>');
   });
 });
 
-describe('personagem do projeto (PUT/DELETE /api/agents/:id/character)', () => {
+describe('project character (PUT/DELETE /api/agents/:id/character)', () => {
   let env: Awaited<ReturnType<typeof start>>;
   beforeEach(async () => {
     env = await start({ terminal: true });
@@ -282,7 +282,7 @@ describe('personagem do projeto (PUT/DELETE /api/agents/:id/character)', () => {
   const put = (body: unknown, id?: string) => fetch(url(id), { method: 'PUT', headers: JSON_HEADERS, body: JSON.stringify(body) });
   const agentOf = async (id = '.claude:1') => (await snapshotOf(env.base)).agents.find((a) => a.id === id)!;
 
-  it('PUT grava e o snapshot traz nome, seed, peças e custom; DELETE volta ao sorteio', async () => {
+  it('PUT saves and the snapshot brings name, seed, pieces and custom; DELETE goes back to the random pick', async () => {
     const before = await agentOf();
     const res = await put({ name: '  Ana   Backend ', seed: 7, parts: { hairStyle: 'bob', skin: '#5A3623' } });
     expect(res.status).toBe(200);
@@ -296,7 +296,7 @@ describe('personagem do projeto (PUT/DELETE /api/agents/:id/character)', () => {
     expect((await agentOf()).custom).toBeUndefined();
   });
 
-  it('400 para nome, seed ou peças inválidos', async () => {
+  it('400 for invalid name, seed or pieces', async () => {
     for (const body of [
       { name: '', seed: 1, parts: {} },
       { name: 'a'.repeat(25), seed: 1, parts: {} },
@@ -311,11 +311,11 @@ describe('personagem do projeto (PUT/DELETE /api/agents/:id/character)', () => {
     }
   });
 
-  it('404 para subagente e agente desconhecido; 409 para nome de quem está no escritório', async () => {
+  it('404 for subagent and unknown agent; 409 for the name of someone who is in the office', async () => {
     env.office.addSub({ id: 's1:x', parentId: '.claude:1', sessionId: 's1', role: 'Explore', background: false, startedAt: Date.now() });
     expect((await put({ name: 'Ana', seed: 1, parts: {} }, 's1:x')).status).toBe(404);
-    expect((await put({ name: 'Ana', seed: 1, parts: {} }, 'nao-existe')).status).toBe(404);
-    for (const id of ['s1:x', 'nao-existe']) expect((await fetch(url(id), { method: 'DELETE', headers: JSON_HEADERS, body: '{}' })).status).toBe(404);
+    expect((await put({ name: 'Ana', seed: 1, parts: {} }, 'does-not-exist')).status).toBe(404);
+    for (const id of ['s1:x', 'does-not-exist']) expect((await fetch(url(id), { method: 'DELETE', headers: JSON_HEADERS, body: '{}' })).status).toBe(404);
     env.office.addMain({ id: '.claude:2', account: '.claude', sessionId: 's2', cwd: '/p/web', role: 'Main agent', startedAt: Date.now(), status: 'working' });
     const other = env.office.get('.claude:2')!.name;
     const res = await put({ name: other, seed: 1, parts: {} });
@@ -323,7 +323,7 @@ describe('personagem do projeto (PUT/DELETE /api/agents/:id/character)', () => {
     expect(((await res.json()) as { error: string }).error).toBe(`${other} is already in the office, in web`);
   });
 
-  it('403 com Host que não é local (mesmo liberado em HABBLAUD_ALLOWED_HOSTS); 405 para GET', async () => {
+  it('403 with a Host that is not local (even if allowed in HABBLAUD_ALLOWED_HOSTS); 405 for GET', async () => {
     const port = new URL(env.base).port;
     const r = await raw(env.base, `/api/agents/${encodeURIComponent('.claude:1')}/character`, {
       method: 'PUT',
@@ -338,7 +338,7 @@ describe('personagem do projeto (PUT/DELETE /api/agents/:id/character)', () => {
   });
 });
 
-describe('GET /api/mod/summary (mod do Claude Code)', () => {
+describe('GET /api/mod/summary (Claude Code mod)', () => {
   let env: Awaited<ReturnType<typeof start>>;
   const perms = new Map<string, PermissionRequestInfo>();
   const summary = async (query = ''): Promise<ModSummary> => (await (await fetch(`${env.base}/api/mod/summary${query}`)).json()) as ModSummary;
@@ -359,7 +359,7 @@ describe('GET /api/mod/summary (mod do Claude Code)', () => {
     env.cleanup();
   });
 
-  it('sem parâmetros: o escritório inteiro (presentes, trabalhando, quem espera do mais antigo ao mais novo)', async () => {
+  it('no parameters: the whole office (present, working, those waiting from oldest to newest)', async () => {
     const s = await summary();
     expect(s).toMatchObject({ version: '9.9.9', agents: 4, working: 1 });
     expect(s.waiting.map((w) => w.id).sort()).toEqual(['.claude:2', 's1:a1']);
@@ -369,7 +369,7 @@ describe('GET /api/mod/summary (mod do Claude Code)', () => {
     expect(s.waiting.map((w) => w.since)).toEqual([...s.waiting.map((w) => w.since!)].sort((a, b) => a - b));
   });
 
-  it('?account&session: tira a própria sessão (principal e subagentes); a mesma sessão em outra conta fica', async () => {
+  it('?account&session: removes its own session (main and subagents); the same session in another account stays', async () => {
     const s = await summary('?account=.claude&session=s1');
     expect(s).toMatchObject({ agents: 2, working: 0 });
     expect(s.waiting.map((w) => w.id)).toEqual(['.claude:2']);
@@ -378,14 +378,14 @@ describe('GET /api/mod/summary (mod do Claude Code)', () => {
     expect((await summary('?account=.claude')).agents).toBe(4);
   });
 
-  it('answerable = há pedido de permissão para responder pelo escritório', async () => {
-    perms.set('.claude:2', { id: 'p1', tool: 'Bash', title: 'Bash(npm test)', text: 'Rodando os testes', icon: '🧪', createdAt: Date.now(), expiresAt: Date.now() + 300_000 });
+  it('answerable = there is a permission request to answer from the office', async () => {
+    perms.set('.claude:2', { id: 'p1', tool: 'Bash', title: 'Bash(npm test)', text: 'Running the tests', icon: '🧪', createdAt: Date.now(), expiresAt: Date.now() + 300_000 });
     env.office.markDirty();
     const s = await summary('?account=.claude&session=s1');
     expect(s.waiting).toMatchObject([{ id: '.claude:2', answerable: true, waitingFor: 'answer in the terminal' }]);
   });
 
-  it('agentes do demo ficam de fora (mesmo esperando); quem encerrou também', async () => {
+  it('demo agents are left out (even when waiting); those who ended too', async () => {
     await fetch(`${env.base}/api/demo`, { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ enabled: true }) });
     const snap = await snapshotOf(env.base);
     expect(snap.agents.some((a) => a.id.startsWith('demo:'))).toBe(true);
@@ -395,7 +395,7 @@ describe('GET /api/mod/summary (mod do Claude Code)', () => {
     expect(s.waiting.every((w) => !w.id.startsWith('demo:'))).toBe(true);
   });
 
-  it('só GET/HEAD (405 com Allow)', async () => {
+  it('only GET/HEAD (405 with Allow)', async () => {
     const res = await fetch(`${env.base}/api/mod/summary`, { method: 'POST', headers: JSON_HEADERS, body: '{}' });
     expect(res.status).toBe(405);
     expect(res.headers.get('allow')).toBe('GET');
@@ -403,31 +403,31 @@ describe('GET /api/mod/summary (mod do Claude Code)', () => {
   });
 });
 
-describe('guarda de Host/Origin', () => {
-  const allowed = parseAllowedHosts(' Meu-Mac.local:4747 , habblaud.lan ');
+describe('Host/Origin guard', () => {
+  const allowed = parseAllowedHosts(' My-Mac.local:4747 , habblaud.lan ');
 
-  it('hostnameOf e HABBLAUD_ALLOWED_HOSTS', () => {
-    expect([...allowed]).toEqual(['meu-mac.local', 'habblaud.lan']);
+  it('hostnameOf and HABBLAUD_ALLOWED_HOSTS', () => {
+    expect([...allowed]).toEqual(['my-mac.local', 'habblaud.lan']);
     expect(hostnameOf('LocalHost:4747')).toBe('localhost');
     expect(hostnameOf('[::1]:4747')).toBe('::1');
     expect(hostnameOf('a b')).toBeUndefined();
-    expect(hostnameOf('[::1]lixo')).toBeUndefined();
+    expect(hostnameOf('[::1]junk')).toBeUndefined();
   });
 
-  it('Host: IPs, localhost e liberados sim; domínios de fora não', () => {
+  it('Host: IPs, localhost and allowed ones yes; outside domains no', () => {
     expect(hostAllowed(undefined, allowed)).toBe(true);
-    for (const h of ['localhost:4747', 'app.localhost', '127.0.0.1:4747', '[::1]:1', '10.0.0.5:4747', 'meu-mac.local:4747']) expect(hostAllowed(h, allowed)).toBe(true);
+    for (const h of ['localhost:4747', 'app.localhost', '127.0.0.1:4747', '[::1]:1', '10.0.0.5:4747', 'my-mac.local:4747']) expect(hostAllowed(h, allowed)).toBe(true);
     for (const h of ['attacker.example:4747', 'localhost.attacker.example', '127.0.0.1.nip.io', '', 'x y']) expect(hostAllowed(h, allowed)).toBe(false);
   });
 
-  it('isLoopbackHost: só localhost, *.localhost, 127.x e ::1 (terminal)', () => {
+  it('isLoopbackHost: only localhost, *.localhost, 127.x and ::1 (terminal)', () => {
     for (const h of ['localhost:4747', 'LOCALHOST', 'app.localhost:1', '127.0.0.1:4747', '127.8.9.10', '[::1]:4747']) expect(isLoopbackHost(h)).toBe(true);
-    for (const h of [undefined, '', '10.0.0.5:4747', '192.168.0.10', '0.0.0.0:4747', 'habblaud.lan', 'meu-mac.local:4747', '[::]:4747', 'localhost.attacker.example', '127.0.0.1.nip.io', 'x y']) {
+    for (const h of [undefined, '', '10.0.0.5:4747', '192.168.0.10', '0.0.0.0:4747', 'habblaud.lan', 'my-mac.local:4747', '[::]:4747', 'localhost.attacker.example', '127.0.0.1.nip.io', 'x y']) {
       expect(isLoopbackHost(h)).toBe(false);
     }
   });
 
-  it('Origin: ausente, mesma origem ou local', () => {
+  it('Origin: missing, same origin or local', () => {
     expect(originAllowed(undefined, 'localhost:4747', allowed)).toBe(true);
     expect(originAllowed('http://localhost:4747', 'localhost:4747', allowed)).toBe(true);
     expect(originAllowed('http://localhost:5173', '127.0.0.1:4747', allowed)).toBe(true); // Vite dev com proxy
