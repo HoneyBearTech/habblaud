@@ -55,13 +55,13 @@ try {
   await page.waitForTimeout(600);
   mkdirSync(out, { recursive: true });
   await page.locator('#ui-world').screenshot({ path: join(out, 'world-predio.png'), animations: 'disabled' });
-  console.log('salvo:', join(out, 'world-predio.png'));
+  console.log('saved:', join(out, 'world-predio.png'));
 
   await card.getByRole('button', { name: 'Ver o que foi enviado' }).click();
   await page.locator('.ui-world-sent__json').waitFor({ timeout: 10_000 });
   await page.waitForTimeout(500);
   await page.locator('.ui-world-sent').screenshot({ path: join(out, 'world-enviado.png'), animations: 'disabled' });
-  console.log('salvo:', join(out, 'world-enviado.png'));
+  console.log('saved:', join(out, 'world-enviado.png'));
 
   // A cidade (botão Mundo): hora fixa, câmera parada entre a praça e o meu prédio, sem os avisos do escritório.
   const city = async (hora, extra = '') => {
@@ -74,7 +74,7 @@ try {
   await page.evaluate(() => window.habblaud.city.scene().lookAt(47, 20.5, 1.5));
   await page.waitForTimeout(2500);
   await page.screenshot({ path: join(out, 'world-cidade.png') });
-  console.log('salvo:', join(out, 'world-cidade.png'));
+  console.log('saved:', join(out, 'world-cidade.png'));
 
   // O cartão do prédio do vizinho ao passar o mouse (lote 4,1: a fachada da frente, com a porta na calçada sul).
   await city('14');
@@ -94,7 +94,7 @@ try {
   const x1 = Math.min(1400, Math.max(lot.b.x, box.x + box.width) + 16);
   const y1 = Math.min(900, Math.max(lot.b.y, box.y + box.height) + 16);
   await page.screenshot({ path: join(out, 'world-cartao.png'), clip: { x: x0, y: y0, width: x1 - x0, height: y1 - y0 } });
-  console.log('salvo:', join(out, 'world-cartao.png'));
+  console.log('saved:', join(out, 'world-cartao.png'));
 
   // A visita (Fase 4): anda até a porta do vizinho (lote 4,1, aceso) e aperta E.
   await city('14');
@@ -103,7 +103,7 @@ try {
     const b = [...s.state.buildings.values()].find((x) => x.lot.x === 4 && x.lot.y === 1);
     return b ? { id: b.id, door: s.doorOf(b.id) } : null;
   });
-  if (!neighbor?.door) throw new Error('sem o prédio do vizinho no lote (4,1)');
+  if (!neighbor?.door) throw new Error('no neighbor building on lot (4,1)');
   await page.evaluate((d) => window.habblaud.city.scene().walkTo(d.x, d.y + 0.3), neighbor.door);
   await page.waitForFunction((d) => {
     const m = window.habblaud.city.scene().me();
@@ -123,18 +123,18 @@ try {
   await page.mouse.move(700, 880);
   await page.waitForTimeout(2600);
   await page.screenshot({ path: join(out, 'world-visita.png') });
-  console.log('salvo:', join(out, 'world-visita.png'));
+  console.log('saved:', join(out, 'world-visita.png'));
   // o painel: o cartão de quem espera o dono
   await page.locator('.ui-visit-agent', { hasText: 'Beatriz' }).click();
   await page.waitForTimeout(900);
   await page.locator('.ui-visit-panel').screenshot({ path: join(out, 'world-visita-painel.png') });
-  console.log('salvo:', join(out, 'world-visita-painel.png'));
+  console.log('saved:', join(out, 'world-visita-painel.png'));
   await page.keyboard.press('Escape');
   await page.keyboard.press('Escape');
   await page.waitForFunction(() => !window.habblaud.city.scene().visit(), null, { timeout: 10_000 });
   page.off('request', onRequest);
   const outside = apiDuringVisit.filter((u) => !new URL(u).pathname.startsWith('/api/world/'));
-  if (outside.length) problems.push(`[visita] rotas fora de /api/world/: ${outside.join(', ')}`);
+  if (outside.length) problems.push(`[visit] routes outside /api/world/: ${outside.join(', ')}`);
 
   // A roda de cumprimentos (G) quando um dos bots passa perto da minha porta, com os balões de quem se cumprimenta.
   await city('15:30');
@@ -155,7 +155,7 @@ try {
     return { x: parseFloat(el.style.getPropertyValue('--cx')), y: parseFloat(el.style.getPropertyValue('--cy')) };
   });
   await page.screenshot({ path: join(out, 'world-social.png'), clip: { x: Math.max(0, wheel.x - 380), y: Math.max(0, wheel.y - 230), width: 760, height: 420 } });
-  console.log('salvo:', join(out, 'world-social.png'));
+  console.log('saved:', join(out, 'world-social.png'));
 
   // A praça de noite: o termômetro da meta da semana (cheio, durante os fogos), a prefeitura, as bandeirinhas e os fogos.
   await city('20:40', '&fireworks=1');
@@ -164,7 +164,7 @@ try {
   await page.addStyleTag({ content: '.ui-city-testfw, .ui-city-toast { display: none !important; }' });
   await page.waitForTimeout(1250);
   await page.screenshot({ path: join(out, 'world-praca.png'), clip: { x: 260, y: 130, width: 880, height: 640 } });
-  console.log('salvo:', join(out, 'world-praca.png'));
+  console.log('saved:', join(out, 'world-praca.png'));
 } finally {
   await browser.close();
   await vite?.close();

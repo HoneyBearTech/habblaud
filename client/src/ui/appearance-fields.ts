@@ -114,7 +114,7 @@ export class AppearanceFields {
       g.drawImage(s.canvas, 0, 0, c.width, c.height);
     } catch (err) {
       // A arte ainda pode estar em construção: o editor continua utilizável sem a prévia.
-      console.warn('[ui] falha ao desenhar a prévia do personagem', err);
+      console.warn('[ui] failed to draw the character preview', err);
     }
   }
 }

@@ -52,8 +52,8 @@ if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith
     if (only && only !== lang) continue;
     const missing = [...keys.keys()].filter((k) => !(k in dict));
     const stale = Object.keys(dict).filter((k) => !keys.has(k));
-    console.log(`${lang}: ${keys.size - missing.length}/${keys.size} textos traduzidos`);
-    for (const k of missing) console.log(`  sem tradução: ${JSON.stringify(k)}  (${keys.get(k)![0]})`);
-    for (const k of stale) console.log(`  sobrando:     ${JSON.stringify(k)}`);
+    console.log(`${lang}: ${keys.size - missing.length}/${keys.size} texts translated`);
+    for (const k of missing) console.log(`  untranslated: ${JSON.stringify(k)}  (${keys.get(k)![0]})`);
+    for (const k of stale) console.log(`  left over:    ${JSON.stringify(k)}`);
   }
 }

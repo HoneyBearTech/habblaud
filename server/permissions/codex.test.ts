@@ -174,7 +174,7 @@ describe('codexToolView: nomes de ferramenta do Codex', () => {
     });
     expect(codexToolView('mcp__github__create_issue', { title: 'Bug' }).title).toBe('github - create_issue (MCP)');
     const stdin = codexToolView('write_stdin', { session_id: 42, chars: 'y\n', parent_call_id: 'c1' });
-    expect(stdin).toMatchObject({ title: 'write_stdin(2 caracteres)', text: 'Typing into a terminal process', input: 'y\\n', inputKind: 'text' });
+    expect(stdin).toMatchObject({ title: 'write_stdin(2 characters)', text: 'Typing into a terminal process', input: 'y\\n', inputKind: 'text' });
     expect(JSON.stringify(stdin)).not.toContain('42');
     const secret = codexToolView('write_stdin', { session_id: 7, chars: 'Authorization: Bearer abcdef1234567890abcdef\n' });
     expect(secret.title).not.toContain('abcdef');

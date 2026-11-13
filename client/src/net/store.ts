@@ -364,7 +364,7 @@ export class OfficeStore {
       try {
         cb(value);
       } catch (err) {
-        console.error(`[store] listener de "${event}" falhou`, err);
+        console.error(`[store] listener for "${event}" failed`, err);
       }
     });
   }
@@ -417,7 +417,7 @@ export class OfficeStore {
     try {
       return JSON.parse((ev as MessageEvent).data) as T;
     } catch (err) {
-      console.warn(`[store] ${what} inválido ignorado`, err);
+      console.warn(`[store] invalid ${what} ignored`, err);
       return null;
     }
   }
@@ -430,7 +430,7 @@ export class OfficeStore {
     try {
       es = this.openStream('/api/stream');
     } catch (err) {
-      console.error('[store] não foi possível abrir o stream', err);
+      console.error('[store] could not open the stream', err);
       this.setConnection('closed');
       this.scheduleRetry();
       return;
@@ -466,7 +466,7 @@ export class OfficeStore {
     });
     es.addEventListener('notice', (ev) => {
       if (!current()) return;
-      const n = this.parse<Notice>(ev, 'aviso');
+      const n = this.parse<Notice>(ev, 'notice');
       if (n) this.emit('notice', n);
     });
   }

@@ -38,7 +38,7 @@ function shortStr(v: unknown, max: number): string | undefined {
 export function parseCodexEvent(raw: unknown): CodexHookEvent {
   const r = rec(raw);
   const event = rec(r?.event);
-  if (!r || !event || typeof event.hook_event_name !== 'string') throw new HttpError(400, 'esperado {account?, codexHome?, event: <JSON do hook do Codex>}');
+  if (!r || !event || typeof event.hook_event_name !== 'string') throw new HttpError(400, 'expected {account?, codexHome?, event: <JSON of the Codex hook>}');
   const out: CodexHookEvent = { event };
   const account = shortStr(r.account, 200);
   const codexHome = shortStr(r.codexHome, 4_096);

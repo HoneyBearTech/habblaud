@@ -8,7 +8,7 @@ import { chromium } from 'playwright-core';
 
 const [url, out, ...rest] = process.argv.slice(2);
 if (!url || !out) {
-  console.error('uso: node scripts/shot.mjs <url> <saida.png> [opções]');
+  console.error('usage: node scripts/shot.mjs <url> <output.png> [options]');
   process.exit(2);
 }
 const opt = (name, def) => {
@@ -42,7 +42,7 @@ if (evalJs) {
 for (let i = 0; i < frames; i++) {
   const path = frames > 1 ? out.replace(/\.png$/, `-${i + 1}.png`) : out;
   await page.screenshot({ path, fullPage: flag('full'), clip });
-  console.log('salvo:', path);
+  console.log('saved:', path);
   if (i < frames - 1) await page.waitForTimeout(interval);
 }
 await browser.close();

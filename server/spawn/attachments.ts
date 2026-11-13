@@ -34,7 +34,7 @@ export function safeFileName(raw: string): string {
     .replace(/\s+/g, ' ')
     .trim()
     .replace(/^[.\s]+/, '');
-  if (!name) name = 'arquivo';
+  if (!name) name = 'file';
   if (name.length > NAME_MAX) {
     const dot = name.lastIndexOf('.');
     const ext = dot > 0 && name.length - dot <= 12 ? name.slice(dot) : '';
@@ -46,7 +46,7 @@ export function safeFileName(raw: string): string {
 /** Confere o corpo de POST /api/spawn/attachments: {name, type?, data (base64)}. */
 export function parseAttachment(raw: unknown): Attachment | { error: string } {
   const r = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
-  const name = typeof r.name === 'string' ? safeFileName(r.name) : 'arquivo';
+  const name = typeof r.name === 'string' ? safeFileName(r.name) : 'file';
   const type = typeof r.type === 'string' && /^[\w.+-]+\/[\w.+-]+$/.test(r.type) ? r.type : 'application/octet-stream';
   if (typeof r.data !== 'string' || !r.data) return { error: tr('empty file') };
   if (!/^[A-Za-z0-9+/]*={0,2}$/.test(r.data)) return { error: tr('unreadable file (base64)') };

@@ -160,7 +160,7 @@ function unavailableReason(a: AgentInfo, reachable: boolean): string | undefined
 export function parseSend(raw: unknown): { agentId: string; text: string } {
   const r = rec(raw);
   const agentId = shortStr(r?.agentId, ID_MAX);
-  if (!r || !agentId || typeof r.text !== 'string') throw new InvalidRequest('esperado {agentId, text}');
+  if (!r || !agentId || typeof r.text !== 'string') throw new InvalidRequest('expected {agentId, text}');
   if (!r.text.trim()) throw new InvalidRequest(tr('the message is empty'));
   if (r.text.length > MAX_TEXT) throw new InvalidRequest(tr('the message exceeds 20,000 characters'));
   return { agentId, text: r.text };
@@ -292,7 +292,7 @@ export class MessageRegistry {
   inbox(raw: unknown): InboxMessage[] {
     const r = rec(raw);
     const session = shortStr(r?.session, ID_MAX);
-    if (!r || !session) throw new InvalidRequest('esperado {session, account?}');
+    if (!r || !session) throw new InvalidRequest('expected {session, account?}');
     const account = shortStr(r.account, ID_MAX);
     // O plugin é do Claude Code: agentes do Codex nunca recebem por aqui.
     const agent = this.opts.office
@@ -326,7 +326,7 @@ export class MessageRegistry {
   ack(raw: unknown): void {
     const r = rec(raw);
     const session = shortStr(r?.session, ID_MAX);
-    if (!r || !session || !Array.isArray(r.results)) throw new InvalidRequest('esperado {session, results: [{id, ok, error?}]}');
+    if (!r || !session || !Array.isArray(r.results)) throw new InvalidRequest('expected {session, results: [{id, ok, error?}]}');
     const now = this.now();
     for (const x of ackResults(r)) {
       const e = this.messages.get(x.id);
@@ -375,7 +375,7 @@ export class MessageRegistry {
    */
   codexAck(raw: unknown): void {
     const r = rec(raw);
-    if (!r || !Array.isArray(r.results)) throw new InvalidRequest('esperado {results: [{id, ok, error?}]}');
+    if (!r || !Array.isArray(r.results)) throw new InvalidRequest('expected {results: [{id, ok, error?}]}');
     const now = this.now();
     this.bridgeAt = now;
     for (const x of ackResults(r)) {

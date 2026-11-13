@@ -1170,7 +1170,7 @@ export class Social {
     const label = g.kind === 'tv' && g.program ? tr('Watching {0} on TV', [g.program === 'futebol' ? tr('soccer') : g.program === 'novela' ? tr('a soap opera') : tr('cartoons')]) : KINDS[g.kind].label;
     const going = g.phase === 'gather' ? tr(' (on the way)') : '';
     const bet = g.bet && KINDS[g.kind].match ? tr(' · betting 🪙{0}', [g.bet]) : '';
-    return `${KINDS[g.kind].emoji} ${label}${others.length ? ` com ${joinNames(others)}` : ''}${bet}${going}`;
+    return `${KINDS[g.kind].emoji} ${label}${others.length ? ` with ${joinNames(others)}` : ''}${bet}${going}`;
   }
 
   /** Tudo o que a interface mostra da vida social de um agente presente (null se não está no escritório). */

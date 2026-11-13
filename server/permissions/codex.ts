@@ -96,7 +96,7 @@ export function codexToolView(tool: string, input: Rec, cwd?: string): CodexTool
     }
     case 'write_stdin': {
       const chars = typeof input.chars === 'string' ? input.chars : '';
-      const title = chars ? `write_stdin(${chars.length} caractere${chars.length === 1 ? '' : 's'})` : 'write_stdin';
+      const title = chars ? `write_stdin(${chars.length} character${chars.length === 1 ? '' : 's'})` : 'write_stdin';
       return { title, text: tr('Typing into a terminal process'), icon: '⌨️', ...shown(chars ? escaped(chars) : undefined, 'text') };
     }
     default: {

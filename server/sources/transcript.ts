@@ -451,7 +451,7 @@ class LineParser {
 
   private toolUse(b: Record<string, unknown>, suffix: string, msgId: string): void {
     const s = this.s;
-    const name = str(b.name) ?? 'ferramenta';
+    const name = str(b.name) ?? 'tool';
     const id = str(b.id) ?? `${msgId}${suffix}`;
     const input = (b.input && typeof b.input === 'object' ? b.input : {}) as Record<string, unknown>;
     s.stats.toolCalls++;

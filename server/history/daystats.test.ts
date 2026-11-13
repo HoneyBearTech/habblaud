@@ -43,7 +43,7 @@ function snapOf(agents: AgentInfo[], demo = false): Snap {
     agents,
     rooms: [
       { id: '/p/loja', name: 'loja', path: '/p/loja', slot: 0, seed: 1, createdAt: 0 },
-      { id: '/demo/loja-virtual', name: 'loja-virtual', path: '/demo/loja-virtual', slot: 1, seed: 2, createdAt: 0 },
+      { id: '/demo/online-store', name: 'online-store', path: '/demo/online-store', slot: 1, seed: 2, createdAt: 0 },
     ],
     accounts: [
       { id: '.claude', short: 'C', name: 'Conta C', color: '#f08a3c', configDir: '~/.claude', sessions: 1, usageStatus: 'disabled' },
@@ -204,7 +204,7 @@ describe('DayStatsService: modo demonstração', () => {
       const real = agent({ id: '.claude:1' });
       // Uma pasta de conta chamada "demo" continua real.
       const realDemoDir = agent({ id: 'demo:42', sessionId: 'sess-42', account: 'demo', status: 'idle' });
-      const demo = agent({ id: 'demo:abc-1', roomId: '/demo/loja-virtual', account: 'demo:.claude', name: 'Bruno', status: 'waiting', statusSince: T0 });
+      const demo = agent({ id: 'demo:abc-1', roomId: '/demo/online-store', account: 'demo:.claude', name: 'Bruno', status: 'waiting', statusSince: T0 });
       env.set(snapOf([real, realDemoDir, demo], true));
       svc.sample();
       env.run(svc, T0 + 20 * S);
@@ -219,7 +219,7 @@ describe('DayStatsService: modo demonstração', () => {
       // Sem `source`, com o demo ligado e o dia de hoje: o demo (histórico fictício + o que acontece ao vivo).
       const d = svc.day(DAY, 'UTC')!;
       expect(d.source).toBe('demo');
-      expect(d.stats.rooms.map((x) => x.name)).toContain('loja-virtual');
+      expect(d.stats.rooms.map((x) => x.name)).toContain('online-store');
       expect(d.stats.rooms.every((x) => x.id.startsWith('/demo/'))).toBe(true);
       expect(d.stats.totals.ms.working).toBeGreaterThan(20 * MIN);
       expect(d.stats.accounts.every((a) => a.id.startsWith('demo:'))).toBe(true);
@@ -228,7 +228,7 @@ describe('DayStatsService: modo demonstração', () => {
       svc.flush();
       const saved = readFileSync(join(dir, `${DAY}.json`), 'utf8');
       expect(saved).not.toContain('demo:');
-      expect(saved).not.toContain('loja-virtual');
+      expect(saved).not.toContain('online-store');
       expect(saved).not.toContain('Bruno');
 
       // Demo desligado: o balde some.

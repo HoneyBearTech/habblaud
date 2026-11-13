@@ -57,7 +57,7 @@ describe('parseReleaseArgs', () => {
   it('lê as opções', () => {
     expect(parseReleaseArgs([])).toEqual({ dryRun: false, help: false });
     expect(parseReleaseArgs(['--dry-run'])).toEqual({ dryRun: true, help: false });
-    expect(() => parseReleaseArgs(['--force'])).toThrow(/opção desconhecida/);
+    expect(() => parseReleaseArgs(['--force'])).toThrow(/unknown option/);
   });
 });
 

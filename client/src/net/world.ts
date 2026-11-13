@@ -500,7 +500,7 @@ export const FAKE_SUMMARY: Readonly<AwaySummary> = {
 /** Bloqueados do falso (nomes inventados). */
 const FAKE_BLOCKED: readonly WorldBlockedPlayer[] = [
   { id: 'p_spam', name: 'Spam Bot 3000' },
-  { id: 'p_troll', name: 'Troll da Esquina' },
+  { id: 'p_troll', name: 'Corner Troll' },
 ];
 
 interface FakeAccount {
@@ -569,9 +569,9 @@ export function uplinkBytes(uplink: WorldUplink): number {
 }
 
 /** E-mail da conta de exemplo dos estados 'waiting' e 'approved'. */
-export const FAKE_EMAIL = 'voce@exemplo.com';
+export const FAKE_EMAIL = 'you@example.com';
 /** Senha da conta de exemplo. */
-export const FAKE_PASSWORD = 'uma senha bem comprida';
+export const FAKE_PASSWORD = 'a really long password';
 /** O código que o "e-mail" do FakeWorldApi manda (a tela mostra no modo demonstração). */
 export const FAKE_CODE = '123456';
 

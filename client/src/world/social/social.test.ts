@@ -233,7 +233,7 @@ describe('vida social', () => {
     const info = sim.social.info('ana')!;
     expect(info.coins).toBe(START_COINS.main);
     expect(info.traits.length).toBeGreaterThanOrEqual(2);
-    expect(info.doing).toMatch(new RegExp(`^${KINDS.talk.emoji} ${KINDS.talk.label} com Caio`));
+    expect(info.doing).toMatch(new RegExp(`^${KINDS.talk.emoji} ${KINDS.talk.label} with Caio`));
     expect(sim.social.info('ninguem')).toBeNull();
   });
 });

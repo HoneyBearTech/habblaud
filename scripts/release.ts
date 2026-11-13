@@ -22,7 +22,7 @@ export function parseReleaseArgs(argv: string[]): ReleaseArgs {
   for (const a of argv) {
     if (a === '--dry-run') args.dryRun = true;
     else if (a === '--help' || a === '-h') args.help = true;
-    else throw new Error(`opção desconhecida: ${a}`);
+    else throw new Error(`unknown option: ${a}`);
   }
   return args;
 }
@@ -87,32 +87,32 @@ function main(argv: string[]): void {
     fail((err as Error).message);
   }
   if (args.help) {
-    console.log('Uso: npm run release [-- --dry-run]\nPublica a versão do package.json no GitHub com as notas do CHANGELOG.md.');
+    console.log('Usage: npm run release [-- --dry-run]\nPublishes the package.json version to GitHub with the notes from CHANGELOG.md.');
     return;
   }
 
   const version = (JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')) as { version: string }).version;
   const tag = `v${version}`;
   const section = changelogSection(readFileSync(join(ROOT, 'CHANGELOG.md'), 'utf8'), version);
-  if (!section) fail(`o CHANGELOG.md não tem a seção "## [${version}]" (ou ela está vazia): escreva o que entrou nesta versão.`);
+  if (!section) fail(`CHANGELOG.md has no "## [${version}]" section (or it is empty): write what went into this version.`);
 
   const branch = run('git', ['rev-parse', '--abbrev-ref', 'HEAD']);
-  if (branch !== 'main') fail(`publique a partir da main (você está em ${branch}).`);
-  if (run('git', ['status', '--porcelain'])) fail('há mudanças não commitadas.');
+  if (branch !== 'main') fail(`publish from main (you are on ${branch}).`);
+  if (run('git', ['status', '--porcelain'])) fail('there are uncommitted changes.');
   run('git', ['fetch', '--quiet', '--tags', 'origin']);
-  if (run('git', ['rev-parse', 'HEAD']) !== run('git', ['rev-parse', 'origin/main'])) fail('a main local não está igual à origin/main (faça git pull ou git push).');
+  if (run('git', ['rev-parse', 'HEAD']) !== run('git', ['rev-parse', 'origin/main'])) fail('local main is not the same as origin/main (run git pull or git push).');
   let tagExists = true;
   try {
     run('git', ['rev-parse', '--quiet', '--verify', `refs/tags/${tag}`], { quiet: true });
   } catch {
     tagExists = false;
   }
-  if (tagExists) fail(`a tag ${tag} já existe: suba a versão no package.json antes.`);
+  if (tagExists) fail(`the tag ${tag} already exists: bump the version in package.json first.`);
   const notes = unwrapMarkdown(section);
 
   console.log(`Habblaud ${tag}\n\n${notes}\n`);
   if (args.dryRun) {
-    console.log('(--dry-run: nada foi publicado)');
+    console.log('(--dry-run: nothing was published)');
     return;
   }
 
@@ -123,7 +123,7 @@ function main(argv: string[]): void {
     run('git', ['tag', '-a', tag, '-m', `Habblaud ${tag}`]);
     run('git', ['push', 'origin', tag]);
     const url = run('gh', ['release', 'create', tag, '--verify-tag', '--title', `Habblaud ${tag}`, '--notes-file', file]);
-    console.log(`✓ Release publicada: ${url}`);
+    console.log(`✓ Release published: ${url}`);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

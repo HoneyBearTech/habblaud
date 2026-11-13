@@ -46,7 +46,7 @@ interface Ctx {
 const POOLS: Record<'ts' | 'py' | 'astro', readonly string[]> = {
   ts: ['src/app.ts', 'src/utils/format.ts', 'src/components/Item.tsx', 'tests/app.test.ts'],
   py: ['pipelines/ingest.py', 'pipelines/transform.py', 'tests/test_transform.py', 'requirements.txt'],
-  astro: ['src/pages/index.astro', 'src/components/Hero.astro', 'src/content/blog/lancamento.md', 'astro.config.mjs'],
+  astro: ['src/pages/index.astro', 'src/components/Hero.astro', 'src/content/blog/launch.md', 'astro.config.mjs'],
 };
 
 function poolFor(project: string): readonly string[] {
@@ -98,8 +98,8 @@ function snippet(file: string): string[] {
         `import { useMemo } from 'react';`,
         '',
         `export function ${name}({ items }: ${name}Props) {`,
-        '  const total = useMemo(() => items.reduce((soma, item) => soma + item.preco * item.qtd, 0), [items]);',
-        '  return <Resumo total={total} itens={items.length} />;',
+        '  const total = useMemo(() => items.reduce((sum, item) => sum + item.price * item.qty, 0), [items]);',
+        '  return <Summary total={total} items={items.length} />;',
         '}',
       ];
     case 'ts':
@@ -109,26 +109,26 @@ function snippet(file: string): string[] {
         `import { db } from './db';`,
         '',
         `export async function ${name.charAt(0).toLowerCase()}${name.slice(1)}(id: string) {`,
-        `  const registro = await db.find(id);`,
-        `  if (!registro) throw new Error('não encontrado');`,
-        '  return registro;',
+        `  const record = await db.find(id);`,
+        `  if (!record) throw new Error('not found');`,
+        '  return record;',
         '}',
       ];
     case 'py':
-      return ['import pandas as pd', '', 'def transformar(df: pd.DataFrame) -> pd.DataFrame:', '    df = df.drop_duplicates(subset=["evento_id"])', '    df["criado_em"] = pd.to_datetime(df["criado_em"], utc=True)', '    return df'];
+      return ['import pandas as pd', '', 'def transform(df: pd.DataFrame) -> pd.DataFrame:', '    df = df.drop_duplicates(subset=["event_id"])', '    df["created_at"] = pd.to_datetime(df["created_at"], utc=True)', '    return df'];
     case 'sql':
       return ['CREATE TABLE refunds (', '  id UUID PRIMARY KEY,', '  payment_id UUID NOT NULL REFERENCES payments(id),', '  amount NUMERIC(12, 2) NOT NULL,', '  created_at TIMESTAMPTZ NOT NULL DEFAULT now()', ');'];
     case 'css':
-      return [':root {', '  --cor-primaria: #1f5fa8;', '  --raio: 8px;', '}', '', '.botao { border-radius: var(--raio); }'];
+      return [':root {', '  --primary-color: #1f5fa8;', '  --radius: 8px;', '}', '', '.button { border-radius: var(--radius); }'];
     case 'json':
-      return ['{', `  "name": "projeto-demo",`, '  "version": "1.5.0",', '  "scripts": { "test": "vitest run", "build": "vite build" }', '}'];
+      return ['{', `  "name": "demo-project",`, '  "version": "1.5.0",', '  "scripts": { "test": "vitest run", "build": "vite build" }', '}'];
     case 'md':
-      return ['---', tr('titulo: Launch'), '---', '', '# Novidades', '', tr('The site now loads faster.')];
+      return ['---', tr('titulo: Launch'), '---', '', "# What's new", '', tr('The site now loads faster.')];
     case 'yml':
     case 'yaml':
       return ['services:', '  db:', '    image: postgres:17', '    ports:', '      - "5432:5432"'];
     case 'astro':
-      return ['---', `import Layout from '../layouts/Layout.astro';`, '---', '', '<Layout titulo="Início">', '  <h1>Bem-vindo</h1>', '</Layout>'];
+      return ['---', `import Layout from '../layouts/Layout.astro';`, '---', '', '<Layout title="Home">', '  <h1>Welcome</h1>', '</Layout>'];
     default:
       return ['User-agent: *', 'Allow: /', '', 'Sitemap: https://www.example.com/sitemap.xml'];
   }
@@ -138,20 +138,20 @@ function snippet(file: string): string[] {
 function editPair(file: string, seed: number): [string, string] {
   const pairs: Record<string, Array<[string, string]>> = {
     tsx: [
-      ['  const total = items.reduce((soma, item) => soma + item.preco, 0);', '  const total = items.reduce((soma, item) => soma + item.preco * item.qtd, 0);'],
-      ['  return <Resumo total={total} />;', '  return <Resumo total={total} itens={items.length} />;'],
+      ['  const total = items.reduce((sum, item) => sum + item.price, 0);', '  const total = items.reduce((sum, item) => sum + item.price * item.qty, 0);'],
+      ['  return <Summary total={total} />;', '  return <Summary total={total} items={items.length} />;'],
     ],
     ts: [
-      ["  if (!registro) return null;", "  if (!registro) throw new Error('não encontrado');"],
-      ['const LIMITE = 10;', 'const LIMITE = 50;'],
+      ["  if (!record) return null;", "  if (!record) throw new Error('not found');"],
+      ['const LIMIT = 10;', 'const LIMIT = 50;'],
     ],
-    py: [['    df["criado_em"] = pd.to_datetime(df["criado_em"])', '    df["criado_em"] = pd.to_datetime(df["criado_em"], utc=True)']],
+    py: [['    df["created_at"] = pd.to_datetime(df["created_at"])', '    df["created_at"] = pd.to_datetime(df["created_at"], utc=True)']],
     sql: [['  amount NUMERIC(10, 2),', '  amount NUMERIC(12, 2) NOT NULL,']],
-    css: [['  --cor-primaria: #2b6cb0;', '  --cor-primaria: #1f5fa8;']],
+    css: [['  --primary-color: #2b6cb0;', '  --primary-color: #1f5fa8;']],
     json: [['  "version": "1.4.0",', '  "version": "1.5.0",']],
-    md: [['# Novidades', tr("# What's new in version 1.5")]],
+    md: [["# What's new", tr("# What's new in version 1.5")]],
     yml: [['    image: postgres:16', '    image: postgres:17']],
-    astro: [['  <h1>Bem-vindo</h1>', '  <h1>Bem-vindo à nossa loja</h1>']],
+    astro: [['  <h1>Welcome</h1>', '  <h1>Welcome to our store</h1>']],
   };
   const ext = extOf(file);
   const key = ext === 'js' || ext === 'mjs' ? 'ts' : ext === 'yaml' ? 'yml' : ext;
@@ -175,10 +175,10 @@ function commandOutput(command: string, seed: number, ctx: Ctx): string {
     return `diff --git a/${f1} b/${f1}\n--- a/${f1}\n+++ b/${f1}\n@@ -${n(5, 80)},1 +${n(5, 80)},1 @@\n-${a}\n+${b}`;
   }
   if (/^git commit/.test(command)) {
-    const msg = /-m\s+["']([^"']+)["']/.exec(command)?.[1] ?? 'ajustes';
+    const msg = /-m\s+["']([^"']+)["']/.exec(command)?.[1] ?? 'adjustments';
     return `[${branch} ${hex(seed)}] ${msg}\n ${n(1, 6)} files changed, ${n(10, 160)} insertions(+), ${n(1, 40)} deletions(-)`;
   }
-  if (/^git push/.test(command)) return `To git.example.com:empresa/${ctx.project}.git\n   ${hex(seed)}..${hex(hash32(String(seed)))}  ${branch} -> ${branch}`;
+  if (/^git push/.test(command)) return `To git.example.com:company/${ctx.project}.git\n   ${hex(seed)}..${hex(hash32(String(seed)))}  ${branch} -> ${branch}`;
   if (/^git pull/.test(command)) return 'Already up to date.';
   if (/\bdb:migrate\b/.test(command)) return tr('Migration 004_refunds applied\nSeed complete ({0} records)', [n(10, 90)]);
   if (/\b(npm|pnpm|yarn)\s+(run\s+)?build\b|vite\s+build/.test(command)) return `vite v6.3.5 building for production...\n✓ ${n(80, 900)} modules transformed.\n✓ built in ${secs}s`;
@@ -313,7 +313,7 @@ function entriesFor(a: Activity, i: number, ctx: Ctx, out: TerminalEntry[]): voi
         return;
       }
       const files = pickFiles(ctx.pool, seed, 1 + (seed % 3));
-      const matches = files.map((f, k) => `${f}:${num(hash32(`${a.id}:${k}`), 3, 180)}:  ${/^\w+$/.test(pattern) ? `const resultado = ${pattern}(dados);` : pattern}`);
+      const matches = files.map((f, k) => `${f}:${num(hash32(`${a.id}:${k}`), 3, 180)}:  ${/^\w+$/.test(pattern) ? `const result = ${pattern}(data);` : pattern}`);
       if (ctx.codex) shellCall(out, a, i, `rg -n ${JSON.stringify(pattern)}`, seed, ctx, matches.join('\n'));
       else call(out, a, 'Grep', `Grep(${pattern})`, matches.join('\n'), { input: '{\n  "output_mode": "content"\n}', inputKind: 'json' });
       return;
@@ -424,7 +424,7 @@ const TOOL_BY_KIND: Partial<Record<Activity['kind'], string>> = {
 export function demoTerminalEntries(agent: AgentInfo, history: Activity[]): TerminalEntry[] {
   const slash = agent.roomId.indexOf('/');
   const root = slash >= 0 ? agent.roomId.slice(slash).replace(/\/+$/, '') : '';
-  const project = root.replace(/^.*\//, '') || 'projeto';
+  const project = root.replace(/^.*\//, '') || 'project';
   const ctx: Ctx = { agent, history, root, project, pool: poolFor(project), codex: agent.provider === 'codex' };
   const out: TerminalEntry[] = [];
   // Sem nenhuma atividade ainda, o título (a tarefa) abre a conversa. Depois disso, os prompts vêm das

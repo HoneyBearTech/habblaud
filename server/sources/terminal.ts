@@ -257,7 +257,7 @@ function diffInput(oldRaw: string, newRaw: string): Pick<ToolView, 'input' | 'in
 }
 
 const TODO_MARK: Record<string, string> = { completed: '☒', in_progress: '◐', pending: '☐' };
-const TASK_STATUS: Record<string, string> = { completed: tr('completed'), in_progress: tr('in progress'), pending: 'pendente', deleted: 'removida' };
+const TASK_STATUS: Record<string, string> = { completed: tr('completed'), in_progress: tr('in progress'), pending: 'pending', deleted: 'deleted' };
 
 function todoList(raw: unknown): { list: string; done: number; total: number } {
   const items = Array.isArray(raw) ? raw.map(rec).filter((t): t is Rec => !!t) : [];
@@ -369,7 +369,7 @@ function resultText(content: unknown): string {
     if (!b) continue;
     if (b.type === 'text' && typeof b.text === 'string') parts.push(b.text);
     else if (b.type === 'image') parts.push(tr('[image]'));
-    else if (b.type === 'document') parts.push('[documento]');
+    else if (b.type === 'document') parts.push('[document]');
     else if (b.type === 'tool_reference' && typeof b.tool_name === 'string') parts.push(b.tool_name);
   }
   return parts.join('\n');
@@ -691,7 +691,7 @@ class Parser implements TerminalParser {
         }
         case 'tool_use':
         case 'server_tool_use': {
-          const name = str(b.name) ?? 'ferramenta';
+          const name = str(b.name) ?? 'tool';
           const view = toolView(name, rec(b.input) ?? {}, c.cwd);
           const e: ToolEntry = { kind: 'tool', id: str(b.id) ?? id, at: c.at, tool: name, title: maskSecrets(view.title) };
           if (view.input) {

@@ -78,7 +78,7 @@ export class SceneSwitch implements UiComponent {
       await this.host.show();
       this.ctx.announce(tr("You're in the Habblaud World city. Esc goes back to the office."));
     } catch (err) {
-      console.error('[ui] a cidade não abriu', err);
+      console.error('[ui] the city did not open', err);
     } finally {
       this.busy = false;
       this.onChange();

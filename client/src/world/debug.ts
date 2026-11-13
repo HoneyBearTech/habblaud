@@ -110,16 +110,16 @@ export function createDebug(sim: Sim, renderer: Renderer, camera: Camera, onCame
     const t = now();
     return {
       look: seq % 2 ? 'f' : 'm',
-      role: base.kind === 'main' ? 'Agente principal' : 'Explore',
+      role: base.kind === 'main' ? 'Main agent' : 'Explore',
       status: 'working',
       recent: [],
-      tasks: base.kind === 'main' ? [{ id: '1', title: 'Testar o mundo', status: 'in_progress' }, { id: '2', title: 'Revisar', status: 'pending' }] : [],
+      tasks: base.kind === 'main' ? [{ id: '1', title: 'Test the world', status: 'in_progress' }, { id: '2', title: 'Review', status: 'pending' }] : [],
       startedAt: t,
       lastEventAt: t,
       statusSince: t,
       stats: { toolCalls: 0, tokensIn: 0, tokensOut: 0, subagents: 0 },
       seed: hash32(base.id),
-      activity: { id: `dbg-act-${++seq}`, kind: 'edit', icon: '✏️', text: 'Editando world.ts', at: t },
+      activity: { id: `dbg-act-${++seq}`, kind: 'edit', icon: '✏️', text: 'Editing world.ts', at: t },
       ...base,
     };
   };
@@ -127,7 +127,7 @@ export function createDebug(sim: Sim, renderer: Renderer, camera: Camera, onCame
   const makeJobs = (jobs: readonly ShellJobInput[]): ShellJob[] =>
     jobs.map((j) => ({
       id: j.id ?? `bdbg${(++seq).toString(36)}`,
-      label: j.label ?? 'Rodar a suíte de testes',
+      label: j.label ?? 'Run the test suite',
       command: j.command ?? 'npm test',
       startedAt: j.startedAt ?? now() - (j.ageMinutes ?? 0) * 60_000 - (j.ageSeconds ?? 0) * 1000,
       background: j.background ?? true,
@@ -209,7 +209,7 @@ export function createDebug(sim: Sim, renderer: Renderer, camera: Camera, onCame
     }),
 
     spawnSession: (opts = {}) => {
-      const project = opts.project ?? `projeto-teste-${seq + 1}`;
+      const project = opts.project ?? `test-project-${seq + 1}`;
       let room: RoomInfo | undefined = [...sim.rooms.values()].map((r) => r.info).find((r) => r.name === project) ?? sim.injected.rooms.find((r) => r.name === project);
       if (!room) {
         const id = `/debug/${project}`;
@@ -227,7 +227,7 @@ export function createDebug(sim: Sim, renderer: Renderer, camera: Camera, onCame
         account,
         sessionId,
         status: opts.status ?? 'working',
-        title: `Sessão de teste ${n}`,
+        title: `Test session ${n}`,
       });
       if (opts.shell) {
         const sh = opts.shell;
@@ -235,7 +235,7 @@ export function createDebug(sim: Sim, renderer: Renderer, camera: Camera, onCame
         const jobs: ShellJobInput[] = [];
         for (let i = 0; i < n; i++) {
           jobs.push({
-            label: i === 0 ? sh.label : `${sh.label ?? 'Rodar a suíte de testes'} (${i + 1})`,
+            label: i === 0 ? sh.label : `${sh.label ?? 'Run the test suite'} (${i + 1})`,
             command: sh.command,
             // os demais começaram depois do primeiro
             ageMinutes: Math.max(0, (sh.ageMinutes ?? 0) - i * 0.5),
@@ -244,13 +244,13 @@ export function createDebug(sim: Sim, renderer: Renderer, camera: Camera, onCame
           });
         }
         applyShells(main, makeJobs(jobs));
-        main.activity = { id: `dbg-act-${++seq}`, kind: 'run', icon: '💻', text: 'Rodando em segundo plano', tool: 'Bash', at: now() };
+        main.activity = { id: `dbg-act-${++seq}`, kind: 'run', icon: '💻', text: 'Running in the background', tool: 'Bash', at: now() };
       }
       sim.injected.agents.push(main);
       for (let i = 0; i < (opts.subs ?? 0); i++) {
         const k = ++seq;
         sim.injected.agents.push(
-          makeAgent({ id: `${sessionId}:sub${k}`, kind: 'sub', parentId: main.id, name: NAMES[k % NAMES.length], roomId: room.id, account, sessionId, title: 'Investigar o bug' }),
+          makeAgent({ id: `${sessionId}:sub${k}`, kind: 'sub', parentId: main.id, name: NAMES[k % NAMES.length], roomId: room.id, account, sessionId, title: 'Investigate the bug' }),
         );
       }
       reapply();
@@ -265,12 +265,12 @@ export function createDebug(sim: Sim, renderer: Renderer, camera: Camera, onCame
       sim.injected.agents[i] = a;
       a.status = status;
       a.statusSince = now();
-      a.waitingFor = status === 'waiting' ? (waitingFor ?? 'aprovar uma permissão') : undefined;
+      a.waitingFor = status === 'waiting' ? (waitingFor ?? 'approve a permission') : undefined;
       a.activity = {
         id: `dbg-act-${++seq}`,
         kind: status === 'idle' || status === 'done' ? 'done' : status === 'waiting' ? 'wait' : 'run',
         icon: status === 'idle' || status === 'done' ? '✅' : status === 'waiting' ? '✋' : '💻',
-        text: status === 'idle' || status === 'done' ? 'Concluiu' : status === 'waiting' ? 'Precisa de você' : 'Rodando testes',
+        text: status === 'idle' || status === 'done' ? 'Done' : status === 'waiting' ? 'Needs you' : 'Running tests',
         at: now(),
       };
       reapply();
@@ -355,7 +355,7 @@ export function createDebug(sim: Sim, renderer: Renderer, camera: Camera, onCame
     coins: (id, delta) => {
       const w = sim.social.wallets.get(id);
       if (!w) return 0;
-      if (delta > 0) sim.social.wallets.credit(id, delta, '🛠️', 'Ajuste (depuração)', now());
+      if (delta > 0) sim.social.wallets.credit(id, delta, '🛠️', 'Adjustment (debug)', now());
       else w.coins = Math.max(0, w.coins + delta);
       return w.coins;
     },
@@ -411,7 +411,7 @@ export function createDebug(sim: Sim, renderer: Renderer, camera: Camera, onCame
         return;
       }
       const t = now();
-      const text = opts.text ?? (kind === 'party' ? 'PR #12 mergeado!' : 'CI falhou (main)');
+      const text = opts.text ?? (kind === 'party' ? 'PR #12 merged!' : 'CI failed (main)');
       const agentId = opts.agentId ?? [...sim.chars.values()].find((c) => c.roomId === room.id && !c.leaving)?.id;
       const end = t + (kind === 'party' ? 12_000 : 3_600_000);
       sim.roomFx.active.set(room.id, { roomId: room.id, kind, text, agentId, key: t, start: t, end, cheered: new Set(), sticky: true });

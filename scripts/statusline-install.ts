@@ -156,7 +156,7 @@ export function planUninstall(settings: Settings): PlanAction {
     delete rest.statusLine;
     return { action: 'uninstall', settings: rest, message: tr('statusline created by Habblaud removed') };
   }
-  return { action: 'uninstall', settings: { ...settings, statusLine: { ...sl, command: cur.original } }, message: `restaurado: ${cur.original}` };
+  return { action: 'uninstall', settings: { ...settings, statusLine: { ...sl, command: cur.original } }, message: `restored: ${cur.original}` };
 }
 
 /** Diretórios onde um `node` fora de gerenciadores de versão fica estável entre atualizações. */

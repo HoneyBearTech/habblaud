@@ -17,9 +17,9 @@ export const DEMO_PERMISSION_MS = 5 * 60_000;
 
 /** Linhas de um diff fictício, no formato do terminal ("- antiga" / "+ nova"). */
 const DEMO_DIFFS: readonly string[][] = [
-  ['- const total = items.reduce((s, i) => s + i.price, 0);', '+ const total = items.reduce((s, i) => s + i.price * i.qty, 0);', '+ if (total < 0) throw new Error("total inválido");'],
+  ['- const total = items.reduce((s, i) => s + i.price, 0);', '+ const total = items.reduce((s, i) => s + i.price * i.qty, 0);', '+ if (total < 0) throw new Error("invalid total");'],
   ['- export const TIMEOUT = 5_000;', '+ export const TIMEOUT = 15_000;'],
-  ['- <button onClick={save}>Salvar</button>', '+ <button onClick={save} disabled={saving}>', '+   {saving ? "Salvando…" : "Salvar"}', '+ </button>'],
+  ['- <button onClick={save}>Save</button>', '+ <button onClick={save} disabled={saving}>', '+   {saving ? "Saving…" : "Save"}', '+ </button>'],
 ];
 
 interface DemoQuestion {

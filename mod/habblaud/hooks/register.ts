@@ -206,7 +206,7 @@ export function parseSummary(text: string): Summary | undefined {
       name,
       room: str(w.room) ?? '?',
       account: str(w.account) ?? '',
-      waitingFor: str(w.waitingFor) ?? 'responder no terminal',
+      waitingFor: str(w.waitingFor) ?? 'answer in the terminal',
       answerable: w.answerable === true,
     }
     if (typeof w.since === 'number' && Number.isFinite(w.since)) agent.since = w.since
@@ -219,27 +219,27 @@ export function parseSummary(text: string): Summary | undefined {
 export function statusText(waiting: readonly WaitingAgent[]): string | undefined {
   const first = waiting[0]
   if (!first) return undefined
-  if (waiting.length === 1) return `🏢 ${first.name} precisa de você em ${first.room}`
+  if (waiting.length === 1) return `🏢 ${first.name} needs you in ${first.room}`
   const shown = waiting.slice(0, MAX_NAMES).map((w) => `${w.name} (${w.room})`)
   const rest = waiting.length - shown.length
-  return `🏢 ${waiting.length} precisam de você: ${shown.join(', ')}${rest > 0 ? ` e mais ${rest}` : ''}`
+  return `🏢 ${waiting.length} need you: ${shown.join(', ')}${rest > 0 ? ` and ${rest} more` : ''}`
 }
 
 /** A resposta do /habblaud com o Habblaud no ar. */
 export function summaryText(s: Summary, url: string): string {
-  const agents = s.agents === 1 ? '1 agente' : `${s.agents} agentes`
-  const waiting = s.waiting.length === 0 ? 'ninguém precisa de você' : s.waiting.length === 1 ? '1 precisa de você' : `${s.waiting.length} precisam de você`
-  const lines = [`Habblaud ${s.version} em ${url}`, `${agents} · ${s.working} trabalhando · ${waiting}`]
-  for (const w of s.waiting) lines.push(`✋ ${w.name} (${w.room}): ${w.waitingFor}${w.answerable ? ' · dá para responder pelo escritório' : ''}`)
+  const agents = s.agents === 1 ? '1 agent' : `${s.agents} agents`
+  const waiting = s.waiting.length === 0 ? 'nobody needs you' : s.waiting.length === 1 ? '1 needs you' : `${s.waiting.length} need you`
+  const lines = [`Habblaud ${s.version} at ${url}`, `${agents} · ${s.working} working · ${waiting}`]
+  for (const w of s.waiting) lines.push(`✋ ${w.name} (${w.room}): ${w.waitingFor}${w.answerable ? ' · you can reply from the office' : ''}`)
   return lines.join('\n')
 }
 
 export function offlineText(url: string): string {
-  return `O Habblaud não respondeu em ${url}. Para subir: npm run docker:up na pasta do Habblaud.`
+  return `Habblaud did not answer at ${url}. To start it: npm run docker:up in the Habblaud folder.`
 }
 
 export function outdatedText(url: string): string {
-  return `O Habblaud em ${url} está numa versão sem a rota do mod. Para atualizar: git pull e npm run docker:up na pasta do Habblaud.`
+  return `Habblaud at ${url} is on a version without the mod's route. To update: git pull and npm run docker:up in the Habblaud folder.`
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -371,7 +371,7 @@ async function habblaudText($: EngineInterface): Promise<string> {
 export const register: Register = (on) => {
   on('session.start', async ($, e, next) => {
     try {
-      await $.command.register({ name: 'habblaud', description: 'Resumo do Habblaud: quantos agentes, quem trabalha e quem precisa de você' })
+      await $.command.register({ name: 'habblaud', description: 'Habblaud summary: how many agents, who is working and who needs you' })
     } catch {
       // sem o comando, o resto segue
     }

@@ -148,7 +148,7 @@ export function decisionOutput(result) {
   if (result.behavior === 'allow') return { hookSpecificOutput: { hookEventName: 'PermissionRequest', decision: { behavior: 'allow' } } };
   if (result.behavior === 'deny') {
     const reason = typeof result.message === 'string' && result.message.trim() ? result.message.trim().slice(0, 1_000) : '';
-    const message = reason ? `Recusado pelo usuário no Habblaud: ${reason}` : 'Recusado pelo usuário no Habblaud.';
+    const message = reason ? `Denied by the user in Habblaud: ${reason}` : 'Denied by the user in Habblaud.';
     return { hookSpecificOutput: { hookEventName: 'PermissionRequest', decision: { behavior: 'deny', message } } };
   }
   return undefined;
@@ -191,7 +191,7 @@ async function call(base, method, path, body, timeoutMs) {
     }
     return { status: res.status, json };
   } catch (err) {
-    debug(`${method} ${path}: ${err?.name ?? 'erro'} ${err?.message ?? ''}`);
+    debug(`${method} ${path}: ${err?.name ?? 'error'} ${err?.message ?? ''}`);
     return null;
   }
 }
@@ -217,7 +217,7 @@ export async function run(env = process.env, stdinText) {
     const account = accountOf(codexHome);
     const base = `http://127.0.0.1:${cfg.port}`;
     const sent = await call(base, 'POST', '/api/codex/events', eventBody(input, account, codexHome), event === 'SessionEnd' ? SESSION_END_TIMEOUT_MS : EVENT_TIMEOUT_MS);
-    debug(`${event}: ${sent ? `${sent.status} ${JSON.stringify(sent.json ?? null)}` : 'Habblaud fora do ar'}`);
+    debug(`${event}: ${sent ? `${sent.status} ${JSON.stringify(sent.json ?? null)}` : 'Habblaud down'}`);
     if (event !== 'PermissionRequest' || typeof input.tool_name !== 'string' || !input.tool_name) return undefined;
     // Sem resposta nem ao evento: o Habblaud está fora do ar (ou travado); a aprovação segue no terminal.
     if (!sent) return undefined;
@@ -226,25 +226,25 @@ export async function run(env = process.env, stdinText) {
     const deadline = startedAt + cfg.waitMs;
     const reg = await call(base, 'POST', '/api/permissions', permissionBody(input, account, codexHome, Math.max(0, deadline - Date.now())), REGISTER_TIMEOUT_MS);
     if (!reg || reg.status !== 201 || typeof reg.json?.id !== 'string') {
-      debug(`sem desvio (${reg ? `${reg.status} ${JSON.stringify(reg.json ?? null)}` : 'Habblaud fora do ar'})`);
+      debug(`not diverted (${reg ? `${reg.status} ${JSON.stringify(reg.json ?? null)}` : 'Habblaud down'})`);
       return undefined;
     }
     const id = encodeURIComponent(reg.json.id);
     for (;;) {
       const left = deadline - Date.now();
       if (left <= 0) {
-        debug('tempo esgotado: vale o terminal');
+        debug('timed out: the terminal counts');
         return undefined;
       }
       const waitS = Math.max(0.05, Math.min(POLL_S, left / 1_000));
       const r = await call(base, 'GET', `/api/permissions/${id}/wait?timeout=${waitS}`, undefined, waitS * 1_000 + 5_000);
       if (!r || r.status !== 200) return undefined;
       if (r.json?.status === 'pending') continue;
-      debug(`resposta: ${JSON.stringify(r.json)}`);
+      debug(`answer: ${JSON.stringify(r.json)}`);
       return decisionOutput(r.json);
     }
   } catch (err) {
-    debug(`erro: ${err?.message ?? err}`);
+    debug(`error: ${err?.message ?? err}`);
     return undefined;
   }
 }

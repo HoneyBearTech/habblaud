@@ -343,7 +343,7 @@ export function describeCodexTool(rawName: string, input: Rec, namespace?: strin
       return { desc: { kind: 'plan', icon: '🗒️', text: tr('Updating the plan') }, tool: name };
     case 'view_image': {
       const path = str(input.path);
-      return { desc: describeTool('Read', { file_path: path ?? 'imagem.png' }), tool: 'Read' };
+      return { desc: describeTool('Read', { file_path: path ?? 'image.png' }), tool: 'Read' };
     }
     case 'web_search':
     case 'web_search_preview':
@@ -731,7 +731,7 @@ class RolloutLineParser {
         this.sawPaginated();
         const path = pathFromUri(item.path);
         this.done(id);
-        this.push(describeTool('Read', { file_path: path ?? 'imagem.png' }), { key: id, tool: 'Read', callId: id });
+        this.push(describeTool('Read', { file_path: path ?? 'image.png' }), { key: id, tool: 'Read', callId: id });
         return;
       }
       case 'ContextCompaction':
@@ -758,7 +758,7 @@ class RolloutLineParser {
       case 'DynamicToolCall': {
         this.sawPaginated();
         this.done(id);
-        const { desc, tool } = describeCodexTool(str(item.tool) ?? 'ferramenta', rec(item.arguments) ?? {}, str(item.namespace));
+        const { desc, tool } = describeCodexTool(str(item.tool) ?? 'tool', rec(item.arguments) ?? {}, str(item.namespace));
         this.push(desc, { key: id, tool, callId: id });
         return;
       }
@@ -843,7 +843,7 @@ class RolloutLineParser {
       case 'function_call':
       case 'custom_tool_call': {
         const callId = str(p.call_id) ?? str(p.id);
-        const name = str(p.name) ?? 'ferramenta';
+        const name = str(p.name) ?? 'tool';
         const input = p.type === 'custom_tool_call' ? { input: p.input, command: p.input } : parseArguments(p.arguments);
         if (callId) {
           this.s.pending.set(callId, name);

@@ -59,7 +59,7 @@ describe('formatDuration / formatCountdown', () => {
     const now = 1_000_000;
     expect(formatCountdown(now - 1, now)).toBe('now');
     expect(formatCountdown(now + 30 * S, now)).toBe('in less than 1 min');
-    expect(formatCountdown(now + 2 * H + 10 * M, now)).toBe('em 2 h 10 min');
+    expect(formatCountdown(now + 2 * H + 10 * M, now)).toBe('in 2 h 10 min');
   });
 });
 
@@ -168,8 +168,8 @@ describe('reinício das janelas de uso', () => {
 
   it('janela vigente: percentual e contagem regressiva (< 24 h) ou dia e hora', () => {
     const five = usageWindowView({ utilization: 35.4, resetsAt: now + H + 29 * 60_000 }, now - 60_000, now, FIVE_HOURS_MS)!;
-    expect(five).toMatchObject({ pct: 35, renewed: false, reset: 'em 1 h 29 min', resetShort: '1h29' });
-    expect(five.summary).toBe('35% used · resets at 10:44 (em 1 h 29 min)');
+    expect(five).toMatchObject({ pct: 35, renewed: false, reset: 'in 1 h 29 min', resetShort: '1h29' });
+    expect(five.summary).toBe('35% used · resets at 10:44 (in 1 h 29 min)');
     const week = usageWindowView({ utilization: 12, resetsAt: new Date(2026, 9, 8, 13, 49).getTime() }, now, now, WEEK_MS)!;
     expect(week.reset).toBe('Thu, 13:49');
     const tomorrow = usageWindowView({ utilization: 12, resetsAt: new Date(2026, 9, 7, 13, 49).getTime() }, now, now, WEEK_MS)!;

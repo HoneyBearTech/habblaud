@@ -27,10 +27,10 @@ describe('demo-timeline', () => {
       sessions: 3,
       force: true,
     });
-    expect(() => parseArgs(['--date', '2026-02-30'])).toThrow(/AAAA-MM-DD/);
+    expect(() => parseArgs(['--date', '2026-02-30'])).toThrow(/YYYY-MM-DD/);
     expect(() => parseArgs(['--start', '25'])).toThrow(/--start/);
     expect(() => parseArgs(['--hours', '0'])).toThrow(/--hours/);
-    expect(() => parseArgs(['--xyz'])).toThrow(/opção desconhecida/);
+    expect(() => parseArgs(['--xyz'])).toThrow(/unknown option/);
     expect(parseArgs(['-h']).help).toBe(true);
   });
 
@@ -73,7 +73,7 @@ describe('demo-timeline', () => {
     expect(maxAgents).toBeGreaterThanOrEqual(3);
     expect(subs).toBeGreaterThan(0);
     // Mesma semente, mesmo dia; sem --force não sobrescreve.
-    expect(() => generateDemoTimeline(opts)).toThrow(/já existe/);
+    expect(() => generateDemoTimeline(opts)).toThrow(/already exists/);
     const again = generateDemoTimeline({ ...opts, force: true });
     expect(readFileSync(again.files[0], 'utf8')).toBe(readFileSync(file, 'utf8'));
     // Duas gravações de 3 h simuladas, uma linha por vez: no Windows passa dos 5 s padrão.

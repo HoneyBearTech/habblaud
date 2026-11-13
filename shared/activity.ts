@@ -346,7 +346,7 @@ function filesLabel(files: string[]): string | undefined {
   const names = files.filter(looksLikeFile).map((f) => basename(f) || f);
   if (!names.length) return undefined;
   if (names.length === 1) return names[0];
-  if (names.length === 2) return `${names[0]} e ${names[1]}`;
+  if (names.length === 2) return `${names[0]} and ${names[1]}`;
   return tr('{0} and {1} more', [names[0], names.length - 1]);
 }
 
@@ -648,7 +648,7 @@ function describeMcp(name: string, input: Record<string, unknown>): ActivityDesc
     return make('browser', '🧭', tr('Browser: {0}', [humanize(tool)]));
   }
   if (/github/i.test(srv)) return make('mcp', '🐙', `GitHub: ${humanize(tool)}`);
-  if (/gmail|mail/i.test(srv)) return make('mcp', '✉️', `E-mail: ${humanize(tool)}`);
+  if (/gmail|mail/i.test(srv)) return make('mcp', '✉️', `Email: ${humanize(tool)}`);
   if (/drive|docs|notion|confluence/i.test(srv)) return make('mcp', '📄', `${srv}: ${humanize(tool)}`);
   if (/sql|postgres|mysql|mongo|elastic|redis|db/i.test(srv)) return make('mcp', '🗄️', tr('Database ({0}): {1}', [srv, humanize(tool)]));
   return make('mcp', '🔌', `${srv}: ${humanize(tool)}`);

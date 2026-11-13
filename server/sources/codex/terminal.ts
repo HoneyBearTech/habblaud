@@ -312,7 +312,7 @@ class CodexTerminalParser implements TerminalParser {
       case 'function_call':
       case 'custom_tool_call': {
         const id = str(p.call_id) ?? key;
-        const name = str(p.name) ?? 'ferramenta';
+        const name = str(p.name) ?? 'tool';
         this.calls.set(id, name);
         if (this.calls.size > 512) this.calls.delete(this.calls.keys().next().value as string);
         if (p.type === 'custom_tool_call' && name === 'apply_patch') {

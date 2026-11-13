@@ -12,7 +12,7 @@ describe('anexos do Novo agente', () => {
     expect(safeFileName('C:\\Users\\x\\foto 1.jpg')).toBe('foto 1.jpg');
     expect(safeFileName('.env')).toBe('env');
     expect(safeFileName('a\u0000b:c?.png')).toBe('a_b_c_.png');
-    expect(safeFileName('')).toBe('arquivo');
+    expect(safeFileName('')).toBe('file');
     const long = safeFileName(`${'x'.repeat(300)}.jpeg`);
     expect(long.length).toBe(120);
     expect(long.endsWith('.jpeg')).toBe(true);

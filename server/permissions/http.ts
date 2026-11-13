@@ -59,7 +59,7 @@ export function createPermissionRoutes(registry: PermissionRegistry): (req: Inco
   const decide = async (req: IncomingMessage, res: ServerResponse, id: string) => {
     const d = parseDecision(await readJson(req));
     if (!d) {
-      throw new HttpError(400, 'esperado {behavior: "allow" | "deny" | "terminal", message?, interrupt?, suggestion?} ou {behavior: "answer", answers: [{question, options?, other?}]}');
+      throw new HttpError(400, 'expected {behavior: "allow" | "deny" | "terminal", message?, interrupt?, suggestion?} or {behavior: "answer", answers: [{question, options?, other?}]}');
     }
     switch (registry.decide(id, d)) {
       case 'ok':

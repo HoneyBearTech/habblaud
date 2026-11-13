@@ -147,7 +147,7 @@ export function decisionOutput(result, input) {
   }
   if (result.behavior === 'deny') {
     const reason = typeof result.message === 'string' && result.message.trim() ? result.message.trim().slice(0, 1_000) : '';
-    const decision = { behavior: 'deny', message: reason ? `Recusado pelo usuário no Habblaud: ${reason}` : 'Recusado pelo usuário no Habblaud.' };
+    const decision = { behavior: 'deny', message: reason ? `Denied by the user in Habblaud: ${reason}` : 'Denied by the user in Habblaud.' };
     if (result.interrupt === true) decision.interrupt = true;
     return { hookSpecificOutput: { hookEventName: 'PermissionRequest', decision } };
   }
@@ -191,7 +191,7 @@ async function call(base, method, path, body, timeoutMs) {
     }
     return { status: res.status, json };
   } catch (err) {
-    debug(`${method} ${path}: ${err?.name ?? 'erro'} ${err?.message ?? ''}`);
+    debug(`${method} ${path}: ${err?.name ?? 'error'} ${err?.message ?? ''}`);
     return null;
   }
 }
@@ -215,14 +215,14 @@ export async function run(argv = process.argv.slice(2), env = process.env, stdin
     const deadline = Date.now() + opts.timeoutMs;
     const reg = await call(base, 'POST', '/api/permissions', requestBody(input, opts.timeoutMs), REGISTER_TIMEOUT_MS);
     if (!reg || reg.status !== 201 || typeof reg.json?.id !== 'string') {
-      debug(`sem desvio (${reg ? `${reg.status} ${JSON.stringify(reg.json ?? null)}` : 'Habblaud fora do ar'})`);
+      debug(`not diverted (${reg ? `${reg.status} ${JSON.stringify(reg.json ?? null)}` : 'Habblaud down'})`);
       return undefined;
     }
     const id = encodeURIComponent(reg.json.id);
     for (;;) {
       const left = deadline - Date.now();
       if (left <= 0) {
-        debug('tempo esgotado: vale o terminal');
+        debug('timed out: the terminal counts');
         return undefined;
       }
       const waitS = Math.max(0.05, Math.min(WAIT_S, left / 1_000));
@@ -230,11 +230,11 @@ export async function run(argv = process.argv.slice(2), env = process.env, stdin
       if (!r || r.status !== 200) return undefined;
       const status = r.json?.status;
       if (status === 'pending') continue;
-      debug(`resposta: ${JSON.stringify(r.json)}`);
+      debug(`answer: ${JSON.stringify(r.json)}`);
       return decisionOutput(r.json, input);
     }
   } catch (err) {
-    debug(`erro: ${err?.message ?? err}`);
+    debug(`error: ${err?.message ?? err}`);
     return undefined;
   }
 }

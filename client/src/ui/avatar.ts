@@ -53,6 +53,6 @@ export function updateAvatar(box: HTMLElement, agent: AvatarSource, size: Avatar
     img.src = data.url;
   } catch (err) {
     // A arte ainda pode estar em construção; a moldura vazia continua legível.
-    console.warn('[ui] falha ao gerar avatar', err);
+    console.warn('[ui] failed to generate avatar', err);
   }
 }

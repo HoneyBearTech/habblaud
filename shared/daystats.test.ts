@@ -394,12 +394,12 @@ describe('histórico fictício do demo', () => {
   it('preenche o dia com as salas e contas do demo, de forma determinística', () => {
     const v: StatsView = {
       agents: [
-        agent({ id: 'demo:1', roomId: 'demo:/dev/loja-virtual', account: 'demo:.claude' }),
-        agent({ id: 'demo:2', roomId: 'demo:/dev/api-pagamentos', account: 'demo:.claude-conta2', name: 'Bruno' }),
+        agent({ id: 'demo:1', roomId: 'demo:/dev/online-store', account: 'demo:.claude' }),
+        agent({ id: 'demo:2', roomId: 'demo:/dev/payments-api', account: 'demo:.claude-conta2', name: 'Bruno' }),
       ],
       rooms: [
-        { id: 'demo:/dev/loja-virtual', name: 'loja-virtual' },
-        { id: 'demo:/dev/api-pagamentos', name: 'api-pagamentos' },
+        { id: 'demo:/dev/online-store', name: 'online-store' },
+        { id: 'demo:/dev/payments-api', name: 'payments-api' },
       ],
       accounts: [
         { id: 'demo:.claude', name: 'Demo X', short: 'X', color: '#5cc97b' },

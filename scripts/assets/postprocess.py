@@ -1,20 +1,20 @@
-"""Pós-processamento e composição dos assets do Habblaud (pixel art a partir das imagens da IA).
+"""Post-processing and composition of the Habblaud assets (pixel art from the AI's images).
 
-Uso (a partir da raiz do projeto; requer Pillow e numpy):
-    python3 -E scripts/assets/postprocess.py                  # gera tudo + manifest + folha de contato
-    python3 -E scripts/assets/postprocess.py --only a,b       # reprocessa só alguns assets de specs.json
+Usage (from the project root; requires Pillow and numpy):
+    python3 -E scripts/assets/postprocess.py                  # generates everything + manifest + contact sheet
+    python3 -E scripts/assets/postprocess.py --only a,b       # reprocesses only some assets from specs.json
     python3 -E scripts/assets/postprocess.py --take gpt54 --only logo-mark --out /tmp/teste
-                                                              # testa uma tomada alternativa em outra pasta
+                                                              # tests an alternative take in another folder
 
-Entradas: scripts/assets/specs.json e scripts/assets/.cache/raw/<id>[@tomada].png
-Saídas:   client/public/assets/** (+ manifest.json) e scripts/assets/.cache/contact-sheet.png.
+Inputs:  scripts/assets/specs.json and scripts/assets/.cache/raw/<id>[@take].png
+Outputs: client/public/assets/** (+ manifest.json) and scripts/assets/.cache/contact-sheet.png.
 
-Tipos de processamento (campo post.kind em specs.json):
-- native: objeto sobre magenta desenhado pela IA numa grade de "pixels grandes": chroma key,
-          desampliação para a grade nativa detectada, recorte e quantização.
-- sprite: objeto sobre magenta reduzido para w x h por moda, alfa binário e contorno de 1px.
-- art / poster / scene: imagem cheia cortada na proporção e reduzida por moda até w x h,
-          quantizada sem dithering (pôster ganha contorno; cena pode ser ampliada com NEAREST).
+Processing kinds (field post.kind in specs.json):
+- native: object on magenta drawn by the AI on a grid of "big pixels": chroma key,
+          downscaling to the detected native grid, cropping and quantization.
+- sprite: object on magenta reduced to w x h by mode, binary alpha and a 1px outline.
+- art / poster / scene: full image cropped to the aspect ratio and reduced by mode to w x h,
+          quantized without dithering (a poster gets an outline; a scene can be upscaled with NEAREST).
 """
 
 from __future__ import annotations
@@ -108,7 +108,7 @@ PROCESSORS = {"native": process_native, "sprite": process_sprite, "art": process
 def process(asset: dict, src: Image.Image) -> Image.Image:
     kind = asset["post"]["kind"]
     if kind not in PROCESSORS:
-        raise ValueError(f"tipo de pós-processamento desconhecido: {kind}")
+        raise ValueError(f"unknown post-processing kind: {kind}")
     return PROCESSORS[kind](src, asset["post"])
 
 
@@ -244,7 +244,7 @@ def build_og(detailed: Image.Image | None, illustration: Image.Image | None, out
     for i, line in enumerate(lines):
         img = art.text_image(line, "#c9d3e3", 2)
         if tx + img.width > w - 12:
-            raise ValueError(f"linha do og-image larga demais: {line!r}")
+            raise ValueError(f"og-image line too wide: {line!r}")
         og.alpha_composite(img, (tx, ty + 38 + i * 20))
     px.upscale(og, 2).convert("RGB").save(out_root / "og-image.png", optimize=True)
     return "og-image.png"
@@ -309,9 +309,9 @@ def raw_path(asset_id: str, take: str) -> Path:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--only", default="", help="ids de specs.json separados por vírgula")
-    parser.add_argument("--take", default="", help="usa raw/<id>@<tomada>.png em vez da tomada escolhida")
-    parser.add_argument("--out", default=str(PUBLIC), help="pasta de saída (padrão: client/public/assets)")
+    parser.add_argument("--only", default="", help="ids from specs.json separated by commas")
+    parser.add_argument("--take", default="", help="uses raw/<id>@<take>.png instead of the chosen take")
+    parser.add_argument("--out", default=str(PUBLIC), help="output folder (default: client/public/assets)")
     args = parser.parse_args()
 
     specs = json.loads(SPECS.read_text())
@@ -325,7 +325,7 @@ def main() -> int:
             continue
         raw = raw_path(asset["id"], args.take)
         if not raw.exists():
-            print(f"[{asset['id']}] sem imagem bruta ({raw.relative_to(ROOT)}); pulei")
+            print(f"[{asset['id']}] no raw image ({raw.relative_to(ROOT)}); skipped")
             continue
         img = process(asset, Image.open(raw))
         dest = out_root / asset["out"]
@@ -376,12 +376,12 @@ def main() -> int:
 
     manifest = {"version": 1, "brand": brand, "illustrations": illustrations, "wallArt": wall_art, "og": og}
     (out_root / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
-    print(f"manifest: {len(wall_art)} artes de parede, marca e ilustração -> {out_root / 'manifest.json'}")
+    print(f"manifest: {len(wall_art)} wall art pieces, brand and illustration -> {out_root / 'manifest.json'}")
 
     if illustrations and wall_art:
         CACHE.mkdir(exist_ok=True)
         contact_sheet(out_root, manifest).save(CACHE / "contact-sheet.png")
-        print(f"folha de contato -> {CACHE / 'contact-sheet.png'}")
+        print(f"contact sheet -> {CACHE / 'contact-sheet.png'}")
     return 0
 
 

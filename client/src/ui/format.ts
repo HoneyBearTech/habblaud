@@ -61,7 +61,7 @@ export function formatCountdown(target: number, now: number): string {
   const diff = target - now;
   if (diff <= 0) return tr('now');
   if (diff < MINUTE) return tr('in less than 1 min');
-  return `em ${formatDuration(diff)}`;
+  return `in ${formatDuration(diff)}`;
 }
 
 function startOfDay(t: number): number {

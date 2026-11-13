@@ -19,23 +19,23 @@ import { TIMELINE_DIR, TimelineRecorder } from '../server/history/timeline';
 
 const HOUR = 3_600_000;
 
-const USAGE = `Uso: npm run demo:timeline [-- opções]
+const USAGE = `Usage: npm run demo:timeline [-- options]
 
-Gera uma linha do tempo com dados fictícios (simulador do modo demonstração) para o timelapse.
+Generates a timeline with made-up data (the demo mode simulator) for the timelapse.
 
-Opções:
-  --date AAAA-MM-DD   dia gravado (padrão: ontem, para não se misturar à gravação de hoje)
-  --start H[:MM]      hora de início (padrão: 9)
-  --hours N           horas simuladas (padrão: 10; máximo 24)
-  --sessions N        sessões abertas no pico do dia (padrão: 6)
-  --pace X            ritmo do simulador: 1 = o do modo demonstração ao vivo (turnos de 40 s a 4 min);
-                      0.25 = 4× mais lento, o de um dia de trabalho (padrão: 0.25)
-  --seed N            semente (padrão: 1; a mesma semente gera o mesmo dia)
-  --data-dir PASTA    pasta de dados do Habblaud (padrão: <tmp>/habblaud-demo); o arquivo vai em PASTA/timeline/
-  --force             sobrescreve o arquivo do dia, se existir
-  -h, --help          mostra esta ajuda
+Options:
+  --date YYYY-MM-DD   day recorded (default: yesterday, so it doesn't mix with today's recording)
+  --start H[:MM]      start time (default: 9)
+  --hours N           simulated hours (default: 10; maximum 24)
+  --sessions N        sessions open at the day's peak (default: 6)
+  --pace X            simulator pace: 1 = that of the live demo mode (turns of 40 s to 4 min);
+                      0.25 = 4× slower, that of a workday (default: 0.25)
+  --seed N            seed (default: 1; the same seed generates the same day)
+  --data-dir FOLDER   Habblaud data folder (default: <tmp>/habblaud-demo); the file goes in FOLDER/timeline/
+  --force             overwrites the day's file, if it exists
+  -h, --help          shows this help
 
-Para assistir: HABBLAUD_DATA_DIR=PASTA HABBLAUD_TIMELINE=0 npm start e abra o Timelapse.`;
+To watch: HABBLAUD_DATA_DIR=FOLDER HABBLAUD_TIMELINE=0 npm start and open the Timelapse.`;
 
 export interface DemoTimelineOptions {
   date: string;
@@ -68,7 +68,7 @@ export function parseArgs(argv: string[], now = Date.now()): DemoTimelineOptions
   };
   const num = (flag: string, v: string | undefined, min: number, max: number): number => {
     const n = Number(v);
-    if (v === undefined || v.trim() === '' || !Number.isFinite(n) || n < min || n > max) throw new Error(`${flag}: esperado um número entre ${min} e ${max}`);
+    if (v === undefined || v.trim() === '' || !Number.isFinite(n) || n < min || n > max) throw new Error(`${flag}: expected a number between ${min} and ${max}`);
     return n;
   };
   for (let i = 0; i < argv.length; i++) {
@@ -77,13 +77,13 @@ export function parseArgs(argv: string[], now = Date.now()): DemoTimelineOptions
     switch (a) {
       case '--date': {
         const v = next();
-        if (!isDayKey(v)) throw new Error('--date: use AAAA-MM-DD');
+        if (!isDayKey(v)) throw new Error('--date: use YYYY-MM-DD');
         o.date = v;
         break;
       }
       case '--start': {
         const m = /^(\d{1,2})(?::(\d{2}))?$/.exec(next() ?? '');
-        if (!m || Number(m[1]) > 23 || Number(m[2] ?? 0) > 59) throw new Error('--start: use H ou H:MM (0 a 23:59)');
+        if (!m || Number(m[1]) > 23 || Number(m[2] ?? 0) > 59) throw new Error('--start: use H or H:MM (0 to 23:59)');
         o.startMin = Number(m[1]) * 60 + Number(m[2] ?? 0);
         break;
       }
@@ -101,7 +101,7 @@ export function parseArgs(argv: string[], now = Date.now()): DemoTimelineOptions
         break;
       case '--data-dir': {
         const v = next();
-        if (!v) throw new Error('--data-dir: informe a pasta');
+        if (!v) throw new Error('--data-dir: give the folder');
         o.dataDir = resolve(v);
         break;
       }
@@ -113,7 +113,7 @@ export function parseArgs(argv: string[], now = Date.now()): DemoTimelineOptions
         o.help = true;
         break;
       default:
-        throw new Error(`opção desconhecida: ${a}`);
+        throw new Error(`unknown option: ${a}`);
     }
   }
   return o;
@@ -169,7 +169,7 @@ export function generateDemoTimeline(o: Omit<DemoTimelineOptions, 'help'>, stepM
   const files = filesFor(dir, from, to);
   for (const f of files) {
     if (!existsSync(f)) continue;
-    if (!o.force) throw new Error(`${f} já existe (use --force para sobrescrever)`);
+    if (!o.force) throw new Error(`${f} already exists (use --force to overwrite)`);
     unlinkSync(f);
   }
   let now = from;
@@ -204,9 +204,9 @@ async function main(): Promise<void> {
   const t0 = Date.now();
   const r = generateDemoTimeline(opts);
   const hhmm = (at: number) => new Date(at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-  console.log(`Linha do tempo fictícia de ${opts.date}, ${hhmm(r.from)}–${hhmm(r.to)}, gerada em ${((Date.now() - t0) / 1000).toFixed(1)} s:`);
+  console.log(`Made-up timeline for ${opts.date}, ${hhmm(r.from)}–${hhmm(r.to)}, generated in ${((Date.now() - t0) / 1000).toFixed(1)} s:`);
   for (const f of r.files) console.log(`  ${f}`);
-  console.log(`\nPara assistir:\n  HABBLAUD_DATA_DIR=${opts.dataDir} HABBLAUD_TIMELINE=0 npm start\ne abra o Timelapse na barra superior.`);
+  console.log(`\nTo watch:\n  HABBLAUD_DATA_DIR=${opts.dataDir} HABBLAUD_TIMELINE=0 npm start\nand open the Timelapse in the top bar.`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {

@@ -32,7 +32,7 @@ describe('safeGithubUrl', () => {
 
 describe('updateStatusLine', () => {
   it('na mais recente, com a hora da verificação', () => {
-    expect(updateStatusLine('0.2.0', ok({ latest: '0.2.0' }), NOW)).toEqual({ tone: 'ok', text: "You're on the latest version · verificado 2 h ago." });
+    expect(updateStatusLine('0.2.0', ok({ latest: '0.2.0' }), NOW)).toEqual({ tone: 'ok', text: "You're on the latest version · checked 2 h ago." });
   });
 
   it('versão nova, com a data de publicação', () => {
@@ -42,7 +42,7 @@ describe('updateStatusLine', () => {
   });
 
   it('nenhuma release, à frente da última, verificando, desligado e falha', () => {
-    expect(updateStatusLine('0.2.0', ok(), NOW).text).toBe('No version published on GitHub yet · verificado 2 h ago.');
+    expect(updateStatusLine('0.2.0', ok(), NOW).text).toBe('No version published on GitHub yet · checked 2 h ago.');
     expect(updateStatusLine('0.3.0-dev', ok({ latest: '0.2.0' }), NOW).text).toMatch(/ahead of the latest published version \(v0\.2\.0\)/);
     expect(updateStatusLine('0.2.0', { state: 'pending', available: false }, NOW)).toEqual({ tone: 'pending', text: 'Checking for a new version…' });
     expect(updateStatusLine('0.2.0', { state: 'off', repo: 'a/b', available: false }, NOW).text).toMatch(/HABBLAUD_UPDATE_CHECK=0/);
@@ -65,6 +65,6 @@ describe('versionChipTitle', () => {
     expect(versionChipTitle('0.2.0', ok({ latest: '0.3.0', available: true }), NOW)).toBe(
       "New Habblaud version: v0.3.0 (you're on v0.2.0). Click to see what's new and how to update.",
     );
-    expect(versionChipTitle('0.2.0', ok({ latest: '0.2.0' }), NOW)).toBe("Habblaud v0.2.0. You're on the latest version · verificado 2 h ago. Click for details.");
+    expect(versionChipTitle('0.2.0', ok({ latest: '0.2.0' }), NOW)).toBe("Habblaud v0.2.0. You're on the latest version · checked 2 h ago. Click for details.");
   });
 });

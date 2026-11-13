@@ -46,7 +46,7 @@ describe('describeCommand em português (casos reais que caíam no inglês)', ()
   it('leitores cortados no primeiro |, ; ou &&', () => {
     expect(t('sed -n 1,80p rug.ts', 'Read art rug implementation')).toBe('Reading rug.ts');
     expect(t("sed -n '140,700p' server/sources/transcript.ts")).toBe('Reading transcript.ts');
-    expect(t('cat a.ts b.ts | head -700')).toBe('Reading a.ts e b.ts');
+    expect(t('cat a.ts b.ts | head -700')).toBe('Reading a.ts and b.ts');
     expect(t('cat a.ts b.ts c.ts')).toBe('Reading a.ts and 2 more');
     expect(t('head -30 x.ts; ls | head')).toBe('Reading x.ts');
     expect(t("awk '{print $1}' data.csv")).toBe('Reading data.csv');

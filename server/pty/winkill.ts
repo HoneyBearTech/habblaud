@@ -46,7 +46,7 @@ $w = 0
 [HabblaudConsole]::CloseHandle($out) | Out-Null
 $in = [HabblaudConsole]::CreateFileW('CONIN$', ([uint32]3221225472), 3, [IntPtr]::Zero, 3, 0, [IntPtr]::Zero)
 if ([HabblaudConsole]::GetConsoleMode($in, [ref]$m)) {
-  # Sem entrada VT (0x200) e com processamento, linha e eco: o shell volta a receber teclas normais.
+  # No VT input (0x200), and with processing, line and echo: the shell gets normal keys again.
   [HabblaudConsole]::SetConsoleMode($in, (($m -band (-bnot 0x200)) -bor 0x7)) | Out-Null
 }
 [HabblaudConsole]::CloseHandle($in) | Out-Null

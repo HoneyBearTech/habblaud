@@ -848,7 +848,7 @@ export class CodexSource implements AgentSource, CodexLive {
       case 'PreToolUse': {
         this.decide(t, 'working', now, undefined, true);
         if (t !== rootT) this.reconcile(t, now, 'hook');
-        const toolName = str(input.tool_name) ?? 'ferramenta';
+        const toolName = str(input.tool_name) ?? 'tool';
         const toolInput = rec(input.tool_input) ?? {};
         const { desc, tool } = describeCodexTool(toolName, toolInput);
         const id = str(input.tool_use_id);

@@ -216,7 +216,7 @@ def render_map(rows: list[str], palette: dict[str, str] = PALETTE) -> Image.Imag
     """Converte um mapa de caracteres em imagem RGBA ('.' = transparente)."""
     width = len(rows[0])
     if any(len(r) != width for r in rows):
-        raise ValueError("mapa com linhas de larguras diferentes")
+        raise ValueError("map with rows of different widths")
     img = np.zeros((len(rows), width, 4), dtype=np.uint8)
     for y, row in enumerate(rows):
         for x, ch in enumerate(row):
@@ -227,7 +227,7 @@ def render_map(rows: list[str], palette: dict[str, str] = PALETTE) -> Image.Imag
 
 def _glyph(ch: str) -> list[str]:
     if ch not in FONT:
-        raise KeyError(f"a fonte bitmap não tem o caractere {ch!r}")
+        raise KeyError(f"the bitmap font does not have the character {ch!r}")
     return FONT[ch]
 
 
@@ -294,4 +294,4 @@ def mark(size: int) -> Image.Image:
         return render_map(MARK_32)
     if size == 16:
         return render_map(MARK_16)
-    raise ValueError(f"mark desenhado só existe em 16 e 32 px (pedido: {size})")
+    raise ValueError(f"the drawn mark only exists in 16 and 32 px (requested: {size})")

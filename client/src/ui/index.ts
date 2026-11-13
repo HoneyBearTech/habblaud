@@ -312,7 +312,7 @@ export function createUI(root: HTMLElement, store: OfficeStore, world: WorldApi,
       try {
         c.render();
       } catch (err) {
-        console.error('[ui] falha ao renderizar', c.constructor.name, err);
+        console.error('[ui] failed to render', c.constructor.name, err);
       }
     }
   }

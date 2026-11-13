@@ -191,7 +191,7 @@ export class FreeArea {
     try {
       this.world.setViewInsets?.(insets);
     } catch (err) {
-      console.error('[ui] setViewInsets falhou', err);
+      console.error('[ui] setViewInsets failed', err);
     }
     if (opts.refocus !== false) this.refocus();
   }

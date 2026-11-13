@@ -139,7 +139,7 @@ export class SpawnPanel {
       class: 'ui-rename__input ui-spawn__path',
       type: 'text',
       hidden: true,
-      attrs: { id: 'ui-spawn-folder', placeholder: '/Users/voce/projeto', spellcheck: 'false', autocomplete: 'off', autocapitalize: 'none', 'aria-label': tr('Folder path') },
+      attrs: { id: 'ui-spawn-folder', placeholder: '/Users/you/project', spellcheck: 'false', autocomplete: 'off', autocapitalize: 'none', 'aria-label': tr('Folder path') },
     });
     this.prompt = h('textarea', {
       class: 'ui-rename__input ui-spawn__prompt',

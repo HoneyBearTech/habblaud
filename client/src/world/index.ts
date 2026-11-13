@@ -254,7 +254,7 @@ export function createWorld(canvas: HTMLCanvasElement, store: OfficeStore, o: Cr
       if (playback) sim.applySnapshot(rebaseSnapshot(snap, worldNow - snap.serverTime), worldNow);
       else sim.applySnapshot(snap, Date.now());
     } catch (err) {
-      console.error('[mundo] snapshot inválido ignorado', err);
+      console.error('[world] invalid snapshot ignored', err);
     }
   };
   const offSnapshot = store.on('snapshot', onSnapshot);
@@ -318,7 +318,7 @@ export function createWorld(canvas: HTMLCanvasElement, store: OfficeStore, o: Cr
       if (selection?.type === 'agent' && !sim.chars.has(selection.id)) setSelection(null);
       if (selection?.type === 'room' && !sim.rooms.has(selection.id)) setSelection(null);
     } catch (err) {
-      console.error('[mundo] erro no frame', err);
+      console.error('[world] error in frame', err);
     }
   };
 

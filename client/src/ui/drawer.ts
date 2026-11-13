@@ -90,7 +90,7 @@ function copyButton(getText: () => string, label: string): HTMLButtonElement {
 }
 
 const TASK_MARK: Record<TaskItem['status'], string> = { completed: '✓', in_progress: '◐', pending: '○' };
-const TASK_STATE: Record<TaskItem['status'], string> = { completed: tr('completed'), in_progress: tr('in progress'), pending: 'pendente' };
+const TASK_STATE: Record<TaskItem['status'], string> = { completed: tr('completed'), in_progress: tr('in progress'), pending: 'pending' };
 
 function createTaskItem(): HTMLElement {
   return h('li', { class: 'ui-task' }, h('span', { class: 'ui-task__mark', attrs: { 'aria-hidden': 'true' } }), h('span', { class: 'ui-task__text' }), h('span', { class: 'ui-task__owner' }));

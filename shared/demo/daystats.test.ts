@@ -30,8 +30,8 @@ function agent(id: string, roomId: string, account: string): AgentInfo {
 describe('seedDemoHistory com o Codex', () => {
   it('o Codex ganha projeto no histórico (tokens, sem custo); o Claude Code continua com custo', () => {
     const view: StatsView = {
-      agents: [agent('demo:1', 'demo:/dev/loja-virtual', 'demo:.claude'), agent('demo:2', 'demo:/dev/loja-virtual', 'demo:.codex')],
-      rooms: [{ id: 'demo:/dev/loja-virtual', name: 'loja-virtual' }],
+      agents: [agent('demo:1', 'demo:/dev/online-store', 'demo:.claude'), agent('demo:2', 'demo:/dev/online-store', 'demo:.codex')],
+      rooms: [{ id: 'demo:/dev/online-store', name: 'online-store' }],
       accounts: [
         { id: 'demo:.claude', name: 'Demo X', short: 'X', color: '#5cc97b' },
         { id: 'demo:.claude-conta2', name: 'Demo Y', short: 'Y', color: '#a77bf3' },

@@ -1,5 +1,5 @@
 {
-  "description": "Responder pelo escritório: manda cada pedido de permissão (e pergunta do AskUserQuestion) para o Habblaud local (porta em HABBLAUD_PORT, padrão 4747) e espera a resposta por até 5 min (até 24 h com HABBLAUD_PERMISSION_TIMEOUT); fora do ar ou sem página aberta, sai na hora e vale o terminal.",
+  "description": "Reply from the office: sends each permission request (and AskUserQuestion question) to the local Habblaud (port in HABBLAUD_PORT, default 4747) and waits for the answer for up to 5 min (up to 24 h with HABBLAUD_PERMISSION_TIMEOUT); when it is down or no page is open, it exits right away and the terminal counts.",
   "hooks": {
     "PermissionRequest": [
       {

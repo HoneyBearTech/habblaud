@@ -34,11 +34,11 @@ interface DemoProject {
   greps: string[];
 }
 
-const ROOT = '/Users/dev/projetos';
+const ROOT = '/Users/dev/projects';
 
 const PROJECTS: DemoProject[] = [
   {
-    name: 'loja-virtual',
+    name: 'online-store',
     files: ['src/pages/Checkout.tsx', 'src/components/Cart.tsx', 'src/api/orders.ts', 'src/hooks/useCart.ts', 'src/styles/theme.css', 'tests/cart.test.ts', 'package.json'],
     prompts: [tr('Build the checkout page with an order summary'), tr("The cart total doesn't update when an item is removed"), tr('Add discount coupons to checkout'), tr("Improve the storefront's mobile layout")],
     tasks: [tr('Create checkout page'), tr('Validate address form'), tr('Integrate shipping calculation'), tr('Write cart tests'), tr('Adjust mobile layout')],
@@ -47,7 +47,7 @@ const PROJECTS: DemoProject[] = [
     greps: ['useCart', 'calculateTotal', 'TODO'],
   },
   {
-    name: 'api-pagamentos',
+    name: 'payments-api',
     files: ['src/routes/payments.ts', 'src/services/pix.ts', 'src/db/migrations/004_refunds.sql', 'src/middleware/auth.ts', 'tests/pix.test.ts', 'docker-compose.yml'],
     prompts: [tr('Implement refunds for instant payments'), tr('The webhooks are duplicating charges, look into it'), tr('Add rate limiting to public routes')],
     tasks: [tr('Map refund flow'), tr('Create refunds migration'), tr('Implement POST /refunds route'), tr('Webhook idempotency'), tr('Cover with tests')],
@@ -74,8 +74,8 @@ const PROJECTS: DemoProject[] = [
     greps: ['tz_localize', 'drop_duplicates'],
   },
   {
-    name: 'site-institucional',
-    files: ['src/pages/index.astro', 'src/components/Hero.astro', 'src/content/blog/lancamento.md', 'astro.config.mjs', 'public/robots.txt'],
+    name: 'company-site',
+    files: ['src/pages/index.astro', 'src/components/Hero.astro', 'src/content/blog/launch.md', 'astro.config.mjs', 'public/robots.txt'],
     prompts: [tr('Build the testimonials section on the home page'), tr('Improve SEO on the blog pages'), tr('Add a contact form')],
     tasks: [tr('Testimonials section'), tr('Blog meta tags'), 'Sitemap', tr('Contact form')],
     queries: ['astro sitemap integration', 'schema.org organization json-ld'],
@@ -83,7 +83,7 @@ const PROJECTS: DemoProject[] = [
     greps: ['<meta', 'description'],
   },
   {
-    name: 'chatbot-suporte',
+    name: 'support-chatbot',
     files: ['bot/handlers/faq.ts', 'bot/llm/prompt.ts', 'bot/integrations/zendesk.ts', 'bot/index.ts', 'tests/faq.test.ts'],
     prompts: [tr("The bot isn't handing off to a human"), tr('Add Zendesk integration'), tr('Improve the prompt for shorter replies')],
     tasks: [tr('Escalation rule'), tr('Zendesk client'), tr('Tweak prompt'), tr('Conversation tests')],
@@ -145,8 +145,8 @@ type DemoAccount = Omit<AccountInfo, 'sessions' | 'usage' | 'usageStatus'>;
 // No ?mock=1 as contas imitam o cenário real (C e D no Claude Code, mais uma do Codex). Misturado aos dados reais
 // no servidor (idPrefix), o demo usa contas próprias, inconfundíveis com as de verdade.
 const DEMO_ACCOUNTS: DemoAccount[] = [
-  { id: '.claude', short: 'C', name: 'Conta C', email: 'dev@empresa.example', organization: tr('Company'), plan: 'Max', color: '#f08a3c', configDir: '~/.claude' },
-  { id: '.claude-conta2', short: 'D', name: 'Conta D', email: 'dev@pessoal.example', plan: 'Max', color: '#4aa8e8', configDir: '~/.claude-conta2' },
+  { id: '.claude', short: 'C', name: 'Account C', email: 'dev@company.example', organization: tr('Company'), plan: 'Max', color: '#f08a3c', configDir: '~/.claude' },
+  { id: '.claude-conta2', short: 'D', name: 'Account D', email: 'dev@personal.example', plan: 'Max', color: '#4aa8e8', configDir: '~/.claude-conta2' },
 ];
 /** Conta do Codex (um CODEX_HOME): sem e-mail (o Habblaud não lê credenciais), com o plano dos `rate_limits`. */
 const DEMO_CODEX_ACCOUNT: DemoAccount = { id: '.codex', provider: 'codex', short: 'X', name: 'Codex', plan: 'Team', color: '#a77bf3', configDir: '~/.codex' };

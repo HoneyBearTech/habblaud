@@ -539,7 +539,7 @@ export function describeStatus(state: AccountState, settings: Settings, o: { roo
       const parts = [tr('installed{0}', [p.scope && p.scope !== SCOPE ? tr(' (scope {0})', [p.scope]) : '']), p.enabled ? tr('enabled') : tr('off')];
       parts.push(tr('version {0}{1}', [p.version ?? '?', p.version === o.version ? '' : tr(' (this folder: {0}; npm run mod:install or npm run docker:up updates it)', [o.version])]));
       if (p.folderVersion && p.folderVersion !== p.version) parts.push(tr('loads {0} from {1}', [p.folderVersion, tildify(p.readFromFolder ?? '?', o.home)]));
-      if (p.errors.length) parts.push(`erro: ${p.errors.join('; ')}`);
+      if (p.errors.length) parts.push(`error: ${p.errors.join('; ')}`);
       lines.push(`${name}: ${parts.join(', ')}`);
     }
   }

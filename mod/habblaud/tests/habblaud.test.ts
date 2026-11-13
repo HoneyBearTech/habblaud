@@ -162,15 +162,15 @@ describe('linha embaixo do prompt', () => {
     expect(w.statuses).toEqual([undefined])
     list = [waiting('Valentina', 'loja-virtual')]
     await w.clock.advance(5_000)
-    expect(w.statuses.at(-1)).toBe('🏢 Valentina precisa de você em loja-virtual')
+    expect(w.statuses.at(-1)).toBe('🏢 Valentina needs you in loja-virtual')
     await w.clock.advance(5_000)
     expect(w.statuses.length).toBe(2)
     list = [waiting('Valentina', 'loja-virtual'), waiting('Elias', 'app-mobile')]
     await w.clock.advance(5_000)
-    expect(w.statuses.at(-1)).toBe('🏢 2 precisam de você: Valentina (loja-virtual), Elias (app-mobile)')
+    expect(w.statuses.at(-1)).toBe('🏢 2 need you: Valentina (loja-virtual), Elias (app-mobile)')
     list = [...list, waiting('Bia', 'site'), waiting('Caio', 'api'), waiting('Dora', 'docs')]
     await w.clock.advance(5_000)
-    expect(w.statuses.at(-1)).toBe('🏢 5 precisam de você: Valentina (loja-virtual), Elias (app-mobile), Bia (site) e mais 2')
+    expect(w.statuses.at(-1)).toBe('🏢 5 need you: Valentina (loja-virtual), Elias (app-mobile), Bia (site) and 2 more')
     list = []
     await w.clock.advance(5_000)
     expect(w.statuses.at(-1)).toBeUndefined()
@@ -189,7 +189,7 @@ describe('linha embaixo do prompt', () => {
     up = true
     await w.clock.advance(5_000)
     expect(w.fetches.length).toBe(2)
-    expect(w.statuses.at(-1)).toBe('🏢 Valentina precisa de você em loja-virtual')
+    expect(w.statuses.at(-1)).toBe('🏢 Valentina needs you in loja-virtual')
     await w.clock.advance(5_000)
     expect(w.fetches.length).toBe(3)
   })
@@ -199,12 +199,12 @@ describe('linha embaixo do prompt', () => {
     const w = world(on, { answer: () => (hang ? 'hang' : summary([waiting('Valentina', 'loja-virtual')])) })
     await $.session.start(START)
     await w.clock.advance(5_000)
-    expect(w.statuses).toEqual(['🏢 Valentina precisa de você em loja-virtual'])
+    expect(w.statuses).toEqual(['🏢 Valentina needs you in loja-virtual'])
     hang = true
     await w.clock.advance(5_000)
     expect(w.statuses.length).toBe(1)
     await w.clock.advance(2_000)
-    expect(w.statuses).toEqual(['🏢 Valentina precisa de você em loja-virtual', undefined])
+    expect(w.statuses).toEqual(['🏢 Valentina needs you in loja-virtual', undefined])
   })
 
   test('sessão sem superfície (claude -p, SDK): nem pergunta ao Habblaud', async ($, on) => {
@@ -225,9 +225,9 @@ describe('/habblaud', () => {
     expect(w.fetches).toEqual([SUMMARY_URL])
     expect(out.text).toBe(
       [
-        'Habblaud 0.3.0 em http://localhost:4850',
-        '7 agentes · 3 trabalhando · 2 precisam de você',
-        '✋ Valentina (loja-virtual): aprovar uma permissão · dá para responder pelo escritório',
+        'Habblaud 0.3.0 at http://localhost:4850',
+        '7 agents · 3 working · 2 need you',
+        '✋ Valentina (loja-virtual): aprovar uma permissão · you can reply from the office',
         '✋ Elias (app-mobile): responder no terminal',
       ].join('\n'),
     )
@@ -236,20 +236,20 @@ describe('/habblaud', () => {
   test('no ar e ninguém esperando', async ($, on) => {
     world(on, { answer: () => summary([], { agents: 1, working: 0 }) })
     const out = await $.command.run(RUN)
-    expect(out.text).toBe('Habblaud 0.3.0 em http://localhost:4850\n1 agente · 0 trabalhando · ninguém precisa de você')
+    expect(out.text).toBe('Habblaud 0.3.0 at http://localhost:4850\n1 agent · 0 working · nobody needs you')
   })
 
   test('fora do ar: diz como subir', async ($, on) => {
     world(on, { answer: () => 'offline' })
     const out = await $.command.run(RUN)
-    expect(out.text).toBe('O Habblaud não respondeu em http://localhost:4850. Para subir: npm run docker:up na pasta do Habblaud.')
+    expect(out.text).toBe('Habblaud did not answer at http://localhost:4850. To start it: npm run docker:up in the Habblaud folder.')
   })
 
   test('Habblaud de antes do mod (404 "rota desconhecida"): pede para atualizar', async ($, on) => {
     let text = '{"error":"rota desconhecida"}'
     world(on, { env: { HOME: '/home/fulano' }, answer: () => ({ status: 404, text }) })
     const out = await $.command.run(RUN)
-    expect(out.text).toMatch(/^O Habblaud em http:\/\/localhost:4747 está numa versão sem a rota do mod/)
+    expect(out.text).toMatch(/^Habblaud at http:\/\/localhost:4747 is on a version without the mod's route/)
     // The same answer from a server whose texts are in English ("unknown route").
     text = '{"error":"unknown route"}'
     expect((await $.command.run(RUN)).text).toBe(out.text)
@@ -296,7 +296,7 @@ describe('funções puras', () => {
     expect(parseSummary('<html>')).toBeUndefined()
     expect(parseSummary('{"version":"1"}')).toBeUndefined()
     const s = parseSummary(JSON.stringify({ version: '0.3.0', agents: 2, working: 1, waiting: [{ name: 'Ana\nB', room: 'r', answerable: 'sim' }, { room: 'sem nome' }] }))
-    expect(s?.waiting).toEqual([{ id: 'Ana B', name: 'Ana B', room: 'r', account: '', waitingFor: 'responder no terminal', answerable: false }])
+    expect(s?.waiting).toEqual([{ id: 'Ana B', name: 'Ana B', room: 'r', account: '', waitingFor: 'answer in the terminal', answerable: false }])
     expect(statusText([])).toBeUndefined()
   })
 })

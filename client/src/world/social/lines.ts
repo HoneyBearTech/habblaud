@@ -22,8 +22,8 @@ export const INVITE = {
   mirror: [tr('Time for a touch-up? 💄'), tr('Mirror? I need to freshen up ✨')],
 } satisfies Record<string, Pool>;
 
-export const ACCEPT: Pool = [tr("Let's go!"), tr('Off we go!'), 'Fechado! 🤝', tr('Right now!'), tr('Oh yeah!'), tr('You bet!'), tr('Sure thing!')];
-export const ACCEPT_BET: Pool = ['Fechado! 🤝', tr('Get your wallet ready 💰'), tr("You're gonna lose!"), tr('Deal!')];
+export const ACCEPT: Pool = [tr("Let's go!"), tr('Off we go!'), 'Deal! 🤝', tr('Right now!'), tr('Oh yeah!'), tr('You bet!'), tr('Sure thing!')];
+export const ACCEPT_BET: Pool = ['Deal! 🤝', tr('Get your wallet ready 💰'), tr("You're gonna lose!"), tr('Deal!')];
 export const ACCEPT_BROKE: Pool = [tr("I'm broke 😅 Just for glory!"), tr('No 🪙… play for nothing?')];
 export const ACCEPT_SLEEPY: Pool = [tr('Huh? Oh… okay 😴'), tr("I'm up! Let's go."), tr("Five more minutes… fine, let's go.")];
 export const ACCEPT_SHELL: Pool = [tr("While the build runs… let's go! ⏳"), tr("My command's running, there's time ⏳"), tr("I'm just waiting on the terminal anyway…")];
@@ -31,18 +31,18 @@ export const ACCEPT_STINGY: Pool = [tr('A bet? Just a little one 💰'), tr('Low
 
 export const TV = {
   futebol: {
-    goal: ['GOOOL! ⚽', tr('GOAL!!'), tr('WHAT A GOAL! ⚽'), tr('What a screamer!')],
-    miss: ['Uuuuh! 😱', tr('Off the post!'), tr('So close!'), tr("How'd he miss that?!")],
+    goal: ['GOOOAL! ⚽', tr('GOAL!!'), tr('WHAT A GOAL! ⚽'), tr('What a screamer!')],
+    miss: ['Ooooh! 😱', tr('Off the post!'), tr('So close!'), tr("How'd he miss that?!")],
     against: [tr('Oh no! Their goal 😩'), tr('Rough times…'), tr('Wake up, defense!'), tr("I can't believe it…")],
     talk: [tr("The ref's a crook! 😤"), tr('What a play!'), tr('That goalie is way too good'), tr('Come on, team!'), tr('That was a penalty!'), tr("They're playing great!")],
   },
   novela: {
     twist: [tr('No way! 😱'), tr('I knew it!'), tr('What a twist!'), tr('No way!!')],
-    love: [tr('These two! 😍'), 'Finalmente! 😍', tr('So romantic…')],
+    love: [tr('These two! 😍'), 'Finally! 😍', tr('So romantic…')],
     talk: [tr("Shhh, it's starting!"), tr("Don't cry… 😭"), tr('That villain is no good'), tr('The finale is tomorrow!')],
   },
   desenho: {
-    funny: ['KKKKK 😂', tr('Hahaha!'), tr('So good 😂'), tr('This cartoon is awesome!')],
+    funny: ['HAHAHA 😂', tr('Hahaha!'), tr('So good 😂'), tr('This cartoon is awesome!')],
     talk: [tr('I watched this as a kid!'), tr('A classic!'), tr('Look at his face 😂')],
   },
   end: [tr('Too good!'), tr('More tomorrow 📺'), tr('What an episode!'), tr('Worth the break!')],
@@ -57,7 +57,7 @@ export const GAME = {
 export const PINGPONG = {
   point: [tr('Point! 🏓'), tr('Take that!'), tr('Right on the edge!'), tr('Smash!'), tr('Return this one!')],
   cheer: [tr('Nice!'), tr('Go, {nome}!'), tr('Whoooa!'), tr('What a shot!')],
-  final: ['{a} a {b}! 🏆', tr('I won {a} to {b}! 🏆')],
+  final: ['{a} to {b}! 🏆', tr('I won {a} to {b}! 🏆')],
 };
 
 export const RPS = {
@@ -68,11 +68,11 @@ export const RPS = {
   lose: [tr("That didn't count!"), tr('Lucky you…'), tr('My money… 😭'), tr('Yeah, yeah…'), tr('I meant to throw rock!')],
   rematch: [tr('Rematch!'), tr('Best of three!'), tr('Again, for real this time!')],
   stalemate: [tr('Forget it 😅'), tr('A tie, then.')],
-  watch: ['KKKKK', tr('Whoa!'), tr('Yikes!'), tr('Pay up!')],
+  watch: ['HAHAHA', tr('Whoa!'), tr('Yikes!'), tr('Pay up!')],
 };
 
 export const MIRROR = {
-  solo: ['Arrasei ✨', tr("I'm on fire today 😎"), tr('Hair on point ✅'), tr('Look approved ✨'), tr("This hair won't cooperate…"), tr('Ready for the next meeting ✨')],
+  solo: ['Nailed it ✨', tr("I'm on fire today 😎"), tr('Hair on point ✅'), tr('Look approved ✨'), tr("This hair won't cooperate…"), tr('Ready for the next meeting ✨')],
   lipstick: [tr('Perfect lipstick 💄'), tr("Now we're talking 💋")],
   duo: [tr('Can I borrow your comb?'), tr('Looks great!'), tr('How do I look?'), tr("You're killing it!")],
 };
@@ -90,8 +90,8 @@ export const CHAT = {
   apostas: [tr("Who's up for rock-paper-scissors later? 🎲"), tr('Feeling lucky today 🍀')],
   economia: [tr('Saving up 🪙 for vacation'), tr('Free coffee is the best coffee')],
   generic: [tr('Any weekend plans?'), tr('I need a vacation 🏖️'), tr('What a day, huh'), tr("It's been crazy busy today")],
-  react: ['KKKKK', tr('Seriously?!'), tr("I can't believe it 😮"), tr('True!'), tr('Hahaha'), tr('Tell me about it…'), '👀', tr('Yep'), tr('No way!'), tr('Come on!')],
-  laugh: ['KKKKK', tr('Hahaha!'), '😂😂😂'],
+  react: ['HAHAHA', tr('Seriously?!'), tr("I can't believe it 😮"), tr('True!'), tr('Hahaha'), tr('Tell me about it…'), '👀', tr('Yep'), tr('No way!'), tr('Come on!')],
+  laugh: ['HAHAHA', tr('Hahaha!'), '😂😂😂'],
 };
 
 /** Saindo de uma roda porque o trabalho chamou. */

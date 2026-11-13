@@ -182,7 +182,7 @@ export function checkFiles(raw: unknown): Attachment[] | { error: string } {
     if (!r || typeof r.data !== 'string' || !/^[A-Za-z0-9+/]*={0,2}$/.test(r.data)) return { error: tr('unreadable attachment') };
     const data = Buffer.from(r.data, 'base64');
     if (!data.length || data.length > ATTACHMENT_MAX_BYTES) return { error: tr('attachment empty or too large') };
-    out.push({ name: safeFileName(typeof r.name === 'string' ? r.name : 'arquivo'), type: typeof r.type === 'string' ? r.type : '', data });
+    out.push({ name: safeFileName(typeof r.name === 'string' ? r.name : 'file'), type: typeof r.type === 'string' ? r.type : '', data });
   }
   return out;
 }

@@ -225,10 +225,10 @@ async function postJson($: EngineInterface, port: number, path: string, body: st
 async function submitOne($: EngineInterface, text: string): Promise<Submitted> {
   try {
     const r = await $.prompt.submit({ text, asUser: true })
-    if (typeof r?.drop === 'string') return { ok: false, error: reasonText(r.drop, 'um hook da sessão recusou a mensagem') }
+    if (typeof r?.drop === 'string') return { ok: false, error: reasonText(r.drop, 'a session hook refused the message') }
     return { ok: true }
   } catch (err) {
-    return { ok: false, error: reasonText(err, 'a sessão não aceitou a mensagem') }
+    return { ok: false, error: reasonText(err, "the session didn't accept the message") }
   }
 }
 
@@ -239,7 +239,7 @@ async function deliver($: EngineInterface, messages: readonly InboxMessage[]): P
   let queued = false
   for (const m of messages) {
     if (!m.text.trim()) {
-      results.push({ id: m.id, ok: false, error: 'mensagem vazia' })
+      results.push({ id: m.id, ok: false, error: 'empty message' })
       continue
     }
     const submitted = submitOne($, m.text)

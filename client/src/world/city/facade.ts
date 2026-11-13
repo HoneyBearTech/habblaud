@@ -55,16 +55,16 @@ export interface FacadeStyle {
 }
 
 export const FACADE_STYLES: readonly FacadeStyle[] = [
-  { name: 'tijolo', wall: ['#7c3a2c', '#9c4935', '#b45a42', '#c87256'], pattern: 'brick', trim: ['#cfc3b0', '#ece4d6'], roof: ['#5d6470', '#7a828e'], accent: ['#2f6fa8', '#4f93cf'], frame: '#3a2a26' },
-  { name: 'tijolo claro', wall: ['#9a7656', '#b48c66', '#c9a27a', '#dcb990'], pattern: 'brick', trim: ['#e6ddd0', '#f6f1e8'], roof: ['#646a74', '#848a94'], accent: ['#1f7f75', '#2fa597'], frame: '#4a3a2c' },
-  { name: 'concreto', wall: ['#6f7884', '#87909c', '#9ea7b2', '#b9c1ca'], pattern: 'panel', trim: ['#d6dce3', '#eef1f4'], roof: ['#4b525c', '#666d78'], accent: ['#d98a2b', '#f2a33a'], frame: '#2e3648' },
-  { name: 'reboco', wall: ['#c9c0b0', '#ddd5c6', '#ece6da', '#f8f4ec'], pattern: 'stucco', trim: ['#a8977c', '#c4b49a'], roof: ['#6f665e', '#8e857b'], accent: ['#a8322a', '#cf4a3c'], frame: '#4a4038' },
-  { name: 'vidro', wall: ['#3f6f96', '#5587b0', '#6fa3c9', '#9cc6e4'], pattern: 'glass', trim: ['#cdd8e2', '#eef3f7'], roof: ['#353d48', '#4c5562'], accent: ['#7451b8', '#9a78dc'], frame: '#e8eef4' },
-  { name: 'tijolo escuro', wall: ['#3e3433', '#4f4241', '#5f5150', '#73625f'], pattern: 'brick', trim: ['#bdae98', '#d8ccb8'], roof: ['#383b42', '#50545c'], accent: ['#c8902a', '#e8b04a'], frame: '#1f1a1a' },
-  { name: 'painel verde', wall: ['#3a6e6a', '#467f7b', '#559491', '#6caba7'], pattern: 'panel', trim: ['#dfe9e7', '#f3f8f7'], roof: ['#3f4a53', '#58646e'], accent: ['#d8603f', '#f07c5a'], frame: '#24403e' },
-  { name: 'arenito', wall: ['#b39b74', '#c6ae86', '#d8c39d', '#e8d6b4'], pattern: 'stone', trim: ['#7f6a4c', '#9c8562'], roof: ['#675e52', '#83796b'], accent: ['#2f66b8', '#3f7fd8'], frame: '#4a3d2c' },
-  { name: 'marinho', wall: ['#1f2c4a', '#283a5e', '#314870', '#3d5884'], pattern: 'panel', trim: ['#d58a24', '#f2a33a'], roof: ['#262b36', '#3a404c'], accent: ['#d58a24', '#f2a33a'], frame: '#141b30' },
-  { name: 'menta', wall: ['#7fae96', '#93bea8', '#a9cdb8', '#c3dfcd'], pattern: 'stucco', trim: ['#f0ece2', '#fbf9f4'], roof: ['#5f6871', '#7b848d'], accent: ['#c95e8e', '#e47aa8'], frame: '#3d5a4c' },
+  { name: 'brick', wall: ['#7c3a2c', '#9c4935', '#b45a42', '#c87256'], pattern: 'brick', trim: ['#cfc3b0', '#ece4d6'], roof: ['#5d6470', '#7a828e'], accent: ['#2f6fa8', '#4f93cf'], frame: '#3a2a26' },
+  { name: 'light brick', wall: ['#9a7656', '#b48c66', '#c9a27a', '#dcb990'], pattern: 'brick', trim: ['#e6ddd0', '#f6f1e8'], roof: ['#646a74', '#848a94'], accent: ['#1f7f75', '#2fa597'], frame: '#4a3a2c' },
+  { name: 'concrete', wall: ['#6f7884', '#87909c', '#9ea7b2', '#b9c1ca'], pattern: 'panel', trim: ['#d6dce3', '#eef1f4'], roof: ['#4b525c', '#666d78'], accent: ['#d98a2b', '#f2a33a'], frame: '#2e3648' },
+  { name: 'stucco', wall: ['#c9c0b0', '#ddd5c6', '#ece6da', '#f8f4ec'], pattern: 'stucco', trim: ['#a8977c', '#c4b49a'], roof: ['#6f665e', '#8e857b'], accent: ['#a8322a', '#cf4a3c'], frame: '#4a4038' },
+  { name: 'glass', wall: ['#3f6f96', '#5587b0', '#6fa3c9', '#9cc6e4'], pattern: 'glass', trim: ['#cdd8e2', '#eef3f7'], roof: ['#353d48', '#4c5562'], accent: ['#7451b8', '#9a78dc'], frame: '#e8eef4' },
+  { name: 'dark brick', wall: ['#3e3433', '#4f4241', '#5f5150', '#73625f'], pattern: 'brick', trim: ['#bdae98', '#d8ccb8'], roof: ['#383b42', '#50545c'], accent: ['#c8902a', '#e8b04a'], frame: '#1f1a1a' },
+  { name: 'green panel', wall: ['#3a6e6a', '#467f7b', '#559491', '#6caba7'], pattern: 'panel', trim: ['#dfe9e7', '#f3f8f7'], roof: ['#3f4a53', '#58646e'], accent: ['#d8603f', '#f07c5a'], frame: '#24403e' },
+  { name: 'sandstone', wall: ['#b39b74', '#c6ae86', '#d8c39d', '#e8d6b4'], pattern: 'stone', trim: ['#7f6a4c', '#9c8562'], roof: ['#675e52', '#83796b'], accent: ['#2f66b8', '#3f7fd8'], frame: '#4a3d2c' },
+  { name: 'navy', wall: ['#1f2c4a', '#283a5e', '#314870', '#3d5884'], pattern: 'panel', trim: ['#d58a24', '#f2a33a'], roof: ['#262b36', '#3a404c'], accent: ['#d58a24', '#f2a33a'], frame: '#141b30' },
+  { name: 'mint', wall: ['#7fae96', '#93bea8', '#a9cdb8', '#c3dfcd'], pattern: 'stucco', trim: ['#f0ece2', '#fbf9f4'], roof: ['#5f6871', '#7b848d'], accent: ['#c95e8e', '#e47aa8'], frame: '#3d5a4c' },
 ];
 
 /** Variações por lote (estilo × ordem das janelas acesas): o cache não cresce com o número de lotes. */

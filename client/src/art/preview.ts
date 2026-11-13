@@ -21,31 +21,31 @@ import {
 
 const SCALE = 3;
 const DIRS: readonly Dir[] = ['down', 'left', 'up', 'right'];
-const DIR_PT: Record<Dir, string> = { down: 'baixo', left: 'esquerda', up: 'cima', right: 'direita' };
+const DIR_PT: Record<Dir, string> = { down: 'down', left: 'left', up: 'up', right: 'right' };
 const POSES: readonly Pose[] = [
   'stand', 'walk', 'run', 'sit', 'type', 'sleep', 'drink', 'use', 'raise_hand', 'talk', 'stretch', 'read', 'play', 'wait',
   'cheer', 'laugh', 'game', 'rps', 'groom', 'sulk',
 ];
 const POSE_PT: Record<Pose, string> = {
-  stand: 'parado', walk: 'andando', run: 'correndo', sit: 'sentado', type: 'digitando', sleep: 'cochilando', drink: 'bebendo',
-  use: 'usando máquina', raise_hand: 'mão levantada', talk: 'conversando', stretch: 'espreguiçando', read: 'lendo', play: 'ping-pong',
-  wait: 'esperando', cheer: 'comemorando', laugh: 'gargalhando', game: 'videogame', rps: 'jokenpô', groom: 'no espelho', sulk: 'chateado',
+  stand: 'standing', walk: 'walking', run: 'running', sit: 'seated', type: 'typing', sleep: 'napping', drink: 'drinking',
+  use: 'using machine', raise_hand: 'hand raised', talk: 'talking', stretch: 'stretching', read: 'reading', play: 'ping-pong',
+  wait: 'waiting', cheer: 'celebrating', laugh: 'laughing hard', game: 'video games', rps: 'rps', groom: 'at the mirror', sulk: 'upset',
 };
 /** Poses que sempre são sentadas (as demais podem ser em pé ou sentadas). */
 const SEATED_POSES: readonly Pose[] = ['sit', 'type', 'sleep', 'wait'];
 const HELD: readonly HeldItem[] = ['coffee', 'water', 'papers', 'laptop', 'book', 'box', 'paddle', 'popcorn', 'controller', 'phone', 'lipstick', 'comb', 'rock', 'paper', 'scissors'];
 const HELD_PT: Record<HeldItem, string> = {
-  none: 'nada', coffee: 'café', water: 'água', papers: 'papéis', laptop: 'notebook', book: 'livro', box: 'caixa', paddle: 'raquete', popcorn: 'pipoca',
-  controller: 'controle', phone: 'celular', lipstick: 'batom', comb: 'pente', rock: 'pedra', paper: 'papel', scissors: 'tesoura',
+  none: 'nothing', coffee: 'coffee', water: 'water', papers: 'papers', laptop: 'laptop', book: 'book', box: 'box', paddle: 'paddle', popcorn: 'popcorn',
+  controller: 'controller', phone: 'phone', lipstick: 'lipstick', comb: 'comb', rock: 'rock', paper: 'paper', scissors: 'scissors',
 };
 const SCREENS: readonly ScreenMode[] = ['off', 'standby', 'idle', 'code', 'terminal', 'browser', 'search', 'chat', 'docs', 'tasks', 'alert', 'progress', 'show', 'game'];
 const SCREEN_PT: Record<ScreenMode, string> = {
-  off: 'desligado', standby: 'em espera', idle: 'descanso', code: 'código', terminal: 'terminal', browser: 'navegador', search: 'busca', chat: 'chat', docs: 'documento', tasks: 'tarefas', alert: 'alerta',
-  progress: 'progresso', show: 'programa', game: 'videogame',
+  off: 'off', standby: 'standby', idle: 'rest', code: 'code', terminal: 'terminal', browser: 'browser', search: 'search', chat: 'chat', docs: 'document', tasks: 'tasks', alert: 'alert',
+  progress: 'progress', show: 'show', game: 'video games',
 };
 const FLOORS: readonly FloorKind[] = ['carpet', 'wood', 'tile_check', 'tile_white', 'concrete', 'marble', 'grass', 'sidewalk', 'street'];
 const FLOOR_PT: Record<FloorKind, string> = {
-  carpet: 'carpete', wood: 'madeira', tile_check: 'xadrez', tile_white: 'azulejo', concrete: 'cimento polido', marble: 'mármore', grass: 'grama', sidewalk: 'calçada', street: 'asfalto',
+  carpet: 'carpet', wood: 'wood', tile_check: 'checkered', tile_white: 'tile', concrete: 'polished concrete', marble: 'marble', grass: 'grass', sidewalk: 'sidewalk', street: 'asphalt',
 };
 const ICONS: readonly IconName[] = [
   'alert', 'question', 'zzz', 'check', 'heart', 'coffee', 'music', 'idea', 'sweat', 'star', 'lightning', 'chat', 'box', 'wave',
@@ -128,7 +128,7 @@ const SEAT_FOOT_DY = 3; // igual ao mundo: pés de quem senta ficam 3px acima da
 // ------------------------------------------------------------------ cena de exemplo
 
 function sampleScene(): void {
-  const s = section('cena', 'Cena de exemplo', 'Sala de projeto + lounge montados só com o módulo de arte (como o mundo faz): ilha de mesas face a face, telas animadas, cadeiras com encosto por cima de quem senta, vidro, copa e gente circulando.');
+  const s = section('cena', 'Sample scene', 'Project room + lounge built with the art module alone (as the world does): island of face-to-face desks, animated screens, chairs with the backrest over whoever sits, glass, kitchen and people walking around.');
   const W = 26 * TILE;
   const H = 15 * TILE;
   const theme = art.roomTheme(0);
@@ -298,8 +298,8 @@ function sampleScene(): void {
 function shellWait(): void {
   const s = section(
     'shell',
-    'Esperando o shell',
-    'Pose wait (com e sem pipoca), ampulheta girando, tela progress, teia (1× e 2×), cochilo, e o desfecho: estrela com confete (sucesso) ou nuvem de chuva (falha). Em cima de frente (atrás da desk_back); embaixo de costas, diante do monitor.',
+    'Waiting on the shell',
+    'Wait pose (with and without popcorn), spinning hourglass, progress screen, cobweb (1× and 2×), nap, and the outcome: star with confetti (success) or rain cloud (failure). On top, facing front (behind the desk_back); below, facing away, in front of the monitor.',
   );
   type Stage = { name: string; pose: Pose; held?: HeldItem; icon?: IconName | 'hourglass'; web?: 1 | 2; spin?: boolean; fx?: 'popcorn' | 'confetti' };
   const stages: Stage[] = [
@@ -307,8 +307,8 @@ function shellWait(): void {
     { name: '3-10 min', pose: 'wait', icon: 'hourglass', spin: true },
     { name: '> 10 min', pose: 'wait', icon: 'hourglass', web: 1 },
     { name: '> 25 min', pose: 'sleep', icon: 'zzz', web: 2 },
-    { name: 'terminou', pose: 'raise_hand', icon: 'star', fx: 'confetti' },
-    { name: 'falhou', pose: 'sit', icon: 'storm' },
+    { name: 'finished', pose: 'raise_hand', icon: 'star', fx: 'confetti' },
+    { name: 'failed', pose: 'sit', icon: 'storm' },
   ];
   const cw = 64;
   const rowH = 78;
@@ -341,7 +341,7 @@ function shellWait(): void {
           const desk = art.furnitureSprites('desk', theme.deskVariant, 0, { seed: 0 }).base;
           blit(ctx, desk, cx, cy - TILE);
           const r = desk.rects?.screen;
-          const mode: ScreenMode = st.name === 'terminou' ? 'tasks' : st.name === 'falhou' ? 'alert' : 'progress';
+          const mode: ScreenMode = st.name === 'finished' ? 'tasks' : st.name === 'failed' ? 'alert' : 'progress';
           if (r) art.drawScreen(ctx, { x: cx - desk.ax + r.x, y: cy - TILE - desk.ay + r.y, w: r.w, h: r.h }, mode, t, 4);
           const chair = art.furnitureSprites('office_chair', theme.chairVariant);
           blit(ctx, chair.base, cx, cy);
@@ -400,8 +400,8 @@ function shellWait(): void {
 function socialLife(): void {
   const s = section(
     'social',
-    'Vida social',
-    'TV com torcida (o programa troca a cada 6 s: futebol, novela, desenho), videogame com plateia, jokenpô valendo moedas nas 4 direções (contagem, revelação, vitória e derrota) e o espelho com reflexo. Abaixo, os programas da TV e do fliperama por semente.',
+    'Social life',
+    'TV with a cheering crowd (the show changes every 6 s: soccer, soap opera, cartoon), video games with an audience, rock-paper-scissors for coins in the 4 directions (countdown, reveal, win and loss) and the mirror with a reflection. Below, the TV and arcade programs by seed.',
   );
   const W = 31 * TILE;
   const H = 12 * TILE;
@@ -519,7 +519,7 @@ function socialLife(): void {
     ds.sort((a, b) => a.y - b.y);
     for (const d of ds) d.draw(ctx, t);
     for (const ic of icons) blit(ctx, art.iconSprite(ic.name), ic.x, ic.y);
-    for (const [txt, cx] of [['ver tv', 4.5], ['videogame', 12.5], ['jokenpô', 22], ['espelho', 28.5]] as const) {
+    for (const [txt, cx] of [['watch tv', 4.5], ['video games', 12.5], ['rock-paper-scissors', 22], ['mirror', 28.5]] as const) {
       const w = pixelTextWidth(txt) + 6;
       ctx.fillStyle = 'rgba(22,26,38,0.78)';
       ctx.fillRect(Math.round(cx * TILE - w / 2), H - 10, w, 9);
@@ -528,11 +528,11 @@ function socialLife(): void {
   }, '#e9ecf1', 3);
   // Programas por semente (o mundo usa o mesmo mapeamento fixo).
   const progs: { mode: ScreenMode; seed: number; name: string }[] = [
-    { mode: 'show', seed: 0, name: 'futebol' },
-    { mode: 'show', seed: 1, name: 'novela' },
-    { mode: 'show', seed: 2, name: 'desenho' },
-    { mode: 'game', seed: 0, name: 'corrida' },
-    { mode: 'game', seed: 1, name: 'luta' },
+    { mode: 'show', seed: 0, name: 'soccer' },
+    { mode: 'show', seed: 1, name: 'soap opera' },
+    { mode: 'show', seed: 2, name: 'cartoon' },
+    { mode: 'game', seed: 0, name: 'racing' },
+    { mode: 'game', seed: 1, name: 'fighting' },
   ];
   const tv = art.furnitureSprites('tv').base;
   const arcade = art.furnitureSprites('arcade').base;
@@ -559,7 +559,7 @@ function socialLife(): void {
 // ------------------------------------------------------------------ personagens
 
 function characters(): void {
-  const s = section('personagens', 'Personagens — 40 sementes', 'Sementes variadas (a cada 5ª, subagente com crachá) andando nas 4 direções. Variedade de pele, cabelo, roupas e acessórios.');
+  const s = section('personagens', 'Characters — 40 seeds', 'Assorted seeds (every 5th one, a subagent with a badge) walking in the 4 directions. Variety of skin, hair, clothes and accessories.');
   const cw = 26;
   const ch = 36;
   canvas(s, cw * 16, ch * 10, (ctx, t) => {
@@ -575,7 +575,7 @@ function characters(): void {
 }
 
 function poses(): void {
-  const s = section('poses', 'Poses × direções', 'Todas as poses do contrato, animadas. Poses sentadas sobre cadeira de escritório (de costas) e cadeira frontal (de frente), como o mundo posiciona.');
+  const s = section('poses', 'Poses × directions', 'All the poses in the contract, animated. Seated poses on an office chair (facing away) and a front chair (facing front), as the world places them.');
   const cw = 30;
   const ch = 40;
   const list: { pose: Pose; seated: boolean; held?: HeldItem }[] = [
@@ -609,7 +609,7 @@ function poses(): void {
         label(ctx, `(${HELD_PT[p.held]})`, 2, ly);
         ly += 7;
       }
-      if (p.seated && !SEATED_POSES.includes(p.pose)) label(ctx, '(sentado)', 2, ly);
+      if (p.seated && !SEATED_POSES.includes(p.pose)) label(ctx, '(seated)', 2, ly);
       DIRS.forEach((dir, k) => {
         [a, b].forEach((ap, j) => {
           const x = 72 + (k * 2 + j) * cw;
@@ -631,7 +631,7 @@ function poses(): void {
 }
 
 function heldItems(): void {
-  const s = section('itens', 'Itens nas mãos', 'Cada item nas 4 direções, parado e andando.');
+  const s = section('itens', 'Items in hand', 'Each item in the 4 directions, standing and walking.');
   const cw = 26;
   const ch = 38;
   const a = art.appearanceFromSeed(5150, { look: 'm' });
@@ -650,7 +650,7 @@ function heldItems(): void {
 // ------------------------------------------------------------------ móveis
 
 function furniture(): void {
-  const s = section('moveis', 'Móveis', 'Todos os kinds, variantes e estados do catálogo, com âncora (magenta) e footprint (pontilhado). Retângulos dinâmicos preenchidos (tela, quadro, vidro, relógio, TV).');
+  const s = section('moveis', 'Furniture', 'All the kinds, variants and states in the catalog, with anchor (magenta) and footprint (dotted). Dynamic rectangles filled in (screen, board, glass, clock, TV).');
   const cells: { kind: FurnitureKind; variant?: string; state: number }[] = [];
   for (const kind of Object.keys(FURNITURE) as FurnitureKind[]) {
     const def = FURNITURE[kind];
@@ -696,12 +696,12 @@ function furniture(): void {
 // ------------------------------------------------------------------ superfícies
 
 function floors(): void {
-  const s = section('pisos', 'Pisos', 'Todos os FloorKind com variação por tile; carpete em três tintas de tema; tapetes.');
+  const s = section('pisos', 'Floors', 'Every FloorKind with per-tile variation; carpet in three theme tints; rugs.');
   const cw = 5 * TILE + 8;
   const items: { kind: FloorKind; tint?: string; tint2?: string; name: string }[] = FLOORS.map((k) => ({ kind: k, name: FLOOR_PT[k] }));
   for (const seed of [2, 4, 8]) {
     const th = art.roomTheme(seed);
-    items.push({ kind: 'carpet', tint: th.carpet, tint2: th.carpet2, name: `carpete tema ${seed}` });
+    items.push({ kind: 'carpet', tint: th.carpet, tint2: th.carpet2, name: `carpet theme ${seed}` });
   }
   canvas(s, cw * 6, (4 * TILE + 14) * 2 + 4 * TILE + 14, (ctx) => {
     items.forEach((it, i) => {
@@ -715,20 +715,20 @@ function floors(): void {
     ['#6fae7a', '#d67a5a', '#5b7fbd', '#c9a14a'].forEach((c, i) => {
       art.drawFloor(ctx, 'wood', i * cw, ry, 5 * TILE, 4 * TILE, { seed: 9 + i });
       art.drawRug(ctx, i * cw + 8, ry + 8, 4 * TILE, 3 * TILE - 4, c, i);
-      label(ctx, `tapete ${i + 1}`, i * cw + 1, ry + 4 * TILE + 4);
+      label(ctx, `rug ${i + 1}`, i * cw + 1, ry + 4 * TILE + 4);
     });
   });
 }
 
 function walls(): void {
-  const s = section('paredes', 'Paredes', 'Face norte (2 tiles, tampa escura + rodapé) em todos os padrões, com passagem recortada; abaixo, parede sul (tampa + mureta) e tampa lateral.');
+  const s = section('paredes', 'Walls', 'North face (2 tiles, dark cap + baseboard) in every pattern, with a doorway cut out; below, south wall (cap + low wall) and side cap.');
   const patterns: { name: string; style: WallStyle }[] = [
     ...(['plain', 'stripes', 'tiles', 'wood_panel', 'brick', 'glass', 'marble'] as WallPattern[]).map((p) => ({
       name: p,
       style: { base: p === 'brick' ? '#c98a6a' : p === 'tiles' ? '#e8eef2' : '#eef1f4', trim: '#9fb0c4', pattern: p },
     })),
     { name: 'exterior', style: { base: '#b9bcc4', trim: '#6d7583', pattern: 'plain', exterior: true } },
-    { name: 'exterior tijolo', style: { base: '#b5745a', trim: '#5a4a44', pattern: 'brick', exterior: true } },
+    { name: 'brick exterior', style: { base: '#b5745a', trim: '#5a4a44', pattern: 'brick', exterior: true } },
   ];
   const w = 7 * TILE;
   const cw = w + 10;
@@ -748,7 +748,7 @@ function walls(): void {
 // ------------------------------------------------------------------ telas, quadro, janela, relógio
 
 function screens(): void {
-  const s = section('telas', 'Telas animadas', 'Todos os ScreenMode no monitor da mesa (14×9) e numa TV (28×15). Abaixo, as mesas com 2º monitor/notebook (conteúdo fixo escurecido) e o verso dos monitores (desk_back) nas 3 variantes.');
+  const s = section('telas', 'Animated screens', 'Every ScreenMode on the desk monitor (14×9) and on a TV (28×15). Below, the desks with a 2nd monitor/laptop (fixed, dimmed content) and the back of the monitors (desk_back) in the 3 variants.');
   const desk = art.furnitureSprites('desk', 'white');
   const tv = art.furnitureSprites('tv');
   const cw = 44;
@@ -784,7 +784,7 @@ function screens(): void {
 }
 
 function boards(): void {
-  const s = section('quadro', 'Quadro kanban', 'A fazer / fazendo / feito, com 0, 5 e 18 itens (excesso vira pontinhos).');
+  const s = section('quadro', 'Kanban board', 'To do / doing / done, with 0, 5 and 18 items (the excess turns into little dots).');
   const wb = art.furnitureSprites('whiteboard');
   const sets: { status: 'pending' | 'in_progress' | 'completed' }[][] = [
     [],
@@ -803,10 +803,10 @@ function boards(): void {
 }
 
 function windows(): void {
-  const s = section('janela', 'Janela em 6 horários', 'Noite (estrelas e lua), amanhecer, manhã, tarde (nuvens deslizando), entardecer e início da noite (cidade com janelas acesas).');
+  const s = section('janela', 'Window at 6 times of day', 'Night (stars and moon), dawn, morning, afternoon (clouds drifting), dusk and early evening (city with lit windows).');
   const win = art.furnitureSprites('window');
   const hours = [1, 6, 9.5, 14, 18.2, 20.5];
-  const names = ['madrugada', 'amanhecer', 'manhã', 'tarde', 'entardecer', 'noite'];
+  const names = ['late night', 'dawn', 'morning', 'afternoon', 'dusk', 'night'];
   // Célula fixa mais larga que o maior rótulo ("entardecer" = 39 px) + rótulo centralizado sob a janela.
   const cw = 48;
   canvas(s, cw * hours.length, 50, (ctx, t) => {
@@ -823,7 +823,7 @@ function windows(): void {
 }
 
 function clockAndIcons(): void {
-  const s = section('icones', 'Relógio, ícones e temas', `Relógio com a hora local; os ${ICONS.length} ícones de estado (a teia, com contorno translúcido, também em 2×); temas de sala (piso, parede, mesa e cadeira).`);
+  const s = section('icones', 'Clock, icons and themes', `Clock with the local time; the ${ICONS.length} state icons (the cobweb, with a translucent outline, also at 2×); room themes (floor, wall, desk and chair).`);
   const row = document.createElement('div');
   row.className = 'row';
   s.appendChild(row);
@@ -867,13 +867,13 @@ function clockAndIcons(): void {
       if (c.front) blit(ctx, c.front, x + 32, 64);
       ctx.fillStyle = theme.accent;
       ctx.fillRect(x + 2, 66, 8, 8);
-      label(ctx, `tema ${i}`, x + 12, 66);
+      label(ctx, `theme ${i}`, x + 12, 66);
     }
   });
 }
 
 function avatars(): void {
-  const s = section('avatares', 'Avatares', 'avatarCanvas (busto ampliado, fundo transparente) para a interface.');
+  const s = section('avatares', 'Avatars', 'avatarCanvas (enlarged bust, transparent background) for the interface.');
   const row = document.createElement('div');
   row.className = 'row';
   s.appendChild(row);

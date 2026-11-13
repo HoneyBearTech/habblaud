@@ -509,7 +509,7 @@ export function createCityScene(o: CitySceneOptions): CityScene {
       try {
         onStream(ev);
       } catch (err) {
-        console.error('[cidade] evento do stream ignorado', err);
+        console.error('[city] stream event ignored', err);
       }
     });
   };
@@ -672,7 +672,7 @@ export function createCityScene(o: CitySceneOptions): CityScene {
         minimap.draw(state.minimap, state.minimapVersion, me, { x: tl.x / TILE, y: tl.y / TILE, w: (br.x - tl.x) / TILE, h: (br.y - tl.y) / TILE });
       }
     } catch (err) {
-      console.error('[cidade] erro no frame', err);
+      console.error('[city] error in frame', err);
     }
   };
 

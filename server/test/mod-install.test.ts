@@ -313,7 +313,7 @@ describe('mod-install.ts (funções puras)', () => {
         enabledPlugins: { [MOD_PLUGIN]: true },
       });
       expect(m.done).toHaveLength(2);
-      expect(m.done[0]).toContain('restaurado: npx -y ccstatusline');
+      expect(m.done[0]).toContain('restored: npx -y ccstatusline');
     });
 
     it('--sem-permissoes mantém o hook; plugin que não ficou instalado não leva o antigo embora', () => {
