@@ -85,7 +85,7 @@ const IMAGE_EXT = /\.(png|jpe?g|gif|webp|svg|bmp|ico|heic)$/i;
  */
 const SECRET_PATTERNS: Array<[RegExp, string]> = [
   // Blocos de chave privada (PEM).
-  [/-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?(?:-----END [A-Z ]*PRIVATE KEY-----|$)/g, tr('[chave privada]')],
+  [/-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?(?:-----END [A-Z ]*PRIVATE KEY-----|$)/g, tr('[private key]')],
   // Cabeçalhos com credenciais: Authorization, Cookie, X-Api-Key...
   [/\b(authorization|proxy-authorization|cookie|set-cookie|x-api-key|api-key|x-auth-token|private-token)(\s*:\s*)[^'"\n]+/gi, '$1$2***'],
   // Bearer/Basic/Token <valor> soltos.
@@ -347,7 +347,7 @@ function filesLabel(files: string[]): string | undefined {
   if (!names.length) return undefined;
   if (names.length === 1) return names[0];
   if (names.length === 2) return `${names[0]} e ${names[1]}`;
-  return tr('{0} e mais {1}', [names[0], names.length - 1]);
+  return tr('{0} and {1} more', [names[0], names.length - 1]);
 }
 
 const GREP_VALUED = new Set(['-e', '-f', '-A', '-B', '-C', '-m', '-d', '-D', '--regexp', '--file', '--max-count', '--context', '--include', '--exclude', '--exclude-dir', '-g', '-t', '-T', '--glob', '--type', '--type-not', '-j', '--threads', '-M', '--max-columns']);
@@ -379,19 +379,19 @@ function describeHttp(args: string[]): string {
       break;
     }
   }
-  if (!target) return tr('Fazendo uma requisição HTTP');
+  if (!target) return tr('Making an HTTP request');
   let url: URL;
   try {
     url = new URL(/^https?:\/\//i.test(target) ? target : `http://${target}`);
   } catch {
-    return tr('Fazendo uma requisição HTTP');
+    return tr('Making an HTTP request');
   }
   const host = url.hostname.replace(/^\[|\]$/g, '');
   if (host === 'localhost' || host === '0.0.0.0' || host === '::1' || /^127\./.test(host)) {
     const path = `${url.port ? `:${url.port}` : ''}${url.pathname === '/' && !url.port ? '/' : url.pathname}`;
-    return `${url.pathname.startsWith('/api') ? tr('Testando a API local') : tr('Testando o servidor local')} (${truncate(path, 22)})`;
+    return `${url.pathname.startsWith('/api') ? tr('Testing the local API') : tr('Testing the local server')} (${truncate(path, 22)})`;
   }
-  return tr('Chamando {0}', [host.replace(/^www\./, '')]);
+  return tr('Calling {0}', [host.replace(/^www\./, '')]);
 }
 
 /** Descrições em português às vezes vêm prontas no `description` do Bash; em inglês, não servem como texto. */
@@ -406,28 +406,28 @@ export function looksPortuguese(s: string): boolean {
 const LANG: Record<string, string> = { node: 'Node', python: 'Python', python3: 'Python', ruby: 'Ruby', php: 'PHP', deno: 'Deno', bun: 'Bun', tsx: 'TypeScript', 'ts-node': 'TypeScript', perl: 'Perl' };
 
 const GIT_TEXT: Record<string, [string, string]> = {
-  commit: ['📦', tr('Fazendo commit')],
-  push: ['🚀', tr('Enviando commits (git push)')],
-  pull: ['⬇️', tr('Atualizando do remoto (git pull)')],
-  fetch: ['⬇️', tr('Buscando do remoto (git fetch)')],
-  checkout: ['🌿', tr('Trocando de branch')],
-  switch: ['🌿', tr('Trocando de branch')],
-  merge: ['🔀', tr('Fazendo merge')],
-  rebase: ['🔀', tr('Fazendo rebase')],
-  status: ['🌿', tr('Conferindo o git status')],
-  diff: ['🌿', tr('Conferindo as mudanças (diff)')],
-  show: ['🌿', tr('Olhando um commit (git show)')],
-  log: ['🌿', tr('Lendo o histórico do git')],
-  add: ['🌿', tr('Preparando arquivos (git add)')],
-  stash: ['🌿', tr('Guardando mudanças (stash)')],
-  clone: ['⬇️', tr('Clonando repositório')],
-  branch: ['🌿', tr('Conferindo as branches')],
-  worktree: ['🌿', tr('Mexendo nas worktrees')],
-  reset: ['🌿', tr('Desfazendo mudanças (git reset)')],
-  restore: ['🌿', tr('Restaurando arquivos (git restore)')],
-  tag: ['🏷️', tr('Mexendo nas tags')],
-  blame: ['🌿', tr('Vendo quem mudou cada linha')],
-  'cherry-pick': ['🍒', tr('Trazendo um commit (cherry-pick)')],
+  commit: ['📦', tr('Committing')],
+  push: ['🚀', tr('Pushing commits (git push)')],
+  pull: ['⬇️', tr('Pulling from remote (git pull)')],
+  fetch: ['⬇️', tr('Fetching from remote (git fetch)')],
+  checkout: ['🌿', tr('Switching branches')],
+  switch: ['🌿', tr('Switching branches')],
+  merge: ['🔀', tr('Merging')],
+  rebase: ['🔀', tr('Rebasing')],
+  status: ['🌿', tr('Checking git status')],
+  diff: ['🌿', tr('Reviewing changes (diff)')],
+  show: ['🌿', tr('Looking at a commit (git show)')],
+  log: ['🌿', tr('Reading git history')],
+  add: ['🌿', tr('Staging files (git add)')],
+  stash: ['🌿', tr('Stashing changes (stash)')],
+  clone: ['⬇️', tr('Cloning a repository')],
+  branch: ['🌿', tr('Checking branches')],
+  worktree: ['🌿', tr('Working with worktrees')],
+  reset: ['🌿', tr('Undoing changes (git reset)')],
+  restore: ['🌿', tr('Restoring files (git restore)')],
+  tag: ['🏷️', tr('Working with tags')],
+  blame: ['🌿', tr('Seeing who changed each line')],
+  'cherry-pick': ['🍒', tr('Picking a commit (cherry-pick)')],
 };
 
 const READER_VALUED: Record<string, ReadonlySet<string>> = {
@@ -454,54 +454,54 @@ function describeWords(w: string[], depth: number): ActivityDescription | undefi
   const mk = (kind: ActivityKind, icon: string, t: string) => make(kind, icon, t);
 
   if (/\b(vitest|jest|pytest|phpunit|mocha|ava|rspec)\b|\b(go|cargo|deno|bun)\s+test\b|playwright\s+test|\b(npm|pnpm|yarn|bun)\s+(run\s+)?test\b|\bnode\s+--test\b|-m\s+(pytest|unittest)\b/.test(text)) {
-    return mk('test', '🧪', tr('Rodando testes'));
+    return mk('test', '🧪', tr('Running tests'));
   }
   if (prog === 'git') {
     let i = 0;
     while (i < args.length && args[i].startsWith('-')) i += args[i] === '-C' || args[i] === '-c' ? 2 : 1;
     const sub = args[i] ?? '';
-    const [icon, t] = GIT_TEXT[sub] ?? ['🌿', sub ? `git ${sub}` : tr('Usando o git')];
+    const [icon, t] = GIT_TEXT[sub] ?? ['🌿', sub ? `git ${sub}` : tr('Using git')];
     return mk('git', icon, t);
   }
   if (prog === 'gh') return mk('git', '🐙', tr('GitHub CLI: gh {0}', [args.slice(0, 2).join(' ')]).trim());
   if (/\b(npm|pnpm|yarn|bun)\s+(i|install|add|ci)\b|\bpip3?\s+install\b|\bbrew\s+install\b|\bcomposer\s+(install|require)\b|\bpoetry\s+(add|install)\b|\bcargo\s+add\b|\bgo\s+get\b|\buv\s+(add|sync|pip\s+install)\b/.test(text)) {
-    return mk('run', '📦', tr('Instalando dependências'));
+    return mk('run', '📦', tr('Installing dependencies'));
   }
   if ((prog === 'tsc' && args.includes('--noEmit')) || /\b(npm|pnpm|yarn|bun)\s+(run\s+)?(typecheck|type-check|check-types)\b/.test(text)) {
-    return mk('run', '🔍', tr('Conferindo os tipos (TypeScript)'));
+    return mk('run', '🔍', tr('Checking types (TypeScript)'));
   }
   if (/\b(npm|pnpm|yarn|bun)\s+(run\s+)?build\b|\bvite\s+build\b|^tsc\b|\bwebpack\b|\bcargo\s+build\b|\bgo\s+build\b|^make\b|\bgradle\b|\bmvn\b|\besbuild\b|\brollup\b/.test(text)) {
-    return mk('run', '🏗️', tr('Compilando o projeto'));
+    return mk('run', '🏗️', tr('Building the project'));
   }
   if (/\b(npm|pnpm|yarn|bun)\s+(run\s+)?(dev|start|serve|preview)\b|^vite(\s|$)(?!build)|^(next|nuxt|astro)\s+dev\b|^expo\s+start\b|^nodemon\b|^tsx\s+watch\b/.test(text)) {
-    return mk('run', '▶️', /\bpreview\b/.test(text) ? tr('Subindo o preview do build') : tr('Subindo o servidor de dev'));
+    return mk('run', '▶️', /\bpreview\b/.test(text) ? tr('Starting the build preview') : tr('Starting the dev server'));
   }
   if (/\b(eslint|prettier|ruff|black|biome|rubocop|phpcs|stylelint|oxlint)\b|\b(npm|pnpm|yarn)\s+(run\s+)?(lint|format)\b/.test(text)) {
-    return mk('run', '🧹', tr('Rodando o linter'));
+    return mk('run', '🧹', tr('Running the linter'));
   }
-  if (/^(npm|pnpm|yarn|bun)$/.test(prog) && args[0] === 'run' && args[1]) return mk('run', '▶️', tr('Rodando o script {0}', [args[1]]));
+  if (/^(npm|pnpm|yarn|bun)$/.test(prog) && args[0] === 'run' && args[1]) return mk('run', '▶️', tr('Running script {0}', [args[1]]));
   if (prog === 'docker' || prog === 'docker-compose') return mk('run', '🐳', tr('Docker: {0}', [args.filter((a) => !a.startsWith('-')).slice(0, 2).join(' ')]).trim());
-  if (/^(kubectl|helm|terraform|aws|gcloud|az|flyctl|fly|vercel|wrangler|netlify|railway)$/.test(prog)) return mk('run', '☁️', tr('Mexendo na nuvem ({0})', [prog]));
+  if (/^(kubectl|helm|terraform|aws|gcloud|az|flyctl|fly|vercel|wrangler|netlify|railway)$/.test(prog)) return mk('run', '☁️', tr('Working in the cloud ({0})', [prog]));
   if (/^(curl|wget|http|https|xh)$/.test(prog)) return mk('web', '🌐', describeHttp(args));
-  if (/^(psql|mysql|sqlite3|redis-cli|mongosh|mongo|duckdb)$/.test(prog)) return mk('run', '🗄️', tr('Consultando o banco de dados'));
+  if (/^(psql|mysql|sqlite3|redis-cli|mongosh|mongo|duckdb)$/.test(prog)) return mk('run', '🗄️', tr('Querying the database'));
   if (/^(rg|grep|egrep|fgrep|ag|ack|git-grep)$/.test(prog)) {
     const e = args.findIndex((a) => a === '-e' || a === '--regexp');
     const pat = e >= 0 ? args[e + 1] : positionals(args, GREP_VALUED)[0];
     const shown = pat?.replace(/\\\|/g, ' | ').replace(/\\([.()[\]{}+?*^$])/g, '$1');
-    return mk('search', '🔎', shown ? tr('Buscando “{0}”', [truncate(shown, 24)]) : tr('Buscando no código'));
+    return mk('search', '🔎', shown ? tr('Searching for “{0}”', [truncate(shown, 24)]) : tr('Searching the code'));
   }
-  if (/^(ls|find|tree|fd|du|df|eza|exa)$/.test(prog)) return mk('read', '📂', tr('Explorando pastas'));
-  if (prog === 'cd' || prog === 'pushd') return mk('read', '📂', tr('Mudando de pasta'));
+  if (/^(ls|find|tree|fd|du|df|eza|exa)$/.test(prog)) return mk('read', '📂', tr('Exploring folders'));
+  if (prog === 'cd' || prog === 'pushd') return mk('read', '📂', tr('Changing folders'));
   if (prog === 'cat' || prog === 'tee' || prog === 'echo' || prog === 'printf') {
     // `cat > arquivo <<EOF`, `cat <<'EOF' >> arquivo`, `echo x > arquivo`, `tee [-a] arquivo`: escrevendo.
     const written = prog === 'tee' ? positionals(args)[0] : stdoutTarget(args);
-    if (written && looksLikeFile(written) && written !== '/dev/null') return mk('write', '📝', tr('Escrevendo {0}', [basename(written)]));
-    if (prog === 'tee') return mk('write', '📝', tr('Escrevendo um arquivo'));
-    if (prog !== 'cat') return mk('run', '💬', tr('Mostrando texto no terminal'));
+    if (written && looksLikeFile(written) && written !== '/dev/null') return mk('write', '📝', tr('Writing {0}', [basename(written)]));
+    if (prog === 'tee') return mk('write', '📝', tr('Writing a file'));
+    if (prog !== 'cat') return mk('run', '💬', tr('Printing text to the terminal'));
   }
   if (/^(sed|gsed|perl)$/.test(prog) && args.some((a) => /^-i|^--in-place|^-pi/.test(a))) {
     const last = positionals(args, new Set(['-e', '-f'])).pop();
-    return mk('edit', '✏️', last && looksLikeFile(last) && /[./]/.test(last) ? tr('Editando {0}', [basename(last)]) : tr('Editando via terminal'));
+    return mk('edit', '✏️', last && looksLikeFile(last) && /[./]/.test(last) ? tr('Editing {0}', [basename(last)]) : tr('Editing via the terminal'));
   }
   if (/^(cat|head|tail|less|more|bat|nl|sed|gsed|awk|gawk|jq|wc|strings|xxd|od|hexdump|column|sort|uniq|cut)$/.test(prog)) {
     // jq --arg nome valor: dois valores.
@@ -512,45 +512,45 @@ function describeWords(w: string[], depth: number): ActivityDescription | undefi
     const label = filesLabel(files);
     if (prog === 'wc') {
       const n = files.filter(looksLikeFile).length;
-      return mk('read', '🔢', n > 2 ? tr('Contando linhas de {0} arquivos', [n]) : label ? tr('Contando linhas de {0}', [label]) : tr('Contando linhas'));
+      return mk('read', '🔢', n > 2 ? tr('Counting lines in {0} files', [n]) : label ? tr('Counting lines in {0}', [label]) : tr('Counting lines'));
     }
-    if (prog === 'tail' && args.some((a) => a === '-f' || a === '-F')) return mk('read', '📜', label ? tr('Acompanhando {0}', [label]) : tr('Acompanhando um log'));
-    if (prog === 'jq' && !label) return mk('read', '🔎', tr('Filtrando JSON'));
+    if (prog === 'tail' && args.some((a) => a === '-f' || a === '-F')) return mk('read', '📜', label ? tr('Following {0}', [label]) : tr('Following a log'));
+    if (prog === 'jq' && !label) return mk('read', '🔎', tr('Filtering JSON'));
     if (/^(sort|uniq|cut|column)$/.test(prog) && !label) return undefined;
-    return mk('read', '📖', label ? tr('Lendo {0}', [label]) : tr('Lendo arquivo'));
+    return mk('read', '📖', label ? tr('Reading {0}', [label]) : tr('Reading a file'));
   }
-  if (/^(rm|mv|cp|mkdir|rmdir|touch|chmod|chown|ln|rsync|tar|zip|unzip|gzip|gunzip|xattr)$/.test(prog)) return mk('run', '🗂️', tr('Organizando arquivos'));
-  if (prog === 'sleep' || prog === 'wait') return mk('wait', '⏳', tr('Aguardando um pouco'));
-  if (prog === 'open' || prog === 'xdg-open') return mk('run', '🖥️', tr('Abrindo no computador'));
-  if (/^(code|cursor|subl|vim|nvim|nano|emacs)$/.test(prog)) return mk('edit', '✏️', tr('Abrindo no editor'));
-  if (/^(pkill|kill|killall)$/.test(prog)) return mk('run', '🛑', tr('Parando um processo'));
+  if (/^(rm|mv|cp|mkdir|rmdir|touch|chmod|chown|ln|rsync|tar|zip|unzip|gzip|gunzip|xattr)$/.test(prog)) return mk('run', '🗂️', tr('Organizing files'));
+  if (prog === 'sleep' || prog === 'wait') return mk('wait', '⏳', tr('Waiting a bit'));
+  if (prog === 'open' || prog === 'xdg-open') return mk('run', '🖥️', tr('Opening on the computer'));
+  if (/^(code|cursor|subl|vim|nvim|nano|emacs)$/.test(prog)) return mk('edit', '✏️', tr('Opening in the editor'));
+  if (/^(pkill|kill|killall)$/.test(prog)) return mk('run', '🛑', tr('Stopping a process'));
   if (prog === 'lsof') {
     const port = args.map((a) => /^(?:-i)?(?:tcp)?:(\d{2,5})$/i.exec(a)?.[1]).find(Boolean);
-    return mk('run', '🔌', port ? tr('Conferindo quem usa a porta {0}', [port]) : tr('Conferindo processos e portas'));
+    return mk('run', '🔌', port ? tr("Checking who's using port {0}", [port]) : tr('Checking processes and ports'));
   }
-  if (/^(ps|pgrep|top|htop|jobs)$/.test(prog)) return mk('run', '🔍', tr('Conferindo processos'));
-  if (/^(which|whereis|type)$/.test(prog) || (prog === 'command' && /^-[vV]$/.test(args[0] ?? ''))) return mk('search', '🔎', tr('Procurando um programa'));
-  if (/^(diff|cmp|comm|colordiff|delta)$/.test(prog)) return mk('read', '🔀', tr('Comparando arquivos'));
-  if (prog === 'date') return mk('run', '🕒', tr('Conferindo a data e a hora'));
-  if (prog === 'env' || prog === 'printenv') return mk('run', '🔍', tr('Conferindo variáveis de ambiente'));
-  if (/^(stat|file|md5|md5sum|shasum|sha256sum|realpath|readlink)$/.test(prog)) return mk('read', '🔍', tr('Conferindo um arquivo'));
-  if (prog === 'claude') return mk('run', '🤖', tr('Rodando o Claude Code'));
-  if (/^(pbcopy|pbpaste)$/.test(prog)) return mk('run', '📋', tr('Usando a área de transferência'));
+  if (/^(ps|pgrep|top|htop|jobs)$/.test(prog)) return mk('run', '🔍', tr('Checking processes'));
+  if (/^(which|whereis|type)$/.test(prog) || (prog === 'command' && /^-[vV]$/.test(args[0] ?? ''))) return mk('search', '🔎', tr('Looking for a program'));
+  if (/^(diff|cmp|comm|colordiff|delta)$/.test(prog)) return mk('read', '🔀', tr('Comparing files'));
+  if (prog === 'date') return mk('run', '🕒', tr('Checking the date and time'));
+  if (prog === 'env' || prog === 'printenv') return mk('run', '🔍', tr('Checking environment variables'));
+  if (/^(stat|file|md5|md5sum|shasum|sha256sum|realpath|readlink)$/.test(prog)) return mk('read', '🔍', tr('Checking a file'));
+  if (prog === 'claude') return mk('run', '🤖', tr('Running Claude Code'));
+  if (/^(pbcopy|pbpaste)$/.test(prog)) return mk('run', '📋', tr('Using the clipboard'));
   if (/^(bash|sh|zsh|fish)$/.test(prog)) {
     const c = args.indexOf('-c');
     if (c >= 0 && args[c + 1] && depth < 3) return describeLine(args[c + 1], depth + 1).desc;
     const script = positionals(args).find(looksLikeFile);
-    return mk('run', '▶️', script ? tr('Executando {0}', [basename(script)]) : tr('Executando um script de shell'));
+    return mk('run', '▶️', script ? tr('Running {0}', [basename(script)]) : tr('Running a shell script'));
   }
   if (/^(node|python3?|ruby|php|deno|bun|tsx|ts-node|perl|java)$/.test(prog) || (prog === 'go' && args[0] === 'run')) {
     // Ignora flags, redirecionamentos/heredoc e código inline (-e/-c '...').
     const list = withoutRedirects(prog === 'go' ? args.slice(1) : args);
     const script = list.find((t, i) => !t.startsWith('-') && !/^-[ecpr]$|^--(eval|print|import|require|loader)$/.test(list[i - 1] ?? '') && /[./]/.test(t) && !/^\d+(\.\d+)*$/.test(t));
-    if (script && !/^(-m|-c)$/.test(list[0] ?? '')) return mk('run', '▶️', tr('Executando {0}', [basename(script)]));
-    if (list[0] === '-m' && list[1]) return mk('run', '▶️', tr('Executando o módulo {0}', [list[1]]));
-    return mk('run', '▶️', tr('Executando um script {0}', [LANG[prog] ?? prog]));
+    if (script && !/^(-m|-c)$/.test(list[0] ?? '')) return mk('run', '▶️', tr('Running {0}', [basename(script)]));
+    if (list[0] === '-m' && list[1]) return mk('run', '▶️', tr('Running module {0}', [list[1]]));
+    return mk('run', '▶️', tr('Running a {0} script', [LANG[prog] ?? prog]));
   }
-  if (/^(\.{0,2}\/|~\/)/.test(w[0]) || /\.(sh|bash|zsh|py|rb|mjs|js|ts)$/.test(w[0])) return mk('run', '▶️', tr('Executando {0}', [prog]));
+  if (/^(\.{0,2}\/|~\/)/.test(w[0]) || /\.(sh|bash|zsh|py|rb|mjs|js|ts)$/.test(w[0])) return mk('run', '▶️', tr('Running {0}', [prog]));
   return undefined;
 }
 
@@ -597,7 +597,7 @@ function describeLine(text: string, depth: number): LineDescription {
       const body = /^(?:do|then)\b\s*(.*)$/s.exec(rest.replace(/^.*?;\s*(?=(do|then)\b)/s, ''))?.[1]?.trim();
       const next = [body, ...lines.slice(li + 1)].filter((l) => l && l.trim() && !/^(done|fi|else|esac)\b/.test(l.trim())).join('\n');
       const inner = next ? describeLine(next, depth + 1) : {};
-      return inner.desc ? inner : { desc: make('run', '🔁', tr('Repetindo um comando em lote')) };
+      return inner.desc ? inner : { desc: make('run', '🔁', tr('Repeating a command in batch')) };
     }
     return { desc: describeWords(main, depth), prog: main[0] };
   }
@@ -622,7 +622,7 @@ export function describeCommand(command: string, description?: string): Activity
   const desc = description?.trim();
   if (desc && looksPortuguese(desc)) return make('run', '💻', desc, detail);
   const prog = basename(found.prog ?? '');
-  const text = /^[A-Za-z][\w.+-]{0,23}$/.test(prog) ? tr('Rodando {0}', [prog]) : tr('Rodando um comando no terminal');
+  const text = /^[A-Za-z][\w.+-]{0,23}$/.test(prog) ? tr('Running {0}', [prog]) : tr('Running a command in the terminal');
   return make('run', '💻', text, desc ? `${desc} — ${detail}` : detail);
 }
 
@@ -640,17 +640,17 @@ function describeMcp(name: string, input: Record<string, unknown>): ActivityDesc
   const srv = server.replace(/^claude_ai_/, '');
   if (/playwright|chrome|browser|puppeteer/i.test(srv)) {
     const url = str(input.url);
-    if (/navigate/.test(tool)) return make('browser', '🧭', url ? tr('Abrindo {0}', [domainOf(url)]) : tr('Navegando no navegador'), url);
-    if (/screenshot/.test(tool)) return make('browser', '📸', tr('Tirando print da página'));
-    if (/click/.test(tool)) return make('browser', '🖱️', tr('Clicando na página'));
-    if (/type|fill|form/.test(tool)) return make('browser', '⌨️', tr('Preenchendo formulário'));
-    if (/snapshot|read|get_page|find/.test(tool)) return make('browser', '🧭', tr('Lendo a página'));
-    return make('browser', '🧭', tr('Navegador: {0}', [humanize(tool)]));
+    if (/navigate/.test(tool)) return make('browser', '🧭', url ? tr('Opening {0}', [domainOf(url)]) : tr('Browsing in the browser'), url);
+    if (/screenshot/.test(tool)) return make('browser', '📸', tr('Taking a screenshot of the page'));
+    if (/click/.test(tool)) return make('browser', '🖱️', tr('Clicking on the page'));
+    if (/type|fill|form/.test(tool)) return make('browser', '⌨️', tr('Filling out a form'));
+    if (/snapshot|read|get_page|find/.test(tool)) return make('browser', '🧭', tr('Reading the page'));
+    return make('browser', '🧭', tr('Browser: {0}', [humanize(tool)]));
   }
   if (/github/i.test(srv)) return make('mcp', '🐙', `GitHub: ${humanize(tool)}`);
   if (/gmail|mail/i.test(srv)) return make('mcp', '✉️', `E-mail: ${humanize(tool)}`);
   if (/drive|docs|notion|confluence/i.test(srv)) return make('mcp', '📄', `${srv}: ${humanize(tool)}`);
-  if (/sql|postgres|mysql|mongo|elastic|redis|db/i.test(srv)) return make('mcp', '🗄️', tr('Banco ({0}): {1}', [srv, humanize(tool)]));
+  if (/sql|postgres|mysql|mongo|elastic|redis|db/i.test(srv)) return make('mcp', '🗄️', tr('Database ({0}): {1}', [srv, humanize(tool)]));
   return make('mcp', '🔌', `${srv}: ${humanize(tool)}`);
 }
 
@@ -661,117 +661,117 @@ export function describeTool(name: string, rawInput: unknown): ActivityDescripti
 
   switch (name) {
     case 'Read':
-      if (IMAGE_EXT.test(file)) return make('read', '🖼️', tr('Olhando {0}', [basename(file)]), file);
-      if (/\.pdf$/i.test(file)) return make('read', '📕', tr('Lendo {0}', [basename(file)]), file);
-      return make('read', '📖', file ? tr('Lendo {0}', [basename(file)]) : tr('Lendo arquivo'), file);
+      if (IMAGE_EXT.test(file)) return make('read', '🖼️', tr('Looking at {0}', [basename(file)]), file);
+      if (/\.pdf$/i.test(file)) return make('read', '📕', tr('Reading {0}', [basename(file)]), file);
+      return make('read', '📖', file ? tr('Reading {0}', [basename(file)]) : tr('Reading a file'), file);
     case 'Edit':
     case 'MultiEdit':
-      return make('edit', '✏️', file ? tr('Editando {0}', [basename(file)]) : tr('Editando arquivo'), file);
+      return make('edit', '✏️', file ? tr('Editing {0}', [basename(file)]) : tr('Editing a file'), file);
     case 'Write':
-      return make('write', '📝', file ? tr('Escrevendo {0}', [basename(file)]) : tr('Escrevendo arquivo'), file);
+      return make('write', '📝', file ? tr('Writing {0}', [basename(file)]) : tr('Writing a file'), file);
     case 'NotebookEdit':
-      return make('edit', '📓', tr('Editando notebook {0}', [basename(file)]), file);
+      return make('edit', '📓', tr('Editing notebook {0}', [basename(file)]), file);
     case 'Glob':
-      return make('search', '🔎', tr('Procurando {0}', [truncate(str(input.pattern) || tr('arquivos'), 30)]), str(input.pattern));
+      return make('search', '🔎', tr('Looking for {0}', [truncate(str(input.pattern) || tr('files'), 30)]), str(input.pattern));
     case 'Grep': {
       const pat = str(input.pattern);
-      return make('search', '🔎', pat ? tr('Buscando “{0}”', [truncate(pat, 26)]) : tr('Buscando no código'), pat);
+      return make('search', '🔎', pat ? tr('Searching for “{0}”', [truncate(pat, 26)]) : tr('Searching the code'), pat);
     }
     case 'LS':
-      return make('read', '📂', tr('Listando {0}', [basename(file) || tr('pasta')]), file);
+      return make('read', '📂', tr('Listing {0}', [basename(file) || tr('folder')]), file);
     case 'Bash':
       return describeCommand(str(input.command), str(input.description));
     case 'BashOutput':
     case 'TaskOutput':
-      return make('run', '📟', tr('Conferindo saída do terminal'));
+      return make('run', '📟', tr('Checking terminal output'));
     case 'Monitor':
-      return make('run', '📟', tr('Monitorando um processo'), str(input.description) || str(input.command));
+      return make('run', '📟', tr('Monitoring a process'), str(input.description) || str(input.command));
     case 'KillShell':
     case 'KillBash':
     case 'TaskStop':
-      return make('run', '🛑', tr('Parando um processo'));
+      return make('run', '🛑', tr('Stopping a process'));
     case 'WebSearch': {
       const q = str(input.query);
-      return make('web', '🌐', q ? tr('Pesquisando “{0}”', [truncate(q, 28)]) : tr('Pesquisando na web'), q);
+      return make('web', '🌐', q ? tr('Searching the web for “{0}”', [truncate(q, 28)]) : tr('Searching the web'), q);
     }
     case 'WebFetch': {
       const url = str(input.url);
-      return make('web', '🌐', url ? tr('Lendo {0}', [domainOf(url)]) : tr('Lendo uma página'), url);
+      return make('web', '🌐', url ? tr('Reading {0}', [domainOf(url)]) : tr('Reading a page'), url);
     }
     case 'TodoWrite': {
       const todos = Array.isArray(input.todos) ? input.todos.filter((t): t is Record<string, unknown> => !!t && typeof t === 'object') : [];
       const done = todos.filter((t) => t.status === 'completed').length;
-      return make('plan', '🗒️', tr('Atualizando a lista de tarefas'), todos.length ? tr('{0}/{1} concluídas', [done, todos.length]) : undefined);
+      return make('plan', '🗒️', tr('Updating the task list'), todos.length ? tr('{0}/{1} done', [done, todos.length]) : undefined);
     }
     case 'TaskCreate':
-      return make('plan', '🗒️', tr('Nova tarefa: {0}', [str(input.subject) || tr('sem título')]), str(input.description));
+      return make('plan', '🗒️', tr('New task: {0}', [str(input.subject) || tr('untitled')]), str(input.description));
     case 'TaskUpdate': {
       const st = str(input.status);
-      if (st === 'completed') return make('plan', '✅', tr('Concluiu a tarefa #{0}', [str(input.taskId)]));
-      if (st === 'in_progress') return make('plan', '🗒️', tr('Começou a tarefa #{0}', [str(input.taskId)]));
-      return make('plan', '🗒️', tr('Atualizando a tarefa #{0}', [str(input.taskId)]));
+      if (st === 'completed') return make('plan', '✅', tr('Completed task #{0}', [str(input.taskId)]));
+      if (st === 'in_progress') return make('plan', '🗒️', tr('Started task #{0}', [str(input.taskId)]));
+      return make('plan', '🗒️', tr('Updating task #{0}', [str(input.taskId)]));
     }
     case 'TaskList':
     case 'TaskGet':
-      return make('plan', '🗒️', tr('Revisando as tarefas'));
+      return make('plan', '🗒️', tr('Reviewing tasks'));
     case 'EnterPlanMode':
-      return make('plan', '🧭', tr('Entrando no modo de planejamento'));
+      return make('plan', '🧭', tr('Entering plan mode'));
     case 'ExitPlanMode':
-      return make('plan', '🧭', tr('Apresentando o plano'));
+      return make('plan', '🧭', tr('Presenting the plan'));
     case 'Agent':
     case 'Task': {
       const d = str(input.description);
       const type = str(input.subagent_type);
-      return make('delegate', '👥', d ? tr('Delegando: {0}', [d]) : tr('Chamando um subagente'), [type, str(input.prompt)].filter(Boolean).join(' — '));
+      return make('delegate', '👥', d ? tr('Delegating: {0}', [d]) : tr('Calling a subagent'), [type, str(input.prompt)].filter(Boolean).join(' — '));
     }
     case 'Workflow':
-      return make('delegate', '🕸️', tr('Orquestrando um workflow'));
+      return make('delegate', '🕸️', tr('Orchestrating a workflow'));
     case 'StructuredOutput':
-      return make('communicate', '📤', tr('Entregando o resultado'));
+      return make('communicate', '📤', tr('Delivering the result'));
     case 'ListAgents':
-      return make('communicate', '👥', tr('Conferindo a equipe'));
+      return make('communicate', '👥', tr('Checking on the team'));
     case 'SendMessage':
-      return make('communicate', '💬', tr('Mensagem para {0}', [str(input.to) || tr('outro agente')]), str(input.message));
+      return make('communicate', '💬', tr('Message to {0}', [str(input.to) || tr('another agent')]), str(input.message));
     case 'AskUserQuestion': {
       const qs = Array.isArray(input.questions) ? (input.questions as Array<Record<string, unknown>>) : [];
       const questions = askQuestions(qs);
-      return { ...make('ask', '❓', tr('Fazendo uma pergunta a você'), qs[0] ? str(qs[0].question) : undefined), ...(questions.length ? { questions } : {}) };
+      return { ...make('ask', '❓', tr('Asking you a question'), qs[0] ? str(qs[0].question) : undefined), ...(questions.length ? { questions } : {}) };
     }
     case 'Skill':
-      return make('skill', '🧩', tr('Usando a skill {0}', [str(input.skill) || str(input.command)]));
+      return make('skill', '🧩', tr('Using the {0} skill', [str(input.skill) || str(input.command)]));
     case 'SlashCommand':
-      return make('skill', '⌨️', tr('Rodando {0}', [str(input.command)]));
+      return make('skill', '⌨️', tr('Running {0}', [str(input.command)]));
     case 'ToolSearch':
-      return make('other', '🧰', tr('Procurando ferramentas'));
+      return make('other', '🧰', tr('Looking for tools'));
     case 'ListMcpResourcesTool':
     case 'ReadMcpResourceTool':
-      return make('mcp', '🔌', tr('Lendo recursos MCP'));
+      return make('mcp', '🔌', tr('Reading MCP resources'));
     case 'Artifact':
-      return make('other', '🖼️', tr('Publicando uma página'));
+      return make('other', '🖼️', tr('Publishing a page'));
     case 'ArtifactData':
     case 'ArtifactComments':
-      return make('other', '🖼️', tr('Atualizando uma página publicada'));
+      return make('other', '🖼️', tr('Updating a published page'));
     case 'CronCreate':
     case 'CronDelete':
     case 'CronList':
     case 'ScheduleWakeup':
     case 'RemoteTrigger':
-      return make('plan', '⏰', tr('Agendando uma tarefa'));
+      return make('plan', '⏰', tr('Scheduling a task'));
     case 'EnterWorktree':
     case 'ExitWorktree':
-      return make('git', '🌿', tr('Trocando de worktree'));
+      return make('git', '🌿', tr('Switching worktrees'));
     case 'PushNotification':
     case 'SendUserFile':
-      return make('communicate', '📣', tr('Enviando algo para você'));
+      return make('communicate', '📣', tr('Sending you something'));
     default:
       if (name.startsWith('mcp__')) return describeMcp(name, input);
-      return make('other', '🛠️', tr('Usando {0}', [name]));
+      return make('other', '🛠️', tr('Using {0}', [name]));
   }
 }
 
 /** Atividade para um prompt do usuário. */
 export function describePrompt(text: string): ActivityDescription {
-  return make('prompt', '📨', tr('Nova tarefa: “{0}”', [truncate(text, 30)]), text);
+  return make('prompt', '📨', tr('New task: “{0}”', [truncate(text, 30)]), text);
 }
 
 export function formatDuration(ms: number): string {
@@ -807,8 +807,8 @@ export function describeShellJob(name: string, rawInput: unknown): { label: stri
   const description = str(input.description).trim();
   let label: string;
   if (description) label = truncate(maskSecrets(description.slice(0, MAX_TEXT * 8)), MAX_TEXT);
-  else if (kind === 'monitor') label = ws ? tr('Escutando {0}', [domainOf(ws)]) : tr('Monitorando um processo');
-  else label = command ? describeCommand(command).text : tr('Comando no terminal');
+  else if (kind === 'monitor') label = ws ? tr('Listening to {0}', [domainOf(ws)]) : tr('Monitoring a process');
+  else label = command ? describeCommand(command).text : tr('Terminal command');
   const out: { label: string; command?: string; kind: 'shell' | 'monitor' } = { label, kind };
   if (command) out.command = truncate(maskSecrets(command.slice(0, MAX_DETAIL * 4)), MAX_DETAIL);
   return out;
@@ -822,22 +822,22 @@ function fitLabel(prefix: string, label: string | undefined, suffix = ''): strin
 }
 
 export const SPECIAL = {
-  think: (): ActivityDescription => make('think', '💭', tr('Pensando…')),
-  respond: (text?: string): ActivityDescription => make('respond', '💬', tr('Escrevendo a resposta'), text),
-  turnDone: (ms?: number): ActivityDescription => make('done', '✅', ms ? tr('Concluiu em {0}', [formatDuration(ms)]) : tr('Concluiu')),
-  error: (tool?: string, detail?: string): ActivityDescription => make('error', '⚠️', tool ? tr('Erro em {0}', [tool]) : tr('Algo deu errado'), detail),
-  interrupted: (): ActivityDescription => make('wait', '✋', tr('Interrompido por você')),
-  compact: (): ActivityDescription => make('compact', '🧹', tr('Organizando a memória (compactando)')),
-  waiting: (reason?: string): ActivityDescription => make('wait', '✋', reason ? tr('Precisa de você: {0}', [reason]) : tr('Precisa de você')),
-  backgroundResult: (summary?: string): ActivityDescription => make('other', '📬', tr('Recebeu resultado em segundo plano'), summary),
-  apiRetry: (): ActivityDescription => make('wait', '🔁', tr('Instabilidade na API, tentando de novo')),
-  rejected: (tool?: string): ActivityDescription => make('wait', '🚫', tool ? tr('Você recusou: {0}', [tool]) : tr('Você recusou a ação')),
-  cleared: (): ActivityDescription => make('compact', '🧽', tr('Começou uma conversa nova (/clear)')),
-  supervising: (): ActivityDescription => make('delegate', '👥', tr('Acompanhando os subagentes')),
-  answered: (question?: string): ActivityDescription => make('ask', '💬', tr('Recebeu a sua resposta'), question),
+  think: (): ActivityDescription => make('think', '💭', tr('Thinking…')),
+  respond: (text?: string): ActivityDescription => make('respond', '💬', tr('Writing the reply'), text),
+  turnDone: (ms?: number): ActivityDescription => make('done', '✅', ms ? tr('Done in {0}', [formatDuration(ms)]) : tr('Done')),
+  error: (tool?: string, detail?: string): ActivityDescription => make('error', '⚠️', tool ? tr('Error in {0}', [tool]) : tr('Something went wrong'), detail),
+  interrupted: (): ActivityDescription => make('wait', '✋', tr('Interrupted by you')),
+  compact: (): ActivityDescription => make('compact', '🧹', tr('Tidying up memory (compacting)')),
+  waiting: (reason?: string): ActivityDescription => make('wait', '✋', reason ? tr('Needs you: {0}', [reason]) : tr('Needs you')),
+  backgroundResult: (summary?: string): ActivityDescription => make('other', '📬', tr('Got a background result'), summary),
+  apiRetry: (): ActivityDescription => make('wait', '🔁', tr('API hiccup, retrying')),
+  rejected: (tool?: string): ActivityDescription => make('wait', '🚫', tool ? tr('You denied: {0}', [tool]) : tr('You denied the action')),
+  cleared: (): ActivityDescription => make('compact', '🧽', tr('Started a new conversation (/clear)')),
+  supervising: (): ActivityDescription => make('delegate', '👥', tr('Keeping an eye on subagents')),
+  answered: (question?: string): ActivityDescription => make('ask', '💬', tr('Got your answer'), question),
   /** Balão do status 'shell': "Esperando o shell: <rótulo>" (ou "Esperando 2 shells: ..."). */
   waitingShell: (label?: string, n = 1, detail?: string): MarkedDescription => ({
-    ...make('wait', '⏳', fitLabel(n > 1 ? tr('Esperando {0} shells: ', [n]) : tr('Esperando o shell: '), label), detail),
+    ...make('wait', '⏳', fitLabel(n > 1 ? tr('Waiting on {0} shells: ', [n]) : tr('Waiting on shell: '), label), detail),
     tool: SHELL_WAIT_TOOL,
   }),
   /**
@@ -845,22 +845,22 @@ export const SPECIAL = {
    * falha "Shell falhou: <rótulo>" e morto "Shell interrompido: <rótulo>" (os dois com `error`).
    */
   shellDone: (label: string | undefined, outcome: ShellOutcome, ms?: number, detail?: string): MarkedDescription => {
-    if (outcome === 'failed') return { ...make('run', '❌', fitLabel(tr('Shell falhou: '), label), detail), tool: SHELL_DONE_TOOL, error: true };
-    if (outcome === 'killed') return { ...make('run', '🛑', fitLabel(tr('Shell interrompido: '), label), detail), tool: SHELL_DONE_TOOL, error: true };
+    if (outcome === 'failed') return { ...make('run', '❌', fitLabel(tr('Shell failed: '), label), detail), tool: SHELL_DONE_TOOL, error: true };
+    if (outcome === 'killed') return { ...make('run', '🛑', fitLabel(tr('Shell interrupted: '), label), detail), tool: SHELL_DONE_TOOL, error: true };
     const took = ms !== undefined && ms >= 1_000 ? ` (${formatDuration(ms)})` : '';
-    return { ...make('run', '✅', fitLabel(tr('Shell terminou: '), label, took), detail), tool: SHELL_DONE_TOOL };
+    return { ...make('run', '✅', fitLabel(tr('Shell finished: '), label, took), detail), tool: SHELL_DONE_TOOL };
   },
 } as const;
 
 /** Traduz o `waitingFor` do registro de sessões do Claude Code. */
 export function describeWaitingFor(raw: string | undefined): string {
-  if (!raw) return tr('responder no terminal');
+  if (!raw) return tr('answer in the terminal');
   const r = raw.toLowerCase();
-  if (r === 'input needed') return tr('responder uma pergunta');
-  if (r === 'worker request') return tr('aprovar o pedido de um worker');
-  if (r === 'sandbox request') return tr('aprovar acesso do sandbox');
-  if (r === 'dialog open') return tr('fechar um diálogo aberto');
-  if (/permission|approve|allow/.test(r)) return tr('aprovar uma permissão');
-  if (/trust/.test(r)) return tr('confiar nesta pasta');
+  if (r === 'input needed') return tr('answer a question');
+  if (r === 'worker request') return tr("approve a worker's request");
+  if (r === 'sandbox request') return tr('approve sandbox access');
+  if (r === 'dialog open') return tr('close an open dialog');
+  if (/permission|approve|allow/.test(r)) return tr('approve a permission');
+  if (/trust/.test(r)) return tr('trust this folder');
   return truncate(raw, 40);
 }

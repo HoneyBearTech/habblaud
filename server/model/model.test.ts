@@ -206,35 +206,35 @@ function makeOffice(names = new NameStore(null)) {
     names,
     version: 't',
     startedAt: clock,
-    accounts: (s) => [{ id: 'acc', short: 'C', name: 'Conta C', color: '#f08a3c', configDir: '/x', sessions: s.get('acc') ?? 0, usageStatus: 'disabled' }],
+    accounts: (s) => [{ id: 'acc', short: 'C', name: 'Account C', color: '#f08a3c', configDir: '/x', sessions: s.get('acc') ?? 0, usageStatus: 'disabled' }],
     sources: () => [],
-    accountName: () => 'Conta C',
+    accountName: () => 'Account C',
     now: () => clock,
   });
   return { office, names, advance: (ms: number) => (clock += ms), now: () => clock };
 }
 
-const act = (id: string, at: number, kind: Activity['kind'] = 'read'): Activity => ({ id, at, kind, icon: '📖', text: 'Lendo x' });
+const act = (id: string, at: number, kind: Activity['kind'] = 'read'): Activity => ({ id, at, kind, icon: '📖', text: 'Reading x' });
 
 describe('Office', () => {
   it('avisos com dedupe de 10 s e feed em lote', () => {
     const { office, advance, now } = makeOffice();
-    office.addMain({ id: 'acc:1', account: 'acc', sessionId: 's1', cwd: '/p/loja/', role: 'Agente principal', startedAt: now(), status: 'working' });
+    office.addMain({ id: 'acc:1', account: 'acc', sessionId: 's1', cwd: '/p/loja/', role: 'Main agent', startedAt: now(), status: 'working' });
     const name = office.get('acc:1')!.name;
     office.addActivity('acc:1', act('a1', now()), true);
     let r = office.commit();
     expect(r.changed).toBe(true);
-    expect(r.notices.map((n) => n.text)).toEqual(['🏗️ Nova sala: loja', `👋 ${name} chegou em loja (Conta C)`]);
+    expect(r.notices.map((n) => n.text)).toEqual(['🏗️ New room: loja', `👋 ${name} arrived in loja (Account C)`]);
     expect(r.feed.map((f) => f.id)).toEqual(['a1']);
     expect(r.snapshot.accounts[0].sessions).toBe(1);
-    office.setStatus('acc:1', 'waiting', 'aprovar uma permissão');
+    office.setStatus('acc:1', 'waiting', 'approve a permission');
     office.setStatus('acc:1', 'working');
-    office.setStatus('acc:1', 'waiting', 'aprovar uma permissão');
+    office.setStatus('acc:1', 'waiting', 'approve a permission');
     r = office.commit();
     expect(r.notices.filter((n) => n.level === 'alert')).toHaveLength(1);
     advance(11_000);
     office.setStatus('acc:1', 'working');
-    office.setStatus('acc:1', 'waiting', 'aprovar uma permissão');
+    office.setStatus('acc:1', 'waiting', 'approve a permission');
     expect(office.commit().notices.filter((n) => n.level === 'alert')).toHaveLength(1);
   });
 
@@ -262,11 +262,11 @@ describe('Office', () => {
   it('boot com o agente esperando você: balão "Precisa de você" sem aviso nem feed', () => {
     const { office, now } = makeOffice();
     office.beginBoot();
-    office.addMain({ id: 'acc:1', account: 'acc', sessionId: 's1', cwd: '/p/a', role: 'x', startedAt: now(), status: 'waiting', waitingFor: 'responder uma pergunta' });
-    office.addActivity('acc:1', { ...act('w1', now()), kind: 'delegate', text: 'Orquestrando um workflow' }, true);
+    office.addMain({ id: 'acc:1', account: 'acc', sessionId: 's1', cwd: '/p/a', role: 'x', startedAt: now(), status: 'waiting', waitingFor: 'answer a question' });
+    office.addActivity('acc:1', { ...act('w1', now()), kind: 'delegate', text: 'Orchestrating a workflow' }, true);
     office.endBoot();
     const r = office.commit();
-    expect(r.snapshot.agents[0].activity).toMatchObject({ kind: 'wait', text: 'Precisa de você: responder uma pergunta' });
+    expect(r.snapshot.agents[0].activity).toMatchObject({ kind: 'wait', text: 'Needs you: answer a question' });
     expect(r.notices).toEqual([]);
     // O feed do boot vai para quem conectar (recentFeed), sem a espera sintetizada.
     expect(office.recentFeed(10).map((f) => f.id)).toEqual(['w1']);
@@ -285,7 +285,7 @@ describe('Office', () => {
     office.endBoot(); // A terminou, B ainda não
     expect(office.isBooting()).toBe(true);
     // Ainda bootando: nada de avisos nem de feed ao vivo; o que chega entra no feed do boot.
-    office.addMain({ id: '.codex:t1', provider: 'codex', account: '.codex', sessionId: 't1', cwd: '/p/a', role: 'x', startedAt: now(), status: 'waiting', waitingFor: 'aprovar um comando' });
+    office.addMain({ id: '.codex:t1', provider: 'codex', account: '.codex', sessionId: 't1', cwd: '/p/a', role: 'x', startedAt: now(), status: 'waiting', waitingFor: 'approve a command' });
     office.addActivity('.codex:t1', act('b-early', now() - 5_000), true);
     let r = office.commit();
     expect(r.notices).toEqual([]);
@@ -308,7 +308,7 @@ describe('Office', () => {
     expect(office.isBooting()).toBe(false);
     // Depois do boot, avisos voltam.
     advance(1_000);
-    office.setStatus('acc:1', 'waiting', 'aprovar uma permissão');
+    office.setStatus('acc:1', 'waiting', 'approve a permission');
     expect(office.commit().notices.length).toBeGreaterThan(0);
   });
 
@@ -338,38 +338,38 @@ describe('Office', () => {
     office.setStatus('acc:1', 'idle');
     const synth = office.get('acc:1')!.activity!;
     expect(synth).toMatchObject({ kind: 'done', durationMs: 30_000 });
-    office.addActivity('acc:1', { ...act('real', now(), 'done'), text: 'Concluiu em 29s', durationMs: 29_000 }, true);
+    office.addActivity('acc:1', { ...act('real', now(), 'done'), text: 'Done in 29s', durationMs: 29_000 }, true);
     const a = office.get('acc:1')!;
-    expect(a.activity).toMatchObject({ id: synth.id, text: 'Concluiu em 29s' });
+    expect(a.activity).toMatchObject({ id: synth.id, text: 'Done in 29s' });
     expect(a.recent.filter((x) => x.kind === 'done')).toHaveLength(1);
   });
 
   it('ocupado com o balão ainda em "Concluiu" antigo: mostra que acompanha os subagentes (fora do feed)', () => {
     const { office, advance, now } = makeOffice();
     office.addMain({ id: 'acc:1', account: 'acc', sessionId: 's1', cwd: '/p/a', role: 'x', startedAt: now(), status: 'working' });
-    office.addActivity('acc:1', { ...act('fim', now(), 'done'), text: 'Concluiu em 3s' }, true);
+    office.addActivity('acc:1', { ...act('fim', now(), 'done'), text: 'Done in 3s' }, true);
     office.commit();
     office.fillWorkingActivity('acc:1');
     expect(office.get('acc:1')!.activity!.id).toBe('fim');
     advance(20_000);
     office.addSub({ id: 's1:x', parentId: 'acc:1', sessionId: 's1', role: 'Workflow', background: false, startedAt: now() });
     office.fillWorkingActivity('acc:1');
-    expect(office.get('acc:1')!.activity).toMatchObject({ kind: 'delegate', text: 'Acompanhando os subagentes' });
+    expect(office.get('acc:1')!.activity).toMatchObject({ kind: 'delegate', text: 'Keeping an eye on subagents' });
     expect(office.commit().feed).toEqual([]);
   });
 
   it('comando em primeiro plano pendente: o preenchimento "Pensando…" não cobre a espera pelo comando', () => {
     const { office, advance, now } = makeOffice();
     office.addMain({ id: 'acc:1', account: 'acc', sessionId: 's1', cwd: '/p/a', role: 'x', startedAt: now(), status: 'working' });
-    office.addActivity('acc:1', { ...act('fim', now(), 'done'), text: 'Concluiu em 3s' }, true);
-    office.setShells('acc:1', [{ id: 'fg', label: 'Instalar as dependências', startedAt: now(), background: false, kind: 'shell' }]);
+    office.addActivity('acc:1', { ...act('fim', now(), 'done'), text: 'Done in 3s' }, true);
+    office.setShells('acc:1', [{ id: 'fg', label: 'Install the dependencies', startedAt: now(), background: false, kind: 'shell' }]);
     advance(20_000);
     office.fillWorkingActivity('acc:1');
     expect(office.get('acc:1')!.activity!.id).toBe('fim');
     office.setShells('acc:1', []);
     expect(office.get('acc:1')!.shells).toBeUndefined();
     office.fillWorkingActivity('acc:1');
-    expect(office.get('acc:1')!.activity!.text).toBe('Pensando…');
+    expect(office.get('acc:1')!.activity!.text).toBe('Thinking…');
   });
 
   it('status shell: balão "Esperando o shell" no lugar do "Concluiu", aviso no máximo a cada 10 min; ShellDone com aviso', () => {
@@ -377,21 +377,21 @@ describe('Office', () => {
     office.addMain({ id: 'acc:1', account: 'acc', sessionId: 's1', cwd: '/p/loja', role: 'x', startedAt: now(), status: 'working' });
     const name = office.get('acc:1')!.name;
     office.commit();
-    const job = { id: 'b1', label: 'Build de produção', command: 'npm run build', startedAt: now(), background: true, kind: 'shell' as const };
+    const job = { id: 'b1', label: 'Production build', command: 'npm run build', startedAt: now(), background: true, kind: 'shell' as const };
     office.setShells('acc:1', [job, { ...job, id: 'b2', label: 'Migração', startedAt: now() + 5 }]);
     advance(1_000);
     office.setStatus('acc:1', 'shell');
     office.fillShellActivity('acc:1');
-    expect(office.get('acc:1')!.activity).toMatchObject({ text: 'Esperando 2 shells: Build de produção', detail: 'npm run build', tool: 'ShellWait' });
+    expect(office.get('acc:1')!.activity).toMatchObject({ text: 'Waiting on 2 shells: Production build', detail: 'npm run build', tool: 'ShellWait' });
     // O "Concluiu" do transcript chega depois: o balão continua na espera.
     advance(500);
-    office.addActivity('acc:1', { ...act('fim', now(), 'done'), text: 'Concluiu em 3s' }, true);
+    office.addActivity('acc:1', { ...act('fim', now(), 'done'), text: 'Done in 3s' }, true);
     office.fillShellActivity('acc:1');
     expect(office.get('acc:1')!.activity!.tool).toBe('ShellWait');
     let r = office.commit();
-    expect(r.notices.map((n) => n.text)).toEqual([`⏳ ${name} está esperando o shell em loja: Build de produção`]);
-    expect(r.feed.map((f) => f.activity.text)).toEqual(['Esperando 2 shells: Build de produção', 'Concluiu em 3s']);
-    expect(r.notices.some((n) => n.text.includes('concluiu'))).toBe(false);
+    expect(r.notices.map((n) => n.text)).toEqual([`⏳ ${name} is waiting on the shell in loja: Production build`]);
+    expect(r.feed.map((f) => f.activity.text)).toEqual(['Waiting on 2 shells: Production build', 'Done in 3s']);
+    expect(r.notices.some((n) => n.text.includes('finished'))).toBe(false);
     // Volta a trabalhar e a esperar dentro de 10 min: sem aviso repetido.
     office.setStatus('acc:1', 'working');
     advance(60_000);
@@ -400,13 +400,13 @@ describe('Office', () => {
     // Fim de um dos shells.
     office.shellDone('acc:1', job, 'ok', now() + 1_000);
     r = office.commit();
-    expect(r.snapshot.agents[0].activity).toMatchObject({ tool: 'ShellDone', text: 'Shell terminou: Build de produção (1min 3s)' });
-    expect(r.notices.map((n) => [n.level, n.text])).toEqual([['success', `✅ ${name}: shell terminou em loja — Build de produção`]]);
+    expect(r.snapshot.agents[0].activity).toMatchObject({ tool: 'ShellDone', text: 'Shell finished: Production build (1min 3s)' });
+    expect(r.notices.map((n) => [n.level, n.text])).toEqual([['success', `✅ ${name}: shell finished in loja — Production build`]]);
     // Releitura não duplica; outro shell no mesmo segundo ainda avisa.
     office.shellDone('acc:1', job, 'ok', now() + 1_000);
     office.shellDone('acc:1', { ...job, id: 'b2', label: 'Migração' }, 'failed', now() + 1_000);
     r = office.commit();
-    expect(r.notices.map((n) => [n.level, n.text])).toEqual([['warn', `❌ ${name}: shell falhou em loja — Migração`]]);
+    expect(r.notices.map((n) => [n.level, n.text])).toEqual([['warn', `❌ ${name}: shell failed in loja — Migração`]]);
     expect(office.detail('acc:1')!.history.filter((a) => a.tool === 'ShellDone')).toHaveLength(2);
   });
 
@@ -431,7 +431,7 @@ describe('Office', () => {
     office.addSub({ id: 's1:x', parentId: 'acc:1', sessionId: 's1', role: 'Explore', title: 'Mapear', background: false, startedAt: now() });
     office.addSub({ id: 's1:y', parentId: 'acc:1', sessionId: 's1', role: 'Plan', background: true, startedAt: now() });
     office.completeSub('s1:x');
-    expect(office.commit().notices.at(-1)?.text).toMatch(/entregou “Mapear” para/);
+    expect(office.commit().notices.at(-1)?.text).toMatch(/delivered “Mapear” to/);
     advance(DONE_GRACE_MS + 1);
     office.tick();
     expect(office.has('s1:x')).toBe(false);
@@ -474,8 +474,8 @@ describe('Office', () => {
     const reach = new Set<string>();
     const deps = { names: new NameStore(null), version: 't', startedAt: 0, accounts: () => [], sources: () => [], accountName: () => undefined };
     const office = new Office({ ...deps, messages: () => reach });
-    office.addMain({ id: 'acc:1', account: 'acc', sessionId: 's1', cwd: '/p/a', role: 'Agente principal', startedAt: 0, status: 'idle' });
-    office.addMain({ id: 'acc:2', account: 'acc', sessionId: 's2', cwd: '/p/a', role: 'Agente principal', startedAt: 0, status: 'working' });
+    office.addMain({ id: 'acc:1', account: 'acc', sessionId: 's1', cwd: '/p/a', role: 'Main agent', startedAt: 0, status: 'idle' });
+    office.addMain({ id: 'acc:2', account: 'acc', sessionId: 's2', cwd: '/p/a', role: 'Main agent', startedAt: 0, status: 'working' });
     office.addSub({ id: 's1:sub', parentId: 'acc:1', sessionId: 's1', role: 'Explore', background: false, startedAt: 0 });
     reach.add('acc:1').add('s1:sub');
     office.markDirty();
@@ -500,7 +500,7 @@ describe('Office', () => {
 
 describe('Office: personagem do projeto', () => {
   const main = (id: string, sessionId: string, cwd: string, now: number) =>
-    ({ id, account: 'acc', sessionId, cwd, role: 'Agente principal', startedAt: now, status: 'working' }) as const;
+    ({ id, account: 'acc', sessionId, cwd, role: 'Main agent', startedAt: now, status: 'working' }) as const;
   const parts = { skin: '#5a3623', hairStyle: 'bob' } as const;
 
   it('setCharacter grava para a sala, aplica na hora e avisa; a próxima sessão na sala nasce com ele', () => {
@@ -511,10 +511,10 @@ describe('Office: personagem do projeto', () => {
     expect(office.setCharacter('acc:1', { name: 'Zé Backend', seed: 42, parts })).toEqual({ result: 'ok' });
     expect(office.get('acc:1')).toMatchObject({ name: 'Zé Backend', seed: 42, parts, custom: true });
     expect(names.character('/p/api')).toMatchObject({ name: 'Zé Backend', look: office.get('acc:1')!.look, seed: 42, parts });
-    expect(office.commit().notices.map((n) => n.text)).toContain(`✏️ ${before} agora é Zé Backend em api`);
+    expect(office.commit().notices.map((n) => n.text)).toContain(`✏️ ${before} is now Zé Backend in api`);
     expect(office.setCharacter('acc:1', { name: 'Zé Backend', seed: 43, parts: {} })).toEqual({ result: 'ok' });
     expect(office.get('acc:1')!.parts).toBeUndefined();
-    expect(office.commit().notices.map((n) => n.text)).toContain('✏️ Zé Backend mudou de visual em api');
+    expect(office.commit().notices.map((n) => n.text)).toContain('✏️ Zé Backend got a new look in api');
   });
 
   it('reabrir a sessão logo depois de fechar (o antigo ainda saindo): o personagem volta', () => {
@@ -558,13 +558,13 @@ describe('Office: personagem do projeto', () => {
     const other = office.get('acc:2')!.name;
     expect(office.setCharacter('acc:1', { name: other.toUpperCase(), seed: 1, parts: {} })).toEqual({
       result: 'conflict',
-      message: `${other} já está no escritório em web`,
+      message: `${other} is already in the office, in web`,
     });
     expect(office.setCharacter('acc:2', { name: 'Zé', seed: 1, parts: {} })).toEqual({ result: 'ok' });
     office.closeMain('acc:2');
     advance(OFFLINE_GRACE_MS + 1);
     office.tick();
-    expect(office.setCharacter('acc:1', { name: 'zé', seed: 1, parts: {} })).toEqual({ result: 'conflict', message: 'Zé já é o personagem de web' });
+    expect(office.setCharacter('acc:1', { name: 'zé', seed: 1, parts: {} })).toEqual({ result: 'conflict', message: "Zé is already web's character" });
     office.setDemo(true);
     const demo = office.commit().snapshot.agents.find((a) => a.id.startsWith('demo:'))!;
     expect(office.setCharacter('acc:1', { name: demo.name, seed: 1, parts: {} })).toMatchObject({ result: 'conflict' });
@@ -580,7 +580,7 @@ describe('Office: personagem do projeto', () => {
     office.tick();
     expect(office.setCharacter('acc:1', { name: 'Júlia', seed: 1, parts: {} })).toEqual({
       result: 'conflict',
-      message: 'Júlia já é o personagem de web',
+      message: "Júlia is already web's character",
     });
   });
 

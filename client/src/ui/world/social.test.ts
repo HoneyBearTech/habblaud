@@ -6,20 +6,20 @@ import { FakeWorldApi, FAKE_SUMMARY, parseBuildingMeta, parseWorldStatus } from 
 import { awaySummaryView, dayLabel, likesTodayChip, newKnocks, summaryKey } from './away-summary';
 import { DEFAULT_VISIBILITY, VISIBILITY_SWITCHES } from './world-model';
 
-describe('Enquanto você estava fora', () => {
+describe('While you were away', () => {
   it('as três contagens, os carimbos (mais recebidos primeiro) e a frase', () => {
     const v = awaySummaryView({ since: '2026-10-14', visits: 1, likes: 12, stamps: [{ stampId: 'coffee', count: 1 }, { stampId: 'star', count: 3 }] });
     expect(v.stats.map((s) => [s.key, s.value, s.label])).toEqual([
-      ['visits', '1', 'visita'],
+      ['visits', '1', 'visit'],
       ['likes', '12', 'likes'],
-      ['stamps', '4', 'carimbos'],
+      ['stamps', '4', 'stamps'],
     ]);
     expect(v.stamps.map((s) => [s.id, s.icon, s.count])).toEqual([
       ['star', '⭐', 3],
       ['coffee', '☕', 1],
     ]);
-    expect(v.sentence).toBe('Enquanto você estava fora: 1 visita, 12 likes e 4 carimbos.');
-    expect(v.since).toMatch(/^desde 14/);
+    expect(v.sentence).toBe('While you were away: 1 visit, 12 likes and 4 stamps.');
+    expect(v.since).toMatch(/^since October 14/);
   });
 
   it('dia UTC do calendário (sem fuso), e o que não é dia fica vazio', () => {
@@ -40,8 +40,8 @@ describe('Enquanto você estava fora', () => {
   });
 
   it('"❤️ N hoje" só com o prédio aceso e algum like', () => {
-    expect(likesTodayChip('live', 3)).toEqual({ text: '❤️ 3 hoje', title: 'Seu prédio ganhou 3 likes hoje.' });
-    expect(likesTodayChip('live', 1)?.title).toBe('Seu prédio ganhou 1 like hoje.');
+    expect(likesTodayChip('live', 3)).toEqual({ text: '❤️ 3 today', title: 'Your building got 3 likes today.' });
+    expect(likesTodayChip('live', 1)?.title).toBe('Your building got 1 like today.');
     expect(likesTodayChip('live', 0)).toBeNull();
     expect(likesTodayChip('paused', 5)).toBeNull();
   });

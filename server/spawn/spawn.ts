@@ -73,9 +73,9 @@ export function parseSpawn(raw: unknown): SpawnRequest | { error: string } {
   const folder = typeof r.folder === 'string' ? r.folder.trim() : '';
   const prompt = typeof r.prompt === 'string' ? r.prompt.replace(/\s+$/, '') : '';
   if (!folder || folder.length > FOLDER_MAX || folder.includes('\0') || !(isAbsolute(folder) || /^[A-Za-z]:[\\/]/.test(folder))) {
-    return { error: tr('escolha uma pasta (caminho absoluto, ex.: /Users/voce/projeto)') };
+    return { error: tr('choose a folder (absolute path, e.g. /Users/you/project)') };
   }
-  if (prompt.length > PROMPT_MAX || prompt.includes('\0')) return { error: tr('o pedido passa de {0} caracteres', [PROMPT_MAX]) };
+  if (prompt.length > PROMPT_MAX || prompt.includes('\0')) return { error: tr('the request exceeds {0} characters', [PROMPT_MAX]) };
   return { folder, prompt };
 }
 
@@ -109,7 +109,7 @@ export function createCliRunner(bin: string, timeoutMs = CLI_TIMEOUT_MS): CliRun
         const id = /backgrounded\s*·\s*([\w-]+)/.exec(out ?? '')?.[1];
         if (!err && id) return ok({ ok: true, id });
         const line = [stderr, out, err?.message].map((t) => (t ?? '').split('\n').map((l) => l.trim()).find(Boolean)).find(Boolean);
-        ok({ ok: false, error: (line ?? tr('o claude não começou a sessão')).slice(0, ERROR_MAX) });
+        ok({ ok: false, error: (line ?? tr("claude didn't start the session")).slice(0, ERROR_MAX) });
       });
       child.stdin?.end();
     });
@@ -118,7 +118,7 @@ export function createCliRunner(bin: string, timeoutMs = CLI_TIMEOUT_MS): CliRun
 /** Frase para a tela quando o `claude --bg` não rodou. */
 export function cliNote(error: string): string {
   return /not trusted/i.test(error)
-    ? tr('a pasta ainda não é confiável para o Claude Code: rode `claude` nela uma vez no computador e aceite o aviso')
+    ? tr("the folder isn't trusted by Claude Code yet: run `claude` in it once on the computer and accept the warning")
     : error;
 }
 
@@ -130,17 +130,17 @@ export async function launch(req: SpawnRequest, open: Opener, cli?: CliRunner): 
     if (r.ok) return { ok: true, how: 'cli' };
     note = cliNote(r.error);
   }
-  const o = await open(spawnUrl(req)).catch(() => ({ ok: false as const, error: tr('falhou ao abrir o app') }));
-  if (!o.ok) return note ? { ok: false, error: tr('{0}; e o app não abriu ({1})', [note, o.error]).slice(0, ERROR_MAX) } : o;
+  const o = await open(spawnUrl(req)).catch(() => ({ ok: false as const, error: tr("couldn't open the app") }));
+  if (!o.ok) return note ? { ok: false, error: tr("{0}; and the app didn't open ({1})", [note, o.error]).slice(0, ERROR_MAX) } : o;
   return note ? { ok: true, how: 'app', note } : { ok: true, how: 'app' };
 }
 
 /** A pasta existe neste computador (o auxiliar confere antes de abrir; o Docker não enxerga as pastas do host). */
 export function folderProblem(folder: string, stat: (p: string) => { isDirectory(): boolean } = statSync): string | undefined {
   try {
-    return stat(folder).isDirectory() ? undefined : tr('não é uma pasta');
+    return stat(folder).isDirectory() ? undefined : tr('not a folder');
   } catch {
-    return tr('pasta não encontrada neste computador');
+    return tr('folder not found on this computer');
   }
 }
 
@@ -151,7 +151,7 @@ export function createOpener(platform: NodeJS.Platform = process.platform, timeo
     new Promise((ok) => {
       execFile(bin, [...pre, url], { timeout: timeoutMs, windowsHide: true, encoding: 'utf8' }, (err, _out, stderr) => {
         if (!err) return ok({ ok: true });
-        const line = (stderr || err.message || '').split('\n').find((l) => l.trim()) ?? tr('falhou');
+        const line = (stderr || err.message || '').split('\n').find((l) => l.trim()) ?? tr('failed');
         ok({ ok: false, error: `${bin}: ${line.trim()}`.slice(0, ERROR_MAX) });
       });
     });
@@ -210,15 +210,15 @@ export class SpawnService {
     const req = parseSpawn(raw);
     if ('error' in req) return { error: 'invalid', reason: req.error };
     if (!this.available()) {
-      return { error: 'unavailable', reason: tr('o auxiliar do computador não está rodando: deixe npm run codex:bridge no ar (o Habblaud está no Docker)') };
+      return { error: 'unavailable', reason: tr("the computer's helper isn't running: keep npm run codex:bridge running (Habblaud is in Docker)") };
     }
     let open = 0;
     for (const e of this.entries.values()) if (e.info.status === 'queued' || e.info.status === 'sent') open++;
-    if (open >= MAX_OPEN) return { error: 'too-many', reason: tr('já há {0} agentes novos esperando para abrir', [MAX_OPEN]) };
+    if (open >= MAX_OPEN) return { error: 'too-many', reason: tr('there are already {0} new agents waiting to open', [MAX_OPEN]) };
     const ids = raw && typeof raw === 'object' ? (raw as { attachments?: unknown }).attachments : undefined;
     let files: Attachment[] = [];
     if (ids !== undefined && !(Array.isArray(ids) && !ids.length)) {
-      if (!this.opts.attachments) return { error: 'invalid', reason: tr('anexos desligados') };
+      if (!this.opts.attachments) return { error: 'invalid', reason: tr('attachments disabled') };
       const taken = this.opts.attachments.take(ids);
       if ('error' in taken) return { error: 'invalid', reason: taken.error };
       files = taken;
@@ -263,7 +263,7 @@ export class SpawnService {
       const note = typeof x.note === 'string' && x.note ? x.note.slice(0, ERROR_MAX) : undefined;
       this.resolve(
         e,
-        x.ok === true ? { ok: true, how, ...(note ? { note } : {}) } : { ok: false, error: typeof x.error === 'string' && x.error ? x.error.slice(0, ERROR_MAX) : tr('o auxiliar não abriu o app') },
+        x.ok === true ? { ok: true, how, ...(note ? { note } : {}) } : { ok: false, error: typeof x.error === 'string' && x.error ? x.error.slice(0, ERROR_MAX) : tr("the helper didn't open the app") },
       );
     }
   }
@@ -276,7 +276,7 @@ export class SpawnService {
     try {
       paths = (this.opts.writeFiles ?? ((id, files) => writeAttachments(attachmentsRoot(), id, files)))(e.info.id, e.files);
     } catch (err) {
-      return this.resolve(e, { ok: false, error: tr('não deu para gravar os anexos ({0})', [(err as Error).message]).slice(0, ERROR_MAX) });
+      return this.resolve(e, { ok: false, error: tr("couldn't save the attachments ({0})", [(err as Error).message]).slice(0, ERROR_MAX) });
     } finally {
       this.dropFiles(e);
     }
@@ -305,8 +305,8 @@ export class SpawnService {
     const now = this.now();
     for (const [id, e] of this.entries) {
       const age = now - e.at;
-      if (e.info.status === 'queued' && age > QUEUED_TIMEOUT_MS) this.resolve(e, { ok: false, error: tr('o auxiliar do computador não buscou o pedido') });
-      else if (e.info.status === 'sent' && age > SENT_TIMEOUT_MS) this.resolve(e, { ok: false, error: tr('o auxiliar do computador não confirmou') });
+      if (e.info.status === 'queued' && age > QUEUED_TIMEOUT_MS) this.resolve(e, { ok: false, error: tr("the computer's helper didn't fetch the request") });
+      else if (e.info.status === 'sent' && age > SENT_TIMEOUT_MS) this.resolve(e, { ok: false, error: tr("the computer's helper didn't confirm") });
       else if ((e.info.status === 'opened' || e.info.status === 'failed') && age > KEEP_MS) this.entries.delete(id);
     }
   }

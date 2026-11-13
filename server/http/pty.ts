@@ -24,9 +24,9 @@ function isLoopbackAddress(addr: string | undefined): boolean {
 
 /** Motivo da recusa, ou null. */
 export function ptyRequestProblem(req: IncomingMessage): string | null {
-  if (!isLoopbackAddress(req.socket.remoteAddress)) return tr('o terminal interativo só pode ser usado no próprio computador');
+  if (!isLoopbackAddress(req.socket.remoteAddress)) return tr('the interactive terminal can only be used on the computer running Habblaud');
   const host = req.headers.host;
-  if (!isLoopbackHost(host)) return tr('abra o Habblaud por http://localhost para usar o terminal interativo');
+  if (!isLoopbackHost(host)) return tr('open Habblaud at http://localhost to use the interactive terminal');
   const origin = req.headers.origin;
   if (typeof origin === 'string') {
     let same = false;
@@ -35,11 +35,11 @@ export function ptyRequestProblem(req: IncomingMessage): string | null {
     } catch {
       same = false;
     }
-    if (!same) return tr('origem não permitida para o terminal interativo');
+    if (!same) return tr('origin not allowed for the interactive terminal');
   }
   // Navegadores marcam pedidos de outro site (ou de outra porta do localhost = "same-site").
   const site = req.headers['sec-fetch-site'];
-  if (site === 'cross-site' || site === 'same-site') return tr('origem não permitida para o terminal interativo');
+  if (site === 'cross-site' || site === 'same-site') return tr('origin not allowed for the interactive terminal');
   return null;
 }
 
@@ -47,11 +47,11 @@ export function createPtyRoutes(ptys: PtyManager): (req: IncomingMessage, res: S
   const fail = (res: ServerResponse, err: unknown) => {
     if (res.headersSent) return void res.destroy();
     if (err instanceof HttpError || err instanceof PtyError) sendJson(res, err.status, { error: err.message });
-    else sendJson(res, 500, { error: tr('erro interno') });
+    else sendJson(res, 500, { error: tr('internal error') });
   };
   const notAllowed = (res: ServerResponse, allow: string) => {
     res.setHeader('Allow', allow);
-    sendJson(res, 405, { error: tr('método não permitido') });
+    sendJson(res, 405, { error: tr('method not allowed') });
   };
   const noContent = (res: ServerResponse) => {
     res.writeHead(204, { 'Cache-Control': 'no-store' });
@@ -61,7 +61,7 @@ export function createPtyRoutes(ptys: PtyManager): (req: IncomingMessage, res: S
     try {
       return decodeURIComponent(raw);
     } catch {
-      throw new HttpError(400, tr('id inválido'));
+      throw new HttpError(400, tr('invalid id'));
     }
   };
 
@@ -97,7 +97,7 @@ export function createPtyRoutes(ptys: PtyManager): (req: IncomingMessage, res: S
     if (act === 'input') ptys.input(id, body?.data);
     else if (act === 'resize') ptys.resize(id, body?.cols, body?.rows);
     else if (act === 'close') ptys.close(id);
-    else throw new HttpError(404, tr('rota desconhecida'));
+    else throw new HttpError(404, tr('unknown route'));
     noContent(res);
   };
 

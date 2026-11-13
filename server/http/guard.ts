@@ -119,8 +119,8 @@ export function createRequestGuard(opts: GuardOptions = {}): (req: IncomingMessa
       reject(
         res,
         403,
-        tr('Host não permitido: {0}. Abra o Habblaud por http://localhost (ou pelo IP) ', [String(host).slice(0, 100)]) +
-          tr('ou libere o nome em HABBLAUD_ALLOWED_HOSTS.'),
+        tr('Host not allowed: {0}. Open Habblaud at http://localhost (or by IP) ', [String(host).slice(0, 100)]) +
+          tr('or allow the name in HABBLAUD_ALLOWED_HOSTS.'),
       );
       return true;
     }
@@ -128,12 +128,12 @@ export function createRequestGuard(opts: GuardOptions = {}): (req: IncomingMessa
     if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS') return false;
     const origin = typeof req.headers.origin === 'string' ? req.headers.origin : undefined;
     if (!originAllowed(origin, host, allowed)) {
-      reject(res, 403, tr('Origem não permitida.'));
+      reject(res, 403, tr('Origin not allowed.'));
       return true;
     }
     const path = (req.url ?? '/').split('?')[0];
     if (path.startsWith('/api/') && !isJsonContentType(req.headers['content-type'])) {
-      reject(res, 415, tr('Envie o corpo como JSON (Content-Type: application/json).'));
+      reject(res, 415, tr('Send the body as JSON (Content-Type: application/json).'));
       return true;
     }
     return false;

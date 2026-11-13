@@ -57,7 +57,7 @@ async function start(extra: Partial<ApiDeps> = {}, officeExtra: Partial<OfficeDe
   });
   await new Promise<void>((ok) => server.listen(0, '127.0.0.1', ok));
   const port = (server.address() as AddressInfo).port;
-  office.addMain({ id: '.claude:1', account: '.claude', sessionId: 's1', cwd: '/p/loja', role: 'Agente principal', startedAt: Date.now(), status: 'working' });
+  office.addMain({ id: '.claude:1', account: '.claude', sessionId: 's1', cwd: '/p/loja', role: 'Main agent', startedAt: Date.now(), status: 'working' });
   return {
     base: `http://127.0.0.1:${port}`,
     office,
@@ -125,7 +125,7 @@ describe('API HTTP', () => {
     };
     await readUntil(/event: feed\n/);
     expect(text).toMatch(/^retry: 2000\n\nevent: snapshot\ndata: \{/);
-    env.office.addActivity('.claude:1', { id: 'act-x', at: Date.now(), kind: 'read', icon: '📖', text: 'Lendo a.ts' }, true);
+    env.office.addActivity('.claude:1', { id: 'act-x', at: Date.now(), kind: 'read', icon: '📖', text: 'Reading a.ts' }, true);
     await readUntil(/"id":"act-x"/);
     expect(text).toContain('event: feed\ndata: [{"id":"act-x"');
     ctrl.abort();
@@ -167,7 +167,7 @@ describe('API HTTP', () => {
   it('terminal desligado: 403 JSON e meta.terminal false', async () => {
     const res = await fetch(`${env.base}/api/agents/${encodeURIComponent('.claude:1')}/terminal`);
     expect(res.status).toBe(403);
-    expect(((await res.json()) as { error: string }).error).toMatch(/desligado/);
+    expect(((await res.json()) as { error: string }).error).toMatch(/disabled/);
     expect((await snapshotOf(env.base)).meta.terminal).toBe(false);
   });
 
@@ -178,10 +178,10 @@ describe('API HTTP', () => {
       body: JSON.stringify({ name: 'Ana', seed: 1, parts: {} }),
     });
     expect(res.status).toBe(403);
-    expect(((await res.json()) as { error: string }).error).toMatch(/desligado/);
+    expect(((await res.json()) as { error: string }).error).toMatch(/disabled/);
     const del = await fetch(`${env.base}/api/agents/${encodeURIComponent('.claude:1')}/character`, { method: 'DELETE', headers: JSON_HEADERS, body: '{}' });
     expect(del.status).toBe(403);
-    expect(((await del.json()) as { error: string }).error).toMatch(/desligado/);
+    expect(((await del.json()) as { error: string }).error).toMatch(/disabled/);
   });
 
   it('POST /api/demo liga e desliga', async () => {
@@ -231,7 +231,7 @@ describe('API HTTP', () => {
   it('rotas desconhecidas: 404 JSON (inclusive o antigo POST /api/usage, que não existe mais)', async () => {
     const res = await fetch(`${env.base}/api/nada`);
     expect(res.status).toBe(404);
-    expect(await res.json()).toEqual({ error: 'rota desconhecida' });
+    expect(await res.json()).toEqual({ error: 'unknown route' });
     const usage = await fetch(`${env.base}/api/usage`, { method: 'POST', headers: JSON_HEADERS, body: '{"accounts":[]}' });
     expect(usage.status).toBe(404);
   });
@@ -316,11 +316,11 @@ describe('personagem do projeto (PUT/DELETE /api/agents/:id/character)', () => {
     expect((await put({ name: 'Ana', seed: 1, parts: {} }, 's1:x')).status).toBe(404);
     expect((await put({ name: 'Ana', seed: 1, parts: {} }, 'nao-existe')).status).toBe(404);
     for (const id of ['s1:x', 'nao-existe']) expect((await fetch(url(id), { method: 'DELETE', headers: JSON_HEADERS, body: '{}' })).status).toBe(404);
-    env.office.addMain({ id: '.claude:2', account: '.claude', sessionId: 's2', cwd: '/p/web', role: 'Agente principal', startedAt: Date.now(), status: 'working' });
+    env.office.addMain({ id: '.claude:2', account: '.claude', sessionId: 's2', cwd: '/p/web', role: 'Main agent', startedAt: Date.now(), status: 'working' });
     const other = env.office.get('.claude:2')!.name;
     const res = await put({ name: other, seed: 1, parts: {} });
     expect(res.status).toBe(409);
-    expect(((await res.json()) as { error: string }).error).toBe(`${other} já está no escritório em web`);
+    expect(((await res.json()) as { error: string }).error).toBe(`${other} is already in the office, in web`);
   });
 
   it('403 com Host que não é local (mesmo liberado em HABBLAUD_ALLOWED_HOSTS); 405 para GET', async () => {
@@ -331,7 +331,7 @@ describe('personagem do projeto (PUT/DELETE /api/agents/:id/character)', () => {
       body: JSON.stringify({ name: 'Ana', seed: 1, parts: {} }),
     });
     expect(r.status).toBe(403);
-    expect(r.body).toMatch(/próprio computador/);
+    expect(r.body).toMatch(/computer running Habblaud/);
     const get = await fetch(url());
     expect(get.status).toBe(405);
     expect(get.headers.get('allow')).toBe('PUT, DELETE');
@@ -349,10 +349,10 @@ describe('GET /api/mod/summary (mod do Claude Code)', () => {
     const now = Date.now();
     // .claude:1 (sessão s1, /p/loja, trabalhando) vem do start(); um subagente dela espera em segundo plano.
     env.office.addSub({ id: 's1:a1', parentId: '.claude:1', sessionId: 's1', role: 'Explore', background: true, startedAt: now });
-    env.office.setStatus('s1:a1', 'waiting', 'aprovar uma permissão');
+    env.office.setStatus('s1:a1', 'waiting', 'approve a permission');
     // Outra sessão da mesma conta, esperando há mais tempo, e uma da outra conta com o mesmo id de sessão.
-    env.office.addMain({ id: '.claude:2', account: '.claude', sessionId: 's2', cwd: '/p/app', role: 'Agente principal', startedAt: now, status: 'waiting', waitingFor: 'responder no terminal' });
-    env.office.addMain({ id: '.claude-conta2:3', account: '.claude-conta2', sessionId: 's1', cwd: '/p/site', role: 'Agente principal', startedAt: now, status: 'idle' });
+    env.office.addMain({ id: '.claude:2', account: '.claude', sessionId: 's2', cwd: '/p/app', role: 'Main agent', startedAt: now, status: 'waiting', waitingFor: 'answer in the terminal' });
+    env.office.addMain({ id: '.claude-conta2:3', account: '.claude-conta2', sessionId: 's1', cwd: '/p/site', role: 'Main agent', startedAt: now, status: 'idle' });
   });
   afterEach(async () => {
     await env.close();
@@ -364,7 +364,7 @@ describe('GET /api/mod/summary (mod do Claude Code)', () => {
     expect(s).toMatchObject({ version: '9.9.9', agents: 4, working: 1 });
     expect(s.waiting.map((w) => w.id).sort()).toEqual(['.claude:2', 's1:a1']);
     const app = s.waiting.find((w) => w.id === '.claude:2')!;
-    expect(app).toEqual({ id: '.claude:2', name: app.name, room: 'app', account: '.claude', waitingFor: 'responder no terminal', since: app.since, answerable: false });
+    expect(app).toEqual({ id: '.claude:2', name: app.name, room: 'app', account: '.claude', waitingFor: 'answer in the terminal', since: app.since, answerable: false });
     expect(typeof app.since).toBe('number');
     expect(s.waiting.map((w) => w.since)).toEqual([...s.waiting.map((w) => w.since!)].sort((a, b) => a - b));
   });
@@ -382,7 +382,7 @@ describe('GET /api/mod/summary (mod do Claude Code)', () => {
     perms.set('.claude:2', { id: 'p1', tool: 'Bash', title: 'Bash(npm test)', text: 'Rodando os testes', icon: '🧪', createdAt: Date.now(), expiresAt: Date.now() + 300_000 });
     env.office.markDirty();
     const s = await summary('?account=.claude&session=s1');
-    expect(s.waiting).toMatchObject([{ id: '.claude:2', answerable: true, waitingFor: 'responder no terminal' }]);
+    expect(s.waiting).toMatchObject([{ id: '.claude:2', answerable: true, waitingFor: 'answer in the terminal' }]);
   });
 
   it('agentes do demo ficam de fora (mesmo esperando); quem encerrou também', async () => {

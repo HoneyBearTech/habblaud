@@ -9,11 +9,11 @@ const win = { utilization: 42, resetsAt: 10 * 60 * MIN };
 
 describe('sourceLabel', () => {
   it('diz quem gravou o uso ao vivo', () => {
-    expect(sourceLabel({ source: 'statusline', via: 'mod', fetchedAt: 0 })).toBe('ao vivo (mod do Habblaud)');
-    expect(sourceLabel({ source: 'statusline', via: 'tap', fetchedAt: 0 })).toBe('ao vivo (statusline do Claude Code)');
-    expect(sourceLabel({ source: 'statusline', fetchedAt: 0 })).toBe('ao vivo (statusline do Claude Code)');
-    expect(sourceLabel({ source: 'cache', fetchedAt: 0 })).toBe('cache do /usage do Claude Code');
-    expect(sourceLabel({ source: 'codex', fetchedAt: 0 })).toBe('arquivos do Codex');
+    expect(sourceLabel({ source: 'statusline', via: 'mod', fetchedAt: 0 })).toBe('live (Habblaud mod)');
+    expect(sourceLabel({ source: 'statusline', via: 'tap', fetchedAt: 0 })).toBe('live (Claude Code statusline)');
+    expect(sourceLabel({ source: 'statusline', fetchedAt: 0 })).toBe('live (Claude Code statusline)');
+    expect(sourceLabel({ source: 'cache', fetchedAt: 0 })).toBe('Claude Code /usage cache');
+    expect(sourceLabel({ source: 'codex', fetchedAt: 0 })).toBe('Codex files');
   });
 });
 
@@ -21,8 +21,8 @@ describe('cartão de uso de uma conta do Codex', () => {
   it('"sem cota" é um estado próprio (nunca 0% nem "sem dados")', () => {
     const noQuota = codex({ usage: { source: 'codex', noQuota: true, fetchedAt: 0 } });
     expect(cardState(noQuota)).toBe('noquota');
-    expect(usageMessage(noQuota)).toEqual(['sem cota', 'sem cota']);
-    expect(codexUsageNote(noQuota, 3 * MIN)).toMatch(/^Na última leitura \(há 3 min\), a conta estava sem cota nem créditos .*Não é 0%/);
+    expect(usageMessage(noQuota)).toEqual(['no quota', 'no quota']);
+    expect(codexUsageNote(noQuota, 3 * MIN)).toMatch(/^At the last reading \(3 min ago\), the account had no quota or credits .*It's not 0%/);
     expect(cardState(codex({ usage: { source: 'codex', fiveHour: win, fetchedAt: 0 } }))).toBe('ok');
     expect(cardState(codex({ usage: { source: 'codex', fiveHour: win, fetchedAt: 0 }, usageStatus: 'stale' }))).toBe('stale');
     expect(cardState(codex())).toBe('empty');
@@ -35,16 +35,16 @@ describe('cartão de uso de uma conta do Codex', () => {
     expect(showsUsageAge(codex())).toBe(false);
     expect(showsUsageAge({ usage: { ...fresh, source: 'statusline' }, usageStatus: 'ok' })).toBe(false);
     expect(showsUsageAge({ usage: { ...fresh, source: 'cache' }, usageStatus: 'stale' })).toBe(true);
-    expect(codexUsageNote(codex({ usage: fresh }), 12 * MIN)).toBe('O Codex só grava o uso enquanto alguma sessão roda: estes números são da última leitura (há 12 min).');
+    expect(codexUsageNote(codex({ usage: fresh }), 12 * MIN)).toBe('Codex only records usage while a session is running: these numbers are from the last reading (12 min ago).');
   });
 
   it('sem números: não há o que instalar; embaixo do nome, o plano (sem e-mail)', () => {
-    expect(usageMessage(codex())).toEqual(['sem dados ainda', 'sem dados']);
-    expect(codexUsageNote(codex(), 0)).toBe('Não precisa instalar nada: os números chegam com a próxima sessão do Codex.');
-    expect(usageSubtitle(codex())).toBe('plano Team');
+    expect(usageMessage(codex())).toEqual(['no data yet', 'no data']);
+    expect(codexUsageNote(codex(), 0)).toBe('Nothing to install: the numbers arrive with the next Codex session.');
+    expect(usageSubtitle(codex())).toBe('Team plan');
     expect(usageSubtitle(codex({ plan: undefined }))).toBe('Codex');
     // Claude Code: como antes.
-    expect(usageMessage({ usageStatus: 'disabled' })).toEqual(['sem dados de uso', 'sem dados']);
+    expect(usageMessage({ usageStatus: 'disabled' })).toEqual(['no usage data', 'no data']);
     expect(usageSubtitle({ email: 'a@b.c', configDir: '~/.claude' })).toBe('a@b.c');
     expect(usageSubtitle({ configDir: '~/.claude' })).toBe('~/.claude');
     expect(codexUsageNote({ usageStatus: 'ok' }, 0)).toBe('');

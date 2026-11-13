@@ -49,7 +49,7 @@ export function answerSummary(questions: readonly AskQuestion[], answers: readon
   const parts = answers.flatMap((a) => {
     const q = questions.find((x) => x.index === a.question);
     if (!q) return [];
-    const labels = (a.options ?? []).map((i) => q.options.find((o) => o.index === i)?.label ?? tr('opção {0}', [i + 1]));
+    const labels = (a.options ?? []).map((i) => q.options.find((o) => o.index === i)?.label ?? tr('option {0}', [i + 1]));
     if (a.other) labels.push(`“${truncate(maskSecrets(a.other.slice(0, ANSWER_OTHER_MAX)), 80)}”`);
     return [`${q.header ?? truncate(q.question, 40)}: ${labels.join(', ')}`];
   });

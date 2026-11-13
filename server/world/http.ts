@@ -85,13 +85,13 @@ async function readBody(req: IncomingMessage): Promise<Record<string, unknown>> 
     const code = status === 415 ? 'unsupported_media_type' : status === 413 ? 'too_large' : 'invalid_json';
     throw new BodyError(status, code, (err as Error).message);
   }
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new BodyError(400, 'invalid', tr('esperado um objeto JSON'));
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new BodyError(400, 'invalid', tr('expected a JSON object'));
   return raw as Record<string, unknown>;
 }
 
 function email(v: unknown): string {
   const s = typeof v === 'string' ? v.trim() : '';
-  if (s.length < 3 || s.length > 254 || !EMAIL_RE.test(s)) throw new BodyError(400, 'invalid_email', tr('e-mail inválido'));
+  if (s.length < 3 || s.length > 254 || !EMAIL_RE.test(s)) throw new BodyError(400, 'invalid_email', tr('invalid email'));
   return s;
 }
 
@@ -99,7 +99,7 @@ function email(v: unknown): string {
 function password(v: unknown): string {
   const len = typeof v === 'string' ? [...v.normalize('NFC')].length : 0;
   if (typeof v !== 'string' || len < PASSWORD_LIMITS.min || len > PASSWORD_LIMITS.max) {
-    throw new BodyError(400, 'password_invalid', tr('a senha precisa ter de {0} a {1} caracteres', [PASSWORD_LIMITS.min, PASSWORD_LIMITS.max]));
+    throw new BodyError(400, 'password_invalid', tr('the password must be {0} to {1} characters long', [PASSWORD_LIMITS.min, PASSWORD_LIMITS.max]));
   }
   return v;
 }
@@ -107,14 +107,14 @@ function password(v: unknown): string {
 /** Código de 6 dígitos do e-mail (espaços e hífens colados junto são tirados). */
 function code(v: unknown): string {
   const s = typeof v === 'string' ? v.replace(/[\s-]/g, '') : '';
-  if (!/^\d{6}$/.test(s)) throw new BodyError(400, 'invalid_code', tr('o código tem 6 dígitos'));
+  if (!/^\d{6}$/.test(s)) throw new BodyError(400, 'invalid_code', tr('the code has 6 digits'));
   return s;
 }
 
 /** Nome de jogador (do cadastro e do personagem), arrumado e conferido pelas regras locais; o servidor do mundo confere de novo. */
 function playerName(v: unknown): string {
   const name = parsePlayerName(v);
-  if (!name.ok) throw new BodyError(422, name.code, tr('nome de jogador recusado ({0})', [name.problem]));
+  if (!name.ok) throw new BodyError(422, name.code, tr('player name refused ({0})', [name.problem]));
   return name.name;
 }
 
@@ -124,7 +124,7 @@ function character(body: Record<string, unknown>): PlayerInput {
   const parts = parseAppearanceParts(body.parts ?? {});
   const traits = parsePlayerTraits(body.traits);
   if ((body.look !== 'f' && body.look !== 'm') || !parts || !traits || !isIntroId(body.intro)) {
-    throw new BodyError(422, 'invalid', tr('esperado {name?, look: "f" ou "m", parts, traits: 2 ou 3 traços que combinam, intro}'));
+    throw new BodyError(422, 'invalid', tr('expected {name?, look: "f" or "m", parts, traits: 2 or 3 traits that go together, intro}'));
   }
   return { ...(name !== undefined ? { name } : {}), look: body.look, parts, traits, intro: body.intro };
 }
@@ -162,9 +162,9 @@ export function createWorldRoutes(service: WorldService, viewer?: WorldViewer, s
         const b = await readBody(req);
         // Como no servidor do mundo, o nome é conferido antes da senha.
         const input = { email: email(b.email), name: playerName(b.name), password: password(b.password) };
-        if (b.locale !== undefined && !isWorldLocale(b.locale)) throw new BodyError(400, 'invalid', tr('idioma desconhecido'));
+        if (b.locale !== undefined && !isWorldLocale(b.locale)) throw new BodyError(400, 'invalid', tr('unknown language'));
         if (b.invite !== undefined && (typeof b.invite !== 'string' || !/^[A-Za-z0-9_-]{1,64}$/.test(b.invite))) {
-          throw new BodyError(400, 'invalid', tr('código de convite inválido'));
+          throw new BodyError(400, 'invalid', tr('invalid invite code'));
         }
         sendOutcome(res, await service.register({ ...input, locale: isWorldLocale(b.locale) ? b.locale : undefined, invite: typeof b.invite === 'string' ? b.invite : undefined }));
       },
@@ -183,7 +183,7 @@ export function createWorldRoutes(service: WorldService, viewer?: WorldViewer, s
       run: async (req, res) => {
         const b = await readBody(req);
         // Na entrada, a senha só precisa existir: a regra de tamanho pode mudar e quem confere é o servidor do mundo.
-        if (typeof b.password !== 'string' || !b.password || b.password.length > 1024) throw new BodyError(400, 'password_invalid', tr('senha ausente'));
+        if (typeof b.password !== 'string' || !b.password || b.password.length > 1024) throw new BodyError(400, 'password_invalid', tr('missing password'));
         sendOutcome(res, await service.login({ email: email(b.email), password: b.password }));
       },
     },
@@ -223,7 +223,7 @@ export function createWorldRoutes(service: WorldService, viewer?: WorldViewer, s
       account: true,
       run: async (req, res) => {
         const v = parseVisibility(await readBody(req));
-        if (!v) throw new BodyError(422, 'invalid', tr('esperado {mode: "live" ou "discreet", closed, hideCountry, tokensVisible, leaderboard, compactions, notifyInactivity?, knocks?}'));
+        if (!v) throw new BodyError(422, 'invalid', tr('expected {mode: "live" or "discreet", closed, hideCountry, tokensVisible, leaderboard, compactions, notifyInactivity?, knocks?}'));
         sendOutcome(res, await service.setVisibility(v));
       },
     },
@@ -238,7 +238,7 @@ export function createWorldRoutes(service: WorldService, viewer?: WorldViewer, s
       account: true,
       run: async (req, res) => {
         const b = await readBody(req);
-        if (!isWorldThemeChoice(b.theme)) throw new BodyError(422, 'invalid', tr('esperado {theme: "auto", "none", "halloween" ou "christmas"}'));
+        if (!isWorldThemeChoice(b.theme)) throw new BodyError(422, 'invalid', tr('expected {theme: "auto", "none", "halloween" or "christmas"}'));
         sendOutcome(res, service.setTheme(b.theme));
       },
     },
@@ -282,8 +282,8 @@ export function createWorldRoutes(service: WorldService, viewer?: WorldViewer, s
       method: 'GET',
       account: true,
       run: async (req, res) => {
-        if (!viewer) throw new BodyError(409, 'not_configured', tr('Habblaud World desligado: HABBLAUD_WORLD_URL recusada (veja o log do servidor)'));
-        if (!sameOriginRequest(req)) throw new BodyError(403, 'local_only', tr('a cena Mundo só abre pela própria página do Habblaud'));
+        if (!viewer) throw new BodyError(409, 'not_configured', tr('Habblaud World is off: HABBLAUD_WORLD_URL was rejected (see the server log)'));
+        if (!sameOriginRequest(req)) throw new BodyError(403, 'local_only', tr("the World scene only opens from Habblaud's own page"));
         if (req.method === 'HEAD') {
           res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-cache' });
           return void res.end();
@@ -298,7 +298,7 @@ export function createWorldRoutes(service: WorldService, viewer?: WorldViewer, s
       account: true,
       run: async (req, res) => {
         const body = await readBody(req);
-        if (!viewer) throw new BodyError(409, 'not_configured', tr('Habblaud World desligado: HABBLAUD_WORLD_URL recusada (veja o log do servidor)'));
+        if (!viewer) throw new BodyError(409, 'not_configured', tr('Habblaud World is off: HABBLAUD_WORLD_URL was rejected (see the server log)'));
         const r = viewer.command(body);
         if (!r.ok) return sendError(res, r.status, r.code, undefined, r.retryAfter);
         sendJson(res, 202, r.data);
@@ -325,7 +325,7 @@ export function createWorldRoutes(service: WorldService, viewer?: WorldViewer, s
       method: 'GET',
       account: true,
       run: async (req, res) => {
-        if (!sameOriginRequest(req)) throw new BodyError(403, 'local_only', tr('os dados da conta só saem pela própria página do Habblaud'));
+        if (!sameOriginRequest(req)) throw new BodyError(403, 'local_only', tr("the account data only leaves through Habblaud's own page"));
         if (req.method === 'HEAD') {
           res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
           return void res.end();
@@ -347,7 +347,7 @@ export function createWorldRoutes(service: WorldService, viewer?: WorldViewer, s
   const fail = (res: ServerResponse, err: unknown) => {
     if (res.headersSent) return void res.destroy();
     if (err instanceof BodyError) sendError(res, err.status, err.code, err.message);
-    else sendError(res, 500, 'internal', tr('erro interno'));
+    else sendError(res, 500, 'internal', tr('internal error'));
   };
 
   return (req, res, url) => {
@@ -365,7 +365,7 @@ export function createWorldRoutes(service: WorldService, viewer?: WorldViewer, s
               try {
                 id = decodeURIComponent(revoke[1]);
               } catch {
-                throw new BodyError(404, 'not_found', tr('dispositivo desconhecido'));
+                throw new BodyError(404, 'not_found', tr('unknown device'));
               }
               sendOutcome(s, await service.revokeDevice(id));
             },
@@ -374,20 +374,20 @@ export function createWorldRoutes(service: WorldService, viewer?: WorldViewer, s
     const method = req.method ?? 'GET';
     if (!route) {
       req.resume();
-      return sendError(res, 404, 'not_found', tr('rota desconhecida'));
+      return sendError(res, 404, 'not_found', tr('unknown route'));
     }
     if (method !== route.method && !(route.method === 'GET' && method === 'HEAD')) {
       req.resume();
       res.setHeader('Allow', route.method);
-      return sendError(res, 405, 'method_not_allowed', tr('método não permitido'));
+      return sendError(res, 405, 'method_not_allowed', tr('method not allowed'));
     }
     if (route.account && !service.available) {
       req.resume();
-      return sendError(res, 403, 'terminal_off', tr('o Habblaud World só age pela conta com o Habblaud acessível apenas pelo próprio computador'));
+      return sendError(res, 403, 'terminal_off', tr('Habblaud World only acts on your account when Habblaud is reachable only from this computer'));
     }
     if (route.account && !service.configured) {
       req.resume();
-      return sendError(res, 409, 'not_configured', tr('Habblaud World desligado: HABBLAUD_WORLD_URL recusada (veja o log do servidor)'));
+      return sendError(res, 409, 'not_configured', tr('Habblaud World is off: HABBLAUD_WORLD_URL was rejected (see the server log)'));
     }
     route.run(req, res, url).catch((err) => fail(res, err));
   };

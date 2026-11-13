@@ -51,9 +51,9 @@ export function fileType(path: string): { kind: DeliveryAttachmentKind; type: st
 
 /** Motivo para NÃO mostrar o caminho (só olhando o texto), ou undefined. */
 export function pathProblem(path: string): string | undefined {
-  if (!path || path.includes('\0') || !path.startsWith('/') || /(^|\/)\.\.(\/|$)/.test(path)) return tr('caminho inválido');
-  if (!fileType(path)) return tr('tipo de arquivo que não se mostra aqui');
-  if (SECRET_DIRS.test(path) || SECRET_NAMES.test(path)) return tr('arquivo protegido');
+  if (!path || path.includes('\0') || !path.startsWith('/') || /(^|\/)\.\.(\/|$)/.test(path)) return tr('invalid path');
+  if (!fileType(path)) return tr("file type that can't be shown here");
+  if (SECRET_DIRS.test(path) || SECRET_NAMES.test(path)) return tr('protected file');
   return undefined;
 }
 
@@ -70,12 +70,12 @@ export function checkFile(
     real = fs.realpath(path);
     st = fs.stat(real);
   } catch {
-    return { error: tr('arquivo não encontrado') };
+    return { error: tr('file not found') };
   }
   const realBad = pathProblem(real);
   if (realBad) return { error: realBad };
-  if (!st.isFile()) return { error: tr('não é um arquivo') };
-  if (st.size > DELIVERY_FILE_MAX_BYTES) return { error: tr('arquivo grande demais para ver aqui') };
+  if (!st.isFile()) return { error: tr('not a file') };
+  if (st.size > DELIVERY_FILE_MAX_BYTES) return { error: tr('file too large to view here') };
   return { path: real, size: st.size };
 }
 

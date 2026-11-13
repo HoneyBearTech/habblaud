@@ -44,28 +44,28 @@ const n = (v: number) => v.toLocaleString(intlLocale());
 export function awaySummaryView(s: AwaySummary): AwaySummaryView {
   const stampsTotal = s.stamps.reduce((t, x) => t + x.count, 0);
   const since = dayLabel(s.since);
-  const visits = s.visits === 1 ? tr('1 visita') : tr('{0} visitas', [n(s.visits)]);
+  const visits = s.visits === 1 ? tr('1 visit') : tr('{0} visits', [n(s.visits)]);
   const likes = s.likes === 1 ? tr('1 like') : tr('{0} likes', [n(s.likes)]);
-  const stamps = stampsTotal === 1 ? tr('1 carimbo') : tr('{0} carimbos', [n(stampsTotal)]);
+  const stamps = stampsTotal === 1 ? tr('1 stamp') : tr('{0} stamps', [n(stampsTotal)]);
   return {
-    since: since ? tr('desde {0}', [since]) : '',
+    since: since ? tr('since {0}', [since]) : '',
     stats: [
-      { key: 'visits', icon: '🚶', value: n(s.visits), label: s.visits === 1 ? tr('visita') : tr('visitas') },
+      { key: 'visits', icon: '🚶', value: n(s.visits), label: s.visits === 1 ? tr('visit') : tr('visits') },
       { key: 'likes', icon: '❤️', value: n(s.likes), label: s.likes === 1 ? tr('like') : tr('likes') },
-      { key: 'stamps', icon: '📮', value: n(stampsTotal), label: stampsTotal === 1 ? tr('carimbo') : tr('carimbos') },
+      { key: 'stamps', icon: '📮', value: n(stampsTotal), label: stampsTotal === 1 ? tr('stamp') : tr('stamps') },
     ],
     stamps: [...s.stamps]
       .filter((x) => x.count > 0)
       .sort((a, b) => b.count - a.count)
       .map((x) => ({ id: x.stampId, icon: stampIcon(x.stampId), label: stampLabel(x.stampId), count: x.count })),
-    sentence: tr('Enquanto você estava fora: {0}, {1} e {2}.', [visits, likes, stamps]),
+    sentence: tr('While you were away: {0}, {1} and {2}.', [visits, likes, stamps]),
   };
 }
 
 /** "❤️ 3 hoje" no chip da barra (null = nada: sem likes hoje ou o prédio não está aceso). */
 export function likesTodayChip(state: string | null, likes: number | undefined): { text: string; title: string } | null {
   if (state !== 'live' || !likes || likes < 1) return null;
-  return { text: tr('❤️ {0} hoje', [likes]), title: likes === 1 ? tr('Seu prédio ganhou 1 like hoje.') : tr('Seu prédio ganhou {0} likes hoje.', [likes]) };
+  return { text: tr('❤️ {0} today', [likes]), title: likes === 1 ? tr('Your building got 1 like today.') : tr('Your building got {0} likes today.', [likes]) };
 }
 
 /** Chave de um resumo (o mesmo resumo não aparece duas vezes no canto). */
@@ -96,7 +96,7 @@ function summaryBody(v: AwaySummaryView, compact: boolean): HTMLElement {
   const wall = v.stamps.length
     ? h(
         'ul',
-        { class: 'ui-away__stamps', attrs: { 'aria-label': tr('Carimbos na portaria') } },
+        { class: 'ui-away__stamps', attrs: { 'aria-label': tr('Stamps at the front desk') } },
         ...v.stamps.map((st, i) =>
           h(
             'li',
@@ -136,23 +136,23 @@ export class BuildingSocial {
 
   constructor(private readonly host: BuildingSocialHost) {
     this.code = h('code', { class: 'ui-away__code' });
-    this.copyBtn = h('button', { class: 'ui-btn ui-btn--sm', type: 'button', text: tr('Copiar'), on: { click: () => void this.copy() } });
+    this.copyBtn = h('button', { class: 'ui-btn ui-btn--sm', type: 'button', text: tr('Copy'), on: { click: () => void this.copy() } });
     this.codeRow = h(
       'div',
       { class: 'ui-away__coderow', hidden: true },
-      h('span', { class: 'ui-away__codelabel', text: tr('Código do prédio') }),
+      h('span', { class: 'ui-away__codelabel', text: tr('Building code') }),
       this.code,
       this.copyBtn,
-      h('span', { class: 'ui-set__hint ui-away__codehint', text: tr('Mande a um amigo: na cidade, "Ir para" leva direto à sua porta.') }),
+      h('span', { class: 'ui-set__hint ui-away__codehint', text: tr('Send it to a friend: in the city, "Go to" takes them straight to your door.') }),
     );
     this.since = h('span', { class: 'ui-away__since' });
     this.summaryBody = h('div');
-    this.seenBtn = h('button', { class: 'ui-btn ui-btn--sm ui-btn--primary', type: 'button', text: tr('Ok, vi'), on: { click: () => void this.seen() } });
+    this.seenBtn = h('button', { class: 'ui-btn ui-btn--sm ui-btn--primary', type: 'button', text: tr('Got it'), on: { click: () => void this.seen() } });
     this.error = h('p', { class: 'ui-world__error', role: 'alert', hidden: true });
     this.summary = h(
       'section',
-      { class: 'ui-away ui-away--inline', hidden: true, attrs: { 'aria-label': tr('Enquanto você estava fora') } },
-      h('div', { class: 'ui-away__head' }, h('span', { class: 'ui-away__badge', text: '📬', attrs: { 'aria-hidden': 'true' } }), h('div', { class: 'ui-away__titles' }, h('strong', { class: 'ui-away__title', text: tr('Enquanto você estava fora') }), this.since)),
+      { class: 'ui-away ui-away--inline', hidden: true, attrs: { 'aria-label': tr('While you were away') } },
+      h('div', { class: 'ui-away__head' }, h('span', { class: 'ui-away__badge', text: '📬', attrs: { 'aria-hidden': 'true' } }), h('div', { class: 'ui-away__titles' }, h('strong', { class: 'ui-away__title', text: tr('While you were away') }), this.since)),
       this.summaryBody,
       h('div', { class: 'ui-away__actions' }, this.seenBtn),
       this.error,
@@ -183,8 +183,8 @@ export class BuildingSocial {
     const code = this.host.building()?.code;
     if (!code) return;
     const ok = await copyText(code);
-    setText(this.copyBtn, ok ? tr('Copiado') : tr('Copiar'));
-    setTimeout(() => setText(this.copyBtn, tr('Copiar')), 1600);
+    setText(this.copyBtn, ok ? tr('Copied') : tr('Copy'));
+    setTimeout(() => setText(this.copyBtn, tr('Copy')), 1600);
   }
 
   private async seen(): Promise<void> {
@@ -242,8 +242,8 @@ export class WorldSocialNotifier implements UiComponent {
     this.since = h('span', { class: 'ui-away__since' });
     this.body = h('div');
     this.error = h('p', { class: 'ui-world__error', role: 'alert', hidden: true });
-    this.seenBtn = h('button', { class: 'ui-btn ui-btn--sm ui-btn--primary', type: 'button', text: tr('Ok, vi'), on: { click: () => void this.dismiss() } });
-    const close = h('button', { class: 'ui-away__close', type: 'button', text: '×', title: tr('Fechar'), attrs: { 'aria-label': tr('Fechar') }, on: { click: () => void this.dismiss() } });
+    this.seenBtn = h('button', { class: 'ui-btn ui-btn--sm ui-btn--primary', type: 'button', text: tr('Got it'), on: { click: () => void this.dismiss() } });
+    const close = h('button', { class: 'ui-away__close', type: 'button', text: '×', title: tr('Close'), attrs: { 'aria-label': tr('Close') }, on: { click: () => void this.dismiss() } });
     this.el = h(
       'section',
       { class: 'ui-away ui-away--float', hidden: true, role: 'dialog', attrs: { 'aria-labelledby': titleId, 'aria-modal': 'false' } },
@@ -251,14 +251,14 @@ export class WorldSocialNotifier implements UiComponent {
         'div',
         { class: 'ui-away__head' },
         h('span', { class: 'ui-away__badge', text: '📬', attrs: { 'aria-hidden': 'true' } }),
-        h('div', { class: 'ui-away__titles' }, h('strong', { class: 'ui-away__title', text: tr('Enquanto você estava fora'), attrs: { id: titleId } }), this.since),
+        h('div', { class: 'ui-away__titles' }, h('strong', { class: 'ui-away__title', text: tr('While you were away'), attrs: { id: titleId } }), this.since),
         close,
       ),
       this.body,
       h(
         'div',
         { class: 'ui-away__actions' },
-        h('button', { class: 'ui-link-btn', type: 'button', text: tr('Ver o meu prédio'), on: { click: () => this.hooks.openWorld() } }),
+        h('button', { class: 'ui-link-btn', type: 'button', text: tr('See my building'), on: { click: () => this.hooks.openWorld() } }),
         this.seenBtn,
       ),
       this.error,
@@ -285,7 +285,7 @@ export class WorldSocialNotifier implements UiComponent {
     const k = newKnocks(this.knocksSeen, b?.knocks);
     this.knocksSeen = k.last;
     if (k.fresh > 0) {
-      const text = k.fresh === 1 ? tr('Alguém bateu na porta do seu prédio.') : tr('Bateram {0} vezes na porta do seu prédio.', [k.fresh]);
+      const text = k.fresh === 1 ? tr("Someone knocked on your building's door.") : tr("Someone knocked {0} times on your building's door.", [k.fresh]);
       this.hooks.toast({ id: `world-knock-${Date.now()}`, level: 'info', text: `🚪 ${text}`, at: Date.now() });
       this.ctx.announce(text);
     }

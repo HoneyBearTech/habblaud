@@ -21,7 +21,7 @@ function agent(p: Partial<AgentInfo> & { id: string }): AgentInfo {
     roomId: '/p/loja',
     name: 'Ana',
     look: 'f',
-    role: 'Agente principal',
+    role: 'Main agent',
     sessionId: `sess-${p.id}`,
     account: '.claude',
     status: 'working',
@@ -47,7 +47,7 @@ function snapOf(agents: AgentInfo[], demo = false): Snap {
     ],
     accounts: [
       { id: '.claude', short: 'C', name: 'Conta C', color: '#f08a3c', configDir: '~/.claude', sessions: 1, usageStatus: 'disabled' },
-      { id: 'demo:.claude', short: 'X', name: 'Demo X', color: '#5cc97b', configDir: '(demonstração)', sessions: 1, usageStatus: 'ok' },
+      { id: 'demo:.claude', short: 'X', name: 'Demo X', color: '#5cc97b', configDir: '(demo)', sessions: 1, usageStatus: 'ok' },
     ],
     meta: { demo, sources: [], startedAt: 0, version: 'teste' },
   };
@@ -87,7 +87,7 @@ describe('DayStatsService: persistência', () => {
       const env = setup(dir);
       const svc = env.make();
       svc.load();
-      env.set(snapOf([agent({ id: 'a', status: 'waiting', statusSince: T0 - MIN, waitingFor: 'aprovar uma permissão' })]));
+      env.set(snapOf([agent({ id: 'a', status: 'waiting', statusSince: T0 - MIN, waitingFor: 'approve a permission' })]));
       svc.sample();
       env.run(svc, T0 + 90 * S);
       svc.stop();

@@ -90,20 +90,20 @@ export class TeleportPanel {
     this.input = h('input', {
       class: 'ui-city-tp__input',
       type: 'text',
-      attrs: { placeholder: 'HB-XXXX', maxlength: 9, autocomplete: 'off', autocapitalize: 'characters', spellcheck: 'false', 'aria-label': tr('Código do prédio') },
+      attrs: { placeholder: 'HB-XXXX', maxlength: 9, autocomplete: 'off', autocapitalize: 'characters', spellcheck: 'false', 'aria-label': tr('Building code') },
     });
-    this.goBtn = h('button', { class: 'ui-city-tp__go', type: 'submit', text: tr('Ir'), title: tr('Ir até a porta deste prédio') });
+    this.goBtn = h('button', { class: 'ui-city-tp__go', type: 'submit', text: tr('Go'), title: tr("Go to this building's door") });
     this.diceBtn = h(
       'button',
-      { class: 'ui-city-tp__dice', type: 'button', title: tr('Visitar um prédio aleatório'), attrs: { 'aria-label': tr('Visitar um prédio aleatório') }, on: { click: () => this.actions.random() } },
+      { class: 'ui-city-tp__dice', type: 'button', title: tr('Visit a random building'), attrs: { 'aria-label': tr('Visit a random building') }, on: { click: () => this.actions.random() } },
       h('span', { text: '🎲', attrs: { 'aria-hidden': 'true' } }),
-      h('span', { class: 'ui-city-tp__dice-text', text: tr('Aleatório') }),
+      h('span', { class: 'ui-city-tp__dice-text', text: tr('Random') }),
     );
     this.error = h('p', { class: 'ui-city-tp__error', role: 'alert', hidden: true });
     const form = h(
       'form',
-      { class: 'ui-city-tp__form', attrs: { 'aria-label': tr('Ir para um prédio pelo código') } },
-      h('span', { class: 'ui-city-tp__label', text: tr('Ir para'), attrs: { 'aria-hidden': 'true' } }),
+      { class: 'ui-city-tp__form', attrs: { 'aria-label': tr('Go to a building by its code') } },
+      h('span', { class: 'ui-city-tp__label', text: tr('Go to'), attrs: { 'aria-hidden': 'true' } }),
       this.input,
       this.goBtn,
     );
@@ -139,7 +139,7 @@ export class TeleportPanel {
   private submit(): void {
     const code = normalizeBuildingCode(this.input.value);
     if (!code) {
-      this.showError(tr('O código tem o formato HB-XXXX (letras e números, sem 0, O, 1, I, L e U).'));
+      this.showError(tr('The code looks like HB-XXXX (letters and numbers, no 0, O, 1, I, L or U).'));
       return;
     }
     this.input.value = code;

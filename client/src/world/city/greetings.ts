@@ -173,8 +173,8 @@ export class GreetingWheel {
     this.to = h('strong', { class: 'ui-city-wheel__to' });
     this.hint = h('span', { class: 'ui-city-wheel__hint' });
     this.arrow = h('span', { class: 'ui-city-wheel__arrow', attrs: { 'aria-hidden': 'true' } });
-    this.center = h('div', { class: 'ui-city-wheel__center' }, h('span', { class: 'ui-city-wheel__label', text: tr('Cumprimentar') }), this.to, this.hint);
-    this.ring = h('div', { class: 'ui-city-wheel__ring', role: 'menu', attrs: { 'aria-label': tr('Cumprimentos') } });
+    this.center = h('div', { class: 'ui-city-wheel__center' }, h('span', { class: 'ui-city-wheel__label', text: tr('Greet') }), this.to, this.hint);
+    this.ring = h('div', { class: 'ui-city-wheel__ring', role: 'menu', attrs: { 'aria-label': tr('Greetings') } });
     const layout = wheelLayout(WHEEL.length, 96);
     WHEEL.forEach((id, i) => {
       const p = layout[i]!;

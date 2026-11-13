@@ -16,13 +16,17 @@ import { hash32 } from '../hash';
 import { MESSAGE_TOOL } from '../messages';
 import { demoPatchText } from './permission';
 import { tr } from '../i18n';
+import { DICTIONARIES } from '../locales/all';
 
 /**
- * O texto da atividade vem de describeTool, no idioma ativo: compara pelo começo do texto em PT ou da
- * tradução (o que vem antes da primeira lacuna), para a demonstração funcionar em qualquer idioma.
+ * The activity text comes from describeTool, in the active language: compares by the start of the English text
+ * (`key`), of its translation in the active language and of its Portuguese translation (what comes before the
+ * first placeholder), so the demo works in any language.
  */
 function startsWithText(text: string, key: string): boolean {
-  return text.startsWith(key.split('{0}')[0]) || text.startsWith(tr(key, ['\u0000']).split('\u0000')[0]);
+  const head = (s: string): string => s.split('{0}')[0];
+  const pt = DICTIONARIES['pt-BR']?.[key];
+  return text.startsWith(head(key)) || text.startsWith(tr(key, ['\u0000']).split('\u0000')[0]) || (pt !== undefined && text.startsWith(head(pt)));
 }
 
 type ToolEntry = Extract<TerminalEntry, { kind: 'tool' }>;
@@ -71,18 +75,18 @@ const pascal = (s: string) => s.replace(/(^|[-_.\s])(\w)/g, (_, __, c: string) =
 // ------------------------------------------------------------------ conteúdo inventado
 
 const THOUGHTS = [
-  tr('Antes de mexer, vale entender como esse fluxo está montado hoje.'),
-  tr('O mais seguro é cobrir com um teste primeiro e depois ajustar o código.'),
-  tr('Acho que o problema está no cálculo; vou conferir quem chama essa função.'),
-  tr('Dá para resolver com uma mudança pequena, sem quebrar a API existente.'),
-  tr('Preciso checar se outros lugares dependem desse comportamento.'),
+  tr("Before touching anything, it's worth understanding how this flow is built today."),
+  tr('The safest move is to cover it with a test first and then adjust the code.'),
+  tr("I think the problem is in the calculation; I'll check who calls this function."),
+  tr('This can be fixed with a small change, without breaking the existing API.'),
+  tr('I need to check whether other places depend on this behavior.'),
 ];
 
 const SUMMARIES = [
-  tr('Pronto! Ajustei o necessário e os testes passaram.'),
-  tr('Feito. A mudança ficou pequena e coberta por testes.'),
-  tr('Concluí a tarefa; deixei tudo verde no build e nos testes.'),
-  tr('Terminei. Se quiser, posso abrir um PR com essas mudanças.'),
+  tr('Done! I adjusted what was needed and the tests passed.'),
+  tr('Done. The change is small and covered by tests.'),
+  tr('Task complete; the build and the tests are all green.'),
+  tr('Finished. If you want, I can open a PR with these changes.'),
 ];
 
 /** Trecho de código plausível por extensão (para Read e Write). */
@@ -119,7 +123,7 @@ function snippet(file: string): string[] {
     case 'json':
       return ['{', `  "name": "projeto-demo",`, '  "version": "1.5.0",', '  "scripts": { "test": "vitest run", "build": "vite build" }', '}'];
     case 'md':
-      return ['---', tr('titulo: Lançamento'), '---', '', '# Novidades', '', tr('Agora o site carrega mais rápido.')];
+      return ['---', tr('titulo: Launch'), '---', '', '# Novidades', '', tr('The site now loads faster.')];
     case 'yml':
     case 'yaml':
       return ['services:', '  db:', '    image: postgres:17', '    ports:', '      - "5432:5432"'];
@@ -145,7 +149,7 @@ function editPair(file: string, seed: number): [string, string] {
     sql: [['  amount NUMERIC(10, 2),', '  amount NUMERIC(12, 2) NOT NULL,']],
     css: [['  --cor-primaria: #2b6cb0;', '  --cor-primaria: #1f5fa8;']],
     json: [['  "version": "1.4.0",', '  "version": "1.5.0",']],
-    md: [['# Novidades', tr('# Novidades da versão 1.5')]],
+    md: [['# Novidades', tr("# What's new in version 1.5")]],
     yml: [['    image: postgres:16', '    image: postgres:17']],
     astro: [['  <h1>Bem-vindo</h1>', '  <h1>Bem-vindo à nossa loja</h1>']],
   };
@@ -163,7 +167,7 @@ function commandOutput(command: string, seed: number, ctx: Ctx): string {
   if (/playwright\s+test/.test(command)) return `Running ${n(8, 30)} tests using 4 workers\n\n  ✓ ${n(8, 30)} passed (${secs}s)`;
   if (/pytest/.test(command)) return `${'.'.repeat(n(12, 40))}\n${n(12, 40)} passed in ${secs}s`;
   if (/\b(npm|pnpm|yarn)\s+(run\s+)?test\b|vitest|jest/.test(command)) {
-    return tr('✓ {0} testes passaram ({1} arquivos)\nDuração: {2}s', [n(20, 140), n(3, 12), secs]);
+    return tr('✓ {0} tests passed ({1} files)\nDuration: {2}s', [n(20, 140), n(3, 12), secs]);
   }
   if (/^git status/.test(command)) return `On branch ${branch}\nChanges not staged for commit:\n\tmodified:   ${f1}\n\tmodified:   ${f2}\n\nno changes added to commit`;
   if (/^git diff/.test(command)) {
@@ -176,19 +180,19 @@ function commandOutput(command: string, seed: number, ctx: Ctx): string {
   }
   if (/^git push/.test(command)) return `To git.example.com:empresa/${ctx.project}.git\n   ${hex(seed)}..${hex(hash32(String(seed)))}  ${branch} -> ${branch}`;
   if (/^git pull/.test(command)) return 'Already up to date.';
-  if (/\bdb:migrate\b/.test(command)) return tr('Migração 004_refunds aplicada\nSeed concluído ({0} registros)', [n(10, 90)]);
+  if (/\bdb:migrate\b/.test(command)) return tr('Migration 004_refunds applied\nSeed complete ({0} records)', [n(10, 90)]);
   if (/\b(npm|pnpm|yarn)\s+(run\s+)?build\b|vite\s+build/.test(command)) return `vite v6.3.5 building for production...\n✓ ${n(80, 900)} modules transformed.\n✓ built in ${secs}s`;
-  if (/\blint\b/.test(command)) return tr('✓ Nenhum problema encontrado ({0} arquivos)', [n(20, 200)]);
+  if (/\blint\b/.test(command)) return tr('✓ No problems found ({0} files)', [n(20, 200)]);
   if (/\bnpm\s+(ci|install|i)\b/.test(command)) return `added ${n(120, 900)} packages, and audited ${n(900, 1200)} packages in ${n(3, 20)}s\n\nfound 0 vulnerabilities`;
   if (/\bpip3?\s+install\b/.test(command)) return 'Successfully installed pandas-2.2.3 numpy-2.1.3 python-dateutil-2.9.0';
   if (/docker\s+pull/.test(command)) return '17: Pulling from library/postgres\nDigest: sha256:3f1a…\nStatus: Downloaded newer image for postgres:17';
   if (/docker\s+compose\s+up/.test(command)) return `[+] Running 2/2\n ✔ Container ${ctx.project}-db-1   Started\n ✔ Container ${ctx.project}-api-1  Started`;
   if (/^psql\b/.test(command)) return ` count\n-------\n  ${n(100, 9000)}\n(1 row)`;
   if (/^curl\b/.test(command)) return `{"status":"ok","uptime":${n(100, 99_999)}}`;
-  if (/lighthouse/.test(command)) return tr('Performance: {0}\nAcessibilidade: {1}\nBoas práticas: 100\nSEO: 100', [n(85, 99), n(90, 100)]);
-  if (/\b(expo\s+start|npm\s+run\s+dev)\b/.test(command)) return tr('Servidor de desenvolvimento rodando em http://localhost:5173');
-  if (/^python3?\s/.test(command)) return tr('Processados {0} registros em {1}s', [n(500, 20_000), secs]);
-  return tr('✓ Comando concluído');
+  if (/lighthouse/.test(command)) return tr('Performance: {0}\nAccessibility: {1}\nBest practices: 100\nSEO: 100', [n(85, 99), n(90, 100)]);
+  if (/\b(expo\s+start|npm\s+run\s+dev)\b/.test(command)) return tr('Development server running at http://localhost:5173');
+  if (/^python3?\s/.test(command)) return tr('Processed {0} records in {1}s', [n(500, 20_000), secs]);
+  return tr('✓ Command complete');
 }
 
 // ------------------------------------------------------------------ atividades → entradas
@@ -218,8 +222,8 @@ function shellCall(out: TerminalEntry[], a: Activity, i: number, command: string
   const bg = isBackground(i, ctx);
   const result = bg
     ? ctx.codex
-      ? tr('Comando rodando em segundo plano (sessão {0}).', [num(seed, 1000, 9999)])
-      : tr('Comando rodando em segundo plano (id b{0}). Você recebe um aviso quando ele terminar.', [hex(seed)])
+      ? tr('Command running in the background (session {0}).', [num(seed, 1000, 9999)])
+      : tr("Command running in the background (id b{0}). You'll be notified when it finishes.", [hex(seed)])
     : (output ?? commandOutput(command, seed, ctx));
   const firstLine = command.split('\n')[0];
   const tool = ctx.codex ? 'Shell' : 'Bash';
@@ -244,7 +248,7 @@ function entriesFor(a: Activity, i: number, ctx: Ctx, out: TerminalEntry[]): voi
       kind: 'system',
       id: `${a.id}:s`,
       at: a.at,
-      text: failed ? tr('Tarefa em segundo plano falhou: {0}', [label]) : tr('Tarefa em segundo plano concluída: {0}', [label]),
+      text: failed ? tr('Background task failed: {0}', [label]) : tr('Background task completed: {0}', [label]),
       level: failed ? 'warn' : 'info',
       detail: failed ? 'exit code 1' : 'exit code 0',
     });
@@ -252,7 +256,7 @@ function entriesFor(a: Activity, i: number, ctx: Ctx, out: TerminalEntry[]): voi
   }
   if (a.tool === SHELL_WAIT_TOOL) {
     const what = detail ? `\`${detail.split('\n')[0]}\`` : `**${afterColon(a.text)}**`;
-    out.push({ kind: 'assistant', id: `${a.id}:a`, at: a.at, text: tr('Deixei rodando em segundo plano: {0}. Volto assim que terminar.', [what]) });
+    out.push({ kind: 'assistant', id: `${a.id}:a`, at: a.at, text: tr("Left it running in the background: {0}. I'll be back as soon as it finishes.", [what]) });
     return;
   }
   // Mensagem mandada pelo escritório: entra na conversa como um prompt seu.
@@ -265,12 +269,12 @@ function entriesFor(a: Activity, i: number, ctx: Ctx, out: TerminalEntry[]): voi
       out.push({ kind: 'user', id: `${a.id}:u`, at: a.at, text: detail ?? quoted(a.text) ?? a.text });
       return;
     case 'think': {
-      const text = startsWithText(a.text, tr('Pensando')) ? (seed % 3 === 0 ? undefined : pick(THOUGHTS, seed >>> 3)) : tr('Os subagentes terminaram; vou juntar o que cada um encontrou.');
+      const text = startsWithText(a.text, 'Thinking') ? (seed % 3 === 0 ? undefined : pick(THOUGHTS, seed >>> 3)) : tr("The subagents are done; I'll gather what each one found.");
       out.push(text ? { kind: 'thinking', id: `${a.id}:k`, at: a.at, text } : { kind: 'thinking', id: `${a.id}:k`, at: a.at });
       return;
     }
     case 'respond':
-      out.push({ kind: 'assistant', id: `${a.id}:a`, at: a.at, text: detail ?? tr('Encontrei o ponto do problema; vou ajustar agora.') });
+      out.push({ kind: 'assistant', id: `${a.id}:a`, at: a.at, text: detail ?? tr('Found the source of the problem; fixing it now.') });
       return;
     case 'read': {
       if (!detail?.startsWith('/')) break;
@@ -286,7 +290,7 @@ function entriesFor(a: Activity, i: number, ctx: Ctx, out: TerminalEntry[]): voi
       const [before, after] = editPair(file, seed);
       const lines = [...before.split('\n').map((l) => `- ${l}`), ...after.split('\n').map((l) => `+ ${l}`)];
       if (ctx.codex) patchCall(out, a, file, lines, false);
-      else call(out, a, 'Edit', `Edit(${file})`, tr('Arquivo atualizado: {0}', [file]), { input: lines.join('\n'), inputKind: 'diff' });
+      else call(out, a, 'Edit', `Edit(${file})`, tr('File updated: {0}', [file]), { input: lines.join('\n'), inputKind: 'diff' });
       return;
     }
     case 'write': {
@@ -294,13 +298,13 @@ function entriesFor(a: Activity, i: number, ctx: Ctx, out: TerminalEntry[]): voi
       const file = rel(detail, ctx);
       const lines = snippet(file);
       if (ctx.codex) return patchCall(out, a, file, lines, true);
-      call(out, a, 'Write', `Write(${file})`, tr('Arquivo criado: {0} ({1} linhas)', [file, lines.length]), { input: lines.map((l) => `+ ${l}`).join('\n'), inputKind: 'diff' });
+      call(out, a, 'Write', `Write(${file})`, tr('File created: {0} ({1} lines)', [file, lines.length]), { input: lines.map((l) => `+ ${l}`).join('\n'), inputKind: 'diff' });
       return;
     }
     case 'search': {
       const pattern = detail ?? quoted(a.text);
       if (!pattern) break;
-      if (startsWithText(a.text, 'Procurando {0}')) {
+      if (startsWithText(a.text, 'Looking for {0}')) {
         const ext = /\*\.(\w+)$/.exec(pattern)?.[1];
         const known = ctx.pool.filter((f) => !ext || f.endsWith(`.${ext}`));
         const found = known.length ? known : [`src/index.${ext}`, `src/app.${ext}`];
@@ -322,14 +326,14 @@ function entriesFor(a: Activity, i: number, ctx: Ctx, out: TerminalEntry[]): voi
       return;
     case 'web': {
       if (!detail) break;
-      if (startsWithText(a.text, 'Pesquisando “{0}”')) {
+      if (startsWithText(a.text, 'Searching the web for “{0}”')) {
         const slug = detail
           .normalize('NFD')
           .replace(/[\u0300-\u036f]/g, '')
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, '-')
           .replace(/^-|-$/g, '');
-        const results = [tr('{0} — guia completo', [detail]), tr('Documentação oficial: {0}', [detail]), tr('Discussão no fórum: {0}', [detail])];
+        const results = [tr('{0} — complete guide', [detail]), tr('Official documentation: {0}', [detail]), tr('Forum discussion: {0}', [detail])];
         const urls = [`https://blog.example.com/${slug}`, `https://docs.example.com/${slug}`, `https://forum.example.com/t/${slug}`];
         const tool = ctx.codex ? 'web_search' : 'WebSearch';
         call(out, a, tool, `${tool}(${detail})`, results.map((r, k) => `${k + 1}. ${r}\n   ${urls[k]}`).join('\n'));
@@ -340,8 +344,8 @@ function entriesFor(a: Activity, i: number, ctx: Ctx, out: TerminalEntry[]): voi
         return;
       }
       if (/^https?:\/\//.test(detail)) {
-        call(out, a, 'WebFetch', `WebFetch(${detail})`, tr('A página explica a API com exemplos; o trecho relevante confirma o formato esperado.'), {
-          input: tr('Resuma o que importa para a nossa implementação'),
+        call(out, a, 'WebFetch', `WebFetch(${detail})`, tr('The page explains the API with examples; the relevant part confirms the expected format.'), {
+          input: tr('Summarize what matters for our implementation'),
           inputKind: 'text',
         });
         return;
@@ -353,15 +357,15 @@ function entriesFor(a: Activity, i: number, ctx: Ctx, out: TerminalEntry[]): voi
       const [done = 0, total = ctx.agent.tasks.length] = (/(\d+)\/(\d+)/.exec(detail ?? '') ?? []).slice(1).map(Number);
       const list = ctx.agent.tasks.slice(0, total || undefined).map((t, k) => `${k < done ? '☒' : k === done ? '◐' : '☐'} ${t.title}`);
       const tool = ctx.codex ? 'update_plan' : 'TodoWrite';
-      call(out, a, tool, total ? tr('{0}({1}/{2} concluídas)', [tool, done, total]) : tool, ctx.codex ? 'Plan updated' : tr('Lista de tarefas atualizada'), list.length ? { input: list.join('\n'), inputKind: 'text' } : undefined);
+      call(out, a, tool, total ? tr('{0}({1}/{2} done)', [tool, done, total]) : tool, ctx.codex ? 'Plan updated' : tr('Task list updated'), list.length ? { input: list.join('\n'), inputKind: 'text' } : undefined);
       return;
     }
     case 'delegate': {
       const desc = afterColon(a.text);
       const type = ctx.codex ? 'worker' : detail?.split(' — ')[0];
       const tool = ctx.codex ? 'spawn_agent' : 'Agent';
-      call(out, a, tool, `${tool}(${type ? `${type}: ` : ''}${desc})`, tr('Subagentes trabalhando em paralelo; os resultados chegam quando terminarem.'), {
-        input: tr('{0}. Investigue o código de {1} e devolva um resumo curto com os arquivos envolvidos.', [desc, ctx.project]),
+      call(out, a, tool, `${tool}(${type ? `${type}: ` : ''}${desc})`, tr('Subagents working in parallel; results arrive when they finish.'), {
+        input: tr('{0}. Look into the {1} code and return a short summary with the files involved.', [desc, ctx.project]),
         inputKind: 'text',
       });
       return;
@@ -371,33 +375,33 @@ function entriesFor(a: Activity, i: number, ctx: Ctx, out: TerminalEntry[]): voi
         kind: 'system',
         id: `${a.id}:s`,
         at: a.at,
-        text: startsWithText(a.text, tr('Precisa de você'))
-          ? tr('Aguardando você: {0}', [a.text.includes(':') ? afterColon(a.text) : tr('responder no terminal')])
-          : startsWithText(a.text, tr('Interrompido por você'))
-            ? tr('Interrompido pelo usuário')
+        text: startsWithText(a.text, 'Needs you')
+          ? tr('Waiting on you: {0}', [a.text.includes(':') ? afterColon(a.text) : tr('answer in the terminal')])
+          : startsWithText(a.text, 'Interrupted by you')
+            ? tr('Interrupted by user')
             : a.text,
         level: 'warn',
       });
       return;
     case 'done': {
-      const text = ctx.agent.kind === 'sub' && ctx.agent.title ? tr('Entrega: {0}. Resumo enviado ao agente principal.', [ctx.agent.title]) : pick(SUMMARIES, seed);
+      const text = ctx.agent.kind === 'sub' && ctx.agent.title ? tr('Delivered: {0}. Summary sent to the main agent.', [ctx.agent.title]) : pick(SUMMARIES, seed);
       out.push({ kind: 'assistant', id: `${a.id}:a`, at: a.at, text });
-      const took = /Concluiu em (.+)$/.exec(a.text)?.[1];
-      if (took) out.push({ kind: 'system', id: `${a.id}:s`, at: a.at, text: tr('Turno concluído em {0}', [took]), level: 'info' });
+      const took = /(?:Done in|Concluiu em) (.+)$/.exec(a.text)?.[1];
+      if (took) out.push({ kind: 'system', id: `${a.id}:s`, at: a.at, text: tr('Turn completed in {0}', [took]), level: 'info' });
       return;
     }
     case 'error':
       out.push({ kind: 'system', id: `${a.id}:s`, at: a.at, text: a.text, level: 'error', ...(detail ? { detail } : {}) });
       return;
     case 'compact':
-      out.push({ kind: 'system', id: `${a.id}:s`, at: a.at, text: tr('Conversa compactada automaticamente'), level: 'info' });
+      out.push({ kind: 'system', id: `${a.id}:s`, at: a.at, text: tr('Conversation compacted automatically'), level: 'info' });
       return;
     default:
       break;
   }
   // Qualquer outra coisa: uma ferramenta genérica com o detalhe como argumento.
-  const tool = a.tool ?? TOOL_BY_KIND[a.kind] ?? tr('Ferramenta');
-  call(out, a, tool, detail ? `${tool}(${detail.split('\n')[0]})` : tool, tr('✓ Concluído'));
+  const tool = a.tool ?? TOOL_BY_KIND[a.kind] ?? tr('Tool');
+  call(out, a, tool, detail ? `${tool}(${detail.split('\n')[0]})` : tool, tr('✓ Done'));
 }
 
 const TOOL_BY_KIND: Partial<Record<Activity['kind'], string>> = {

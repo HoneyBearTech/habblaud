@@ -96,8 +96,8 @@ describe('entregas: pedidos do transcript', () => {
     expect(d.attachments.map((a) => [a.name, a.kind, a.caption ?? '', !!a.capture])).toEqual([
       ['print.png', 'image', 'A tela nova', false],
       ['relatorio.pdf', 'pdf', '', false],
-      ['tela-1.png', 'image', 'Tela capturada pelo agente', true],
-      ['tela-2.png', 'image', 'Tela capturada pelo agente', true],
+      ['tela-1.png', 'image', 'Screenshot taken by the agent', true],
+      ['tela-2.png', 'image', 'Screenshot taken by the agent', true],
     ]);
     expect(JSON.stringify(list)).not.toContain('/Users/ana/proj/print.png');
     expect(JSON.stringify(list)).not.toContain('.ssh');

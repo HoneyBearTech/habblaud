@@ -61,8 +61,8 @@ export function projectName(path: string | undefined): string {
 
 /** "15 passos · 3 arquivos · 12 min" (o que interessa a quem recebe). */
 export function workLine(d: Pick<DeliveryInfo, 'tools' | 'edited' | 'startedAt' | 'finishedAt'>): string {
-  const parts = [d.tools === 1 ? tr('1 passo') : tr('{0} passos', [d.tools])];
-  if (d.edited) parts.push(d.edited === 1 ? tr('1 arquivo alterado') : tr('{0} arquivos alterados', [d.edited]));
+  const parts = [d.tools === 1 ? tr('1 step') : tr('{0} steps', [d.tools])];
+  if (d.edited) parts.push(d.edited === 1 ? tr('1 file changed') : tr('{0} files changed', [d.edited]));
   const ms = d.finishedAt - d.startedAt;
   if (ms >= 60_000) parts.push(formatDuration(ms));
   return parts.join(' · ');
@@ -76,13 +76,13 @@ function kindLabel(kind: DeliveryAttachment['kind']): string {
     case 'pdf':
       return 'PDF';
     case 'video':
-      return tr('VÍDEO');
+      return tr('VIDEO');
     case 'page':
-      return tr('PÁGINA');
+      return tr('PAGE');
     case 'text':
-      return tr('TEXTO');
+      return tr('TEXT');
     default:
-      return tr('ARQ');
+      return tr('FILE');
   }
 }
 
@@ -138,18 +138,18 @@ export class Deliveries implements UiComponent {
     private readonly terminal: TerminalControl,
   ) {
     this.badge = h('span', { class: 'ui-deliv-badge', hidden: true, attrs: { 'aria-hidden': 'true' } });
-    this.button = iconButton(ICONS.delivery, tr('Entregas: o que os agentes terminaram'), () => this.togglePanel(), 'ui-btn-deliv');
+    this.button = iconButton(ICONS.delivery, tr('Deliveries: what the agents finished'), () => this.togglePanel(), 'ui-btn-deliv');
     this.button.setAttribute('aria-haspopup', 'dialog');
     this.button.append(this.badge);
     this.button.hidden = true;
 
-    this.listEl = h('ul', { class: 'ui-deliv-list', attrs: { 'aria-label': tr('Entregas') } });
-    this.empty = h('p', { class: 'ui-deliv-empty', text: tr('Carregando as entregas…') });
+    this.listEl = h('ul', { class: 'ui-deliv-list', attrs: { 'aria-label': tr('Deliveries') } });
+    this.empty = h('p', { class: 'ui-deliv-empty', text: tr('Loading deliveries…') });
     this.panel = h(
       'div',
-      { class: 'ui-popover ui-deliv', role: 'dialog', tabIndex: -1, attrs: { 'aria-label': tr('Entregas'), id: 'ui-deliveries', popover: 'auto' } },
-      h('div', { class: 'ui-popover__head' }, h('h2', { text: tr('Entregas') }), iconButton(ICONS.close, tr('Fechar'), () => this.hidePanel(), 'ui-icon-btn--sm')),
-      h('p', { class: 'ui-deliv-lead', text: tr('O que cada agente terminou, em poucas palavras. Toque para ver o pedido, a resposta e os anexos.') }),
+      { class: 'ui-popover ui-deliv', role: 'dialog', tabIndex: -1, attrs: { 'aria-label': tr('Deliveries'), id: 'ui-deliveries', popover: 'auto' } },
+      h('div', { class: 'ui-popover__head' }, h('h2', { text: tr('Deliveries') }), iconButton(ICONS.close, tr('Close'), () => this.hidePanel(), 'ui-icon-btn--sm')),
+      h('p', { class: 'ui-deliv-lead', text: tr('What each agent finished, in a few words. Tap to see the request, the response, and the attachments.') }),
       this.empty,
       this.listEl,
     );
@@ -159,21 +159,21 @@ export class Deliveries implements UiComponent {
     });
 
     this.modalBody = h('div', { class: 'ui-deliv-modal__body' });
-    this.modal = h('dialog', { class: 'ui-deliv-modal', attrs: { 'aria-label': tr('Entrega') } }, this.modalBody) as HTMLDialogElement;
+    this.modal = h('dialog', { class: 'ui-deliv-modal', attrs: { 'aria-label': tr('Delivery') } }, this.modalBody) as HTMLDialogElement;
     this.modal.addEventListener('click', (e) => {
       if (e.target === this.modal) this.modal.close();
     });
 
     this.viewerTitle = h('span', { class: 'ui-deliv-viewer__title' });
     this.viewerCount = h('span', { class: 'ui-deliv-viewer__count' });
-    this.viewerOpen = h('a', { class: 'ui-btn ui-deliv-viewer__open', text: tr('Abrir'), attrs: { target: '_blank', rel: 'noopener' } }) as HTMLAnchorElement;
-    this.prevBtn = iconButton(ICONS.chevronLeft, tr('Anterior'), () => this.step(-1), 'ui-deliv-viewer__nav');
-    this.nextBtn = iconButton(ICONS.chevronRight, tr('Próximo'), () => this.step(1), 'ui-deliv-viewer__nav');
+    this.viewerOpen = h('a', { class: 'ui-btn ui-deliv-viewer__open', text: tr('Open'), attrs: { target: '_blank', rel: 'noopener' } }) as HTMLAnchorElement;
+    this.prevBtn = iconButton(ICONS.chevronLeft, tr('Previous'), () => this.step(-1), 'ui-deliv-viewer__nav');
+    this.nextBtn = iconButton(ICONS.chevronRight, tr('Next'), () => this.step(1), 'ui-deliv-viewer__nav');
     this.viewerBody = h('div', { class: 'ui-deliv-viewer__body' });
     this.viewer = h(
       'dialog',
-      { class: 'ui-deliv-viewer', attrs: { 'aria-label': tr('Anexo') } },
-      h('div', { class: 'ui-deliv-viewer__bar' }, this.prevBtn, h('div', { class: 'ui-deliv-viewer__label' }, this.viewerTitle, this.viewerCount), this.nextBtn, this.viewerOpen, iconButton(ICONS.close, tr('Fechar'), () => this.viewer.close(), 'ui-icon-btn--sm')),
+      { class: 'ui-deliv-viewer', attrs: { 'aria-label': tr('Attachment') } },
+      h('div', { class: 'ui-deliv-viewer__bar' }, this.prevBtn, h('div', { class: 'ui-deliv-viewer__label' }, this.viewerTitle, this.viewerCount), this.nextBtn, this.viewerOpen, iconButton(ICONS.close, tr('Close'), () => this.viewer.close(), 'ui-icon-btn--sm')),
       this.viewerBody,
     ) as HTMLDialogElement;
     this.viewer.addEventListener('keydown', (e) => {
@@ -242,7 +242,7 @@ export class Deliveries implements UiComponent {
     try {
       const res = await fetch(DELIVERIES_URL, { credentials: 'same-origin', cache: 'no-store' });
       const body: unknown = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error((body as { error?: string }).error ?? tr('erro {0}', [res.status]));
+      if (!res.ok) throw new Error((body as { error?: string }).error ?? tr('error {0}', [res.status]));
       const list = parseDeliveries(body);
       const fresh = this.loaded ? arrivals(list, this.newestKnown) : [];
       this.list = list;
@@ -256,7 +256,7 @@ export class Deliveries implements UiComponent {
       }
       if (fresh.length) this.showToast(fresh[0], fresh.length);
     } catch (err) {
-      this.error = (err as Error).message || tr('não deu para carregar');
+      this.error = (err as Error).message || tr("couldn't load");
     } finally {
       this.loading = false;
       this.updateBadge();
@@ -268,7 +268,7 @@ export class Deliveries implements UiComponent {
     const n = this.panelOpen ? 0 : unseenCount(this.list, this.seenAt);
     setText(this.badge, n > 9 ? '9+' : String(n));
     setHidden(this.badge, n === 0);
-    this.button.setAttribute('aria-label', n > 1 ? tr('Entregas: {0} novas', [n]) : n === 1 ? tr('Entregas: 1 nova') : tr('Entregas: o que os agentes terminaram'));
+    this.button.setAttribute('aria-label', n > 1 ? tr('Deliveries: {0} new', [n]) : n === 1 ? tr('Deliveries: 1 new') : tr('Deliveries: what the agents finished'));
   }
 
   private togglePanel(): void {
@@ -294,7 +294,7 @@ export class Deliveries implements UiComponent {
   private renderList(highlightAfter = this.seenAt): void {
     const now = Date.now();
     setHidden(this.empty, this.list.length > 0);
-    setText(this.empty, this.error ? tr('Não deu para carregar: {0}', [this.error]) : this.loaded ? tr('Nenhuma entrega nos últimos 7 dias.') : tr('Carregando as entregas…'));
+    setText(this.empty, this.error ? tr("Couldn't load: {0}", [this.error]) : this.loaded ? tr('No deliveries in the last 7 days.') : tr('Loading deliveries…'));
     this.listEl.replaceChildren(...this.list.map((d) => h('li', {}, this.card(d, now, d.finishedAt > highlightAfter))));
   }
 
@@ -315,10 +315,10 @@ export class Deliveries implements UiComponent {
         'span',
         { class: 'ui-deliv-card__who' },
         this.who(d, 'sm'),
-        h('span', { class: 'ui-deliv-card__name', text: d.agentName ?? tr('Agente') }),
+        h('span', { class: 'ui-deliv-card__name', text: d.agentName ?? tr('Agent') }),
         d.project ? h('span', { class: 'ui-deliv-card__project', text: projectName(d.project) }) : null,
         h('span', { class: 'ui-deliv-card__when', text: relativeTime(d.finishedAt, now) }),
-        isNew ? h('span', { class: 'ui-deliv-card__new', text: tr('nova') }) : null,
+        isNew ? h('span', { class: 'ui-deliv-card__new', text: tr('new') }) : null,
       ),
       h('span', { class: 'ui-deliv-card__headline', text: d.headline }),
       d.summary ? h('span', { class: 'ui-deliv-card__summary', text: d.summary }) : null,
@@ -351,8 +351,8 @@ export class Deliveries implements UiComponent {
     if (alive && d.agentId) {
       const id = d.agentId;
       actions.push(
-        h('button', { class: 'ui-btn', type: 'button', text: tr('Abrir terminal'), on: { click: () => (this.closeAll(), this.ctx.select({ type: 'agent', id }), (this.ctx.terminals ?? this.terminal).open(id)) } }),
-        h('button', { class: 'ui-btn ui-perm__btn--allow', type: 'button', text: tr('Responder'), on: { click: () => (this.closeAll(), this.ctx.select({ type: 'agent', id }, { focus: true })) } }),
+        h('button', { class: 'ui-btn', type: 'button', text: tr('Open terminal'), on: { click: () => (this.closeAll(), this.ctx.select({ type: 'agent', id }), (this.ctx.terminals ?? this.terminal).open(id)) } }),
+        h('button', { class: 'ui-btn ui-perm__btn--allow', type: 'button', text: tr('Reply'), on: { click: () => (this.closeAll(), this.ctx.select({ type: 'agent', id }, { focus: true })) } }),
       );
     }
     const parts: Array<HTMLElement | null> = [
@@ -363,13 +363,13 @@ export class Deliveries implements UiComponent {
         h(
           'div',
           { class: 'ui-deliv-modal__who' },
-          h('strong', { text: d.agentName ?? tr('Agente') }),
+          h('strong', { text: d.agentName ?? tr('Agent') }),
           h('span', { text: [projectName(d.project), relativeTime(d.finishedAt, now), workLine(d)].filter(Boolean).join(' · ') }),
         ),
-        iconButton(ICONS.close, tr('Fechar'), () => this.modal.close(), 'ui-icon-btn--sm'),
+        iconButton(ICONS.close, tr('Close'), () => this.modal.close(), 'ui-icon-btn--sm'),
       ),
       h('h2', { class: 'ui-deliv-modal__headline', text: d.headline }),
-      d.summary ? h('div', { class: 'ui-deliv-modal__summary' }, h('span', { class: 'ui-deliv-modal__label', text: tr('Em resumo') }), h('p', { text: d.summary })) : null,
+      d.summary ? h('div', { class: 'ui-deliv-modal__summary' }, h('span', { class: 'ui-deliv-modal__label', text: tr('In short') }), h('p', { text: d.summary })) : null,
       d.attachments.length
         ? h(
             'div',
@@ -377,15 +377,15 @@ export class Deliveries implements UiComponent {
             ...d.attachments.map((a, i) =>
               h(
                 'button',
-                { class: 'ui-deliv-att', type: 'button', attrs: { 'aria-label': tr('Ver {0}', [a.name]) }, on: { click: () => this.openViewer(i) } },
+                { class: 'ui-deliv-att', type: 'button', attrs: { 'aria-label': tr('View {0}', [a.name]) }, on: { click: () => this.openViewer(i) } },
                 this.thumb(a, true),
                 h('span', { class: 'ui-deliv-att__caption', text: a.caption ?? a.name }),
               ),
             ),
           )
         : null,
-      h('div', { class: 'ui-deliv-modal__request' }, h('span', { class: 'ui-deliv-modal__label', text: tr('Pedido') }), h('p', { text: d.request || tr('(sem texto)') })),
-      h('details', { class: 'ui-deliv-modal__full' }, h('summary', { text: tr('Resposta completa') }), full),
+      h('div', { class: 'ui-deliv-modal__request' }, h('span', { class: 'ui-deliv-modal__label', text: tr('Request') }), h('p', { text: d.request || tr('(no text)') })),
+      h('details', { class: 'ui-deliv-modal__full' }, h('summary', { text: tr('Full response') }), full),
       actions.length ? h('div', { class: 'ui-deliv-modal__actions' }, ...actions) : null,
     ];
     this.modalBody.replaceChildren(...parts.filter((p): p is HTMLElement => !!p));
@@ -406,7 +406,7 @@ export class Deliveries implements UiComponent {
     const a = d.attachments[this.viewIndex];
     const url = fileUrl(a);
     setText(this.viewerTitle, a.caption ?? a.name);
-    setText(this.viewerCount, d.attachments.length > 1 ? tr('{0} de {1}', [this.viewIndex + 1, d.attachments.length]) : '');
+    setText(this.viewerCount, d.attachments.length > 1 ? tr('{0} of {1}', [this.viewIndex + 1, d.attachments.length]) : '');
     setHidden(this.prevBtn, d.attachments.length < 2);
     setHidden(this.nextBtn, d.attachments.length < 2);
     this.viewerOpen.href = url;
@@ -420,14 +420,14 @@ export class Deliveries implements UiComponent {
     else if (a.kind === 'video') body = h('video', { class: 'ui-deliv-viewer__video', attrs: { src: url, controls: true, playsinline: true } });
     else if (a.kind === 'pdf' || a.kind === 'page') body = h('iframe', { class: 'ui-deliv-viewer__frame', attrs: { src: url, title: a.name } });
     else if (a.kind === 'text') {
-      body = h('pre', { class: 'ui-deliv-viewer__text', text: tr('Carregando…') });
+      body = h('pre', { class: 'ui-deliv-viewer__text', text: tr('Loading…') });
       const pre = body;
       void fetch(url, { credentials: 'same-origin' })
-        .then(async (r) => (r.ok ? r.text() : Promise.reject(new Error(((await r.json().catch(() => ({}))) as { error?: string }).error ?? tr('erro {0}', [r.status])))))
-        .then((t) => setText(pre, t.slice(0, 200_000)), (e: Error) => setText(pre, tr('Não deu para abrir: {0}', [e.message])));
-    } else body = h('div', { class: 'ui-deliv-viewer__file' }, h('p', { text: a.name }), h('a', { class: 'ui-btn', text: tr('Baixar'), attrs: { href: url, download: a.name } }));
+        .then(async (r) => (r.ok ? r.text() : Promise.reject(new Error(((await r.json().catch(() => ({}))) as { error?: string }).error ?? tr('error {0}', [r.status])))))
+        .then((t) => setText(pre, t.slice(0, 200_000)), (e: Error) => setText(pre, tr("Couldn't open: {0}", [e.message])));
+    } else body = h('div', { class: 'ui-deliv-viewer__file' }, h('p', { text: a.name }), h('a', { class: 'ui-btn', text: tr('Download'), attrs: { href: url, download: a.name } }));
     if (body instanceof HTMLImageElement || body instanceof HTMLIFrameElement) {
-      body.addEventListener('error', () => this.viewerBody.replaceChildren(h('p', { class: 'ui-deliv-viewer__err', text: tr('Não deu para abrir este anexo (o arquivo mudou de lugar ou o computador não respondeu).') })));
+      body.addEventListener('error', () => this.viewerBody.replaceChildren(h('p', { class: 'ui-deliv-viewer__err', text: tr("Couldn't open this attachment (the file was moved or the computer didn't respond).") })));
     }
     this.viewerBody.replaceChildren(body);
     if (!this.viewer.open) this.viewer.showModal();
@@ -470,7 +470,7 @@ export class Deliveries implements UiComponent {
     this.current = d;
     this.toast.replaceChildren(
       h('span', { class: 'ui-deliv-toast__icon', attrs: { 'aria-hidden': 'true' } }),
-      h('span', { class: 'ui-deliv-toast__text' }, h('b', { text: d.agentName ? tr('{0} entregou', [d.agentName]) : tr('Um agente entregou') }), h('span', { text: count > 1 ? `${d.headline} (+${count - 1})` : d.headline })),
+      h('span', { class: 'ui-deliv-toast__text' }, h('b', { text: d.agentName ? tr('{0} delivered', [d.agentName]) : tr('An agent delivered') }), h('span', { text: count > 1 ? `${d.headline} (+${count - 1})` : d.headline })),
     );
     (this.toast.firstChild as HTMLElement).innerHTML = ICONS.delivery;
     setHidden(this.toast, false);

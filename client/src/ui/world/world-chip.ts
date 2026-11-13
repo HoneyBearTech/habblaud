@@ -47,7 +47,7 @@ export class WorldChip implements UiComponent {
     const count = state ? meta?.building?.visitors : undefined;
     const next = nextVisitorAlert(this.alert, count, this.ctx.prefs.worldVisitNotify);
     this.alert = next.state;
-    if (next.notify) this.notify?.({ id: `world-visit-${++this.alertSeq}`, level: 'info', text: `👀 ${tr('Alguém entrou no seu prédio no Habblaud World.')}`, at: Date.now() });
+    if (next.notify) this.notify?.({ id: `world-visit-${++this.alertSeq}`, level: 'info', text: `👀 ${tr('Someone entered your building in Habblaud World.')}`, at: Date.now() });
     setHidden(this.el, !state);
     setHidden(this.visitors, !count);
     setText(this.visitors, count ? `👀 ${count}` : '');
@@ -56,10 +56,10 @@ export class WorldChip implements UiComponent {
     setVariant(this.el, 'is-', state);
     setText(this.icon, ICON[state]);
     const texts: Record<WorldChipState, [text: string, title: string]> = {
-      live: [tr('no mundo'), tr('Seu prédio está aceso no Habblaud World: {0} e {1}. Clique para abrir o Habblaud World.', [floorsText(b?.floors ?? 0), agentsText(b?.agents ?? 0)])],
-      paused: [tr('pausado'), tr('Pausado: seu prédio está apagado, mas você pode andar pela cidade. Nada do escritório sai deste computador; clique para retomar.')],
-      reconnecting: [tr('reconectando…'), tr('Sem conexão com o Habblaud World agora; o Habblaud tenta de novo sozinho. Clique para ver o seu prédio.')],
-      stopped: [tr('parado'), tr('Seu prédio parou de subir ao Habblaud World. Clique para ver o motivo.')],
+      live: [tr('in the world'), tr('Your building is lit in Habblaud World: {0} and {1}. Click to open Habblaud World.', [floorsText(b?.floors ?? 0), agentsText(b?.agents ?? 0)])],
+      paused: [tr('paused'), tr('Paused: your building is dark, but you can walk around the city. Nothing from the office leaves this computer; click to resume.')],
+      reconnecting: [tr('reconnecting…'), tr('No connection to Habblaud World right now; Habblaud keeps retrying on its own. Click to see your building.')],
+      stopped: [tr('stopped'), tr('Your building stopped uploading to Habblaud World. Click to see why.')],
     };
     const [text, base] = texts[state];
     const title = count ? `${base} ${visitorsText(count)}.` : base;

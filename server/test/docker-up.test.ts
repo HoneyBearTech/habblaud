@@ -25,7 +25,7 @@ const acc = (id: string, extra: Partial<DetectedAccount> = {}): DetectedAccount 
   id,
   configDir: `/Users/fulano/${id}`,
   short: id === '.claude' ? 'C' : 'D',
-  name: id === '.claude' ? 'Conta C' : 'Conta D',
+  name: id === '.claude' ? 'Account C' : 'Account D',
   color: '#000000',
   ...extra,
 });
@@ -35,16 +35,16 @@ const slash = (p: string) => p.replaceAll('\\', '/');
 
 describe('docker-up', () => {
   it('a linha do Habblaud World: o padrão sem URL; ligado com o endereço conferido; o ambiente vale mais que o .env', () => {
-    expect(worldLine({})).toBe('Habblaud World: ligado: https://server.habblaud.com (padrão)');
-    expect(worldLine({ HABBLAUD_WORLD_URL: 'wss://server.habblaud.com/' })).toBe('Habblaud World: ligado: https://server.habblaud.com');
+    expect(worldLine({})).toBe('Habblaud World: on: https://server.habblaud.com (default)');
+    expect(worldLine({ HABBLAUD_WORLD_URL: 'wss://server.habblaud.com/' })).toBe('Habblaud World: on: https://server.habblaud.com');
     // Do .env (o Compose lê sozinho), com aspas.
     const file = 'HABBLAUD_WORLD_URL="http://host.docker.internal:4848"\nHABBLAUD_WORLD_DEV=1\n';
-    expect(worldLine({}, file)).toBe('Habblaud World: ligado: http://host.docker.internal:4848');
+    expect(worldLine({}, file)).toBe('Habblaud World: on: http://host.docker.internal:4848');
     // Sem o modo de desenvolvimento, http:// é recusado (e o motivo aparece); no container não há --dev.
-    expect(worldLine({ HABBLAUD_WORLD_URL: 'http://host.docker.internal:4848' })).toMatch(/^Habblaud World: desligado \(HABBLAUD_WORLD_URL com http:\/\/.*desenvolvimento/);
+    expect(worldLine({ HABBLAUD_WORLD_URL: 'http://host.docker.internal:4848' })).toMatch(/^Habblaud World: off \(HABBLAUD_WORLD_URL with http:\/\/.*development/);
     // O ambiente ganha do .env, até vazio.
-    expect(worldLine({ HABBLAUD_WORLD_URL: '' }, file)).toBe('Habblaud World: ligado: https://server.habblaud.com (padrão)');
-    expect(worldLine({ HABBLAUD_WORLD: '0' }, file)).toBe('Habblaud World: desligado (HABBLAUD_WORLD=0).');
+    expect(worldLine({ HABBLAUD_WORLD_URL: '' }, file)).toBe('Habblaud World: on: https://server.habblaud.com (default)');
+    expect(worldLine({ HABBLAUD_WORLD: '0' }, file)).toBe('Habblaud World: off (HABBLAUD_WORLD=0).');
     // Nunca repete a URL crua (pode ter usuário e senha).
     expect(worldLine({ HABBLAUD_WORLD_URL: 'https://ana:segredo@server.habblaud.com' })).not.toContain('segredo');
   });
@@ -53,7 +53,7 @@ describe('docker-up', () => {
     expect(parseArgs([])).toEqual({ down: false, build: true, help: false });
     expect(parseArgs(['--no-build'])).toEqual({ down: false, build: false, help: false });
     expect(parseArgs(['--down'])).toMatchObject({ down: true });
-    expect(() => parseArgs(['--xyz'])).toThrow(/opção desconhecida/);
+    expect(() => parseArgs(['--xyz'])).toThrow(/unknown option/);
   });
 
   it('monta só projects/ e sessions/ que existem', () => {
@@ -91,7 +91,7 @@ describe('docker-up', () => {
     expect(yml.match(/read_only: true/g)).toHaveLength(3);
     expect(yml.match(/create_host_path: false/g)).toHaveLength(3);
     // Payload das contas: sem cache vazio, sem campos que não existem.
-    expect(accountsPayload(mounts)).toEqual([{ id: '.claude', configDir: '/Users/fulano/.claude', mountDir: '/claude/.claude', short: 'C', name: 'Conta C', color: '#000000', email: 'a@b.c' }]);
+    expect(accountsPayload(mounts)).toEqual([{ id: '.claude', configDir: '/Users/fulano/.claude', mountDir: '/claude/.claude', short: 'C', name: 'Account C', color: '#000000', email: 'a@b.c' }]);
     // Sem a pasta do statusline: nada de /usage.
     expect(renderOverride(mounts)).not.toContain('/usage');
     expect(yamlString('a"b$c')).toBe('"a\\"b$$c"');
@@ -218,8 +218,8 @@ describe('docker-up: migração do nome antigo (CodeTown)', () => {
     ].join('\n');
     const keys = envFileKeys(text);
     expect(keys).toEqual(['CODETOWN_BIND', 'CODETOWN_PORT', 'HABBLAUD_DEMO', 'SEGREDO']);
-    const msg = legacyEnvWarning(keys, 'no .env');
-    expect(msg).toBe('variáveis do nome antigo ignoradas no .env: CODETOWN_BIND → HABBLAUD_BIND, CODETOWN_PORT → HABBLAUD_PORT. Renomeie para valer de novo.');
+    const msg = legacyEnvWarning(keys, 'in .env');
+    expect(msg).toBe('old-name variables ignored in .env: CODETOWN_BIND → HABBLAUD_BIND, CODETOWN_PORT → HABBLAUD_PORT. Rename to re-enable.');
     expect(msg).not.toContain('0.0.0.0');
     expect(envFileKeys('')).toEqual([]);
   });

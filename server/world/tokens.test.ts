@@ -60,7 +60,7 @@ describe('BuildingTokens', () => {
   it('com o DayStatsService de verdade e o demo ligado: só os tokens dos agentes reais', () => {
     let now = T0;
     const real: AgentInfo = {
-      id: '.claude:1', kind: 'main', roomId: '/p/loja', name: 'Ana', look: 'f', role: 'Agente principal', sessionId: 'sess-1',
+      id: '.claude:1', kind: 'main', roomId: '/p/loja', name: 'Ana', look: 'f', role: 'Main agent', sessionId: 'sess-1',
       account: '.claude', status: 'working', recent: [], tasks: [], startedAt: T0 - 60_000, lastEventAt: T0, statusSince: T0,
       stats: { toolCalls: 0, tokensIn: 0, tokensOut: 0, subagents: 0 }, seed: 1,
     };

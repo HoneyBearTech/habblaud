@@ -84,14 +84,14 @@ const LEGACY_DOCKER = {
   image: `${LEGACY_NAME}:local`,
 } as const;
 
-const USAGE = tr('Uso: npm run docker:up [-- opções]\n\nOpções:\n  --no-build   sobe sem reconstruir a imagem\n  --down       derruba o container (o mesmo que npm run docker:down)\n  -h, --help   mostra esta ajuda\n\nVariáveis: HABBLAUD_PORT (porta no host, padrão {0}), HABBLAUD_CLAUDE_DIRS\n(config dirs separados por vírgula, se as contas não estiverem em ~/.claude*), HABBLAUD_CODEX_DIRS\n(pastas do Codex, se não estiverem em ~/.codex* nem em CODEX_HOME) e HABBLAUD_CODEX=0 (sem o Codex).', [DEFAULT_PORT]);
+const USAGE = tr("Usage: npm run docker:up [-- options]\n\nOptions:\n  --no-build   starts without rebuilding the image\n  --down       stops the container (same as npm run docker:down)\n  -h, --help   shows this help\n\nVariables: HABBLAUD_PORT (host port, default {0}), HABBLAUD_CLAUDE_DIRS\n(comma-separated config dirs, if the accounts aren't in ~/.claude*), HABBLAUD_CODEX_DIRS\n(Codex folders, if they aren't in ~/.codex* or CODEX_HOME) and HABBLAUD_CODEX=0 (without Codex).", [DEFAULT_PORT]);
 
 // ---------------------------------------------------------------------------------------------
 // Saída no terminal
 // ---------------------------------------------------------------------------------------------
 
 const say = (msg: string) => console.log(`[docker-up] ${msg}`);
-const warn = (msg: string) => console.warn(tr('[docker-up] Atenção: {0}', [msg]));
+const warn = (msg: string) => console.warn(tr('[docker-up] Warning: {0}', [msg]));
 
 class FatalError extends Error {}
 
@@ -104,9 +104,9 @@ function plural(n: number, one: string, many: string): string {
 }
 
 const USAGE_STATUS: Record<AccountInfo['usageStatus'], string> = {
-  ok: tr('uso atualizado'),
-  stale: tr('uso desatualizado'),
-  disabled: tr('sem dados de uso'),
+  ok: tr('usage up to date'),
+  stale: tr('usage outdated'),
+  disabled: tr('no usage data'),
 };
 
 // ---------------------------------------------------------------------------------------------
@@ -125,7 +125,7 @@ export function parseArgs(argv: string[]): Options {
     if (arg === '--down') opts.down = true;
     else if (arg === '--no-build') opts.build = false;
     else if (arg === '-h' || arg === '--help') opts.help = true;
-    else fail(tr('opção desconhecida: {0}\n\n{1}', [arg, USAGE]));
+    else fail(tr('unknown option: {0}\n\n{1}', [arg, USAGE]));
   }
   return opts;
 }
@@ -134,7 +134,7 @@ export function hostPort(env: NodeJS.ProcessEnv): number {
   const raw = env.HABBLAUD_PORT?.trim();
   if (!raw) return DEFAULT_PORT;
   const port = Number(raw);
-  if (!Number.isInteger(port) || port <= 0 || port >= 65536) fail(tr('HABBLAUD_PORT inválida: "{0}" (use um número de 1 a 65535).', [raw]));
+  if (!Number.isInteger(port) || port <= 0 || port >= 65536) fail(tr('Invalid HABBLAUD_PORT: "{0}" (use a number from 1 to 65535).', [raw]));
   return port;
 }
 
@@ -363,8 +363,8 @@ export function renderOverride(
 export function modHint(mod: Pick<ModUpdateResult, 'installed' | 'unavailable'>): string[] {
   if (mod.installed || mod.unavailable) return [];
   return [
-    tr('  Uso de 5h/semanal ao vivo, responder e mandar mensagens pelo escritório: npm run mod:install (uma vez; Claude Code {0}+).', [MIN_CLAUDE_VERSION]),
-    tr('  Em versões anteriores do Claude Code: npm run usage:install e npm run hooks:install. Sem eles, vale o cache do /usage.'),
+    tr('  Live 5h/weekly usage, replying and sending messages from the office: npm run mod:install (once; Claude Code {0}+).', [MIN_CLAUDE_VERSION]),
+    tr('  On earlier Claude Code versions: npm run usage:install and npm run hooks:install. Without them, the /usage cache is used.'),
   ];
 }
 
@@ -461,9 +461,9 @@ export function worldLine(env: NodeJS.ProcessEnv, envFile = ''): string {
     if (value !== undefined) vars[key] = value;
   }
   const world = parseWorldConfig(vars, []);
-  if (!world.enabled) return tr('Habblaud World: desligado (HABBLAUD_WORLD={0}).', [vars.HABBLAUD_WORLD?.trim() ?? '0']);
-  if (world.url) return world.defaultUrl ? tr('Habblaud World: ligado: {0} (padrão)', [world.url]) : tr('Habblaud World: ligado: {0}', [world.url]);
-  return tr('Habblaud World: desligado ({0}).', [world.warning ?? tr('HABBLAUD_WORLD_URL recusada')]);
+  if (!world.enabled) return tr('Habblaud World: off (HABBLAUD_WORLD={0}).', [vars.HABBLAUD_WORLD?.trim() ?? '0']);
+  if (world.url) return world.defaultUrl ? tr('Habblaud World: on: {0} (default)', [world.url]) : tr('Habblaud World: on: {0}', [world.url]);
+  return tr('Habblaud World: off ({0}).', [world.warning ?? tr('HABBLAUD_WORLD_URL rejected')]);
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -487,7 +487,7 @@ function warnLegacyEnv(): void {
   } catch {
     // sem .env (o normal) ou ilegível: nada a avisar
   }
-  for (const msg of [legacyEnvWarning(Object.keys(process.env)), legacyEnvWarning(fileKeys, tr('no .env'))]) {
+  for (const msg of [legacyEnvWarning(Object.keys(process.env)), legacyEnvWarning(fileKeys, tr('in .env'))]) {
     if (msg) warn(msg);
   }
 }
@@ -505,7 +505,7 @@ function ensureUsageDir(): string | undefined {
     mkdirSync(USAGE_DIR, { recursive: true, mode: 0o700 });
     return realDir(USAGE_DIR);
   } catch (err) {
-    warn(tr('não consegui criar {0} ({1}); o uso do statusline não vai aparecer no container.', [tildify(USAGE_DIR), (err as Error).message]));
+    warn(tr("couldn't create {0} ({1}); statusline usage won't show up in the container.", [tildify(USAGE_DIR), (err as Error).message]));
     return undefined;
   }
 }
@@ -520,17 +520,17 @@ function tildify(p: string): string {
 
 function checkDocker(): void {
   const info = spawnSync('docker', ['info', '--format', '{{.ServerVersion}}'], { encoding: 'utf8' });
-  if (info.error) fail(tr('o comando "docker" não foi encontrado. Instale o Docker Desktop: https://www.docker.com/products/docker-desktop/'));
-  if (info.status !== 0) fail(tr('o Docker não está respondendo. Abra o Docker Desktop, espere ele terminar de iniciar e tente de novo.'));
+  if (info.error) fail(tr('the "docker" command wasn\'t found. Install Docker Desktop: https://www.docker.com/products/docker-desktop/'));
+  if (info.status !== 0) fail(tr("Docker isn't responding. Open Docker Desktop, wait for it to finish starting and try again."));
   const compose = spawnSync('docker', ['compose', 'version'], { encoding: 'utf8' });
-  if (compose.status !== 0) fail(tr('o Docker Compose v2 ("docker compose") não está disponível. Atualize o Docker Desktop.'));
+  if (compose.status !== 0) fail(tr('Docker Compose v2 ("docker compose") isn\'t available. Update Docker Desktop.'));
 }
 
 function compose(args: string[], port: number): void {
   // HABBLAUD_PORT explícito: vale sobre um eventual .env na pasta do projeto.
   const res = spawnSync('docker', ['compose', ...args], { cwd: ROOT, stdio: 'inherit', env: { ...process.env, HABBLAUD_PORT: String(port) } });
-  if (res.error) fail(tr('não consegui rodar "docker compose {0}": {1}', [args.join(' '), res.error.message]));
-  if (res.status !== 0) fail(tr('"docker compose {0}" falhou (código {1}).', [args.join(' '), res.status ?? res.signal]));
+  if (res.error) fail(tr('couldn\'t run "docker compose {0}": {1}', [args.join(' '), res.error.message]));
+  if (res.status !== 0) fail(tr('"docker compose {0}" failed (code {1}).', [args.join(' '), res.status ?? res.signal]));
 }
 
 /** `docker <args>` sem mostrar nada no terminal: se deu certo, a saída e a última linha do erro. */
@@ -538,7 +538,7 @@ function dockerQuiet(args: string[]): { ok: boolean; out: string; error: string 
   const res = spawnSync('docker', args, { encoding: 'utf8' });
   // A última linha do docker costuma ser só "Run 'docker run --help' for more information".
   const lines = (res.stderr ?? '').split('\n').filter((l) => l.trim() && !/^Run '.*--help'/.test(l));
-  const error = res.error?.message || lines.pop()?.trim() || tr('código {0}', [res.status ?? res.signal]);
+  const error = res.error?.message || lines.pop()?.trim() || tr('code {0}', [res.status ?? res.signal]);
   return { ok: res.status === 0, out: res.stdout ?? '', error };
 }
 
@@ -550,7 +550,7 @@ function inspectDocker(): DockerState {
   const c = dockerQuiet(['container', 'inspect', '--format', '{{.Config.Image}} {{index .Config.Labels "com.docker.compose.project"}}', container]);
   const [cImage = '', cProject = ''] = c.out.trim().split(' ');
   const legacyContainer = c.ok && (cImage === image || cProject === LEGACY_NAME);
-  if (c.ok && !legacyContainer) warn(tr('existe um container {0} que não é do CodeTown (imagem {1}); ele fica como está.', [container, cImage || '?']));
+  if (c.ok && !legacyContainer) warn(tr("there's a container {0} that isn't from CodeTown (image {1}); leaving it as is.", [container, cImage || '?']));
   return {
     legacyContainer,
     legacyNetwork: exists('network', LEGACY_DOCKER.network),
@@ -564,19 +564,19 @@ function inspectDocker(): DockerState {
 function copyVolume(from: string, to: string): boolean {
   // O volume novo tem de vir do Compose: o `docker run -v` criaria um sem os labels dele.
   if (!dockerQuiet(['volume', 'inspect', to]).ok) {
-    warn(tr('o Compose não criou o volume {0}; os dados do CodeTown não foram copiados e continuam em {1}.', [to, from]));
+    warn(tr("Compose didn't create the volume {0}; the CodeTown data wasn't copied and is still in {1}.", [to, from]));
     return false;
   }
-  say(tr('Copiando os dados do CodeTown (nomes dos personagens, linha do tempo e estatísticas) de {0} para {1}…', [from, to]));
+  say(tr('Copying CodeTown data (character names, timeline and stats) from {0} to {1}…', [from, to]));
   const res = dockerQuiet(copyVolumeArgs(from, to));
   if (!res.ok) {
     warn(
-      tr('não consegui copiar os dados do CodeTown ({0}). O escritório sobe sem eles; os dados continuam em {1}.\n', [res.error, from]) +
-        tr('  Para tentar de novo: npm run docker:down && docker volume rm {0} && npm run docker:up', [to]),
+      tr("couldn't copy the CodeTown data ({0}). The office starts without it; the data is still in {1}.\n", [res.error, from]) +
+        tr('  To try again: npm run docker:down && docker volume rm {0} && npm run docker:up', [to]),
     );
     return false;
   }
-  say(tr('Dados copiados; o volume {0} ficou intacto.', [from]));
+  say(tr('Data copied; the volume {0} was left intact.', [from]));
   return true;
 }
 
@@ -587,14 +587,14 @@ function runPlan(plan: UpPlan, port: number, build: boolean): { copyFailed: bool
   for (const step of plan.steps) {
     switch (step.kind) {
       case 'remove-container': {
-        say(tr('Removendo o container {0} (CodeTown, o nome antigo)…', [step.name]));
+        say(tr('Removing the container {0} (CodeTown, the old name)…', [step.name]));
         const res = dockerQuiet(['rm', '-f', step.name]);
-        if (!res.ok) fail(tr('não consegui remover o container antigo {0} ({1}). Remova com docker rm -f {2} e rode de novo.', [step.name, res.error, step.name]));
+        if (!res.ok) fail(tr("couldn't remove the old container {0} ({1}). Remove it with docker rm -f {2} and run again.", [step.name, res.error, step.name]));
         break;
       }
       case 'remove-network': {
         const res = dockerQuiet(['network', 'rm', step.name]);
-        if (!res.ok) warn(tr('não consegui remover a rede antiga {0} ({1}); apague depois com docker network rm {2}.', [step.name, res.error, step.name]));
+        if (!res.ok) warn(tr("couldn't remove the old network {0} ({1}); delete it later with docker network rm {2}.", [step.name, res.error, step.name]));
         break;
       }
       case 'copy-volume':
@@ -602,10 +602,10 @@ function runPlan(plan: UpPlan, port: number, build: boolean): { copyFailed: bool
         break;
       case 'compose':
         if (step.args.includes('--no-start')) {
-          say(tr('{0} o container, ainda parado, para receber os dados do CodeTown…', [build ? tr('Construindo a imagem e criando') : tr('Criando')]));
+          say(tr('{0} the container, still stopped, to receive the CodeTown data…', [build ? tr('Building the image and creating') : tr('Creating')]));
           created = true;
-        } else if (created) say(tr('Subindo o container…'));
-        else say(build ? tr('Construindo a imagem e subindo o container…') : tr('Subindo o container (sem reconstruir a imagem)…'));
+        } else if (created) say(tr('Starting the container…'));
+        else say(build ? tr('Building the image and starting the container…') : tr('Starting the container (without rebuilding the image)…'));
         compose(step.args, port);
         break;
     }
@@ -651,9 +651,9 @@ async function waitHealthy(baseUrl: string): Promise<Health | undefined> {
 
 function down(port: number): void {
   checkDocker();
-  say(tr('Derrubando o container…'));
+  say(tr('Stopping the container…'));
   compose(['down'], port);
-  say(tr('Pronto. Os nomes dos personagens continuam guardados no volume habblaud-data.'));
+  say(tr('Done. Character names are still stored in the habblaud-data volume.'));
 }
 
 async function up(opts: Options, port: number): Promise<void> {
@@ -666,8 +666,8 @@ async function up(opts: Options, port: number): Promise<void> {
   const existing = await fetchHealth(baseUrl, 1_500);
   if (existing && !existing.docker) {
     fail(
-      tr('já existe um Habblaud rodando fora do Docker em {0} (npm run dev ou npm start?).\n', [publicUrl]) +
-        tr(`Pare-o antes, ou use outra porta: HABBLAUD_PORT=4848 npm run docker:up`),
+      tr('a Habblaud is already running outside Docker at {0} (npm run dev or npm start?).\n', [publicUrl]) +
+        tr(`Stop it first, or use another port: HABBLAUD_PORT=4848 npm run docker:up`),
     );
   }
 
@@ -676,23 +676,23 @@ async function up(opts: Options, port: number): Promise<void> {
   const mounts = planMounts(dirs, accounts);
   if (!mounts.length) {
     warn(
-      tr('nenhuma pasta do Claude Code (com projects/ ou sessions/) foi encontrada em ~/.claude*.\n') +
-        tr('  O escritório vai abrir vazio (dá para ligar o modo demonstração na interface).\n') +
-        tr('  Se as contas estiverem em outro lugar: HABBLAUD_CLAUDE_DIRS=/caminho/conta1,/caminho/conta2 npm run docker:up'),
+      tr('no Claude Code folder (with projects/ or sessions/) was found in ~/.claude*.\n') +
+        tr('  The office will open empty (you can turn on demo mode in the interface).\n') +
+        tr('  If the accounts are somewhere else: HABBLAUD_CLAUDE_DIRS=/path/account1,/path/account2 npm run docker:up'),
     );
   }
   for (const m of mounts) {
     const subdirs = m.binds.map((b) => posix.basename(b.target)).join(' e ');
-    say(tr('Conta {0} ({1}): monta {2} de {3}, somente leitura.', [m.account.short, m.account.id, subdirs, tildify(m.hostDir)]));
+    say(tr('Account {0} ({1}): mounts {2} from {3}, read-only.', [m.account.short, m.account.id, subdirs, tildify(m.hostDir)]));
   }
   for (const dir of dirs) {
-    if (!mounts.some((m) => m.hostDir === dir)) warn(tr('{0} não tem projects/ nem sessions/; conta ignorada.', [tildify(dir)]));
+    if (!mounts.some((m) => m.hostDir === dir)) warn(tr('{0} has neither projects/ nor sessions/; account skipped.', [tildify(dir)]));
   }
   // Pasta do Codex (CODEX_HOME) listada ou achada como se fosse do Claude Code: não é montada como conta do Claude.
   // Ela entra (só as conversas e os locks) como conta do Codex, logo abaixo.
   const claudeRefused = codexDirsRefused(process.env, HOME);
   const codexDirs = codexDisabled(process.env) ? [] : discoverCodexDirs(process.env, HOME);
-  for (const dir of claudeRefused) if (!codexDirs.includes(dir)) warn(tr('{0} é uma pasta do Codex, não do Claude Code; conta ignorada.', [tildify(dir)]));
+  for (const dir of claudeRefused) if (!codexDirs.includes(dir)) warn(tr('{0} is a Codex folder, not a Claude Code one; account skipped.', [tildify(dir)]));
   const codexAccounts = detectCodexAccounts(codexDirs, {
     home: HOME,
     env: process.env,
@@ -701,51 +701,51 @@ async function up(opts: Options, port: number): Promise<void> {
   const codexMounts = planCodexMounts(codexDirs, codexAccounts);
   for (const m of codexMounts) {
     const subdirs = m.binds.map((b) => posix.basename(b.target)).join(', ');
-    say(tr('Codex {0} ({1}): monta {2} de {3}, somente leitura.', [m.account.short, m.account.id, subdirs, tildify(m.hostDir)]));
+    say(tr('Codex {0} ({1}): mounts {2} from {3}, read-only.', [m.account.short, m.account.id, subdirs, tildify(m.hostDir)]));
     if (!m.binds.some((b) => b.target.endsWith('/thread-writer-locks'))) {
-      warn(tr('{0} ainda não tem thread-writer-locks/: no container, sessão aberta = conversa modificada nos últimos 30 min (rode o docker:up de novo depois de usar o Codex).', [tildify(m.hostDir)]));
+      warn(tr("{0} doesn't have thread-writer-locks/ yet: in the container, open session = conversation modified in the last 30 min (run docker:up again after using Codex).", [tildify(m.hostDir)]));
     }
   }
 
   migrateStateDir();
   const usageDir = ensureUsageDir();
-  if (usageDir) say(tr('Uso ao vivo (mod ou tap de statusline): monta {0} em {1}, somente leitura.', [tildify(USAGE_DIR), CONTAINER_USAGE_DIR]));
+  if (usageDir) say(tr('Live usage (mod or statusline tap): mounts {0} at {1}, read-only.', [tildify(USAGE_DIR), CONTAINER_USAGE_DIR]));
   const remoteTlsDir = prepareRemoteTls();
   const remotePorts = remoteTlsDir || remoteInsecure() ? remotePortsToPublish() : [];
   const tmp = `${OVERRIDE_FILE}.tmp`;
   writeFileSync(tmp, renderOverride(mounts, new Date(), usageDir, hostTimeZone(), codexMounts, remoteTlsDir, remotePorts), { mode: 0o600 });
   chmodSync(tmp, 0o600);
   renameSync(tmp, OVERRIDE_FILE);
-  say(tr('docker-compose.override.yml gerado.'));
+  say(tr('docker-compose.override.yml generated.'));
 
   const plan = planUp(inspectDocker(), opts.build);
   const { copyFailed } = runPlan(plan, port, opts.build);
 
-  say(tr('Aguardando o Habblaud responder em {0}…', [publicUrl]));
+  say(tr('Waiting for Habblaud to respond at {0}…', [publicUrl]));
   const health = await waitHealthy(baseUrl);
-  if (!health) fail(tr('o Habblaud não respondeu em {0} s. Veja o que aconteceu com: npm run docker:logs', [HEALTH_TIMEOUT_MS / 1000]));
+  if (!health) fail(tr("Habblaud didn't respond within {0} s. See what happened with: npm run docker:logs", [HEALTH_TIMEOUT_MS / 1000]));
 
   console.log('');
-  say(tr('Habblaud{0} no ar: {1}', [health.version ? ` ${health.version}` : '', publicUrl]));
+  say(tr('Habblaud{0} is up: {1}', [health.version ? ` ${health.version}` : '', publicUrl]));
   for (const acc of accounts) {
     const src = health.sources?.find((s) => s.label === acc.id);
     if (!src) continue;
     const usage = health.accounts?.find((a) => a.id === acc.id)?.usageStatus;
-    const state = src.ok ? plural(src.sessions, tr('sessão aberta'), tr('sessões abertas')) : tr('erro ao ler ({0})', [src.error ?? tr('desconhecido')]);
-    say(tr('  Conta {0} ({1}): {2}{3}', [acc.short, acc.id, state, usage ? ` · ${USAGE_STATUS[usage]}` : '']));
+    const state = src.ok ? plural(src.sessions, tr('open session'), tr('open sessions')) : tr('read error ({0})', [src.error ?? tr('unknown')]);
+    say(tr('  Account {0} ({1}): {2}{3}', [acc.short, acc.id, state, usage ? ` · ${USAGE_STATUS[usage]}` : '']));
   }
   for (const m of codexMounts) {
     const src = health.sources?.find((s) => s.label === m.account.id && s.provider === 'codex');
     if (!src) continue;
     const usage = health.accounts?.find((a) => a.id === m.account.id)?.usageStatus;
-    const state = src.ok ? plural(src.sessions, tr('sessão aberta'), tr('sessões abertas')) : tr('erro ao ler ({0})', [src.error ?? tr('desconhecido')]);
+    const state = src.ok ? plural(src.sessions, tr('open session'), tr('open sessions')) : tr('read error ({0})', [src.error ?? tr('unknown')]);
     say(`  Codex ${m.account.short} (${m.account.id}): ${state}${usage ? ` · ${USAGE_STATUS[usage]}` : ''}`);
   }
   for (const line of modHint(updateMods(dirs, accounts))) say(line);
   // Com a cópia falha, os dados só existem no volume antigo: nada de sugerir apagá-lo.
-  if (plan.cleanup.length && !copyFailed) say(tr('  Sobrou do CodeTown; depois de conferir o escritório, apague com: {0}', [plan.cleanup.join(' · ')]));
+  if (plan.cleanup.length && !copyFailed) say(tr('  Left over from CodeTown; after checking the office, delete with: {0}', [plan.cleanup.join(' · ')]));
   say(`  ${worldLine(process.env, readEnvFile())}`);
-  say(tr('  Logs: npm run docker:logs · Parar: npm run docker:down'));
+  say(tr('  Logs: npm run docker:logs · Stop: npm run docker:down'));
 }
 
 /**
@@ -762,17 +762,17 @@ function prepareRemoteTls(): string | undefined {
   if (!readEnvValue(env, 'HABBLAUD_REMOTE_USER')) return undefined;
   const paths = tlsPaths(remoteTlsBase(HOME));
   if (!statOk(paths.caCert)) {
-    warn(tr('acesso remoto configurado, mas sem a CA local: rode npm run remote:setup.'));
+    warn(tr('remote access configured, but no local CA: run npm run remote:setup.'));
     return undefined;
   }
   try {
     const targets = remoteTargets({ name: readEnvValue(env, 'HABBLAUD_REMOTE_NAME'), domain: readEnvValue(env, 'HABBLAUD_REMOTE_DOMAIN') });
     const r = ensureServerCert(paths, targets);
-    if (r.issued) say(tr('Acesso remoto: certificado do servidor renovado ({0}).', [r.reason]));
-    say(tr('Acesso remoto: monta {0} em {1}, somente leitura.', [tildify(paths.serverDir), CONTAINER_REMOTE_TLS_DIR]));
+    if (r.issued) say(tr('Remote access: server certificate renewed ({0}).', [r.reason]));
+    say(tr('Remote access: mounts {0} at {1}, read-only.', [tildify(paths.serverDir), CONTAINER_REMOTE_TLS_DIR]));
     return paths.serverDir;
   } catch (err) {
-    warn(tr('acesso remoto: não consegui conferir o certificado ({0}).', [(err as Error).message]));
+    warn(tr("remote access: couldn't check the certificate ({0}).", [(err as Error).message]));
     return statOk(paths.serverCert) ? paths.serverDir : undefined;
   }
 }
@@ -807,7 +807,7 @@ function remoteInsecure(): boolean {
 function remotePortsToPublish(): string[] {
   try {
     const ports = remotePortsFrom(readFileSync(ENV_FILE, 'utf8'));
-    for (const p of ports) say(tr('Acesso remoto: publica {0} (porta {1} do container).', [p.split(':').slice(0, 2).join(':'), 4748]));
+    for (const p of ports) say(tr('Remote access: publishes {0} (container port {1}).', [p.split(':').slice(0, 2).join(':'), 4748]));
     return ports;
   } catch {
     return [];
@@ -826,7 +826,7 @@ function statOk(path: string): boolean {
 /** Atualiza o mod de quem já instalou (ver mod-install.ts). Nada aqui derruba o docker:up. */
 function updateMods(dirs: string[], accounts: DetectedAccount[]): Pick<ModUpdateResult, 'installed' | 'unavailable'> {
   try {
-    const labels = dirs.map((dir, i) => ({ dir, label: tr('Conta {0}', [accounts[i]?.short ?? tildify(dir)]) }));
+    const labels = dirs.map((dir, i) => ({ dir, label: tr('Account {0}', [accounts[i]?.short ?? tildify(dir)]) }));
     const mod = updateInstalledMods(labels, { env: process.env, home: HOME, root: ROOT, version: readPackageVersion(ROOT), claude: makeClaudeRunner() });
     for (const l of mod.lines) {
       if (l.level === 'warn') warn(l.text);
@@ -834,7 +834,7 @@ function updateMods(dirs: string[], accounts: DetectedAccount[]): Pick<ModUpdate
     }
     return mod;
   } catch (err) {
-    warn(tr('não consegui conferir o mod do Habblaud ({0}).', [(err as Error).message]));
+    warn(tr("couldn't check the Habblaud mod ({0}).", [(err as Error).message]));
     return { installed: false, unavailable: true };
   }
 }
@@ -853,8 +853,8 @@ async function main(): Promise<void> {
 // Executa só quando chamado direto (importar o módulo, ex. em testes, não sobe nada).
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   main().catch((err: unknown) => {
-    if (err instanceof FatalError) console.error(tr('[docker-up] Erro: {0}', [err.message]));
-    else console.error(tr('[docker-up] Erro inesperado:'), err);
+    if (err instanceof FatalError) console.error(tr('[docker-up] Error: {0}', [err.message]));
+    else console.error(tr('[docker-up] Unexpected error:'), err);
     process.exitCode = 1;
   });
 }

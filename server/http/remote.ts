@@ -77,15 +77,15 @@ export function parseRemoteConfig(
   const hashText = env.HABBLAUD_REMOTE_PASSWORD_HASH?.trim() ?? '';
   const plain = env.HABBLAUD_REMOTE_PASSWORD ?? '';
   if (!user && !hashText && !plain) return {};
-  if (plain && !hashText) return { warning: tr('acesso remoto desligado: senha em texto puro (HABBLAUD_REMOTE_PASSWORD) não é aceita; rode npm run remote:setup') };
-  if (!user || !hashText) return { warning: tr('acesso remoto desligado: faltam HABBLAUD_REMOTE_USER e HABBLAUD_REMOTE_PASSWORD_HASH; rode npm run remote:setup') };
+  if (plain && !hashText) return { warning: tr("remote access off: a plain-text password (HABBLAUD_REMOTE_PASSWORD) isn't accepted; run npm run remote:setup") };
+  if (!user || !hashText) return { warning: tr('remote access off: HABBLAUD_REMOTE_USER and HABBLAUD_REMOTE_PASSWORD_HASH are missing; run npm run remote:setup') };
   const passwordHash = parsePasswordHash(hashText);
-  if (!passwordHash) return { warning: tr('acesso remoto desligado: HABBLAUD_REMOTE_PASSWORD_HASH inválido; rode npm run remote:setup') };
+  if (!passwordHash) return { warning: tr('remote access off: invalid HABBLAUD_REMOTE_PASSWORD_HASH; run npm run remote:setup') };
   const dir = defaultTlsDir(env, inDocker);
   const tls: RemoteTls = { dir, keyFile: join(dir, 'server.key'), certFile: join(dir, 'server.crt'), caFile: join(dir, 'ca.crt') };
   const hasTls = exists(tls.keyFile) && exists(tls.certFile);
   const insecure = truthy(env.HABBLAUD_REMOTE_INSECURE_HTTP);
-  if (!hasTls && !insecure) return { warning: tr('acesso remoto desligado: sem certificado em {0} (HTTPS é obrigatório); rode npm run remote:setup', [dir]) };
+  if (!hasTls && !insecure) return { warning: tr('remote access off: no certificate in {0} (HTTPS is required); run npm run remote:setup', [dir]) };
   const rawPort = Number.parseInt(env.HABBLAUD_REMOTE_PORT ?? '', 10);
   const port = inDocker ? DEFAULT_REMOTE_PORT : Number.isInteger(rawPort) && rawPort > 0 && rawPort < 65536 ? rawPort : DEFAULT_REMOTE_PORT;
   const host = inDocker ? '0.0.0.0' : env.HABBLAUD_REMOTE_HOST?.trim() || '0.0.0.0';
@@ -287,7 +287,7 @@ function readBody(req: IncomingMessage, max = 8 * 1024): Promise<string> {
       size += c.length;
       if (size <= max) chunks.push(c);
     });
-    req.on('end', () => (size > max ? fail(new Error(tr('corpo grande demais'))) : ok(Buffer.concat(chunks).toString('utf8'))));
+    req.on('end', () => (size > max ? fail(new Error(tr('body too large'))) : ok(Buffer.concat(chunks).toString('utf8'))));
     req.on('error', fail);
   });
 }
@@ -301,7 +301,7 @@ function esc(text: string): string {
 
 export function loginPage(opts: { caDownload: boolean }): string {
   const ca = opts.caDownload
-    ? `<p class="ca">${esc(tr('Primeira vez neste celular?'))} <a href="${CA_PATH}" download="habblaud-ca.crt">${esc(tr('Instale o certificado do Habblaud'))}</a> ${esc(tr('para tirar o aviso de segurança (confira a impressão digital que o npm run remote:setup mostrou).'))}</p>`
+    ? `<p class="ca">${esc(tr('First time on this phone?'))} <a href="${CA_PATH}" download="habblaud-ca.crt">${esc(tr('Install the Habblaud certificate'))}</a> ${esc(tr('to remove the security warning (check the fingerprint that npm run remote:setup showed).'))}</p>`
     : '';
   // Dentro do <script>: JSON com "<" escapado, para nenhum texto fechar a tag.
   const js = (text: string) => JSON.stringify(text).replace(/</g, '\\u003c');
@@ -311,7 +311,7 @@ export function loginPage(opts: { caDownload: boolean }): string {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="no-referrer">
-<title>${esc(tr('Habblaud · entrar'))}</title>
+<title>${esc(tr('Habblaud · sign in'))}</title>
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/assets/brand/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -341,12 +341,12 @@ export function loginPage(opts: { caDownload: boolean }): string {
 <body>
 <form id="f" autocomplete="on">
   <h1>Habblaud</h1>
-  <p>${esc(tr('Acesso pelo celular. Entre com o usuário e a senha que você escolheu no npm run remote:setup.'))}</p>
-  <label for="u">${esc(tr('Usuário'))}</label>
+  <p>${esc(tr('Phone access. Sign in with the username and password you chose in npm run remote:setup.'))}</p>
+  <label for="u">${esc(tr('Username'))}</label>
   <input id="u" name="username" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required>
-  <label for="p">${esc(tr('Senha'))}</label>
+  <label for="p">${esc(tr('Password'))}</label>
   <input id="p" name="password" type="password" autocomplete="current-password" required>
-  <button id="b" type="submit">${esc(tr('Entrar'))}</button>
+  <button id="b" type="submit">${esc(tr('Sign in'))}</button>
   <div id="err" role="alert"></div>
   ${ca}
 </form>
@@ -360,8 +360,8 @@ export function loginPage(opts: { caDownload: boolean }): string {
         credentials: 'same-origin', body: JSON.stringify({ user: f.username.value, password: f.password.value }) });
       if (r.ok) { location.replace('/'); return; }
       const body = await r.json().catch(() => ({}));
-      err.textContent = body.error || ${js(tr('Não deu para entrar.'))};
-    } catch { err.textContent = ${js(tr('Sem conexão com o Habblaud.'))}; }
+      err.textContent = body.error || ${js(tr("Couldn't sign in."))};
+    } catch { err.textContent = ${js(tr('No connection to Habblaud.'))}; }
     b.disabled = false;
   });
 </script>
@@ -413,12 +413,12 @@ export function createRemoteGate(deps: RemoteGateDeps): (req: IncomingMessage, r
 
     if (path === '/api/remote/login') {
       if (method !== 'POST') {
-        sendJson(res, 405, { error: tr('método não permitido') }, { Allow: 'POST' });
+        sendJson(res, 405, { error: tr('method not allowed') }, { Allow: 'POST' });
         return true;
       }
       const tooMany = () => {
         const wait = Math.max(1, throttle.retryAfter());
-        sendJson(res, 429, { error: tr('Muitas tentativas. Tente de novo em {0} s.', [wait]) }, { 'Retry-After': String(wait) });
+        sendJson(res, 429, { error: tr('Too many attempts. Try again in {0} s.', [wait]) }, { 'Retry-After': String(wait) });
       };
       if (throttle.retryAfter() > 0) {
         req.resume();
@@ -444,13 +444,13 @@ export function createRemoteGate(deps: RemoteGateDeps): (req: IncomingMessage, r
           // O scrypt roda sempre (sem atalho que denuncie se foi o usuário ou a senha que errou).
           const okPassword = await verify(password, deps.config.passwordHash);
           const okUser = safeEqual(user.trim(), deps.config.user);
-          if (!(okUser && okPassword)) return sendJson(res, 401, { error: tr('Usuário ou senha incorretos.') });
+          if (!(okUser && okPassword)) return sendJson(res, 401, { error: tr('Incorrect username or password.') });
           ok = true;
           const { token, maxAgeS } = deps.sessions.issue();
           sendJson(res, 200, { ok: true }, { 'Set-Cookie': cookieHeader(token, maxAgeS, deps.secure) });
         })
         .catch(() => {
-          if (!res.headersSent) sendJson(res, 400, { error: tr('requisição inválida') });
+          if (!res.headersSent) sendJson(res, 400, { error: tr('invalid request') });
         })
         .finally(() => {
           if (begun) throttle.end(ok);
@@ -460,7 +460,7 @@ export function createRemoteGate(deps: RemoteGateDeps): (req: IncomingMessage, r
 
     if (path === '/api/remote/logout') {
       req.resume();
-      if (method !== 'POST') sendJson(res, 405, { error: tr('método não permitido') }, { Allow: 'POST' });
+      if (method !== 'POST') sendJson(res, 405, { error: tr('method not allowed') }, { Allow: 'POST' });
       else {
         deps.sessions.revoke(readCookie(req.headers.cookie, COOKIE));
         sendJson(res, 200, { ok: true }, { 'Set-Cookie': cookieHeader('', 0, deps.secure) });
@@ -471,7 +471,7 @@ export function createRemoteGate(deps: RemoteGateDeps): (req: IncomingMessage, r
     if (path === CA_PATH) {
       // Público de propósito: é só o certificado da CA (a chave nunca sai do computador).
       req.resume();
-      if (!caAvailable()) sendJson(res, 404, { error: tr('sem certificado da CA') });
+      if (!caAvailable()) sendJson(res, 404, { error: tr('no CA certificate') });
       else {
         const pem = readFileSync(deps.caFile!);
         res.writeHead(200, {
@@ -507,7 +507,7 @@ export function createRemoteGate(deps: RemoteGateDeps): (req: IncomingMessage, r
 
     req.resume();
     if (path === '/api' || path.startsWith('/api/')) {
-      sendJson(res, 401, { error: tr('faça login: abra o Habblaud por esta porta no navegador e entre com usuário e senha') });
+      sendJson(res, 401, { error: tr('sign in: open Habblaud on this port in your browser and enter your username and password') });
     } else {
       res.writeHead(302, { Location: '/login', 'Cache-Control': 'no-store' });
       res.end();
@@ -535,7 +535,7 @@ export function startRemoteListener(
 ): RemoteListener {
   if (!cfg.tls) {
     const plain = http.createServer(onRequest);
-    plain.on('error', (err) => log.error(tr('Acesso remoto: não deu para escutar na porta {0} ({1}).', [cfg.port, (err as Error).message])));
+    plain.on('error', (err) => log.error(tr("Remote access: couldn't listen on port {0} ({1}).", [cfg.port, (err as Error).message])));
     plain.listen(cfg.port, cfg.host);
     return { server: plain, close: () => plain.close() };
   }
@@ -548,9 +548,9 @@ export function startRemoteListener(
   const reload = () => {
     try {
       secure.setSecureContext(read());
-      log.info(tr('   Acesso remoto: certificado recarregado.'));
+      log.info(tr('   Remote access: certificate reloaded.'));
     } catch (err) {
-      log.warn(tr('   Acesso remoto: certificado novo ilegível, mantendo o anterior ({0}).', [(err as Error).message]));
+      log.warn(tr('   Remote access: new certificate unreadable, keeping the previous one ({0}).', [(err as Error).message]));
     }
   };
   watchFile(tls.certFile, { interval: 15_000 }, (cur, prev) => {
@@ -579,7 +579,7 @@ export function startRemoteListener(
     });
     socket.on('error', () => socket.destroy());
   });
-  tcp.on('error', (err) => log.error(tr('Acesso remoto: não deu para escutar na porta {0} ({1}).', [cfg.port, (err as Error).message])));
+  tcp.on('error', (err) => log.error(tr("Remote access: couldn't listen on port {0} ({1}).", [cfg.port, (err as Error).message])));
   tcp.listen(cfg.port, cfg.host);
   return {
     server: tcp,

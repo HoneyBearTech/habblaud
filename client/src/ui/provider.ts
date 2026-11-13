@@ -55,10 +55,10 @@ export function showsProviderTag(provider: Provider, accountName = ''): boolean 
 
 /** Rótulo do chip da conta (dica e leitores de tela): "Conta C (dev@x.com)", "Codex · plano Team". */
 export function accountChipLabel(account: Pick<AccountInfo, 'name' | 'email' | 'plan' | 'provider'> | undefined, fallbackId: string, provider: Provider): string {
-  if (!account) return fallbackId ? `${fallbackId}${provider === 'codex' ? ' · Codex' : ''}` : tr('Conta desconhecida');
+  if (!account) return fallbackId ? `${fallbackId}${provider === 'codex' ? ' · Codex' : ''}` : tr('Unknown account');
   if (provider !== 'codex') return `${account.name}${account.email ? ` (${account.email})` : ''}`;
   const tag = showsProviderTag(provider, account.name) ? ' · Codex' : '';
-  return `${account.name}${tag}${account.plan ? tr(' · plano {0}', [account.plan]) : ''}`;
+  return `${account.name}${tag}${account.plan ? tr(' · {0} plan', [account.plan]) : ''}`;
 }
 
 /**
@@ -67,8 +67,8 @@ export function accountChipLabel(account: Pick<AccountInfo, 'name' | 'email' | '
  */
 export function emptyOfficeHint(accounts: readonly Pick<AccountInfo, 'short' | 'provider'>[]): string {
   const keys = shortcutHint(accounts.filter((a) => !isCodex(a)));
-  if (!accounts.some(isCodex)) return tr('Abra o Claude Code em qualquer projeto{0} e veja seu agente chegar.', [keys ? ` (${keys})` : '']);
-  return tr('Abra o Claude Code{0} ou o Codex em qualquer projeto e veja seu agente chegar.', [keys ? ` (${keys})` : '']);
+  if (!accounts.some(isCodex)) return tr('Open Claude Code in any project{0} and watch your agent arrive.', [keys ? ` (${keys})` : '']);
+  return tr('Open Claude Code{0} or Codex in any project and watch your agent arrive.', [keys ? ` (${keys})` : '']);
 }
 
 /** Algum pedido de permissão do Codex esperando: o prazo é curto e o cartão conta os segundos (relógio de 1 s). */
@@ -77,14 +77,14 @@ export function hasCodexPermission(snap: Pick<OfficeSnapshot, 'agents'> | null):
 }
 
 /** Como ver o Codex ao vivo e aprovar pelo escritório (gaveta de um agente do Codex e ajuda). */
-export const CODEX_LIVE_HINT = tr('Para ver o Codex ao vivo e aprovar pelo escritório: `npm run codex:install` e aprove os hooks em `/hooks` no Codex.');
+export const CODEX_LIVE_HINT = tr('To see Codex live and approve from the office: `npm run codex:install`, then approve the hooks in `/hooks` in Codex.');
 
 /** Políticas de aprovação do Codex (`approval_policy`), quando o servidor as manda no lugar do modo de permissão. */
 const CODEX_APPROVALS: Record<string, string> = {
-  untrusted: tr('Pergunta antes de quase tudo'),
-  'on-request': tr('Pergunta quando precisa'),
-  'on-failure': tr('Pergunta quando um comando falha'),
-  never: tr('Nunca pergunta'),
+  untrusted: tr('Asks before almost everything'),
+  'on-request': tr('Asks when needed'),
+  'on-failure': tr('Asks when a command fails'),
+  never: tr('Never asks'),
 };
 
 /** Aprovação de um agente do Codex em português (valor desconhecido passa como veio). */

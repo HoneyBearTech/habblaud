@@ -33,7 +33,7 @@ export class TermTabs {
   private dragging: string | null = null;
 
   constructor(private ctx: UiContext) {
-    this.el = h('div', { class: 'ui-ttabs', role: 'tablist', hidden: true, attrs: { 'aria-label': tr('Agentes do projeto (arraste para reordenar)') } });
+    this.el = h('div', { class: 'ui-ttabs', role: 'tablist', hidden: true, attrs: { 'aria-label': tr('Project agents (drag to reorder)') } });
     this.list = new KeyedList<AgentInfo>(this.el, {
       animate: false,
       key: (a) => a.id,
@@ -46,7 +46,7 @@ export class TermTabs {
           h('span', { class: 'ui-ttab__doing' }),
           h('span', { class: 'ui-ttab__live', text: '›_', hidden: true }),
           // Dentro do botão da aba: span (botão dentro de botão não vale); o teclado usa Delete na aba.
-          h('span', { class: 'ui-ttab__close', role: 'button', attrs: { 'aria-label': tr('Encerrar esta sessão') }, text: '×' }),
+          h('span', { class: 'ui-ttab__close', role: 'button', attrs: { 'aria-label': tr('End this session') }, text: '×' }),
         );
         const close = b.children[4] as HTMLElement;
         close.addEventListener('click', (e) => {
@@ -81,13 +81,13 @@ export class TermTabs {
         const confirm = this.confirming === a.id;
         setHidden(close, !ctx.terminals?.interactiveEnabled || !ptyControllable(a));
         close.classList.toggle('is-confirm', confirm);
-        setText(close, confirm ? tr('encerrar?') : '×');
-        setTitle(close, confirm ? tr('Clique de novo para encerrar a sessão (a conversa fica salva)') : tr('Encerrar esta sessão'));
+        setText(close, confirm ? tr('end?') : '×');
+        setTitle(close, confirm ? tr('Click again to end the session (the conversation is saved)') : tr('End this session'));
         const on = a.id === this.current;
         b.classList.toggle('is-on', on);
         setAttr(b, 'aria-selected', String(on));
         setTitle(b, `${a.name}${a.title ? ` · ${a.title}` : ''}${doing && doing !== a.title ? `
-${doing}` : ''}${live ? tr(' (interativo)') : ''}`);
+${doing}` : ''}${live ? tr(' (interactive)') : ''}`);
       },
     });
   }
@@ -122,10 +122,10 @@ ${doing}` : ''}${live ? tr(' (interativo)') : ''}`);
       return;
     }
     this.resetConfirm();
-    const name = this.ctx.agent(id)?.name ?? tr('Sessão');
+    const name = this.ctx.agent(id)?.name ?? tr('Session');
     stopAgent(id)
-      .then(() => this.ctx.announce(tr('{0}: sessão encerrada.', [name])))
-      .catch((err: Error) => this.ctx.announce(tr('Não deu para encerrar: {0}', [err.message])))
+      .then(() => this.ctx.announce(tr('{0}: session ended.', [name])))
+      .catch((err: Error) => this.ctx.announce(tr("Couldn't end it: {0}", [err.message])))
       .finally(() => this.ctx.invalidate());
     // Era a aba aberta: passa para a vizinha.
     if (id === this.current) {

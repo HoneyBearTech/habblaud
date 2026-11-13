@@ -1,5 +1,5 @@
-// No navegador, no lugar de locales/all.ts (ver vite.config.ts): o dicionário do idioma ativo chega por import
-// dinâmico em client/src/main.ts, para não mandar os três a todo mundo.
+// In the browser, in place of locales/all.ts (see vite.config.ts): the active language's dictionary arrives by
+// dynamic import in client/src/main.ts, so that not everyone gets all three.
 import type { Locale } from '../i18n';
 
 export const DICTIONARIES: Partial<Record<Locale, Readonly<Record<string, string>>>> = {};

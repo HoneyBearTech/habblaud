@@ -9,7 +9,7 @@
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/permission-hook.mjs\"",
             "timeout": 86430,
-            "statusMessage": "Aguardando resposta no Habblaud"
+            "statusMessage": "Waiting for an answer in Habblaud"
           }
         ]
       }

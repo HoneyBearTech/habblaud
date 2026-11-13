@@ -47,28 +47,28 @@ describe('ferramenta (Claude Code ou Codex)', () => {
   });
 
   it('selo "Codex": só no Codex, e sem repetir o nome da conta', () => {
-    expect(showsProviderTag('codex', 'Conta X')).toBe(true);
+    expect(showsProviderTag('codex', 'Account X')).toBe(true);
     expect(showsProviderTag('codex', 'Codex')).toBe(false);
     expect(showsProviderTag('codex', 'Demo Codex')).toBe(false);
-    expect(showsProviderTag('claude', 'Conta C')).toBe(false);
+    expect(showsProviderTag('claude', 'Account C')).toBe(false);
   });
 
   it('rótulo do chip: e-mail no Claude Code; ferramenta e plano no Codex', () => {
-    expect(accountChipLabel({ name: 'Conta C', email: 'a@b.c' }, '.claude', 'claude')).toBe('Conta C (a@b.c)');
-    expect(accountChipLabel({ name: 'Conta X', plan: 'Team', provider: 'codex' }, '.codex', 'codex')).toBe('Conta X · Codex · plano Team');
-    expect(accountChipLabel({ name: 'Codex', plan: 'Team', provider: 'codex' }, '.codex', 'codex')).toBe('Codex · plano Team');
+    expect(accountChipLabel({ name: 'Account C', email: 'a@b.c' }, '.claude', 'claude')).toBe('Account C (a@b.c)');
+    expect(accountChipLabel({ name: 'Account X', plan: 'Team', provider: 'codex' }, '.codex', 'codex')).toBe('Account X · Codex · Team plan');
+    expect(accountChipLabel({ name: 'Codex', plan: 'Team', provider: 'codex' }, '.codex', 'codex')).toBe('Codex · Team plan');
     expect(accountChipLabel(undefined, '.codex', 'codex')).toBe('.codex · Codex');
-    expect(accountChipLabel(undefined, '', 'claude')).toBe('Conta desconhecida');
+    expect(accountChipLabel(undefined, '', 'claude')).toBe('Unknown account');
   });
 
   it('escritório vazio: atalhos só das contas do Claude Code; o Codex entra quando há conta dele', () => {
     const c = { short: 'C' };
     const d = { short: 'D' };
     const x = { short: 'X', provider: 'codex' as const };
-    expect(emptyOfficeHint([c, d])).toBe('Abra o Claude Code em qualquer projeto (atalhos c ou d) e veja seu agente chegar.');
-    expect(emptyOfficeHint([c, d, x])).toBe('Abra o Claude Code (atalhos c ou d) ou o Codex em qualquer projeto e veja seu agente chegar.');
-    expect(emptyOfficeHint([x])).toBe('Abra o Claude Code ou o Codex em qualquer projeto e veja seu agente chegar.');
-    expect(emptyOfficeHint([])).toBe('Abra o Claude Code em qualquer projeto e veja seu agente chegar.');
+    expect(emptyOfficeHint([c, d])).toBe('Open Claude Code in any project (shortcuts c or d) and watch your agent arrive.');
+    expect(emptyOfficeHint([c, d, x])).toBe('Open Claude Code (shortcuts c or d) or Codex in any project and watch your agent arrive.');
+    expect(emptyOfficeHint([x])).toBe('Open Claude Code or Codex in any project and watch your agent arrive.');
+    expect(emptyOfficeHint([])).toBe('Open Claude Code in any project and watch your agent arrive.');
   });
 
   it('relógio de 1 s enquanto há pedido do Codex esperando', () => {
@@ -82,8 +82,8 @@ describe('ferramenta (Claude Code ou Codex)', () => {
   });
 
   it('aprovações do Codex em português (valor desconhecido passa como veio)', () => {
-    expect(codexApprovalLabel('on-request')).toBe('Pergunta quando precisa');
-    expect(codexApprovalLabel('never')).toBe('Nunca pergunta');
+    expect(codexApprovalLabel('on-request')).toBe('Asks when needed');
+    expect(codexApprovalLabel('never')).toBe('Never asks');
     expect(codexApprovalLabel('outra')).toBe('outra');
     expect(codexApprovalLabel(undefined)).toBe('—');
   });

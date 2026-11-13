@@ -15,14 +15,14 @@ const ITEM = /^\/api\/permissions\/([^/]+)(?:\/(wait|decision))?$/;
 
 function methodNotAllowed(res: ServerResponse, allow: string): void {
   res.setHeader('Allow', allow);
-  sendJson(res, 405, { error: tr('método não permitido') });
+  sendJson(res, 405, { error: tr('method not allowed') });
 }
 
 function fail(res: ServerResponse, err: unknown): void {
   if (res.headersSent) return void res.destroy();
   if (err instanceof HttpError) sendJson(res, err.status, { error: err.message });
   else if (err instanceof InvalidRequest) sendJson(res, 400, { error: err.message });
-  else sendJson(res, 500, { error: tr('erro interno') });
+  else sendJson(res, 500, { error: tr('internal error') });
 }
 
 /** Tempo de espera pedido em `?timeout=` (segundos), limitado a WAIT_MAX_MS. */
@@ -42,7 +42,7 @@ export function createPermissionRoutes(registry: PermissionRegistry): (req: Inco
 
   const wait = (req: IncomingMessage, res: ServerResponse, id: string) => {
     const w = registry.wait(id, waitMs(new URL(req.url ?? '/', 'http://localhost')));
-    if (!w) return sendJson(res, 404, { error: tr('pedido desconhecido') });
+    if (!w) return sendJson(res, 404, { error: tr('unknown request') });
     req.socket.setTimeout(0);
     // Conexão fechada antes da resposta (o hook morreu ou desistiu): larga a espera.
     res.on('close', () => {
@@ -65,15 +65,15 @@ export function createPermissionRoutes(registry: PermissionRegistry): (req: Inco
       case 'ok':
         return sendJson(res, 200, { ok: true });
       case 'not-found':
-        return sendJson(res, 404, { error: tr('pedido desconhecido: já foi respondido, expirou ou foi respondido no terminal') });
+        return sendJson(res, 404, { error: tr('unknown request: already answered, expired, or answered in the terminal') });
       case 'conflict':
-        return sendJson(res, 409, { error: tr('este pedido já foi respondido') });
+        return sendJson(res, 409, { error: tr('this request has already been answered') });
       case 'invalid':
-        return sendJson(res, 400, { error: tr('sugestão de regra desconhecida para este pedido') });
+        return sendJson(res, 400, { error: tr('unknown rule suggestion for this request') });
       case 'invalid-answer':
-        return sendJson(res, 400, { error: tr('resposta que não serve para este pedido: pergunta se responde com "answer" (cada pergunta uma vez, com as opções dela); os outros pedidos, com "allow" ou "deny"') });
+        return sendJson(res, 400, { error: tr('response doesn\'t fit this request: questions are answered with "answer" (each question once, with its own options); other requests, with "allow" or "deny"') });
       case 'unsupported':
-        return sendJson(res, 400, { error: tr('o Codex não aceita interromper nem "sempre permitir" pelo Habblaud: aprove, recuse (com um motivo, se quiser) ou responda no terminal') });
+        return sendJson(res, 400, { error: tr('Codex doesn\'t accept interrupting or "always allow" from Habblaud: approve, deny (with a reason, if you want) or answer in the terminal') });
     }
   };
 
@@ -85,12 +85,12 @@ export function createPermissionRoutes(registry: PermissionRegistry): (req: Inco
       return;
     }
     const m = ITEM.exec(path);
-    if (!m) return sendJson(res, 404, { error: tr('rota desconhecida') });
+    if (!m) return sendJson(res, 404, { error: tr('unknown route') });
     let id: string;
     try {
       id = decodeURIComponent(m[1]);
     } catch {
-      return sendJson(res, 400, { error: tr('id inválido') });
+      return sendJson(res, 400, { error: tr('invalid id') });
     }
     if (m[2] === 'wait') {
       if (method !== 'GET') return methodNotAllowed(res, 'GET');
@@ -104,6 +104,6 @@ export function createPermissionRoutes(registry: PermissionRegistry): (req: Inco
     if (method !== 'GET' && method !== 'HEAD') return methodNotAllowed(res, 'GET');
     const detail = registry.detail(id);
     if (detail) sendJson(res, 200, detail);
-    else sendJson(res, 404, { error: tr('pedido desconhecido') });
+    else sendJson(res, 404, { error: tr('unknown request') });
   };
 }

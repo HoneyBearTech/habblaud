@@ -125,22 +125,22 @@ export type CertStatus = { ok: true; expiresAt: Date } | { ok: false; reason: st
 
 /** O certificado do servidor serve como está? (existe, foi assinado por esta CA, cobre tudo e não está perto de vencer) */
 export function serverCertStatus(paths: TlsPaths, wanted: CertTargets, now = new Date()): CertStatus {
-  if (!existsSync(paths.serverCert) || !existsSync(paths.serverKey)) return { ok: false, reason: tr('certificado do servidor ainda não existe') };
-  if (!existsSync(paths.caCert)) return { ok: false, reason: tr('a CA local não existe') };
+  if (!existsSync(paths.serverCert) || !existsSync(paths.serverKey)) return { ok: false, reason: tr("server certificate doesn't exist yet") };
+  if (!existsSync(paths.caCert)) return { ok: false, reason: tr("the local CA doesn't exist") };
   let cert: X509Certificate;
   let ca: X509Certificate;
   try {
     cert = new X509Certificate(readFileSync(paths.serverCert));
     ca = new X509Certificate(readFileSync(paths.caCert));
   } catch {
-    return { ok: false, reason: tr('certificado ilegível') };
+    return { ok: false, reason: tr('unreadable certificate') };
   }
-  if (!cert.verify(ca.publicKey)) return { ok: false, reason: tr('certificado não foi assinado pela CA atual') };
+  if (!cert.verify(ca.publicKey)) return { ok: false, reason: tr("certificate wasn't signed by the current CA") };
   const expiresAt = new Date(cert.validTo);
-  if (expiresAt.getTime() - now.getTime() < RENEW_BEFORE_DAYS * 86_400_000) return { ok: false, reason: tr('certificado perto de vencer') };
+  if (expiresAt.getTime() - now.getTime() < RENEW_BEFORE_DAYS * 86_400_000) return { ok: false, reason: tr('certificate about to expire') };
   const have = certTargets(readFileSync(paths.serverCert));
   const missing = [...wanted.dns.filter((d) => !have.dns.includes(d.toLowerCase())), ...wanted.ips.filter((ip) => !have.ips.includes(ip))];
-  if (missing.length) return { ok: false, reason: tr('faltam no certificado: {0}', [missing.join(', ')]) };
+  if (missing.length) return { ok: false, reason: tr('missing from the certificate: {0}', [missing.join(', ')]) };
   return { ok: true, expiresAt };
 }
 
@@ -148,8 +148,8 @@ type Run = typeof spawnSync;
 
 function openssl(run: Run, args: string[]): void {
   const r = run('openssl', args, { encoding: 'utf8' });
-  if (r.error) throw new Error(tr('não achei o openssl ({0}); instale-o e rode de novo', [r.error.message]));
-  if (r.status !== 0) throw new Error(tr('openssl {0} falhou: {1}', [args[0], String(r.stderr).trim().split('\n').slice(-2).join(' ')]));
+  if (r.error) throw new Error(tr("couldn't find openssl ({0}); install it and run again", [r.error.message]));
+  if (r.status !== 0) throw new Error(tr('openssl {0} failed: {1}', [args[0], String(r.stderr).trim().split('\n').slice(-2).join(' ')]));
 }
 
 function ensureDir(dir: string, mode: number): void {
@@ -235,7 +235,7 @@ export function ensureCa(paths: TlsPaths, label: string, run: Run = spawnSync, d
 
 /** Emite (de novo) o certificado do servidor, assinado pela CA, cobrindo `targets`. Troca os arquivos de uma vez. */
 export function issueServerCert(paths: TlsPaths, targets: CertTargets, run: Run = spawnSync): void {
-  if (!existsSync(paths.caKey) || !existsSync(paths.caCert)) throw new Error(tr('a CA local não existe: rode npm run remote:setup'));
+  if (!existsSync(paths.caKey) || !existsSync(paths.caCert)) throw new Error(tr("the local CA doesn't exist: run npm run remote:setup"));
   ensureDir(paths.serverDir, 0o755);
   const work = join(tmpdir(), `habblaud-cert-${randomBytes(6).toString('hex')}`);
   mkdirSync(work, { mode: 0o700 });
@@ -296,7 +296,7 @@ export function ensureServerCert(paths: TlsPaths, wanted: CertTargets = defaultT
   const run = opts.run ?? spawnSync;
   const targets: CertTargets = { dns: wanted.dns, ips: wanted.ips.filter(isPrivateIpv4) };
   if (existsSync(paths.caKey) && existsSync(paths.caCert) && !caCovers(paths, targets)) {
-    if (!opts.newCa) throw new Error(tr('a CA local não cobre {0}: rode npm run remote:setup (ele cria uma CA nova)', [targets.dns.join(', ')]));
+    if (!opts.newCa) throw new Error(tr("the local CA doesn't cover {0}: run npm run remote:setup (it creates a new CA)", [targets.dns.join(', ')]));
     rmSync(paths.caDir, { recursive: true, force: true });
     rmSync(paths.serverDir, { recursive: true, force: true });
   }
@@ -304,7 +304,7 @@ export function ensureServerCert(paths: TlsPaths, wanted: CertTargets = defaultT
   const status = serverCertStatus(paths, targets);
   if (!opts.force && !createdCa && status.ok) return { createdCa, issued: false, targets };
   issueServerCert(paths, targets, run);
-  return { createdCa, issued: true, reason: opts.force ? tr('pedido') : status.ok ? tr('CA nova') : status.reason, targets };
+  return { createdCa, issued: true, reason: opts.force ? tr('request') : status.ok ? tr('new CA') : status.reason, targets };
 }
 
 /** SHA-256 da CA, para conferir no celular antes de confiar nela. */

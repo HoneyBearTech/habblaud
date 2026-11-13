@@ -30,9 +30,9 @@ async function renameRequest(id: string, name: string): Promise<void> {
   try {
     res = await fetch('/api/rooms/rename', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, name }) });
   } catch {
-    throw new Error(tr('o Habblaud não respondeu'));
+    throw new Error(tr("Habblaud didn't respond"));
   }
-  if (!res.ok) throw new Error(((await res.json().catch(() => ({}))) as { error?: string }).error ?? tr('erro {0}', [res.status]));
+  if (!res.ok) throw new Error(((await res.json().catch(() => ({}))) as { error?: string }).error ?? tr('error {0}', [res.status]));
 }
 
 export class RoomRenamer {
@@ -46,9 +46,9 @@ export class RoomRenamer {
   };
 
   constructor(private ctx: UiContext) {
-    this.input = h('input', { class: 'ui-rename__input', type: 'text', attrs: { maxlength: NAME_MAX, 'aria-label': tr('Nome da sala'), spellcheck: 'false' } });
+    this.input = h('input', { class: 'ui-rename__input', type: 'text', attrs: { maxlength: NAME_MAX, 'aria-label': tr('Room name'), spellcheck: 'false' } });
     this.hint = h('p', { class: 'ui-rename__hint' });
-    this.el = h('div', { class: 'ui-rename', role: 'dialog', hidden: true, attrs: { 'aria-label': tr('Renomear sala') } }, h('label', { class: 'ui-rename__label', text: tr('Renomear sala') }), this.input, this.hint);
+    this.el = h('div', { class: 'ui-rename', role: 'dialog', hidden: true, attrs: { 'aria-label': tr('Rename room') } }, h('label', { class: 'ui-rename__label', text: tr('Rename room') }), this.input, this.hint);
     this.input.addEventListener('keydown', (e) => {
       e.stopPropagation();
       if (e.key === 'Enter') {
@@ -69,7 +69,7 @@ export class RoomRenamer {
     this.roomId = roomId;
     this.original = room.name;
     this.input.value = room.name;
-    setText(this.hint, tr('Enter salva · Esc cancela · vazio volta a “{0}”', [room.path.split(/[\\/]/).filter(Boolean).pop() ?? room.path]));
+    setText(this.hint, tr('Enter saves · Esc cancels · empty resets to “{0}”', [room.path.split(/[\\/]/).filter(Boolean).pop() ?? room.path]));
     this.hint.classList.remove('is-error');
     this.el.hidden = false;
     const w = this.el.offsetWidth || 260;
@@ -94,10 +94,10 @@ export class RoomRenamer {
     try {
       await renameRequest(id, name);
       if (this.roomId === id) this.close();
-      this.ctx.announce(name ? tr('Sala renomeada para {0}.', [name]) : tr('A sala voltou ao nome da pasta.'));
+      this.ctx.announce(name ? tr('Room renamed to {0}.', [name]) : tr('The room is back to the folder name.'));
     } catch (err) {
       // fica aberto com o motivo (ex.: sala de demonstração, Habblaud aberto por outro endereço)
-      setText(this.hint, tr('Não deu: {0}', [(err as Error).message]));
+      setText(this.hint, tr("Didn't work: {0}", [(err as Error).message]));
       this.hint.classList.add('is-error');
     }
   }

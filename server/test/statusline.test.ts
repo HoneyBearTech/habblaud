@@ -254,7 +254,7 @@ describe('statusline-install.ts (arquivos, HOME falso)', () => {
 
     out = [];
     expect(exec('install')).toBe(0);
-    expect(out.join('\n')).toContain('já instalado');
+    expect(out.join('\n')).toContain('already installed');
     expect(readdirSync(join(home, '.claude')).filter((f) => f.includes('backup'))).toHaveLength(1);
   });
 
@@ -272,13 +272,13 @@ describe('statusline-install.ts (arquivos, HOME falso)', () => {
     exec('install');
     out = [];
     exec('status');
-    expect(out.join('\n')).toMatch(/\.claude \(.*\): instalado \(na frente de: npx -y ccstatusline\); nenhum uso capturado ainda/);
+    expect(out.join('\n')).toMatch(/\.claude \(.*\): installed \(in front of: npx -y ccstatusline\); no usage captured yet/);
     expect(exec('uninstall')).toBe(0);
     expect(read('.claude')).toEqual(original);
     expect(read('.claude-conta2')).toEqual({});
     out = [];
     exec('uninstall');
-    expect(out.join('\n')).toContain('não estava instalado');
+    expect(out.join('\n')).toContain("wasn't installed");
   });
 
   it('nome antigo: o install leva ~/.codetown para ~/.habblaud (mesmo com HABBLAUD_USAGE_DIR em outro lugar); status e uninstall não', () => {
@@ -288,17 +288,17 @@ describe('statusline-install.ts (arquivos, HOME falso)', () => {
     exec('uninstall');
     exec('install', { dryRun: true });
     expect(existsSync(join(home, '.codetown', 'usage', '.claude.json'))).toBe(true);
-    expect(out.filter((l) => l.includes('nome antigo'))).toEqual(['~ ~/.codetown (nome antigo) vai para ~/.habblaud (simulação: nada movido)']);
+    expect(out.filter((l) => l.includes('old name'))).toEqual(['~ ~/.codetown (old name) goes to ~/.habblaud (dry run: nothing moved)']);
     out = [];
     expect(exec('install')).toBe(0);
-    expect(out[0]).toBe('✓ ~/.codetown (nome antigo) agora é ~/.habblaud.');
+    expect(out[0]).toBe('✓ ~/.codetown (old name) is now ~/.habblaud.');
     expect(existsSync(join(home, '.codetown'))).toBe(false);
     expect(readFileSync(join(home, '.habblaud', 'usage', '.claude.json'), 'utf8')).toBe('{"fetchedAt":1}');
     expect(read('.claude').statusLine.command).toBe(wrapCommand(process.execPath, TAP_SCRIPT, 'npx -y ccstatusline'));
     // Já migrado: nada a dizer.
     out = [];
     exec('install');
-    expect(out.join('\n')).not.toContain('nome antigo');
+    expect(out.join('\n')).not.toContain('old name');
   });
 
   // No Windows o chmod não tira a escrita de uma pasta: o rename passaria.
@@ -311,7 +311,7 @@ describe('statusline-install.ts (arquivos, HOME falso)', () => {
     } finally {
       chmodSync(home, 0o755);
     }
-    expect(out[0]).toMatch(/^! não consegui levar ~\/\.codetown para ~\/\.habblaud \(.+\); mova a pasta à mão\.$/);
+    expect(out[0]).toMatch(/^! couldn't move ~\/\.codetown to ~\/\.habblaud \(.+\); move the folder by hand\.$/);
     expect(existsSync(join(home, '.codetown', 'usage'))).toBe(true);
     expect(read('.claude').statusLine.command).toContain('statusline-tap.mjs');
   });
@@ -324,7 +324,7 @@ describe('statusline-install.ts (arquivos, HOME falso)', () => {
     writeFileSync(join(home, '.claude-conta2', 'settings.json'), '{ quebrado');
     expect(exec('install')).toBe(1);
     expect(readFileSync(join(home, '.claude-conta2', 'settings.json'), 'utf8')).toBe('{ quebrado');
-    expect(out.join('\n')).toContain('JSON inválido');
+    expect(out.join('\n')).toContain('invalid JSON');
   });
 
   it('writeSettings: sem corrida, grava e o backup é o conteúdo que o rename substituiu', () => {
@@ -352,7 +352,7 @@ describe('statusline-install.ts (arquivos, HOME falso)', () => {
     }
     // A chave gravada no meio fica no arquivo: a instalação aborta e não deixa backup nem temporário.
     expect(readFileSync(file, 'utf8')).toBe(concurrent);
-    expect(message).toMatch(/rode o comando de novo/);
+    expect(message).toMatch(/run the command again/);
     expect(readdirSync(join(home, '.claude')).filter((f) => f.includes('habblaud-backup') || f.includes('habblaud-tmp'))).toEqual([]);
   });
 });

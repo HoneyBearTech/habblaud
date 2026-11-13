@@ -38,13 +38,13 @@ describe('groupSessionsByDay', () => {
     ];
     const days = groupSessionsByDay(list, NOW);
     expect(days.map((d) => [d.label, d.sessions.map((s) => s.sessionId)])).toEqual([
-      ['Hoje', ['c', 'a']],
-      ['Ontem', ['d']],
+      ['Today', ['c', 'a']],
+      ['Yesterday', ['d']],
       [dayLabel(at(6, 12), NOW), ['b']],
       [dayLabel(at(2, 12), NOW), ['e']],
     ]);
-    expect(days[2].label).toMatch(/^Ter.*06.*out/i);
-    expect(days[3].label).toMatch(/^Sex.*02.*out/i);
+    expect(days[2].label).toMatch(/^Tue.*Oct.*06/i);
+    expect(days[3].label).toMatch(/^Fri.*Oct.*02/i);
     expect(groupSessionsByDay([], NOW)).toEqual([]);
   });
 });

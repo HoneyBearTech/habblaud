@@ -299,10 +299,10 @@ describe('personagem do projeto (store)', () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it('saveCharacter: PUT JSON na rota do agente; devolve undefined ou a mensagem de erro do servidor', async () => {
-    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ error: 'Ana já está no escritório em api' }), { status: 409 }));
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ error: 'Ana is already in the office, in api' }), { status: 409 }));
     vi.stubGlobal('fetch', fetchMock);
     const store = new OfficeStore();
-    expect(await store.saveCharacter('.claude:1', { name: 'Ana', seed: 1, parts: {} })).toBe('Ana já está no escritório em api');
+    expect(await store.saveCharacter('.claude:1', { name: 'Ana', seed: 1, parts: {} })).toBe('Ana is already in the office, in api');
     expect(fetchMock).toHaveBeenCalledWith('/api/agents/.claude%3A1/character', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -318,9 +318,9 @@ describe('personagem do projeto (store)', () => {
     expect(await new OfficeStore().resetCharacter('a')).toBeUndefined();
     expect(fetchMock).toHaveBeenLastCalledWith('/api/agents/a/character', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: '{}' });
     fetchMock.mockRejectedValueOnce(new TypeError('failed to fetch'));
-    expect(await new OfficeStore().resetCharacter('a')).toBe('Sem conexão com o Habblaud.');
+    expect(await new OfficeStore().resetCharacter('a')).toBe('No connection to Habblaud.');
     const calls = fetchMock.mock.calls.length;
-    expect(await new OfficeStore({ mock: true }).resetCharacter('a')).toMatch(/ao vivo/);
+    expect(await new OfficeStore({ mock: true }).resetCharacter('a')).toMatch(/live/);
     expect(fetchMock.mock.calls.length).toBe(calls);
   });
 });

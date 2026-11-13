@@ -73,11 +73,11 @@ describe('setup e anúncio', () => {
       passwordStdin: true,
       service: false,
     });
-    expect(() => parseArgs(['--port', '99999'])).toThrow(/porta/);
-    expect(() => parseArgs(['--bogus'])).toThrow(/desconhecida/);
+    expect(() => parseArgs(['--port', '99999'])).toThrow(/port/);
+    expect(() => parseArgs(['--bogus'])).toThrow(/unknown/);
     expect(passwordProblem('curta', 'ana')).toMatch(/10/);
-    expect(passwordProblem(' com espaço no fim ', 'ana')).toMatch(/espaços/);
-    expect(passwordProblem('ana1234567', 'ana1234567')).toMatch(/usuário/);
+    expect(passwordProblem(' com espaço no fim ', 'ana')).toMatch(/spaces/);
+    expect(passwordProblem('ana1234567', 'ana1234567')).toMatch(/username/);
     expect(passwordProblem('uma senha boa', 'ana')).toBeUndefined();
     expect(urlFor('myclaude.local', 443)).toBe('https://myclaude.local');
     expect(urlFor('myclaude.local', 4748)).toBe('https://myclaude.local:4748');

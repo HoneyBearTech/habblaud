@@ -337,12 +337,12 @@ describe('erros', () => {
   });
 
   it('os códigos extras do servidor do mundo têm texto', () => {
-    expect(worldErrorText('device_limit', 'login')).toBe('Esta conta já tem 3 computadores; revogue um em Dispositivos.');
-    expect(worldErrorText('name_cooldown', 'character')).toMatch(/30 dias/);
-    expect(worldErrorText('no_player', 'visibility')).toMatch(/personagem/);
-    expect(worldErrorText('unavailable', 'status')).toMatch(/manutenção/);
-    expect(worldErrorText('internal', 'character')).toBe('O servidor do mundo teve um erro; tente de novo.');
-    for (const c of ['invalid_json', 'too_large', 'unsupported_media_type', 'method_not_allowed']) expect(worldErrorText(c, 'login')).toMatch(/formato/);
+    expect(worldErrorText('device_limit', 'login')).toBe('This account already has 3 computers; revoke one in Devices.');
+    expect(worldErrorText('name_cooldown', 'character')).toMatch(/30 days/);
+    expect(worldErrorText('no_player', 'visibility')).toMatch(/character/);
+    expect(worldErrorText('unavailable', 'status')).toMatch(/maintenance/);
+    expect(worldErrorText('internal', 'character')).toBe('The world server had an error; try again.');
+    for (const c of ['invalid_json', 'too_large', 'unsupported_media_type', 'method_not_allowed']) expect(worldErrorText(c, 'login')).toMatch(/format/);
   });
 
   it('"invalid" diz o que foi recusado, conforme a ação', () => {
@@ -368,26 +368,26 @@ describe('cartão "Seu prédio"', () => {
 
   it('conectado: contagens, última remessa e o botão Pausar com a explicação', () => {
     const v = buildingView(live, true, NOW);
-    expect(v.label).toBe('Conectado');
-    expect(v.stats).toEqual(['2 andares', '3 agentes', 'Última remessa: há 12 s']);
+    expect(v.label).toBe('Connected');
+    expect(v.stats).toEqual(['2 floors', '3 agents', 'Last upload: 12 s ago']);
     expect(v.rejected).toBeNull();
     expect(v.toggle?.action).toBe('pause');
-    expect(v.toggle?.text).toBe('Pausar');
-    expect(v.toggle?.hint).toMatch(/^Pausar interrompe o envio na hora e apaga o prédio no mundo\. Pausado por 30 dias/);
+    expect(v.toggle?.text).toBe('Pause');
+    expect(v.toggle?.hint).toMatch(/^Pausing stops sending right away and turns the building off in the world\. After 30 days paused/);
   });
 
   it('sem conexão: "Conectando…" antes da primeira remessa, "Reconectando…" depois', () => {
-    expect(buildingView({ ...live, connected: false, lastUplinkAt: undefined }, true, NOW)).toMatchObject({ label: 'Conectando…', stats: ['2 andares', '3 agentes', 'Nenhuma remessa ainda'] });
-    expect(buildingView({ ...live, connected: false }, true, NOW).label).toBe('Reconectando…');
+    expect(buildingView({ ...live, connected: false, lastUplinkAt: undefined }, true, NOW)).toMatchObject({ label: 'Connecting…', stats: ['2 floors', '3 agents', 'No uploads yet'] });
+    expect(buildingView({ ...live, connected: false }, true, NOW).label).toBe('Reconnecting…');
   });
 
   it('pausado: botão Retomar; sem personagem: nem contagens nem botões', () => {
-    expect(buildingView({ ...live, paused: true, connected: false }, true, NOW).toggle).toMatchObject({ action: 'resume', text: 'Retomar' });
-    expect(buildingView(live, false, NOW)).toMatchObject({ state: 'no_player', label: 'Sem personagem', stats: [], toggle: null, rejected: null });
+    expect(buildingView({ ...live, paused: true, connected: false }, true, NOW).toggle).toMatchObject({ action: 'resume', text: 'Resume' });
+    expect(buildingView(live, false, NOW)).toMatchObject({ state: 'no_player', label: 'No character', stats: [], toggle: null, rejected: null });
   });
 
   it('singular e plural das contagens', () => {
-    expect([floorsText(1), floorsText(0), agentsText(1), agentsText(1200)]).toEqual(['1 andar', '0 andares', '1 agente', '1.200 agentes']);
+    expect([floorsText(1), floorsText(0), agentsText(1), agentsText(1200)]).toEqual(['1 floor', '0 floors', '1 agent', '1,200 agents']);
   });
 
   it('remessa recusada: o motivo traduzido aparece no cartão', () => {
@@ -403,24 +403,24 @@ describe('cartão "Seu prédio"', () => {
 
   it('parado pelo servidor do mundo: cada motivo com o seu texto; "Atualize o Habblaud" e "Conectado em outro computador"', () => {
     const stopped = (reason: WorldBuildingStop) => buildingView({ ...live, connected: false, stopped: reason }, true, NOW);
-    expect(stopped('update')).toMatchObject({ state: 'stopped', label: 'Atualize o Habblaud', toggle: null, leave: true, rejected: null });
-    expect(stopped('other-device')).toMatchObject({ label: 'Conectado em outro computador', toggle: { action: 'resume', text: 'Trazer para este computador' }, leave: true });
-    expect(stopped('suspended').toggle).toMatchObject({ action: 'resume', text: 'Tentar de novo' });
-    expect(stopped('banned')).toMatchObject({ label: 'Conta banida', toggle: null, leave: false });
+    expect(stopped('update')).toMatchObject({ state: 'stopped', label: 'Update Habblaud', toggle: null, leave: true, rejected: null });
+    expect(stopped('other-device')).toMatchObject({ label: 'Connected on another computer', toggle: { action: 'resume', text: 'Bring it to this computer' }, leave: true });
+    expect(stopped('suspended').toggle).toMatchObject({ action: 'resume', text: 'Try again' });
+    expect(stopped('banned')).toMatchObject({ label: 'Account banned', toggle: null, leave: false });
     for (const r of ['waiting', 'no_player', 'unauthorized'] as const) expect(stopped(r)).toMatchObject({ toggle: null, leave: false });
     const reasons: WorldBuildingStop[] = ['banned', 'suspended', 'update', 'other-device', 'waiting', 'no_player', 'unauthorized', 'deleted'];
     const descs = reasons.map((r) => buildingStopView(r).desc);
     expect(new Set(descs).size).toBe(reasons.length);
     // As contagens da última remessa continuam.
-    expect(stopped('update').stats).toEqual(['2 andares', '3 agentes', 'Última remessa: há 12 s']);
+    expect(stopped('update').stats).toEqual(['2 floors', '3 agents', 'Last upload: 12 s ago']);
   });
 
   it('fora do mundo: sem contagens, "Voltar ao mundo" e sem "Sair do mundo"; os outros estados com prédio mostram "Sair do mundo"', () => {
     expect(buildingView({ ...live, connected: false, paused: true, left: true }, true, NOW)).toMatchObject({
       state: 'left',
-      label: 'Fora do mundo',
+      label: 'Out of the world',
       stats: [],
-      toggle: { action: 'join', text: 'Voltar ao mundo' },
+      toggle: { action: 'join', text: 'Back to the world' },
       leave: false,
     });
     expect(buildingView(live, true, NOW).leave).toBe(true);
@@ -428,7 +428,7 @@ describe('cartão "Seu prédio"', () => {
     expect(buildingView({ ...live, paused: true }, true, NOW).leave).toBe(true);
     expect(buildingView(live, false, NOW).leave).toBe(false);
     // A explicação diz a diferença entre pausar e sair (PLANO.md, 2.6).
-    expect(leaveHint()).toMatch(/^Pausar apaga o prédio e guarda o lote.*Sair do mundo retira o prédio na hora e libera o lote/);
+    expect(leaveHint()).toMatch(/^Pausing turns the building off and keeps the lot.*Leaving the world removes the building right away and frees the lot/);
   });
 });
 
@@ -443,12 +443,12 @@ describe('motivos de recusa de uma remessa', () => {
   });
 
   it('janela "Ver o que foi enviado": aceita, recusada com motivo ou sem resposta', () => {
-    expect(ackView({ ok: true, at: 1 })).toEqual({ kind: 'accepted', label: 'Aceita pelo mundo.', reason: null });
+    expect(ackView({ ok: true, at: 1 })).toEqual({ kind: 'accepted', label: 'Accepted by the world.', reason: null });
     // Com os bytes que o mundo contou: iguais aos enviados, ou o número dele.
-    expect(ackView({ ok: true, at: 1, bytes: 1174 }, 1174).reason).toBe('O mundo recebeu os mesmos 1.174 bytes.');
-    expect(ackView({ ok: true, at: 1, bytes: 1 }, 2).reason).toBe('O mundo contou 1 byte.');
+    expect(ackView({ ok: true, at: 1, bytes: 1174 }, 1174).reason).toBe('The world received the same 1,174 bytes.');
+    expect(ackView({ ok: true, at: 1, bytes: 1 }, 2).reason).toBe('The world counted 1 byte.');
     expect(bytesText(0)).toBe('0 bytes');
-    expect(ackView({ ok: false, error: 'name_pool', at: 1 })).toEqual({ kind: 'rejected', label: 'Recusada pelo mundo.', reason: uplinkRejectText('name_pool') });
+    expect(ackView({ ok: false, error: 'name_pool', at: 1 })).toEqual({ kind: 'rejected', label: 'Rejected by the world.', reason: uplinkRejectText('name_pool') });
     expect(ackView(undefined).kind).toBe('pending');
   });
 
@@ -492,10 +492,10 @@ describe('tema e chip do topo', () => {
 describe('visitantes no seu prédio (Fase 4)', () => {
   it('o cartão "Seu prédio" mostra "N visitantes agora" só com alguém lá dentro', () => {
     const b: WorldBuildingStatus = { connected: true, paused: false, floors: 2, agents: 3, lastUplinkAt: 1 };
-    expect(buildingView({ ...b, visitors: 3 }, true, 2).stats).toContain('👀 3 visitantes agora');
-    expect(buildingView({ ...b, visitors: 1 }, true, 2).stats).toContain('👀 1 visitante agora');
-    expect(buildingView({ ...b, visitors: 0 }, true, 2).stats.some((t) => t.includes('visitante'))).toBe(false);
-    expect(buildingView(b, true, 2).stats.some((t) => t.includes('visitante'))).toBe(false);
+    expect(buildingView({ ...b, visitors: 3 }, true, 2).stats).toContain('👀 3 visitors now');
+    expect(buildingView({ ...b, visitors: 1 }, true, 2).stats).toContain('👀 1 visitor now');
+    expect(buildingView({ ...b, visitors: 0 }, true, 2).stats.some((t) => t.includes('visitor'))).toBe(false);
+    expect(buildingView(b, true, 2).stats.some((t) => t.includes('visitor'))).toBe(false);
   });
 
   it('o aviso: uma vez por conexão, quando passa de nenhum a algum; a primeira contagem da página não avisa; desligado, nunca', () => {
@@ -548,36 +548,36 @@ describe('conta e dados (Fase 6)', () => {
 
   it('conta suspensa ou banida: "Recorrer por e-mail"; as outras paradas, não', () => {
     const stopped = (reason: WorldBuildingStop) => buildingView({ ...live, connected: false, stopped: reason }, true, NOW);
-    for (const r of ['banned', 'suspended'] as const) expect(stopped(r).appeal).toMatchObject({ text: 'Recorrer por e-mail', hint: expect.stringContaining(APPEAL_EMAIL) });
+    for (const r of ['banned', 'suspended'] as const) expect(stopped(r).appeal).toMatchObject({ text: 'Appeal by e-mail', hint: expect.stringContaining(APPEAL_EMAIL) });
     for (const r of ['update', 'other-device', 'waiting', 'no_player', 'unauthorized', 'deleted'] as const) expect(stopped(r).appeal, r).toBeNull();
-    expect(stopped('deleted')).toMatchObject({ label: 'Conta excluída', toggle: null, leave: false });
+    expect(stopped('deleted')).toMatchObject({ label: 'Account deleted', toggle: null, leave: false });
     expect(buildingView(live, true, NOW)).toMatchObject({ appeal: null, unverified: null });
   });
 
   it('não verificado: o selo com "Contestar por e-mail" enquanto o prédio está no mundo; o rótulo da cidade', () => {
     const v = buildingView({ ...live, unverified: true }, true, NOW);
-    expect(v.unverified).toMatch(/não verificado/);
-    expect(v.appeal).toMatchObject({ text: 'Contestar por e-mail' });
-    expect(buildingView({ ...live, unverified: true, paused: true }, true, NOW).appeal?.text).toBe('Contestar por e-mail');
+    expect(v.unverified).toMatch(/unverified/);
+    expect(v.appeal).toMatchObject({ text: 'Dispute by e-mail' });
+    expect(buildingView({ ...live, unverified: true, paused: true }, true, NOW).appeal?.text).toBe('Dispute by e-mail');
     expect(buildingView({ ...live, unverified: true, left: true }, true, NOW)).toMatchObject({ unverified: null, appeal: null });
     // Suspensa vale mais que o selo: o recurso é da suspensão.
-    expect(buildingView({ ...live, connected: false, unverified: true, stopped: 'suspended' }, true, NOW)).toMatchObject({ unverified: null, appeal: { text: 'Recorrer por e-mail' } });
-    expect(unverifiedLabel()).toBe('Não verificado');
-    expect(unverifiedHint()).toMatch(/revisão/);
+    expect(buildingView({ ...live, connected: false, unverified: true, stopped: 'suspended' }, true, NOW)).toMatchObject({ unverified: null, appeal: { text: 'Appeal by e-mail' } });
+    expect(unverifiedLabel()).toBe('Unverified');
+    expect(unverifiedHint()).toMatch(/review/);
   });
 
   it('manutenção: sem conexão, o cartão diz que o mundo está em manutenção; conectado, não', () => {
     const down = { ...live, connected: false };
-    expect(buildingView(down, true, NOW, { maintenance: true })).toMatchObject({ state: 'reconnecting', label: 'Em manutenção', desc: 'O mundo está em manutenção; tentamos de novo em instantes.' });
-    expect(buildingView(down, true, NOW).label).toBe('Reconectando…');
-    expect(buildingView(live, true, NOW, { maintenance: true }).label).toBe('Conectado');
-    expect(worldErrorText('maintenance', 'status')).toBe('O mundo está em manutenção; tentamos de novo em instantes.');
+    expect(buildingView(down, true, NOW, { maintenance: true })).toMatchObject({ state: 'reconnecting', label: 'Under maintenance', desc: "The world is under maintenance; we'll try again in a moment." });
+    expect(buildingView(down, true, NOW).label).toBe('Reconnecting…');
+    expect(buildingView(live, true, NOW, { maintenance: true }).label).toBe('Connected');
+    expect(worldErrorText('maintenance', 'status')).toBe("The world is under maintenance; we'll try again in a moment.");
   });
 
   it('textos: exportar uma vez por dia, conta excluída, aviso de inatividade ligado por padrão', () => {
-    expect(worldErrorText('rate_limited', 'export')).toMatch(/uma vez por dia/);
-    expect(worldErrorText('rate_limited', 'login')).toMatch(/alguns minutos/);
-    expect(worldErrorText('account_deleted', 'status')).toMatch(/7 dias.*30/);
+    expect(worldErrorText('rate_limited', 'export')).toMatch(/once a day/);
+    expect(worldErrorText('rate_limited', 'login')).toMatch(/a few minutes/);
+    expect(worldErrorText('account_deleted', 'status')).toMatch(/7 days.*30/);
     expect(worldErrorText('invalid', 'inactivity')).toBe(worldErrorText('invalid', 'visibility'));
     expect(notifyInactivityOn(undefined)).toBe(true);
     expect(notifyInactivityOn({})).toBe(true);

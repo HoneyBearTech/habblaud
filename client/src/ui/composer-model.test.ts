@@ -25,7 +25,7 @@ function agent(over: Partial<AgentInfo> = {}): AgentInfo {
     roomId: 'r',
     name: 'Marina',
     look: 'f',
-    role: 'Agente principal',
+    role: 'Main agent',
     sessionId: 's-1',
     account: 'acc',
     status: 'idle',
@@ -49,7 +49,7 @@ describe('caixa de mensagem (peças puras)', () => {
     for (const status of ['working', 'waiting', 'shell'] as const) expect(composerMode(agent({ status }), ON).kind).toBe('ready');
     // Recurso ligado, mas a sessão sem o plugin: a dica de instalação.
     expect(composerMode(agent({ canMessage: undefined }), ON)).toEqual({ kind: 'hint', text: PLUGIN_HINT });
-    expect(PLUGIN_HINT).toBe('Para mandar mensagens daqui: npm run mod:install (plugin habblaud-mensagens)');
+    expect(PLUGIN_HINT).toBe('To send messages from here: npm run mod:install (plugin habblaud-mensagens)');
   });
 
   it('composerMode: quando não dá, diz por quê (a gaveta esconde, o terminal mostra o motivo)', () => {
@@ -58,12 +58,12 @@ describe('caixa de mensagem (peças puras)', () => {
       expect(m.kind).toBe('off');
       return m.kind === 'off' ? m.text : '';
     };
-    expect(off(agent({ kind: 'sub', parentId: 'acc:1' }))).toMatch(/^Subagentes não recebem/);
-    expect(off(agent({ kind: 'sub', status: 'done' }))).toMatch(/^Subagentes/);
-    expect(off(agent({ status: 'offline' }))).toBe('Sessão encerrada');
-    expect(off(undefined)).toBe('Sessão encerrada');
-    expect(off(agent(), { enabled: false })).toMatch(/terminal do Claude Code/);
-    expect(off(agent({ canMessage: undefined }), { enabled: false })).toMatch(/terminal do Claude Code/);
+    expect(off(agent({ kind: 'sub', parentId: 'acc:1' }))).toMatch(/^Subagents don't receive/);
+    expect(off(agent({ kind: 'sub', status: 'done' }))).toMatch(/^Subagents/);
+    expect(off(agent({ status: 'offline' }))).toBe('Session ended');
+    expect(off(undefined)).toBe('Session ended');
+    expect(off(agent(), { enabled: false })).toMatch(/the Claude Code terminal/);
+    expect(off(agent({ canMessage: undefined }), { enabled: false })).toMatch(/the Claude Code terminal/);
     expect(off(agent(), { local: false })).toMatch(/localhost/);
     expect(off(agent(), { replaying: true })).toMatch(/timelapse/);
   });
@@ -90,13 +90,13 @@ describe('caixa de mensagem (peças puras)', () => {
 
   it('linha de situação: enviando, na fila, entregando, entregue (some depois de um tempo) e os erros', () => {
     expect(sendStatusText(undefined, 0)).toBe('');
-    expect(sendStatusText({ phase: 'sending', at: 0 }, 0)).toBe('Enviando…');
-    expect(sendStatusText({ phase: 'queued', at: 0 }, 0)).toMatch(/^Na fila/);
-    expect(sendStatusText({ phase: 'sent', at: 0 }, 0)).toMatch(/^Entregando/);
-    expect(sendStatusText({ phase: 'delivered', at: 0 }, 1_000)).toMatch(/^Entregue ✓ \(se o agente estiver ocupado, entra quando ele terminar\)$/);
+    expect(sendStatusText({ phase: 'sending', at: 0 }, 0)).toBe('Sending…');
+    expect(sendStatusText({ phase: 'queued', at: 0 }, 0)).toMatch(/^Queued/);
+    expect(sendStatusText({ phase: 'sent', at: 0 }, 0)).toMatch(/^Delivering/);
+    expect(sendStatusText({ phase: 'delivered', at: 0 }, 1_000)).toMatch(/^Delivered ✓ \(if the agent is busy, it goes in when it finishes\)$/);
     expect(sendStatusText({ phase: 'delivered', at: 0 }, DELIVERED_SHOW_MS)).toBe('');
-    expect(sendStatusText({ phase: 'rejected', error: 'já há 5 mensagens', at: 0 }, 0)).toBe('Não foi possível mandar: já há 5 mensagens');
-    expect(sendStatusText({ phase: 'failed', error: 'a sessão não confirmou a entrega', at: 0 }, 99_999)).toBe('Não foi entregue: a sessão não confirmou a entrega');
+    expect(sendStatusText({ phase: 'rejected', error: 'já há 5 mensagens', at: 0 }, 0)).toBe("Couldn't send: já há 5 mensagens");
+    expect(sendStatusText({ phase: 'failed', error: "the session didn't confirm delivery", at: 0 }, 99_999)).toBe("Not delivered: the session didn't confirm delivery");
     expect(['delivered', 'failed', 'rejected'].every((p) => isSettled(p as never))).toBe(true);
     expect(['sending', 'queued', 'sent'].some((p) => isSettled(p as never))).toBe(false);
   });
@@ -105,20 +105,20 @@ describe('caixa de mensagem (peças puras)', () => {
     const codex = (over: Partial<AgentInfo> = {}) => agent({ provider: 'codex', ...over });
     expect(composerMode(codex(), ON)).toEqual({ kind: 'ready' });
     expect(composerMode(codex({ canMessage: undefined }), ON)).toEqual({ kind: 'hint', text: CODEX_BRIDGE_HINT });
-    expect(CODEX_BRIDGE_HINT).toBe('Para mandar mensagens ao Codex: com o Habblaud no Docker, deixe npm run codex:bridge rodando; no modo Node funciona sozinho');
-    expect(composerMode(codex(), { ...ON, enabled: false })).toEqual({ kind: 'off', text: 'Para responder, use o Codex' });
+    expect(CODEX_BRIDGE_HINT).toBe('To send messages to Codex: with Habblaud in Docker, keep npm run codex:bridge running; in Node mode it works on its own');
+    expect(composerMode(codex(), { ...ON, enabled: false })).toEqual({ kind: 'off', text: 'To reply, use Codex' });
     expect(composerMode(codex({ kind: 'sub', parentId: 'acc:1' }), ON).kind).toBe('off');
-    expect(composerMode(codex({ status: 'offline' }), ON)).toEqual({ kind: 'off', text: 'Sessão encerrada' });
+    expect(composerMode(codex({ status: 'offline' }), ON)).toEqual({ kind: 'off', text: 'Session ended' });
   });
 
   it('Codex: "Entregue" é a fila da sessão; dica e prazo falam do Codex', () => {
-    expect(sendStatusText({ phase: 'delivered', at: 0 }, 1_000, 'codex')).toBe('Entregue ✓ na fila da sessão: entra quando o Codex terminar o que está fazendo (até ~10 s)');
+    expect(sendStatusText({ phase: 'delivered', at: 0 }, 1_000, 'codex')).toBe("Delivered ✓ to the session queue: goes in when Codex finishes what it's doing (up to ~10 s)");
     expect(sendStatusText({ phase: 'delivered', at: 0 }, DELIVERED_SHOW_MS, 'codex')).toBe('');
-    expect(sendStatusText({ phase: 'queued', at: 0 }, 0, 'codex')).toBe('Na fila: entregando ao Codex…');
+    expect(sendStatusText({ phase: 'queued', at: 0 }, 0, 'codex')).toBe('Queued: delivering to Codex…');
     // O Claude Code continua como antes.
     expect(sendStatusText({ phase: 'delivered', at: 0 }, 1_000, 'claude')).toBe(sendStatusText({ phase: 'delivered', at: 0 }, 1_000));
-    expect(composerTip('codex')).toMatch(/^Entra na fila da sessão e vira o próximo prompt quando o Codex terminar/);
-    expect(composerTip()).toBe('Entra na sessão como se você tivesse digitado. Enter manda; Shift+Enter quebra a linha.');
+    expect(composerTip('codex')).toMatch(/^Joins the session queue and becomes the next prompt when Codex finishes/);
+    expect(composerTip()).toBe('Goes into the session as if you had typed it. Enter sends; Shift+Enter adds a new line.');
     expect(timeoutError('codex')).toBe(CODEX_TIMEOUT_ERROR);
     expect(timeoutError()).toBe(TIMEOUT_ERROR);
   });

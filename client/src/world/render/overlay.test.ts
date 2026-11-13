@@ -1,14 +1,26 @@
 // Regras puras da camada de texto do mundo (balões e enquadramento).
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
+import { setLocale } from '../../../../shared/i18n';
 import { overviewFrame } from '../camera';
 import { rationBubbles, waitBubbleText } from './overlay';
 
 describe('balões', () => {
+  afterEach(() => setLocale('en'));
+
   it('espera: só o motivo, sem o prefixo redundante', () => {
+    expect(waitBubbleText('approve a permission')).toBe('Approve a permission');
+    expect(waitBubbleText('Needs you: choose an option')).toBe('Choose an option');
+    expect(waitBubbleText('needs you')).toBe('Answer in terminal');
+    expect(waitBubbleText(undefined)).toBe('Answer in terminal');
+    expect(waitBubbleText('   ')).toBe('Answer in terminal');
+    // A server in Portuguese and a page in English: the Portuguese prefix is recognized too.
     expect(waitBubbleText('aprovar uma permissão')).toBe('Aprovar uma permissão');
     expect(waitBubbleText('Precisa de você: escolher uma opção')).toBe('Escolher uma opção');
+    // A page in Portuguese, with a server in Portuguese or in English.
+    setLocale('pt-BR');
+    expect(waitBubbleText('Precisa de você: escolher uma opção')).toBe('Escolher uma opção');
+    expect(waitBubbleText('Needs you: choose an option')).toBe('Choose an option');
     expect(waitBubbleText(undefined)).toBe('Responder no terminal');
-    expect(waitBubbleText('   ')).toBe('Responder no terminal');
   });
 
   it('visão geral: no máximo 1 balão com texto por área e 4 na tela (mais recentes primeiro)', () => {

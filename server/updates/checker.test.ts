@@ -142,10 +142,10 @@ describe('UpdateChecker', () => {
     await c.check();
     const limits = await c.check();
     expect(limits).toMatchObject({ state: 'error', latest: '0.3.0', available: true });
-    expect(limits.error).toMatch(/limite de consultas/);
-    expect((await c.check()).error).toBe('sem conexão com o GitHub');
-    expect((await c.check()).error).toBe('o GitHub não respondeu a tempo');
-    expect((await c.check()).error).toBe('o GitHub respondeu 502');
+    expect(limits.error).toMatch(/rate limit/);
+    expect((await c.check()).error).toBe('no connection to GitHub');
+    expect((await c.check()).error).toBe("GitHub didn't respond in time");
+    expect((await c.check()).error).toBe('GitHub responded 502');
   });
 
   it('desligado: não consulta nada', async () => {

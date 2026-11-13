@@ -326,7 +326,7 @@ function offsetMs(t: number, tz: string): number {
 /** Primeiro instante do dia `key` no fuso `tz` (meia-noite, ou o começo real em dias de horário de verão). */
 export function dayStart(key: string, tz: string): number {
   const k = parseDayKey(key);
-  if (!k) throw new RangeError(tr('dia inválido: {0}', [key]));
+  if (!k) throw new RangeError(tr('invalid day: {0}', [key]));
   const guess = Date.UTC(k.y, k.m - 1, k.d);
   let t = guess - offsetMs(guess, tz);
   t = guess - offsetMs(t, tz);
@@ -566,7 +566,7 @@ export function parseDayFile(raw: unknown, key: string): DayData | null {
       if (!agentId || !start || end < start) continue;
       const rec: WaitRecord = {
         agentId,
-        agentName: text(wo.agentName, LIMITS.name) ?? tr('Agente'),
+        agentName: text(wo.agentName, LIMITS.name) ?? tr('Agent'),
         roomId: text(wo.roomId) ?? '',
         account: text(wo.account) ?? '',
         start,

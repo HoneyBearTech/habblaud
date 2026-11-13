@@ -86,7 +86,7 @@ export class NameStore {
         if (c) this.rooms.set(roomId, c);
       }
     } catch (err) {
-      if ((err as NodeJS.ErrnoException).code !== 'ENOENT') log.warn(tr('names.json ilegível ({0}); começando do zero.', [errMsg(err)]));
+      if ((err as NodeJS.ErrnoException).code !== 'ENOENT') log.warn(tr('names.json unreadable ({0}); starting from scratch.', [errMsg(err)]));
     }
   }
 
@@ -178,7 +178,7 @@ export class NameStore {
       renameSync(tmp, this.file);
       log.clearOnce('names-write');
     } catch (err) {
-      log.warnOnce('names-write', tr('Não foi possível gravar {0} ({1}); os nomes valem só nesta execução.', [this.file, errMsg(err)]));
+      log.warnOnce('names-write', tr("Couldn't write {0} ({1}); names only last for this run.", [this.file, errMsg(err)]));
     }
   }
 }

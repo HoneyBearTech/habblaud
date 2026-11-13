@@ -155,9 +155,9 @@ describe('shells do agente', () => {
     expect(shellWaitSince({ status: 'working', shells, statusSince: NOW })).toBe(NOW - 20_000);
     expect(shellWaitSince({ status: 'shell', shells: [], statusSince: NOW - 7 })).toBe(NOW - 7);
     expect(shellLabel({ status: 'shell', shells })).toBe('Comando b1');
-    expect(shellLabel({ status: 'shell', shells: [job('x', 1, { label: '  ' })] })).toBe('Comando em segundo plano');
-    expect(shellLabel({ status: 'working', shells: [] })).toBe('Comando no terminal');
-    expect(shellLabel({ status: 'shell', shells: [job('m', 1, { label: '', kind: 'monitor' })] })).toBe('Monitorando um processo');
+    expect(shellLabel({ status: 'shell', shells: [job('x', 1, { label: '  ' })] })).toBe('Background command');
+    expect(shellLabel({ status: 'working', shells: [] })).toBe('Terminal command');
+    expect(shellLabel({ status: 'shell', shells: [job('m', 1, { label: '', kind: 'monitor' })] })).toBe('Monitoring a process');
   });
 
   it('modo: status shell e comando longo em primeiro plano viram "shell"; espera de usuário vence', () => {

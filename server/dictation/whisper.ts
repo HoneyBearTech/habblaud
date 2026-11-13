@@ -52,7 +52,7 @@ export function findWhisper(env: NodeJS.ProcessEnv = process.env, exists: (p: st
   const model =
     env.HABBLAUD_WHISPER_MODEL?.trim() ||
     MODELS.flatMap((m) => dirs.map((d) => join(d, m))).find(exists);
-  if (!model || !exists(model)) return { missing: tr('um modelo multilíngue do Whisper (ggml-small.bin ou ggml-base.bin em ~/.local/share/whisper)') };
+  if (!model || !exists(model)) return { missing: tr('a multilingual Whisper model (ggml-small.bin or ggml-base.bin in ~/.local/share/whisper)') };
   const langs = (env.HABBLAUD_DICTATION_LANGS ?? '')
     .split(',')
     .map((l) => l.trim().toLowerCase())
@@ -64,7 +64,7 @@ function run(bin: string, args: string[], timeoutMs: number): Promise<{ ok: true
   return new Promise((ok) => {
     execFile(bin, args, { timeout: timeoutMs, encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 }, (err, _out, stderr) => {
       if (!err) return ok({ ok: true });
-      const line = (stderr || err.message || '').split('\n').filter((l) => l.trim()).pop() ?? tr('falhou');
+      const line = (stderr || err.message || '').split('\n').filter((l) => l.trim()).pop() ?? tr('failed');
       ok({ ok: false, error: line.trim().slice(0, 300) });
     });
   });
@@ -91,11 +91,11 @@ export function createWhisperTranscriber(setup: WhisperSetup, timeoutMs = TRANSC
       const wav = join(dir, 'audio.wav');
       writeFileSync(input, audio, { mode: 0o600 });
       const conv = await run(setup.ffmpeg, ['-nostdin', '-loglevel', 'error', '-y', '-i', input, '-ar', '16000', '-ac', '1', '-c:a', 'pcm_s16le', wav], timeoutMs);
-      if (!conv.ok) throw new Error(tr('não deu para ler o áudio ({0})', [conv.error]));
+      if (!conv.ok) throw new Error(tr("couldn't read the audio ({0})", [conv.error]));
       const pass = async (lang: string): Promise<Transcript> => {
         const out = join(dir, `out-${lang}`);
         const r = await run(setup.bin, ['-m', setup.model, '-l', lang, '-f', wav, '-nt', '-np', '-oj', '-of', out], timeoutMs);
-        if (!r.ok) throw new Error(tr('o Whisper falhou ({0})', [r.error]));
+        if (!r.ok) throw new Error(tr('Whisper failed ({0})', [r.error]));
         return parseWhisperJson(readFileSync(`${out}.json`, 'utf8'));
       };
       const first = await pass('auto');

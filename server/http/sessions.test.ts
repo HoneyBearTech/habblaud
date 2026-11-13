@@ -59,7 +59,7 @@ async function serve(opts: { terminal?: boolean; extra?: (root: string) => Histo
     accountName: () => undefined,
     terminal,
   });
-  office.addMain({ id: '.claude:7', account: '.claude', sessionId: OPEN_SID, cwd: CWD, role: 'Agente principal', startedAt: now, status: 'working' });
+  office.addMain({ id: '.claude:7', account: '.claude', sessionId: OPEN_SID, cwd: CWD, role: 'Main agent', startedAt: now, status: 'working' });
   const hub = new Hub(office, { throttleMs: 10 });
   const terminals = new TerminalStreams({ office, transcriptPathOf: () => undefined, sessionPollMs: 20 });
   const history = new HistorySet([new SessionHistory({ accounts: () => accounts.entries(), openAgentOf: (acc, sid) => openMainAgent(office.list(), acc, sid) })]);
@@ -141,7 +141,7 @@ describe('histórico de sessões: trava', () => {
       for (const path of ['/api/sessions/recent', terminalRoute('.claude', SID)]) {
         const r = await request(env.base, path);
         expect(r.status).toBe(403);
-        expect(JSON.parse(r.body).error).toMatch(/desligado/);
+        expect(JSON.parse(r.body).error).toMatch(/disabled/);
       }
       expect(env.terminals.size).toBe(0);
     } finally {
@@ -156,7 +156,7 @@ describe('histórico de sessões: trava', () => {
         for (const path of ['/api/sessions/recent', terminalRoute('.claude', SID)]) {
           const r = await request(env.base, path, { headers: { Host: host } });
           expect(r.status).toBe(403);
-          expect(JSON.parse(r.body).error).toMatch(/próprio computador/);
+          expect(JSON.parse(r.body).error).toMatch(/computer running Habblaud/);
         }
       }
       expect(env.terminals.size).toBe(0);
@@ -246,7 +246,7 @@ describe('histórico de sessões: validação (path traversal)', () => {
       mkdirSync(join(env.dir, 'projects', 'vazio'), { recursive: true });
       const r = await request(env.base, terminalRoute('.claude', linked));
       expect(r.status).toBe(404);
-      expect(JSON.parse(r.body)).toEqual({ error: 'sessão não encontrada' });
+      expect(JSON.parse(r.body)).toEqual({ error: 'session not found' });
       expect(env.terminals.size).toBe(0);
     } finally {
       await env.close();
@@ -268,7 +268,7 @@ describe('histórico de sessões: outra ferramenta', () => {
       resolve: (_account, sessionId) =>
         sessionId === XID
           ? { path, createParser: () => ({ push: (): TerminalEntry[] => [{ kind: 'user', id: `cx-${++n}`, at: 0, text: 'cx' }] }) }
-          : { status: 404, error: 'sessão não encontrada' },
+          : { status: 404, error: 'session not found' },
     };
   };
 
@@ -294,7 +294,7 @@ describe('histórico de sessões: outra ferramenta', () => {
       expect((c.events[0].data as TerminalInit).entries.map((e) => e.kind)).toEqual(['user', 'assistant']);
       c.close();
       expect((await request(env.base, terminalRoute('.codex', '00000000-0000-4000-8000-000000000999'))).status).toBe(404);
-      expect(JSON.parse((await request(env.base, terminalRoute('.outra', SID))).body)).toEqual({ error: 'conta desconhecida' });
+      expect(JSON.parse((await request(env.base, terminalRoute('.outra', SID))).body)).toEqual({ error: 'unknown account' });
       expect((await request(env.base, terminalRoute('.outra', 'x'))).status).toBe(400);
     } finally {
       await env.close();

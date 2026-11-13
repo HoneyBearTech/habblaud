@@ -585,7 +585,7 @@ function paintServiceGround(ctx: Ctx, g: Ctx, st: FacadeStyle, m: FacadeModel, t
 
 /** Tabuleta "Fechado" pendurada (texto no idioma de quem vê, em pixels). */
 function paintClosedSign(ctx: Ctx, cx: number, y: number): void {
-  const text = tr('Fechado');
+  const text = tr('Closed');
   const tw = Math.min(40, pixelTextWidth(text));
   const w = tw + 6;
   const x = Math.round(cx - w / 2);

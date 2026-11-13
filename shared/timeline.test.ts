@@ -26,7 +26,7 @@ function agent(id: string, extra: Partial<AgentInfo> = {}): AgentInfo {
     roomId: '/p/loja',
     name: 'Marina',
     look: 'f',
-    role: 'Agente principal',
+    role: 'Main agent',
     sessionId: `s-${id}`,
     account: '.claude',
     status: 'working',
@@ -86,9 +86,9 @@ describe('timeline: dias', () => {
 describe('timeline: resumo do snapshot', () => {
   it('só os campos de desenho: sem tarefas, números, detalhe do comando nem e-mail da conta', () => {
     const a = agent('.claude:1', {
-      waitingFor: 'aprovar uma permissão',
+      waitingFor: 'approve a permission',
       activity: { id: 'x', kind: 'run', icon: '💻', text: 'Rodando npm test', detail: 'npm test -- --token=***', tool: 'Bash', at: T0 + 5 },
-      shells: [{ id: 'b1', label: 'Testes', command: 'npm test', startedAt: T0, background: true, kind: 'shell' }],
+      shells: [{ id: 'b1', label: 'Tests', command: 'npm test', startedAt: T0, background: true, kind: 'shell' }],
       title: 'x'.repeat(400),
     });
     const c = compactAgent(a);
@@ -96,7 +96,7 @@ describe('timeline: resumo do snapshot', () => {
     expect(c).not.toHaveProperty('stats');
     expect(c).not.toHaveProperty('recent');
     expect(c.activity).toEqual({ kind: 'run', icon: '💻', text: 'Rodando npm test', at: T0 + 5, tool: 'Bash' });
-    expect(c.shells).toEqual([{ id: 'b1', label: 'Testes', startedAt: T0, background: true, kind: 'shell' }]);
+    expect(c.shells).toEqual([{ id: 'b1', label: 'Tests', startedAt: T0, background: true, kind: 'shell' }]);
     expect(c.title!.length).toBeLessThanOrEqual(160);
     expect(c.demo).toBeUndefined();
     const f = compactSnapshot(snap([a, agent('demo:x1', { name: 'Caio' })], [room('/p/loja'), room('demo:/p/app', 1)], [account('.claude'), account('demo:.claude')]));
@@ -135,7 +135,7 @@ describe('timeline: deltas', () => {
     const after = compactSnapshot(
       snap(
         [
-          agent('.claude:1', { status: 'idle', statusSince: T0 + 9, activity: { id: 'a', kind: 'done', icon: '✅', text: 'Concluiu', at: T0 + 9 } }),
+          agent('.claude:1', { status: 'idle', statusSince: T0 + 9, activity: { id: 'a', kind: 'done', icon: '✅', text: 'Done', at: T0 + 9 } }),
           agent('s:sub', { kind: 'sub', parentId: '.claude:1', name: 'Luan', role: 'Explore' }),
         ],
         [room('/p/loja')],
@@ -146,7 +146,7 @@ describe('timeline: deltas', () => {
     expect(d).not.toBeNull();
     // Agente alterado: só o que mudou (waitingFor some com null); o novo vem completo; o que saiu, null.
     const byId = new Map(d.agents!);
-    expect(byId.get('.claude:1')).toEqual({ status: 'idle', statusSince: T0 + 9, activity: { kind: 'done', icon: '✅', text: 'Concluiu', at: T0 + 9 }, waitingFor: null });
+    expect(byId.get('.claude:1')).toEqual({ status: 'idle', statusSince: T0 + 9, activity: { kind: 'done', icon: '✅', text: 'Done', at: T0 + 9 }, waitingFor: null });
     expect(byId.get('s:sub')).toMatchObject({ id: 's:sub', kind: 'sub', parentId: '.claude:1', name: 'Luan' });
     expect(byId.get('.claude:2')).toBeNull();
     expect(d.rooms).toEqual([['/p/api', null]]);

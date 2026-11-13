@@ -39,7 +39,7 @@ function readSettings(): { name?: string; port: number } {
 function main(): void {
   const { name, port } = readSettings();
   if (!name || !isValidName(name)) {
-    console.error(tr('[remote-mdns] sem HABBLAUD_REMOTE_NAME válido no .env: rode npm run remote:setup.'));
+    console.error(tr('[remote-mdns] no valid HABBLAUD_REMOTE_NAME in .env: run npm run remote:setup.'));
     process.exit(1);
   }
   let child: ChildProcess | undefined;
@@ -48,7 +48,7 @@ function main(): void {
   const tick = () => {
     const ip = primaryIp();
     if (!ip) {
-      if (announced) console.log(tr('[remote-mdns] sem rede: anúncio suspenso.'));
+      if (announced) console.log(tr('[remote-mdns] no network: announcement paused.'));
       child?.kill();
       child = undefined;
       announced = undefined;
@@ -58,12 +58,12 @@ function main(): void {
     child?.kill();
     const c = mdnsCommand(process.platform, name, ip, port);
     if (!c) {
-      console.error(tr('[remote-mdns] {0} sem suporte: use o IP ou um endereço no DNS do roteador.', [process.platform]));
+      console.error(tr("[remote-mdns] {0} not supported: use the IP or an address in the router's DNS.", [process.platform]));
       process.exit(1);
     }
     const proc = spawn(c.cmd, c.args, { stdio: ['ignore', 'ignore', 'pipe'] });
     proc.stderr?.on('data', (d: Buffer) => console.error(`[remote-mdns] ${c.cmd}: ${d.toString().trim()}`));
-    proc.on('error', (err) => console.error(tr('[remote-mdns] não deu para rodar {0}: {1}', [c.cmd, err.message])));
+    proc.on('error', (err) => console.error(tr("[remote-mdns] couldn't run {0}: {1}", [c.cmd, err.message])));
     proc.on('exit', () => {
       if (child === proc) {
         child = undefined;
@@ -72,7 +72,7 @@ function main(): void {
     });
     child = proc;
     announced = ip;
-    console.log(tr('[remote-mdns] anunciando {0}.local -> {1}', [name, ip]));
+    console.log(tr('[remote-mdns] announcing {0}.local -> {1}', [name, ip]));
   };
   tick();
   const timer = setInterval(tick, CHECK_MS);

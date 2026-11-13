@@ -105,11 +105,11 @@ export class WorldSettingsStore {
       this.session = parseWorldSession(raw);
       // Só o tema (saiu da conta): não é erro.
       const onlyTheme = !this.session && Object.keys(obj).every((k) => k === 'theme') && 'theme' in obj;
-      if (!this.session && !onlyTheme) log.warn(tr('world.json fora do formato: ignorado (entre de novo no Habblaud World).'));
+      if (!this.session && !onlyTheme) log.warn(tr('world.json is malformed: ignored (sign in to Habblaud World again).'));
     } catch (err) {
       // O motivo vem só do código do erro: nunca o conteúdo do arquivo (que tem o token).
       const code = (err as NodeJS.ErrnoException).code;
-      if (code !== 'ENOENT') log.warn(tr('world.json ilegível ({0}): ignorado (entre de novo no Habblaud World).', [code ?? 'JSON']));
+      if (code !== 'ENOENT') log.warn(tr('world.json unreadable ({0}): ignored (sign in to Habblaud World again).', [code ?? 'JSON']));
     }
     return this.copy();
   }
@@ -167,7 +167,7 @@ export class WorldSettingsStore {
         rmSync(this.file, { force: true });
         return true;
       } catch (err) {
-        log.warn(tr('Não foi possível apagar {0} ({1}).', [this.file, (err as NodeJS.ErrnoException).code ?? '?']));
+        log.warn(tr("Couldn't delete {0} ({1}).", [this.file, (err as NodeJS.ErrnoException).code ?? '?']));
         return false;
       }
     }
@@ -186,7 +186,7 @@ export class WorldSettingsStore {
       } catch {
         // sem como apagar (pasta inexistente): nada sobrou
       }
-      log.warnOnce('world-write', tr('Não foi possível gravar {0} ({1}); a sessão do Habblaud World vale só nesta execução.', [this.file, (err as NodeJS.ErrnoException).code ?? '?']));
+      log.warnOnce('world-write', tr("Couldn't write {0} ({1}); the Habblaud World session only lasts for this run.", [this.file, (err as NodeJS.ErrnoException).code ?? '?']));
       return false;
     }
   }

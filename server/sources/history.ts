@@ -140,11 +140,11 @@ export class SessionHistory implements HistoryProvider {
    * ter formato de UUID e o arquivo (com links resolvidos) precisa ficar dentro da pasta projects/ da conta.
    */
   resolve(account: string, sessionId: string): ResolveResult {
-    if (!isSessionId(sessionId)) return { status: 400, error: tr('id de sessão inválido') };
+    if (!isSessionId(sessionId)) return { status: 400, error: tr('invalid session id') };
     const acc = this.opts.accounts().find((a) => a.id === account);
-    if (!acc) return { status: 404, error: tr('conta desconhecida') };
+    if (!acc) return { status: 404, error: tr('unknown account') };
     const projects = join(acc.dir, 'projects');
-    const notFound: ResolveResult = { status: 404, error: tr('sessão não encontrada') };
+    const notFound: ResolveResult = { status: 404, error: tr('session not found') };
     let root: string;
     let dirs: string[];
     try {
@@ -211,7 +211,7 @@ export class SessionHistory implements HistoryProvider {
       this.reads++;
       meta = await readSessionMeta(c.path, c.size);
     } catch (err) {
-      log.warnOnce(`history:${errMsg(err)}`, tr('Histórico de sessões: transcript ilegível ({0}).', [errMsg(err)]));
+      log.warnOnce(`history:${errMsg(err)}`, tr('Session history: unreadable transcript ({0}).', [errMsg(err)]));
       meta = {};
     }
     this.cache.set(c.path, { mtimeMs: c.mtimeMs, size: c.size, meta });

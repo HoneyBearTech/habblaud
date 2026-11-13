@@ -19,14 +19,14 @@ const inside = (detail: WorldBuildingDetail = sampleBuildingDetail(), rev = 1) =
 
 describe('model da visita', () => {
   it('faixa: de quem é, andares, agentes; discreto e apagado no lugar dos agentes; o próprio prédio', () => {
-    expect(visitBanner(sampleBuildingDetail(), false)).toEqual({ title: 'Prédio de Helena', details: ['3 andares', '6 agentes'], mode: null });
-    expect(visitBanner(sampleBuildingDetail('discreet'), false)).toEqual({ title: 'Prédio de Helena', details: ['3 andares', 'modo discreto'], mode: 'discreet' });
-    expect(visitBanner(sampleBuildingDetail('away'), false)).toMatchObject({ details: ['3 andares', 'apagado'], mode: 'away' });
-    expect(visitBanner(sampleBuildingDetail(), true).title).toBe('Seu prédio, como os outros veem');
+    expect(visitBanner(sampleBuildingDetail(), false)).toEqual({ title: "Helena's building", details: ['3 floors', '6 agents'], mode: null });
+    expect(visitBanner(sampleBuildingDetail('discreet'), false)).toEqual({ title: "Helena's building", details: ['3 floors', 'discreet mode'], mode: 'discreet' });
+    expect(visitBanner(sampleBuildingDetail('away'), false)).toMatchObject({ details: ['3 floors', 'lights off'], mode: 'away' });
+    expect(visitBanner(sampleBuildingDetail(), true).title).toBe('Your building, as others see it');
     // um agente que venha por engano num prédio discreto não conta
     const d = sampleBuildingDetail('discreet');
     d.floors[0]!.agents = sampleBuildingDetail().floors[0]!.agents;
-    expect(visitBanner(d, false).details).toEqual(['3 andares', 'modo discreto']);
+    expect(visitBanner(d, false).details).toEqual(['3 floors', 'discreet mode']);
   });
 
   it('luzes: apagado, discreto ou ao vivo', () => {
@@ -39,25 +39,25 @@ describe('model da visita', () => {
     const p = visitPanel(sampleBuildingDetail());
     expect(p.empty).toBeNull();
     expect(p.rooms.map((r) => [r.name, r.agents.length])).toEqual([
-      ['Projeto Ipê', 2],
-      ['Projeto Jade', 2],
-      ['Projeto Aurora', 2],
+      ['Project Ipê', 2],
+      ['Project Jade', 2],
+      ['Project Aurora', 2],
     ]);
-    expect(p.rooms[0]!.agents[1]).toEqual({ id: 'world:a_2a3b4c5d', name: 'Rafael', role: 'Subagente', tool: 'Claude Code', status: 'working', statusText: 'trabalhando' });
+    expect(p.rooms[0]!.agents[1]).toEqual({ id: 'world:a_2a3b4c5d', name: 'Rafael', role: 'Subagent', tool: 'Claude Code', status: 'working', statusText: 'working' });
     expect(p.rooms[1]!.agents.map((a) => [a.tool, a.statusText])).toEqual([
-      ['Codex', 'esperando o dono'],
-      ['Codex', 'de olho no terminal'],
+      ['Codex', 'waiting for the owner'],
+      ['Codex', 'watching the terminal'],
     ]);
     for (const a of p.rooms.flatMap((r) => r.agents)) expect(Object.keys(a).sort()).toEqual(['id', 'name', 'role', 'status', 'statusText', 'tool']);
-    expect(visitPanel(sampleBuildingDetail('discreet'))).toMatchObject({ empty: expect.stringContaining('Modo discreto') });
+    expect(visitPanel(sampleBuildingDetail('discreet'))).toMatchObject({ empty: expect.stringContaining('Discreet mode') });
     expect(visitPanel(sampleBuildingDetail('away')).rooms.every((r) => r.agents.length === 0)).toBe(true);
     // status de uma versão mais nova do servidor: à toa
     expect(agentRow({ ...sampleBuildingDetail().floors[0]!.agents[0]!, status: 'dormindo' as never }).status).toBe('idle');
-    expect(statusText('idle')).toBe('à toa');
+    expect(statusText('idle')).toBe('idle');
   });
 
   it('cartão: o agente pelo id do escritório da visita, com a sala; discreto, nenhum', () => {
-    expect(findAgent(sampleBuildingDetail(), 'world:a_3c4d5e6f')).toMatchObject({ name: 'Beatriz', room: 'Projeto Jade', tool: 'Codex' });
+    expect(findAgent(sampleBuildingDetail(), 'world:a_3c4d5e6f')).toMatchObject({ name: 'Beatriz', room: 'Project Jade', tool: 'Codex' });
     expect(findAgent(sampleBuildingDetail(), 'world:nao_existe')).toBeNull();
     expect(findAgent(sampleBuildingDetail('discreet'), 'world:a_3c4d5e6f')).toBeNull();
   });

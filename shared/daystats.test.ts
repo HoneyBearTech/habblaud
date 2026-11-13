@@ -35,7 +35,7 @@ function agent(p: Partial<AgentInfo> & { id: string }): AgentInfo {
     roomId: '/p/loja',
     name: 'Ana',
     look: 'f',
-    role: 'Agente principal',
+    role: 'Main agent',
     sessionId: `sess-${p.id}`,
     account: '.claude',
     status: 'working',
@@ -118,7 +118,7 @@ describe('StatsTracker: tempo por status', () => {
     const { tracker, day } = setup();
     tracker.observe(view(agent({ id: 'a' })), T0); // primeira vez: só a referência
     tracker.observe(view(agent({ id: 'a' })), T0 + 60 * S);
-    tracker.observe(view(agent({ id: 'a', status: 'waiting', statusSince: T0 + 90 * S, waitingFor: 'aprovar uma permissão' })), T0 + 120 * S);
+    tracker.observe(view(agent({ id: 'a', status: 'waiting', statusSince: T0 + 90 * S, waitingFor: 'approve a permission' })), T0 + 120 * S);
     tracker.observe(view(agent({ id: 'a', status: 'waiting', statusSince: T0 + 90 * S })), T0 + 180 * S);
     tracker.observe(view(agent({ id: 'a', status: 'idle', statusSince: T0 + 200 * S })), T0 + 240 * S);
     tracker.observe(view(agent({ id: 'a', status: 'shell', statusSince: T0 + 250 * S })), T0 + 260 * S);
@@ -127,7 +127,7 @@ describe('StatsTracker: tempo por status', () => {
     expect(d.totals.waitWallMs).toBe(110 * S);
     expect(d.totals.waits).toBe(1);
     expect(d.totals.longestWaitMs).toBe(110 * S);
-    expect(d.waits[0]).toMatchObject({ agentId: 'a', agentName: 'Ana', roomName: 'loja', start: T0 + 90 * S, end: T0 + 200 * S, reason: 'aprovar uma permissão' });
+    expect(d.waits[0]).toMatchObject({ agentId: 'a', agentName: 'Ana', roomName: 'loja', start: T0 + 90 * S, end: T0 + 200 * S, reason: 'approve a permission' });
     expect(d.totals.sessions).toBe(1);
     expect(d.hours).toHaveLength(24);
     expect(d.hours[10]).toMatchObject({ hour: 10, ms: { working: 90 * S, waiting: 110 * S } });
@@ -309,7 +309,7 @@ describe('StatsTracker: contagens a partir dos números cumulativos', () => {
 
   it('prompts: só os de depois do início, cada um uma vez', () => {
     const { tracker, day } = setup('UTC', T0);
-    const prompt = (id: string, at: number) => ({ id, kind: 'prompt' as const, icon: '📨', text: 'Recebeu um pedido', at });
+    const prompt = (id: string, at: number) => ({ id, kind: 'prompt' as const, icon: '📨', text: 'Got a request', at });
     const recent = [prompt('velho', T0 - MIN), prompt('p1', T0 + 2 * S)];
     tracker.observe(view(agent({ id: 'a', recent })), T0 + 3 * S);
     tracker.observe(view(agent({ id: 'a', recent: [...recent, prompt('p2', T0 + 4 * S)] })), T0 + 5 * S);

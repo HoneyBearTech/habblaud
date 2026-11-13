@@ -102,7 +102,7 @@ export class Minimap {
     this.ctx = this.canvas.getContext('2d')!;
     this.el = h(
       'nav',
-      { class: 'ui-city-minimap', attrs: { 'aria-label': tr('Minimapa: clique para levar a câmera até lá') }, title: tr('Minimapa: clique para levar a câmera até lá') },
+      { class: 'ui-city-minimap', attrs: { 'aria-label': tr('Minimap: click to move the camera there') }, title: tr('Minimap: click to move the camera there') },
       this.canvas,
     );
     this.canvas.addEventListener('pointerdown', (e) => {

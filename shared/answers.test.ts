@@ -6,7 +6,7 @@ import type { AskQuestion } from './types';
 // Posições do original: a pergunta 1 era inválida (pulada) e a opção 1 da primeira também.
 const QS: AskQuestion[] = [
   { index: 0, header: 'Banco', question: 'Qual banco usar?', options: [{ index: 0, label: 'Postgres' }, { index: 2, label: 'SQLite' }] },
-  { index: 2, question: 'Quais testes rodar antes do commit?', multiSelect: true, options: [{ index: 0, label: 'Unidade' }, { index: 1, label: 'E2E' }] },
+  { index: 2, question: 'Quais testes rodar antes do commit?', multiSelect: true, options: [{ index: 0, label: 'Unit' }, { index: 1, label: 'E2E' }] },
 ];
 
 describe('checkAnswers', () => {
@@ -52,7 +52,7 @@ describe('checkAnswers', () => {
 describe('answerSummary', () => {
   it('cabeçalho (ou a pergunta) e os rótulos escolhidos; texto livre entre aspas e mascarado', () => {
     expect(answerSummary(QS, [{ question: 0, options: [2] }, { question: 2, options: [0, 1], other: 'pode rodar' }])).toBe(
-      'Banco: SQLite · Quais testes rodar antes do commit?: Unidade, E2E, “pode rodar”',
+      'Banco: SQLite · Quais testes rodar antes do commit?: Unit, E2E, “pode rodar”',
     );
     const secret = answerSummary(QS, [{ question: 0, other: 'token ghp_abcdefghijklmnopqrstuvwxyz0123456789' }]);
     expect(secret).toMatch(/^Banco: “token .+”$/);

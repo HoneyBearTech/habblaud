@@ -257,11 +257,11 @@ function diffInput(oldRaw: string, newRaw: string): Pick<ToolView, 'input' | 'in
 }
 
 const TODO_MARK: Record<string, string> = { completed: '☒', in_progress: '◐', pending: '☐' };
-const TASK_STATUS: Record<string, string> = { completed: tr('concluída'), in_progress: tr('em andamento'), pending: 'pendente', deleted: 'removida' };
+const TASK_STATUS: Record<string, string> = { completed: tr('completed'), in_progress: tr('in progress'), pending: 'pendente', deleted: 'removida' };
 
 function todoList(raw: unknown): { list: string; done: number; total: number } {
   const items = Array.isArray(raw) ? raw.map(rec).filter((t): t is Rec => !!t) : [];
-  const lines = items.map((t) => `${TODO_MARK[String(t.status)] ?? '☐'} ${str(t.content) ?? str(t.subject) ?? str(t.title) ?? tr('(sem título)')}`);
+  const lines = items.map((t) => `${TODO_MARK[String(t.status)] ?? '☐'} ${str(t.content) ?? str(t.subject) ?? str(t.title) ?? tr('(untitled)')}`);
   return { list: lines.join('\n'), done: items.filter((t) => t.status === 'completed').length, total: items.length };
 }
 
@@ -323,7 +323,7 @@ export function toolView(name: string, input: Rec, cwd?: string): ToolView {
     }
     case 'TodoWrite': {
       const t = todoList(input.todos);
-      return { title: t.total ? tr('TodoWrite({0}/{1} concluídas)', [t.done, t.total]) : 'TodoWrite', ...textInput(t.list) };
+      return { title: t.total ? tr('TodoWrite({0}/{1} done)', [t.done, t.total]) : 'TodoWrite', ...textInput(t.list) };
     }
     case 'TaskCreate':
       return { title: titled('TaskCreate', s('subject')), ...textInput(s('description')) };
@@ -368,7 +368,7 @@ function resultText(content: unknown): string {
     const b = rec(raw);
     if (!b) continue;
     if (b.type === 'text' && typeof b.text === 'string') parts.push(b.text);
-    else if (b.type === 'image') parts.push(tr('[imagem]'));
+    else if (b.type === 'image') parts.push(tr('[image]'));
     else if (b.type === 'document') parts.push('[documento]');
     else if (b.type === 'tool_reference' && typeof b.tool_name === 'string') parts.push(b.tool_name);
   }
@@ -486,7 +486,7 @@ class Parser implements TerminalParser {
     const content = rec(j.message)?.content;
     if (j.isCompactSummary === true) {
       const text = typeof content === 'string' ? content : resultText(content);
-      this.sys(c, tr('Resumo da conversa compactada'), { detail: text });
+      this.sys(c, tr('Compacted conversation summary'), { detail: text });
       return;
     }
     if (typeof content === 'string') return this.userText(c, content);
@@ -518,13 +518,13 @@ class Parser implements TerminalParser {
 
   private userText(c: Ctx, raw: string, images = 0): void {
     const text = (raw.includes('<system-reminder>') ? raw.replace(REMINDER, '') : raw).trim();
-    const pics = images ? Array.from({ length: Math.min(images, 10) }, () => tr('[imagem]')).join(' ') : '';
+    const pics = images ? Array.from({ length: Math.min(images, 10) }, () => tr('[image]')).join(' ') : '';
     if (!text) {
       if (pics) this.userEntry(c, pics);
       return;
     }
     if (text.startsWith('<task-notification>')) return this.notification(c, text);
-    if (INTERRUPTED.test(text)) return this.sys(c, tr('Interrompido pelo usuário'), { level: 'warn' });
+    if (INTERRUPTED.test(text)) return this.sys(c, tr('Interrupted by user'), { level: 'warn' });
     if (text.startsWith('Caveat:')) return;
     const tag = /^<([a-z][\w-]*)/.exec(text)?.[1];
     switch (tag) {
@@ -546,7 +546,7 @@ class Parser implements TerminalParser {
         const out = OUTPUT_TAGS.map((t) => inner(text, t)?.trim())
           .filter(Boolean)
           .join('\n');
-        if (out) this.sys(c, this.lastCommand ? tr('Saída de {0}', [this.lastCommand]) : tr('Saída do comando'), { detail: out });
+        if (out) this.sys(c, this.lastCommand ? tr('Output of {0}', [this.lastCommand]) : tr('Command output'), { detail: out });
         return;
       }
       case 'bash-input': {
@@ -561,7 +561,7 @@ class Parser implements TerminalParser {
           .map((x) => x?.trim())
           .filter(Boolean)
           .join('\n');
-        this.sys(c, tr('Saída do comando'), { detail: out || tr('(sem saída)') });
+        this.sys(c, tr('Command output'), { detail: out || tr('(no output)') });
         return;
       }
       case 'scheduled-task': {
@@ -594,16 +594,16 @@ class Parser implements TerminalParser {
     const status = n.status?.toLowerCase();
     const result = inner(text, 'result')?.trim();
     const event = inner(text, 'event')?.trim();
-    let label = tr('Notificação de tarefa em segundo plano');
+    let label = tr('Background task notification');
     let level: Level = 'info';
-    if (status === 'completed') label = tr('Tarefa em segundo plano concluída');
+    if (status === 'completed') label = tr('Background task completed');
     else if (status === 'failed' || status === 'error') {
-      label = tr('Tarefa em segundo plano falhou');
+      label = tr('Background task failed');
       level = 'warn';
     } else if (status === 'killed' || status === 'stopped' || status === 'cancelled') {
-      label = tr('Tarefa em segundo plano interrompida');
+      label = tr('Background task interrupted');
       level = 'warn';
-    } else if (event) label = tr('Evento de tarefa em segundo plano');
+    } else if (event) label = tr('Background task event');
     const summary = n.summary ? oneLine(n.summary, 160) : '';
     const detail = [summary.endsWith('…') ? n.summary : undefined, event, result].filter(Boolean).join('\n\n');
     this.sys(c, summary ? `${label}: ${summary}` : label, { level, detail });
@@ -618,10 +618,10 @@ class Parser implements TerminalParser {
     if (wrapped !== undefined) raw = wrapped;
     if (error && REJECTED.test(raw.slice(0, 300))) {
       const feedback = /the user said:\s*([\s\S]*)$/i.exec(raw)?.[1]?.trim();
-      raw = feedback ? tr('Recusado pelo usuário: {0}', [feedback]) : tr('Recusado pelo usuário');
+      raw = feedback ? tr('Denied by the user: {0}', [feedback]) : tr('Denied by the user');
     }
     const p = prepare(raw, RESULT_MAX, RESULT_MAX_LINES);
-    const e: ResultEntry = { kind: 'result', id: `${id}:r`, at: c.at, toolUseId: id, text: p.text || tr('(sem saída)') };
+    const e: ResultEntry = { kind: 'result', id: `${id}:r`, at: c.at, toolUseId: id, text: p.text || tr('(no output)') };
     if (error) e.error = true;
     if (p.truncated) e.truncated = true;
     this.emit(e);
@@ -657,7 +657,7 @@ class Parser implements TerminalParser {
     const synthetic = m.model === '<synthetic>';
     if (c.j.isApiErrorMessage === true || (synthetic && str(c.j.error))) {
       const text = blocks.map((b) => rec(b)?.text).filter((t): t is string => typeof t === 'string').join('\n');
-      return this.sysContent(c, text || tr('Erro da API'), 'error');
+      return this.sysContent(c, text || tr('API error'), 'error');
     }
     const msgId = str(m.id) ?? c.uuid;
     blocks.forEach((raw, i) => {
@@ -715,7 +715,7 @@ class Parser implements TerminalParser {
     switch (j.subtype) {
       case 'compact_boundary': {
         const trigger = rec(j.compactMetadata)?.trigger;
-        return this.sys(c, trigger === 'manual' ? tr('Conversa compactada (/compact)') : trigger === 'auto' ? tr('Conversa compactada automaticamente') : tr('Conversa compactada'));
+        return this.sys(c, trigger === 'manual' ? tr('Conversation compacted (/compact)') : trigger === 'auto' ? tr('Conversation compacted automatically') : tr('Conversation compacted'));
       }
       case 'api_error': {
         // Uma linha por tentativa: só a primeira de cada sequência vira entrada.
@@ -724,20 +724,20 @@ class Parser implements TerminalParser {
         const err = rec(j.error);
         const why = str(err?.formatted) ?? str(err?.message) ?? str(j.error);
         const max = typeof j.maxRetries === 'number' ? j.maxRetries : undefined;
-        const retry = attempt !== undefined ? tr(' — tentando de novo{0}', [max ? tr(' (até {0} vezes)', [max]) : '']) : '';
-        return this.sys(c, tr('Erro da API{0}{1}', [why ? `: ${oneLine(why, 140)}` : '', retry]), { level: 'error' });
+        const retry = attempt !== undefined ? tr(' — retrying{0}', [max ? tr(' (up to {0} times)', [max]) : '']) : '';
+        return this.sys(c, tr('API error{0}{1}', [why ? `: ${oneLine(why, 140)}` : '', retry]), { level: 'error' });
       }
       case 'local_command':
         return this.userText(c, content);
       case 'turn_duration':
-        if (typeof j.durationMs === 'number' && j.durationMs >= 0) this.sys(c, tr('Turno concluído em {0}', [formatDuration(j.durationMs)]));
+        if (typeof j.durationMs === 'number' && j.durationMs >= 0) this.sys(c, tr('Turn completed in {0}', [formatDuration(j.durationMs)]));
         return;
       case 'informational':
         return this.sysContent(c, content, j.level === 'warning' ? 'warn' : j.level === 'error' ? 'error' : 'info');
       case 'model_refusal_fallback':
         return this.sysContent(c, content, 'warn');
       case 'away_summary':
-        return this.sysContent(c, content, 'info', tr('Recapitulação'));
+        return this.sysContent(c, content, 'info', tr('Recap'));
       default:
         // stop_hook_summary, bridge_status (traz o link da sessão remota)... só erros passam.
         if (j.level === 'error') this.sysContent(c, content, 'error');

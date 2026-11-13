@@ -71,8 +71,8 @@ const PREFIX_HISTORY = 120;
 const BACKLOG_MAX = 400;
 /** Conta sem sessão aberta ao subir: quantos rollouts recentes tentar até achar um com o uso do plano. */
 const SEED_USAGE_FILES = 8;
-const MAIN_ROLE = tr('Agente principal (Codex)');
-const SUB_ROLE = tr('Subagente (Codex)');
+const MAIN_ROLE = tr('Main agent (Codex)');
+const SUB_ROLE = tr('Subagent (Codex)');
 
 const HOOK_EVENTS = new Set([
   'SessionStart',
@@ -281,7 +281,7 @@ export class CodexSource implements AgentSource, CodexLive {
     try {
       this.poll(false);
     } catch (err) {
-      log.warnOnce(`codex-poll:${errMsg(err)}`, tr('Codex: falha no ciclo de leitura: {0}', [errMsg(err)]));
+      log.warnOnce(`codex-poll:${errMsg(err)}`, tr('Codex: read cycle failed: {0}', [errMsg(err)]));
     }
   }
 
@@ -525,7 +525,7 @@ export class CodexSource implements AgentSource, CodexLive {
         return;
       }
       if (!path && !t.tail && t.acc.index.isCompressedOnly(t.threadId)) {
-        log.warnOnce('codex-zst', tr('Codex: há conversas compactadas (.jsonl.zst) que o Habblaud ainda não lê; elas ficam sem detalhes.'));
+        log.warnOnce('codex-zst', tr("Codex: there are compressed conversations (.jsonl.zst) that Habblaud can't read yet; they show no details."));
       }
     }
     if (!t.tail) return;
@@ -534,7 +534,7 @@ export class CodexSource implements AgentSource, CodexLive {
       try {
         r = t.tail.read();
       } catch (err) {
-        log.warnOnce(`codex-read:${t.key}`, tr('Codex: rollout de {0} ilegível ({1}).', [t.key, errMsg(err)]));
+        log.warnOnce(`codex-read:${t.key}`, tr('Codex: unreadable rollout for {0} ({1}).', [t.key, errMsg(err)]));
         return;
       }
       if (r.missing) {
@@ -714,7 +714,7 @@ export class CodexSource implements AgentSource, CodexLive {
         this.applySummary(t);
         if (t.inOffice) this.opts.office.mergeHistory(t.key, prefix.activities);
       })
-      .catch((err) => log.warnOnce(`codex-prefix:${path}`, tr('Codex: não foi possível ler o início de um rollout ({0}).', [errMsg(err)])));
+      .catch((err) => log.warnOnce(`codex-prefix:${path}`, tr("Codex: couldn't read the start of a rollout ({0}).", [errMsg(err)])));
   }
 
   // ---------------------------------------------------------------- uso do plano
@@ -792,7 +792,7 @@ export class CodexSource implements AgentSource, CodexLive {
     try {
       return this.hookEvent(account, input);
     } catch (err) {
-      log.warnOnce(`codex-hook:${errMsg(err)}`, tr('Codex: evento de hook ignorado ({0}).', [errMsg(err)]));
+      log.warnOnce(`codex-hook:${errMsg(err)}`, tr('Codex: hook event ignored ({0}).', [errMsg(err)]));
       return false;
     }
   }
@@ -857,7 +857,7 @@ export class CodexSource implements AgentSource, CodexLive {
         break;
       }
       case 'PermissionRequest':
-        this.decide(t, 'waiting', now, tr('aprovar um comando'), true);
+        this.decide(t, 'waiting', now, tr('approve a command'), true);
         break;
       case 'Stop':
       case 'Interrupt':

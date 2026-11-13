@@ -47,9 +47,9 @@ const OVERVIEW_PER_ROOM = 1;
 const OVERVIEW_TOTAL = 4;
 
 const CORE_NAMES: Record<string, string> = {
-  'core:recepcao': tr('Recepção'),
-  'core:banheiros': tr('Banheiros'),
-  'core:copa': tr('Copa'),
+  'core:recepcao': tr('Reception'),
+  'core:banheiros': tr('Restrooms'),
+  'core:copa': tr('Kitchen'),
   'core:lounge': tr('Lounge'),
 };
 
@@ -159,8 +159,8 @@ export function headIconLift(ch: Pick<Character, 'mode' | 'icon'>): number {
 
 /** Texto do balão de espera: só o motivo (o amarelo e o ✋ já dizem "precisa de você"). */
 export function waitBubbleText(waitingFor: string | undefined): string {
-  const why = (waitingFor ?? '').trim().replace(/^precisa de você:?\s*/i, '');
-  return why ? why.charAt(0).toUpperCase() + why.slice(1) : tr('Responder no terminal');
+  const why = (waitingFor ?? '').trim().replace(/^(?:needs you|precisa de você):?\s*/i, '');
+  return why ? why.charAt(0).toUpperCase() + why.slice(1) : tr('Answer in terminal');
 }
 
 /**
@@ -619,7 +619,7 @@ export class Overlay {
 
   private bubbleFor(ch: Character, head: HeadInfo, now: number, opts: WorldOptions, selected: boolean, hovered: boolean): Bubble | null {
     if (opts.bubbles === 'none') return null;
-    if (ch.mode === 'wait') return this.takeBubble(ch, head, '✋', this.sim.visit ? tr('Esperando o dono') : waitBubbleText(ch.info.waitingFor), 'alert', 100, 1, now);
+    if (ch.mode === 'wait') return this.takeBubble(ch, head, '✋', this.sim.visit ? tr('Waiting for the owner') : waitBubbleText(ch.info.waitingFor), 'alert', 100, 1, now);
     if (ch.bubbleText && now < ch.bubbleUntil) {
       const a = Math.min(1, (now - ch.bubbleAt) / 150, (ch.bubbleUntil - now) / 400);
       return this.takeBubble(ch, head, ch.bubbleIcon, ch.bubbleText, 'deliver', 90, a, ch.bubbleAt);
@@ -983,5 +983,5 @@ export function sayIcon(text: string): string {
 
 /** Selo da etiqueta do visitante (cena Visita), no lugar do "SUB". */
 export function visitorBadge(): string {
-  return tr('visitante').toLocaleUpperCase();
+  return tr('visitor').toLocaleUpperCase();
 }

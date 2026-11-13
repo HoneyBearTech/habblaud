@@ -12,18 +12,18 @@ export { TRAIT_IDS, TRAITS, type Trait, type TraitId } from '../../../../shared/
 
 /** Bordões: cada um tem o seu (aparece de vez em quando nas falas). */
 export const CATCHPHRASES = [
-  tr('Bora!'),
-  tr('Partiu!'),
-  tr('Tá pago!'),
-  tr('É hoje!'),
-  tr('Simbora!'),
-  tr('Bora codar!'),
-  tr('Deu bom!'),
-  tr('Que isso!'),
-  tr('Show de bola!'),
-  tr('Tamo junto!'),
-  tr('Sem estresse.'),
-  tr('Vai dar certo!'),
+  tr("Let's go!"),
+  tr('Off we go!'),
+  tr('Done and done!'),
+  tr("Today's the day!"),
+  tr("Let's roll!"),
+  tr("Let's code!"),
+  tr('It worked!'),
+  tr('Come on!'),
+  tr('Awesome!'),
+  tr('Got your back!'),
+  tr('No stress.'),
+  tr("It'll work out!"),
 ] as const;
 
 export interface Persona {

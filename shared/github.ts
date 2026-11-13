@@ -54,17 +54,17 @@ export function bannerOf(ev: GitHubEvent): string | undefined {
   const pr = ev.number !== undefined ? `PR #${ev.number}` : 'PR';
   switch (ev.kind) {
     case 'pr_opened':
-      return tr('{0} aberto!', [pr]);
+      return tr('{0} opened!', [pr]);
     case 'pr_merged':
-      return tr('{0} mergeado!', [pr]);
+      return tr('{0} merged!', [pr]);
     case 'release':
-      return ev.tag ? clean(tr('Release {0} no ar!', [ev.tag]), MAX_BANNER) : tr('Release no ar!');
+      return ev.tag ? clean(tr('Release {0} is live!', [ev.tag]), MAX_BANNER) : tr('Release is live!');
     case 'ci_failed': {
       const where = ciWhere(ev);
-      return clean(where ? tr('CI falhou ({0})', [where]) : tr('CI falhou'), MAX_BANNER);
+      return clean(where ? tr('CI failed ({0})', [where]) : tr('CI failed'), MAX_BANNER);
     }
     case 'ci_passed':
-      return tr('CI verde de novo!');
+      return tr('CI green again!');
     default:
       return undefined;
   }
@@ -85,7 +85,7 @@ export interface GitHubEventText {
 
 /** Textos em PT-BR de um evento: aviso e atividade. */
 export function describeGitHubEvent(ev: GitHubEvent, agentName: string, roomName: string): GitHubEventText {
-  const pr = ev.number !== undefined ? tr('o PR #{0}', [ev.number]) : tr('um PR');
+  const pr = ev.number !== undefined ? tr('PR #{0}', [ev.number]) : tr('a PR');
   const act = (icon: string, text: string, detail?: string, error = false): MarkedDescription => {
     const d: MarkedDescription = { kind: 'git', icon, text: clean(text, MAX_TEXT), tool: GITHUB_TOOL };
     const det = detail ?? ev.url ?? ev.repo;
@@ -95,41 +95,41 @@ export function describeGitHubEvent(ev: GitHubEvent, agentName: string, roomName
   };
   switch (ev.kind) {
     case 'pr_opened':
-      return { notice: tr('🎉 {0} abriu {1} em {2}', [agentName, pr, roomName]), level: 'success', activity: act('🎉', tr('Abriu {0}', [pr])) };
+      return { notice: tr('🎉 {0} opened {1} in {2}', [agentName, pr, roomName]), level: 'success', activity: act('🎉', tr('Opened {0}', [pr])) };
     case 'pr_merged':
-      return { notice: tr('🎉 {0} mergeou {1} em {2}', [agentName, pr, roomName]), level: 'success', activity: act('🎉', tr('Mergeou {0}', [pr])) };
+      return { notice: tr('🎉 {0} merged {1} in {2}', [agentName, pr, roomName]), level: 'success', activity: act('🎉', tr('Merged {0}', [pr])) };
     case 'release': {
       const tag = ev.tag ? clean(ev.tag, 24) : undefined;
       return {
-        notice: tr('🎉 {0} publicou {1} em {2}', [agentName, tag ? tr('a release {0}', [tag]) : tr('uma release'), roomName]),
+        notice: tr('🎉 {0} published {1} in {2}', [agentName, tag ? tr('release {0}', [tag]) : tr('a release'), roomName]),
         level: 'success',
-        activity: act('🎉', tag ? tr('Publicou a release {0}', [tag]) : tr('Publicou uma release')),
+        activity: act('🎉', tag ? tr('Published release {0}', [tag]) : tr('Published a release')),
       };
     }
     case 'push': {
       const branch = ev.branch ? clean(ev.branch, 28) : undefined;
       return {
-        notice: tr('🚀 {0} enviou commits {1}em {2}', [agentName, branch ? tr('para {0} ', [branch]) : '', roomName]),
+        notice: tr('🚀 {0} pushed commits {1}in {2}', [agentName, branch ? tr('to {0} ', [branch]) : '', roomName]),
         level: 'info',
-        activity: act('🚀', branch ? tr('Enviou commits para {0}', [branch]) : tr('Enviou commits ao GitHub')),
+        activity: act('🚀', branch ? tr('Pushed commits to {0}', [branch]) : tr('Pushed commits to GitHub')),
       };
     }
     case 'ci_failed': {
       const where = ciWhere(ev);
       const what = ciWhat(ev);
       return {
-        notice: tr('🚨 CI falhou em {0}{1}', [roomName, where ? ` (${where})` : '']),
+        notice: tr('🚨 CI failed in {0}{1}', [roomName, where ? ` (${where})` : '']),
         level: 'warn',
-        activity: act('🚨', what ? tr('CI falhou: {0}', [what]) : tr('CI falhou'), [ev.workflow, ev.branch, ev.url].filter(Boolean).join(' — ') || undefined, true),
+        activity: act('🚨', what ? tr('CI failed: {0}', [what]) : tr('CI failed'), [ev.workflow, ev.branch, ev.url].filter(Boolean).join(' — ') || undefined, true),
       };
     }
     case 'ci_passed': {
       const where = ciWhere(ev);
       const what = ciWhat(ev);
       return {
-        notice: tr('✅ CI passou em {0}{1}', [roomName, where ? ` (${where})` : '']),
+        notice: tr('✅ CI passed in {0}{1}', [roomName, where ? ` (${where})` : '']),
         level: 'success',
-        activity: act('✅', what ? tr('CI passou: {0}', [what]) : tr('CI passou'), [ev.workflow, ev.branch, ev.url].filter(Boolean).join(' — ') || undefined),
+        activity: act('✅', what ? tr('CI passed: {0}', [what]) : tr('CI passed'), [ev.workflow, ev.branch, ev.url].filter(Boolean).join(' — ') || undefined),
       };
     }
   }

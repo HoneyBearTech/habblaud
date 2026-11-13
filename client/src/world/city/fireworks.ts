@@ -49,7 +49,7 @@ export function goalView(city: WorldSceneCity | undefined | null): GoalView | nu
     pct,
     pctText: `${Math.floor(pct * 100)}%`,
     label: cityGoalLabel(g.label, g.target),
-    progressText: tr('{0} de {1} h', [compactNumber(Math.floor(g.progress)), compactNumber(g.target)]),
+    progressText: tr('{0} of {1} h', [compactNumber(Math.floor(g.progress)), compactNumber(g.target)]),
     reached: goalsReached(g),
   };
 }
@@ -59,15 +59,15 @@ export function reachedGoalView(goalId: string): GoalView | null {
   const label = goalId.slice(goalId.lastIndexOf(':') + 1) as CityGoal['label'];
   const i = CITY_GOAL_IDS.indexOf(label);
   if (i < 0) return null;
-  return { pct: 1, pctText: '100%', label: cityGoalLabel(label), progressText: tr('Meta batida!'), reached: i + 1 };
+  return { pct: 1, pctText: '100%', label: cityGoalLabel(label), progressText: tr('Goal reached!'), reached: i + 1 };
 }
 
 /** A placa da prefeitura: os tokens da semana da cidade (em faixa) e os prédios acesos. */
 export function cityHallView(city: WorldSceneCity | undefined | null): { tokens: string; lit: string } | null {
   if (!city) return null;
   return {
-    tokens: city.tokensBand === undefined ? tr('A soma aparece com 10 prédios ou mais.') : tr('A cidade consumiu ≈ {0} esta semana', [tokenBandText(city.tokensBand)]),
-    lit: city.lit === 1 ? tr('1 prédio aceso agora') : tr('{0} prédios acesos agora', [compactNumber(city.lit)]),
+    tokens: city.tokensBand === undefined ? tr('The total shows up with 10 buildings or more.') : tr('The city used ≈ {0} this week', [tokenBandText(city.tokensBand)]),
+    lit: city.lit === 1 ? tr('1 building lit now') : tr('{0} buildings lit now', [compactNumber(city.lit)]),
   };
 }
 

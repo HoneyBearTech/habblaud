@@ -41,18 +41,18 @@ export const MAX_OPEN = 5;
 /** Mensagens entregues ao plugin por rodada. */
 export const INBOX_BATCH = 5;
 
-export const ERR_NOT_FETCHED = tr('a sessão não buscou a mensagem: o plugin habblaud-mensagens está instalado e a sessão aberta?');
-export const ERR_NOT_CONFIRMED = tr('a sessão não confirmou a entrega');
-export const ERR_GONE = tr('o agente saiu do escritório');
-export const ERR_REFUSED = tr('a sessão não aceitou a mensagem');
-export const ERR_SESSION_CHANGED = tr('a conversa do agente mudou (/clear ou /resume) antes da entrega');
+export const ERR_NOT_FETCHED = tr("the session didn't fetch the message: is the habblaud-mensagens plugin installed and the session open?");
+export const ERR_NOT_CONFIRMED = tr("the session didn't confirm delivery");
+export const ERR_GONE = tr('the agent left the office');
+export const ERR_REFUSED = tr("the session didn't accept the message");
+export const ERR_SESSION_CHANGED = tr("the agent's conversation changed (/clear or /resume) before delivery");
 export const ERR_CODEX_UNAVAILABLE =
-  tr('não há como entregar ao Codex agora: rode o Habblaud fora do Docker com o `codex` no PATH (ou HABBLAUD_CODEX_BIN) ou, no Docker, deixe o npm run codex:bridge rodando no Mac');
-export const ERR_CODEX_NOT_FETCHED = tr('o auxiliar do Codex não buscou a mensagem: o npm run codex:bridge está rodando no Mac?');
-export const ERR_CODEX_SLOW = tr('o Codex demorou demais com as mensagens anteriores a este agente');
-export const ERR_CODEX_NOT_CONFIRMED = tr('o auxiliar do Codex não confirmou a entrega');
-export const ERR_CODEX_HOME = tr('a pasta da conta do Codex deste agente é desconhecida');
-export const ERR_CODEX_REFUSED = tr('o codex queue não aceitou a mensagem');
+  tr('no way to deliver to Codex right now: run Habblaud outside Docker with `codex` in PATH (or HABBLAUD_CODEX_BIN) or, in Docker, keep npm run codex:bridge running on the Mac');
+export const ERR_CODEX_NOT_FETCHED = tr("the Codex helper didn't fetch the message: is npm run codex:bridge running on the Mac?");
+export const ERR_CODEX_SLOW = tr('Codex took too long with the previous messages to this agent');
+export const ERR_CODEX_NOT_CONFIRMED = tr("the Codex helper didn't confirm delivery");
+export const ERR_CODEX_HOME = tr("this agent's Codex account folder is unknown");
+export const ERR_CODEX_REFUSED = tr("codex queue didn't accept the message");
 
 const ERROR_MAX = 300;
 const ID_MAX = 300;
@@ -150,9 +150,9 @@ const isFinal = (e: Entry) => e.msg.status === 'delivered' || e.msg.status === '
  * no Codex, há entregador).
  */
 function unavailableReason(a: AgentInfo, reachable: boolean): string | undefined {
-  if (a.kind !== 'main') return tr('subagentes não recebem mensagens: mande para o agente principal');
-  if (!present(a)) return tr('o agente já saiu do escritório');
-  if (!reachable) return a.provider === 'codex' ? ERR_CODEX_UNAVAILABLE : tr('a sessão não está com o plugin habblaud-mensagens conectado (npm run mod:install)');
+  if (a.kind !== 'main') return tr("subagents don't receive messages: send it to the main agent");
+  if (!present(a)) return tr('the agent has already left the office');
+  if (!reachable) return a.provider === 'codex' ? ERR_CODEX_UNAVAILABLE : tr("the session doesn't have the habblaud-mensagens plugin connected (npm run mod:install)");
   return undefined;
 }
 
@@ -161,8 +161,8 @@ export function parseSend(raw: unknown): { agentId: string; text: string } {
   const r = rec(raw);
   const agentId = shortStr(r?.agentId, ID_MAX);
   if (!r || !agentId || typeof r.text !== 'string') throw new InvalidRequest('esperado {agentId, text}');
-  if (!r.text.trim()) throw new InvalidRequest(tr('a mensagem está vazia'));
-  if (r.text.length > MAX_TEXT) throw new InvalidRequest(tr('a mensagem passa de 20.000 caracteres'));
+  if (!r.text.trim()) throw new InvalidRequest(tr('the message is empty'));
+  if (r.text.length > MAX_TEXT) throw new InvalidRequest(tr('the message exceeds 20,000 characters'));
   return { agentId, text: r.text };
 }
 
@@ -210,7 +210,7 @@ export class MessageRegistry {
       try {
         this.tick();
       } catch (err) {
-        log.warnOnce(`messages-tick:${errMsg(err)}`, tr('Mensagens: falha no relógio ({0}).', [errMsg(err)]));
+        log.warnOnce(`messages-tick:${errMsg(err)}`, tr('Messages: clock failed ({0}).', [errMsg(err)]));
       }
     }, this.opts.tickMs ?? 500);
     this.timer.unref?.();
@@ -343,7 +343,7 @@ export class MessageRegistry {
    * quem entrega é o servidor: nada sai por aqui (sem entrega dobrada).
    */
   codexPoll(raw: unknown): CodexBridgeMessage[] {
-    if (!rec(raw)) throw new InvalidRequest(tr('esperado um objeto JSON ({})'));
+    if (!rec(raw)) throw new InvalidRequest(tr('expected a JSON object ({})'));
     const c = this.opts.codex;
     if (!c) return [];
     const now = this.now();

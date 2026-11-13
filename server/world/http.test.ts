@@ -222,7 +222,7 @@ describe('HABBLAUD_WORLD e HABBLAUD_WORLD_URL', () => {
     expect(p('https://server.habblaud.com:8443').url).toBe('https://server.habblaud.com:8443');
     expect(p('http://server.habblaud.com').warning).toMatch(/https/);
     expect(p('http://127.0.0.1:4848').url).toBeUndefined();
-    expect(p('http://127.0.0.1:4848').warning).toMatch(/desenvolvimento/);
+    expect(p('http://127.0.0.1:4848').warning).toMatch(/development/);
     expect(p('http://127.0.0.1:4848', {}, ['--dev']).url).toBe('http://127.0.0.1:4848');
     expect(p('ws://127.0.0.1:4848', { HABBLAUD_WORLD_DEV: '1' }).url).toBe('http://127.0.0.1:4848');
     expect(p('http://localhost:4848', {}, ['--dev']).url).toBeUndefined();
@@ -231,7 +231,7 @@ describe('HABBLAUD_WORLD e HABBLAUD_WORLD_URL', () => {
     expect(p('http://host.docker.internal:4848', { HABBLAUD_WORLD_DEV: '1' }).url).toBe('http://host.docker.internal:4848');
     expect(p('ws://host.docker.internal:4848', {}, ['--dev']).url).toBe('http://host.docker.internal:4848');
     expect(p('http://host.docker.internal:4848').url).toBeUndefined();
-    expect(p('http://host.docker.internal:4848').warning).toMatch(/host\.docker\.internal.*desenvolvimento/);
+    expect(p('http://host.docker.internal:4848').warning).toMatch(/host\.docker\.internal.*development/);
     expect(p('http://x.host.docker.internal:4848', {}, ['--dev']).url).toBeUndefined();
     expect(p('http://host.docker.internal.evil.com:4848', {}, ['--dev']).url).toBeUndefined();
     expect(p('https://host.docker.internal:4848').url).toBe('https://host.docker.internal:4848');
@@ -564,7 +564,7 @@ describe('o prédio no mundo (uplink) pelas rotas', () => {
     seen.length = 0;
     const s = await start({ uplink: true });
     const w = s.world!;
-    s.office.addMain({ id: '.claude:4242', account: '.claude', sessionId: 'sess-x', cwd: '/Users/ana/projeto-secreto', role: 'Agente principal', startedAt: Date.now(), status: 'working' });
+    s.office.addMain({ id: '.claude:4242', account: '.claude', sessionId: 'sess-x', cwd: '/Users/ana/projeto-secreto', role: 'Main agent', startedAt: Date.now(), status: 'working' });
     await call(s.base, 'POST', '/api/world/register', REGISTER);
     await call(s.base, 'POST', '/api/world/verify', { email: EMAIL, code: FAKE_CODE });
     // Na lista de espera, com ou sem personagem: nada de prédio.
@@ -629,7 +629,7 @@ describe('o prédio no mundo (uplink) pelas rotas', () => {
   it('pausar e retomar em seguida: o servidor do mundo recebe na ordem, e o prédio fica aceso', async () => {
     const s = await start({ uplink: true });
     const w = s.world!;
-    s.office.addMain({ id: '.claude:7', account: '.claude', sessionId: 'sess-7', cwd: '/p/a', role: 'Agente principal', startedAt: Date.now(), status: 'working' });
+    s.office.addMain({ id: '.claude:7', account: '.claude', sessionId: 'sess-7', cwd: '/p/a', role: 'Main agent', startedAt: Date.now(), status: 'working' });
     await call(s.base, 'POST', '/api/world/register', REGISTER);
     await call(s.base, 'POST', '/api/world/verify', { email: EMAIL, code: FAKE_CODE });
     await call(s.base, 'PUT', '/api/world/character', CHARACTER);
@@ -651,7 +651,7 @@ describe('o prédio no mundo (uplink) pelas rotas', () => {
   it('sair do mundo: fecha o prédio antes de responder, o servidor retira o prédio e nada reconecta; voltar ao mundo (join) volta', async () => {
     const s = await start({ uplink: true });
     const w = s.world!;
-    s.office.addMain({ id: '.claude:8', account: '.claude', sessionId: 'sess-8', cwd: '/p/b', role: 'Agente principal', startedAt: Date.now(), status: 'working' });
+    s.office.addMain({ id: '.claude:8', account: '.claude', sessionId: 'sess-8', cwd: '/p/b', role: 'Main agent', startedAt: Date.now(), status: 'working' });
     await call(s.base, 'POST', '/api/world/register', REGISTER);
     await call(s.base, 'POST', '/api/world/verify', { email: EMAIL, code: FAKE_CODE });
     await call(s.base, 'PUT', '/api/world/character', CHARACTER);
@@ -735,7 +735,7 @@ describe('o prédio no mundo (uplink) pelas rotas', () => {
   it('saiu do mundo em outro computador: o pacote recusado com left grava a saída e a pausa e a conexão não volta', async () => {
     const s = await start({ uplink: true });
     const w = s.world!;
-    s.office.addMain({ id: '.claude:9', account: '.claude', sessionId: 'sess-9', cwd: '/p/c', role: 'Agente principal', startedAt: Date.now(), status: 'working' });
+    s.office.addMain({ id: '.claude:9', account: '.claude', sessionId: 'sess-9', cwd: '/p/c', role: 'Main agent', startedAt: Date.now(), status: 'working' });
     await call(s.base, 'POST', '/api/world/register', REGISTER);
     await call(s.base, 'POST', '/api/world/verify', { email: EMAIL, code: FAKE_CODE });
     await call(s.base, 'PUT', '/api/world/character', CHARACTER);
@@ -744,7 +744,7 @@ describe('o prédio no mundo (uplink) pelas rotas', () => {
     await waitFor(() => w.ws.uplinks.length === 1, 'primeira remessa');
     // O outro computador saiu do mundo; a mudança seguinte do escritório vai e volta recusada.
     w.accounts.get(EMAIL)!.left = true;
-    s.office.addMain({ id: '.claude:10', account: '.claude', sessionId: 'sess-10', cwd: '/p/d', role: 'Agente principal', startedAt: Date.now(), status: 'working' });
+    s.office.addMain({ id: '.claude:10', account: '.claude', sessionId: 'sess-10', cwd: '/p/d', role: 'Main agent', startedAt: Date.now(), status: 'working' });
     await waitFor(() => w.ws.uplinks.length === 2, 'segunda remessa');
     await waitFor(() => w.ws.open.length === 0, 'conexão fechada');
     expect(JSON.parse(readFileSync(s.file, 'utf8'))).toMatchObject({ paused: true, left: true });
@@ -1058,7 +1058,7 @@ describe('a conta e os dados (Fase 6)', () => {
     const s = await start({ uplink: true });
     const w = s.world!;
     if (opts.building) w.ws.options.building = opts.building;
-    s.office.addMain({ id: '.claude:6', account: '.claude', sessionId: 'sess-6', cwd: '/p/f6', role: 'Agente principal', startedAt: Date.now(), status: 'working' });
+    s.office.addMain({ id: '.claude:6', account: '.claude', sessionId: 'sess-6', cwd: '/p/f6', role: 'Main agent', startedAt: Date.now(), status: 'working' });
     await call(s.base, 'POST', '/api/world/register', REGISTER);
     await call(s.base, 'POST', '/api/world/verify', { email: EMAIL, code: FAKE_CODE });
     await call(s.base, 'PUT', '/api/world/character', CHARACTER);

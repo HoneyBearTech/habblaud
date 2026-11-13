@@ -15,8 +15,8 @@ describe('entregas no navegador', () => {
     expect(unseenCount(list, 150)).toBe(2);
     expect(arrivals(list, 0)).toEqual([]);
     expect(arrivals(list, 250).map((x) => x.id)).toEqual(['1']);
-    expect(workLine({ tools: 1, edited: 2, startedAt: 0, finishedAt: 12 * 60_000 })).toBe('1 passo · 2 arquivos alterados · 12 min');
-    expect(workLine({ tools: 4, edited: 0, startedAt: 0, finishedAt: 5_000 })).toBe('4 passos');
+    expect(workLine({ tools: 1, edited: 2, startedAt: 0, finishedAt: 12 * 60_000 })).toBe('1 step · 2 files changed · 12 min');
+    expect(workLine({ tools: 4, edited: 0, startedAt: 0, finishedAt: 5_000 })).toBe('4 steps');
     expect(fileUrl({ id: 'ab12' })).toBe('/api/deliveries/file/ab12');
     expect(projectName('/Users/a/Coding/proj/')).toBe('proj');
   });

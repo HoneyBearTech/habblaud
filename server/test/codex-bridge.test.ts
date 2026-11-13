@@ -67,7 +67,7 @@ async function serve(enabled = true): Promise<{ base: string; port: number; offi
   });
   await new Promise<void>((ok) => server.listen(0, '127.0.0.1', ok));
   const port = (server.address() as AddressInfo).port;
-  office.addMain({ id: MAIN, provider: 'codex', account: '.codex', sessionId: THREAD, cwd: '/p/loja', role: 'Agente principal', startedAt: Date.now(), status: 'idle' });
+  office.addMain({ id: MAIN, provider: 'codex', account: '.codex', sessionId: THREAD, cwd: '/p/loja', role: 'Main agent', startedAt: Date.now(), status: 'idle' });
   close = () =>
     new Promise((ok) => {
       registry?.stop();
@@ -123,7 +123,7 @@ describe('rotas do auxiliar do Codex', () => {
     const s = await serve();
     const thread = '0199b0c0-0000-7abc-8def-0123456789ab';
     const other = `.codex:${thread}`;
-    s.office.addMain({ id: other, provider: 'codex', account: '.codex', sessionId: thread, cwd: '/p/api', role: 'Agente principal', startedAt: Date.now(), status: 'idle' });
+    s.office.addMain({ id: other, provider: 'codex', account: '.codex', sessionId: thread, cwd: '/p/api', role: 'Main agent', startedAt: Date.now(), status: 'idle' });
     const post = httpPost(s.port);
     await round(post, async () => ({ ok: true }));
     const a = await request(s.base, '/api/messages', { method: 'POST', body: { agentId: MAIN, text: 'um' } });
@@ -147,14 +147,14 @@ describe('rotas do auxiliar do Codex', () => {
   it('checkMessage: thread, texto e uma pasta do Codex que existe (nunca uma do Claude Code)', () => {
     const ok = { id: 'm1', account: '.codex', codexHome, thread: THREAD, text: 'oi' };
     expect(checkMessage(ok)).toEqual(ok);
-    expect(checkMessage({ ...ok, thread: 'nome' })).toEqual({ id: 'm1', error: 'id de thread do Codex inválido' });
-    expect(checkMessage({ ...ok, text: ' ' })).toEqual({ id: 'm1', error: 'mensagem vazia' });
-    expect(checkMessage({ ...ok, codexHome: join(tmp.dir, 'nao-existe') })).toMatchObject({ id: 'm1', error: expect.stringMatching(/não existe/) });
-    expect(checkMessage({ ...ok, codexHome: 'relativo' })).toMatchObject({ error: expect.stringMatching(/não existe/) });
+    expect(checkMessage({ ...ok, thread: 'nome' })).toEqual({ id: 'm1', error: 'invalid Codex thread id' });
+    expect(checkMessage({ ...ok, text: ' ' })).toEqual({ id: 'm1', error: 'empty message' });
+    expect(checkMessage({ ...ok, codexHome: join(tmp.dir, 'nao-existe') })).toMatchObject({ id: 'm1', error: expect.stringMatching(/doesn't exist/) });
+    expect(checkMessage({ ...ok, codexHome: 'relativo' })).toMatchObject({ error: expect.stringMatching(/doesn't exist/) });
     const claude = join(tmp.dir, '.claude');
     mkdirSync(join(claude, 'projects'), { recursive: true });
-    expect(checkMessage({ ...ok, codexHome: claude })).toMatchObject({ error: expect.stringMatching(/não existe/) });
-    expect(checkMessage({ text: 'x' })).toEqual({ error: 'mensagem sem id' });
+    expect(checkMessage({ ...ok, codexHome: claude })).toMatchObject({ error: expect.stringMatching(/doesn't exist/) });
+    expect(checkMessage({ text: 'x' })).toEqual({ error: 'message without id' });
   });
 
   it('parseArgs', () => {
@@ -163,7 +163,7 @@ describe('rotas do auxiliar do Codex', () => {
     expect(parseArgs([], { HABBLAUD_PORT: '4848' })).toEqual({ port: 4848, once: false });
     expect(parseArgs(['-h'], {})).toBe('help');
     expect(() => parseArgs(['--port', 'x'], {})).toThrow(/--port/);
-    expect(() => parseArgs(['--xyz'], {})).toThrow(/desconhecida/);
+    expect(() => parseArgs(['--xyz'], {})).toThrow(/unknown/);
   });
 });
 
@@ -182,8 +182,8 @@ describe('spawnRound com anexos e dictationRound', () => {
       files.map((f) => (wrote.push(`${id}:${f.name}:${f.data.toString()}`), `/h/att/${f.name}`)),
     );
     expect(wrote).toEqual(['a:print.png:png']);
-    expect(new URL(opened[0]).searchParams.get('q')).toBe('veja\n\nAnexo enviado pelo Habblaud (leia antes de começar):\n- /h/att/print.png');
-    expect(r).toEqual({ state: 'ok', results: [{ id: 'a', ok: true, how: 'app' }, { id: 'b', ok: false, error: 'anexo ilegível' }] });
+    expect(new URL(opened[0]).searchParams.get('q')).toBe('veja\n\nAttachment sent via Habblaud (read it before starting):\n- /h/att/print.png');
+    expect(r).toEqual({ state: 'ok', results: [{ id: 'a', ok: true, how: 'app' }, { id: 'b', ok: false, error: 'unreadable attachment' }] });
   });
 
   it('dictationRound transcreve e devolve texto e idioma; erro vira resultado', async () => {
@@ -195,10 +195,10 @@ describe('spawnRound com anexos e dictationRound', () => {
         : { status: 200, json: { ok: true } };
     };
     const r = await dictationRound(post, async (buf) => {
-      if (buf.toString() === 'ruim') throw new Error('o Whisper falhou (x)');
+      if (buf.toString() === 'ruim') throw new Error('Whisper failed (x)');
       return { text: 'crie um agente', lang: 'pt' };
     });
-    expect(r).toEqual({ state: 'ok', results: [{ id: 'd1', ok: true, text: 'crie um agente', lang: 'pt' }, { id: 'd2', ok: false, error: 'o Whisper falhou (x)' }] });
+    expect(r).toEqual({ state: 'ok', results: [{ id: 'd1', ok: true, text: 'crie um agente', lang: 'pt' }, { id: 'd2', ok: false, error: 'Whisper failed (x)' }] });
     expect(calls[1][0]).toBe('/api/host/dictation/ack');
     expect(await dictationRound(async () => null, async () => ({ text: '', lang: '' }))).toEqual({ state: 'down' });
   });
@@ -212,9 +212,9 @@ describe('filesRound (arquivos das entregas pelo auxiliar)', () => {
       acked = body;
       return { status: 200, json: { ok: true } };
     };
-    const r = await filesRound(post, () => {}, () => Buffer.from('png'), (p) => (p.includes('.ssh') ? { error: 'arquivo protegido' } : { path: p, size: 3 }));
-    expect(r).toEqual({ state: 'ok', results: [{ id: 'f1', ok: true }, { id: 'f2', ok: false, error: 'arquivo protegido' }] });
-    expect(acked).toEqual({ results: [{ id: 'f1', ok: true, data: Buffer.from('png').toString('base64') }, { id: 'f2', ok: false, error: 'arquivo protegido' }] });
+    const r = await filesRound(post, () => {}, () => Buffer.from('png'), (p) => (p.includes('.ssh') ? { error: 'protected file' } : { path: p, size: 3 }));
+    expect(r).toEqual({ state: 'ok', results: [{ id: 'f1', ok: true }, { id: 'f2', ok: false, error: 'protected file' }] });
+    expect(acked).toEqual({ results: [{ id: 'f1', ok: true, data: Buffer.from('png').toString('base64') }, { id: 'f2', ok: false, error: 'protected file' }] });
   });
 
   it('fora das pastas que pode ler (inside): recusa sem ler; com espera, pede a rodada com ?wait=1', async () => {
@@ -226,7 +226,7 @@ describe('filesRound (arquivos das entregas pelo auxiliar)', () => {
       return { status: 200, json: { ok: true } };
     };
     const r = await filesRound(post, () => {}, () => (reads++, Buffer.from('x')), (p) => ({ path: p, size: 1 }), { inside: (p) => p.startsWith('/proj/'), wait: true });
-    expect(r).toEqual({ state: 'ok', results: [{ id: 'f1', ok: false, error: 'fora das pastas de projeto conhecidas' }] });
+    expect(r).toEqual({ state: 'ok', results: [{ id: 'f1', ok: false, error: 'outside the known project folders' }] });
     expect(reads).toBe(0);
     expect(paths[0]).toBe('/api/host/files/poll?wait=1');
   });
@@ -254,9 +254,9 @@ describe('spawnRound (agentes novos pelo auxiliar)', () => {
     );
     expect(ran).toEqual(['/conhecida', '/nova']);
     expect(opened).toEqual([spawnUrl({ folder: '/nova', prompt: 'oi' })]);
-    expect(r).toMatchObject({ state: 'ok', results: [{ id: 'a', ok: true, how: 'cli' }, { id: 'b', ok: true, how: 'app', note: expect.stringMatching(/confiável/) }] });
+    expect(r).toMatchObject({ state: 'ok', results: [{ id: 'a', ok: true, how: 'cli' }, { id: 'b', ok: true, how: 'app', note: expect.stringMatching(/trusted/) }] });
     expect(calls[1]).toEqual(['/api/host/spawn/ack', { results: (r as { results: unknown }).results }]);
-    expect(lines[0]).toMatch(/segundo plano em \/conhecida/);
+    expect(lines[0]).toMatch(/in \/conhecida running in the background/);
   });
 
   it('monta o link ele mesmo, recusa pasta que não existe e confirma tudo numa chamada', async () => {
@@ -269,9 +269,9 @@ describe('spawnRound (agentes novos pelo auxiliar)', () => {
       return { status: 200, json: { ok: true } };
     };
     const opened: string[] = [];
-    const r = await spawnRound(post, async (url) => (opened.push(url), { ok: true }), () => {}, (f) => (f === '/ok' ? undefined : 'pasta não encontrada neste computador'));
+    const r = await spawnRound(post, async (url) => (opened.push(url), { ok: true }), () => {}, (f) => (f === '/ok' ? undefined : 'folder not found on this computer'));
     expect(opened).toEqual([spawnUrl({ folder: '/ok', prompt: 'p' })]);
-    expect(r).toEqual({ state: 'ok', results: [{ id: 'a', ok: true, how: 'app' }, { id: 'b', ok: false, error: 'pasta não encontrada neste computador' }] });
+    expect(r).toEqual({ state: 'ok', results: [{ id: 'a', ok: true, how: 'app' }, { id: 'b', ok: false, error: 'folder not found on this computer' }] });
     expect(calls[1]).toEqual(['/api/host/spawn/ack', { results: r.state === 'ok' ? r.results : [] }]);
   });
 

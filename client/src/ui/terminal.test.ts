@@ -40,7 +40,7 @@ function agent(p: Partial<AgentInfo> = {}): AgentInfo {
     roomId: 'r1',
     name: 'Marina',
     look: 'f',
-    role: 'Agente principal',
+    role: 'Main agent',
     sessionId: 's1',
     account: '.claude',
     status: 'working',
@@ -178,9 +178,9 @@ describe('previewText', () => {
   });
 
   it('rótulo do botão', () => {
-    expect(moreLabel(1)).toBe('… +1 linha');
-    expect(moreLabel(14)).toBe('… +14 linhas');
-    expect(moreLabel(0)).toBe('… mostrar tudo');
+    expect(moreLabel(1)).toBe('… +1 line');
+    expect(moreLabel(14)).toBe('… +14 lines');
+    expect(moreLabel(0)).toBe('… show all');
   });
 });
 
@@ -213,30 +213,30 @@ describe('terminalFooter', () => {
   const now = 100_000;
 
   it('trabalhando: texto da atividade com reticências (sem duplicar)', () => {
-    const a = agent({ activity: { id: 'x', kind: 'edit', icon: '✏️', text: 'Editando App.tsx', at: 0 } });
-    expect(terminalFooter(a, [a], now)).toEqual({ kind: 'working', text: 'Editando App.tsx…', since: 1_000 });
-    const b = agent({ activity: { id: 'x', kind: 'think', icon: '💭', text: 'Pensando…', at: 0 } });
-    expect(terminalFooter(b, [b], now).text).toBe('Pensando…');
-    expect(terminalFooter(agent(), [], now).text).toBe('Trabalhando…');
+    const a = agent({ activity: { id: 'x', kind: 'edit', icon: '✏️', text: 'Editing App.tsx', at: 0 } });
+    expect(terminalFooter(a, [a], now)).toEqual({ kind: 'working', text: 'Editing App.tsx…', since: 1_000 });
+    const b = agent({ activity: { id: 'x', kind: 'think', icon: '💭', text: 'Thinking…', at: 0 } });
+    expect(terminalFooter(b, [b], now).text).toBe('Thinking…');
+    expect(terminalFooter(agent(), [], now).text).toBe('Working…');
   });
 
   it('esperando você, ocioso e encerrado', () => {
     const perm = { id: 'p1', tool: 'Bash', title: 'Bash(ls)' } as unknown as NonNullable<AgentInfo['permission']>;
-    expect(terminalFooter(agent({ status: 'waiting', waitingFor: 'aprovar uma permissão', permission: perm }), [], now).text).toBe('Esperando você: aprovar uma permissão');
-    expect(terminalFooter(agent({ status: 'waiting', waitingFor: 'aprovar uma permissão' }), [], now).text).toBe(
-      'Esperando você: aprovar uma permissão · responda no Claude Code: este pedido não chegou ao Habblaud ou passou do tempo de espera',
+    expect(terminalFooter(agent({ status: 'waiting', waitingFor: 'approve a permission', permission: perm }), [], now).text).toBe('Waiting on you: approve a permission');
+    expect(terminalFooter(agent({ status: 'waiting', waitingFor: 'approve a permission' }), [], now).text).toBe(
+      "Waiting on you: approve a permission · answer in Claude Code: this request didn't reach Habblaud or timed out",
     );
-    expect(terminalFooter(agent({ status: 'waiting', provider: 'codex' }), [], now).text).toMatch(/^Esperando você · responda no Codex:/);
-    expect(terminalFooter(agent({ status: 'idle' }), [], now)).toEqual({ kind: 'idle', text: 'Aguardando o próximo prompt' });
+    expect(terminalFooter(agent({ status: 'waiting', provider: 'codex' }), [], now).text).toMatch(/^Waiting on you · answer in Codex:/);
+    expect(terminalFooter(agent({ status: 'idle' }), [], now)).toEqual({ kind: 'idle', text: 'Waiting for the next prompt' });
     expect(terminalFooter(agent({ status: 'offline' }), [], now).kind).toBe('ended');
     expect(terminalFooter(agent({ kind: 'sub', status: 'done' }), [], now).kind).toBe('ended');
-    expect(terminalFooter(undefined, [], now)).toEqual({ kind: 'ended', text: 'Sessão encerrada' });
+    expect(terminalFooter(undefined, [], now)).toEqual({ kind: 'ended', text: 'Session ended' });
   });
 
   it('esperando o shell (segundo plano ou comando longo em primeiro plano)', () => {
     const job: ShellJob = { id: 'j', label: 'Rodar a suíte', startedAt: 40_000, background: true, kind: 'shell' };
     const a = agent({ status: 'shell', shells: [job, { ...job, id: 'k', startedAt: 50_000 }] });
-    expect(terminalFooter(a, [a], now)).toEqual({ kind: 'shell', text: 'Esperando o shell: Rodar a suíte (+1)', since: 40_000 });
+    expect(terminalFooter(a, [a], now)).toEqual({ kind: 'shell', text: 'Waiting on shell: Rodar a suíte (+1)', since: 40_000 });
     const fg = agent({ status: 'working', shells: [{ ...job, background: false, startedAt: now - 60_000 }] });
     expect(terminalFooter(fg, [fg], now).kind).toBe('shell');
   });
@@ -260,10 +260,10 @@ describe('utilitários', () => {
 
   it('rodapé da sessão encerrada: hoje, ontem ou a data', () => {
     const now = new Date(2026, 9, 8, 15, 0, 0).getTime();
-    expect(sessionEndedText(new Date(2026, 9, 8, 14, 30).getTime(), now)).toBe('Sessão encerrada às 14:30');
-    expect(sessionEndedText(new Date(2026, 9, 7, 23, 5).getTime(), now)).toBe('Sessão encerrada ontem às 23:05');
-    expect(sessionEndedText(new Date(2026, 9, 3, 9, 0).getTime(), now)).toMatch(/^Sessão encerrada em 03 de out\.? às 09:00$/);
-    expect(sessionEndedText(NaN, now)).toBe('Sessão encerrada');
+    expect(sessionEndedText(new Date(2026, 9, 8, 14, 30).getTime(), now)).toBe('Session ended at 14:30');
+    expect(sessionEndedText(new Date(2026, 9, 7, 23, 5).getTime(), now)).toBe('Session ended yesterday at 23:05');
+    expect(sessionEndedText(new Date(2026, 9, 3, 9, 0).getTime(), now)).toMatch(/^Session ended on Oct 03 at 09:00$/);
+    expect(sessionEndedText(NaN, now)).toBe('Session ended');
   });
 
   it('entryTimeTitle: horário hoje, data em outro dia, vazio sem horário', () => {

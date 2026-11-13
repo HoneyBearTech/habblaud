@@ -72,7 +72,7 @@ export async function handleCodexEvent(
     try {
       ok = deps.live.applyHookEvent(codexAccountOf(deps.entries(), body.account, body.codexHome), body.event) === true;
     } catch (err) {
-      log.warnOnce(`codex-event:${errMsg(err)}`, tr('Eventos do Codex: falha ao aplicar um evento ({0}).', [errMsg(err)]));
+      log.warnOnce(`codex-event:${errMsg(err)}`, tr('Codex events: failed to apply an event ({0}).', [errMsg(err)]));
     }
   }
   sendJson(res, 200, { ok });

@@ -4,7 +4,7 @@
 import type { GitHubEvent } from '../github';
 import { tr } from '../i18n';
 
-const WORKFLOWS = ['CI', 'build-test', tr('Testes'), tr('Lint e tipos'), 'Deploy'];
+const WORKFLOWS = ['CI', 'build-test', tr('Tests'), tr('Lint and types'), 'Deploy'];
 
 /**
  * Sorteia um evento. `alarm` = a sala já está com o CI vermelho: na maioria das vezes, o próximo

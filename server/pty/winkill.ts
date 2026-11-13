@@ -60,8 +60,8 @@ if ([HabblaudConsole]::GetConsoleMode($in, [ref]$m)) {
  * pode ficar com os modos ligados, como antes).
  */
 export function killWithConsoleReset(pid: number, fileTime: string, stillSame: () => Promise<boolean>, timeoutMs = 15_000): Promise<void> {
-  if (!Number.isSafeInteger(pid) || pid <= 0) return Promise.reject(new Error(tr('pid inválido')));
-  if (!/^\d+$/.test(fileTime)) return Promise.reject(new Error(tr('início do processo desconhecido')));
+  if (!Number.isSafeInteger(pid) || pid <= 0) return Promise.reject(new Error(tr('invalid pid')));
+  if (!/^\d+$/.test(fileTime)) return Promise.reject(new Error(tr('unknown process start time')));
   const encoded = Buffer.from(script(pid, fileTime), 'utf16le').toString('base64');
   return new Promise((ok, fail) => {
     execFile(
@@ -69,7 +69,7 @@ export function killWithConsoleReset(pid: number, fileTime: string, stillSame: (
       ['-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', encoded],
       { windowsHide: true, timeout: timeoutMs },
       (err) => {
-        if ((err as { code?: unknown } | null)?.code === 4) return fail(new Error(tr('o processo não é mais aquela sessão')));
+        if ((err as { code?: unknown } | null)?.code === 4) return fail(new Error(tr('the process is no longer that session')));
         void stillSame()
           .then((same) => {
             if (same) process.kill(pid);

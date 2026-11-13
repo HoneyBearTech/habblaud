@@ -32,8 +32,8 @@ describe('trava do terminal (config)', () => {
 
   it('Node: decide o HABBLAUD_HOST', () => {
     for (const host of ['127.0.0.1', 'localhost', '::1']) expect(terminalOffReason({}, host, false)).toBeUndefined();
-    expect(terminalOffReason({}, '0.0.0.0', false)).toBe('a porta está exposta na rede: HABBLAUD_HOST=0.0.0.0');
-    for (const host of ['::', '192.168.0.10', 'meu-mac.local']) expect(terminalOffReason({}, host, false)).toMatch(/exposta na rede/);
+    expect(terminalOffReason({}, '0.0.0.0', false)).toBe('the port is exposed on the network: HABBLAUD_HOST=0.0.0.0');
+    for (const host of ['::', '192.168.0.10', 'meu-mac.local']) expect(terminalOffReason({}, host, false)).toMatch(/exposed on the network/);
     // HABBLAUD_BIND só vale no Docker: não liga o modo Node exposto.
     expect(terminalOffReason({ HABBLAUD_BIND: '127.0.0.1' }, '0.0.0.0', false)).toBeDefined();
   });
@@ -41,10 +41,10 @@ describe('trava do terminal (config)', () => {
   it('Docker: decide o HABBLAUD_BIND (ausente ou vazio = desligado)', () => {
     expect(terminalOffReason({ HABBLAUD_BIND: '127.0.0.1' }, '0.0.0.0', true)).toBeUndefined();
     expect(terminalOffReason({ HABBLAUD_BIND: '[::1]' }, '0.0.0.0', true)).toBeUndefined();
-    expect(terminalOffReason({}, '0.0.0.0', true)).toMatch(/HABBLAUD_BIND não chegou/);
-    expect(terminalOffReason({ HABBLAUD_BIND: '  ' }, '0.0.0.0', true)).toMatch(/HABBLAUD_BIND não chegou/);
-    expect(terminalOffReason({ HABBLAUD_BIND: '0.0.0.0' }, '0.0.0.0', true)).toBe('a porta está exposta na rede: HABBLAUD_BIND=0.0.0.0');
-    expect(terminalOffReason({ HABBLAUD_BIND: '192.168.0.10' }, '0.0.0.0', true)).toMatch(/exposta na rede/);
+    expect(terminalOffReason({}, '0.0.0.0', true)).toMatch(/HABBLAUD_BIND didn't reach/);
+    expect(terminalOffReason({ HABBLAUD_BIND: '  ' }, '0.0.0.0', true)).toMatch(/HABBLAUD_BIND didn't reach/);
+    expect(terminalOffReason({ HABBLAUD_BIND: '0.0.0.0' }, '0.0.0.0', true)).toBe('the port is exposed on the network: HABBLAUD_BIND=0.0.0.0');
+    expect(terminalOffReason({ HABBLAUD_BIND: '192.168.0.10' }, '0.0.0.0', true)).toMatch(/exposed on the network/);
     // No container o host do processo não conta (é sempre 0.0.0.0).
     expect(terminalOffReason({ HABBLAUD_BIND: '0.0.0.0' }, '127.0.0.1', true)).toBeDefined();
   });
@@ -134,7 +134,7 @@ async function serve(opts: { terminal?: boolean; streams?: Partial<TerminalOptio
   });
   await new Promise<void>((ok) => server.listen(0, '127.0.0.1', ok));
   const port = String((server.address() as AddressInfo).port);
-  office.addMain({ id: MAIN, account: 'acc', sessionId: 's1', cwd: '/p/loja', role: 'Agente principal', startedAt: Date.now(), status: 'working' });
+  office.addMain({ id: MAIN, account: 'acc', sessionId: 's1', cwd: '/p/loja', role: 'Main agent', startedAt: Date.now(), status: 'working' });
   return {
     base: `http://127.0.0.1:${port}`,
     port,
@@ -228,7 +228,7 @@ describe('terminal: rota', () => {
       env.paths.set(MAIN, join(env.dir, 'x.jsonl'));
       const r = await open(env.base, route(MAIN));
       expect(r.status).toBe(403);
-      expect(JSON.parse(r.body).error).toMatch(/desligado/);
+      expect(JSON.parse(r.body).error).toMatch(/disabled/);
       expect(await health(env.base)).toMatchObject({ ok: true, terminal: false });
       expect(env.office.commit().snapshot.meta.terminal).toBe(false);
       expect(env.terminals.size).toBe(0);
@@ -246,7 +246,7 @@ describe('terminal: rota', () => {
       for (const host of [`192.168.0.10:${env.port}`, `habblaud.lan:${env.port}`]) {
         const r = await open(env.base, route(MAIN), { headers: { Host: host } });
         expect(r.status).toBe(403);
-        expect(JSON.parse(r.body).error).toMatch(/próprio computador/);
+        expect(JSON.parse(r.body).error).toMatch(/computer running Habblaud/);
       }
       expect(env.terminals.size).toBe(0);
       const ok = await open(env.base, route(MAIN), { headers: { Host: `localhost:${env.port}` } });
@@ -264,11 +264,11 @@ describe('terminal: rota', () => {
       for (const id of ['nao-existe', 'demo:nao-existe']) {
         const r = await open(env.base, route(id));
         expect(r.status).toBe(404);
-        expect(JSON.parse(r.body)).toEqual({ error: 'agente não encontrado' });
+        expect(JSON.parse(r.body)).toEqual({ error: 'agent not found' });
       }
       const noPath = await open(env.base, route(MAIN));
       expect(noPath.status).toBe(404);
-      expect(JSON.parse(noPath.body)).toEqual({ error: 'transcript do agente não encontrado' });
+      expect(JSON.parse(noPath.body)).toEqual({ error: 'agent transcript not found' });
       const post = await open(env.base, route(MAIN), { method: 'POST', headers: { 'Content-Type': 'application/json' } });
       expect(post.status).toBe(405);
       expect(post.headers.allow).toBe('GET');
@@ -291,7 +291,7 @@ describe('terminal: rota', () => {
       expect(env.terminals.size).toBe(MAX_STREAMS);
       const extra = await open(env.base, route(MAIN));
       expect(extra.status).toBe(429);
-      expect(JSON.parse(extra.body).error).toMatch(/terminais abertos demais/);
+      expect(JSON.parse(extra.body).error).toMatch(/too many open terminals/);
       open8[0].close();
       await waitFor(() => expect(env.terminals.size).toBe(MAX_STREAMS - 1));
       const again = await open(env.base, route(MAIN));
@@ -458,7 +458,7 @@ describe('terminal: transporte', () => {
     const parserFor = (id: string) => (asked.push(id), id === OTHER ? codexParser() : undefined);
     const env = await serve({ streams: { parserFor } });
     try {
-      env.office.addMain({ id: OTHER, provider: 'codex', account: '.codex', sessionId: 'thr', cwd: '/p/loja', role: 'Agente principal', startedAt: Date.now(), status: 'working' });
+      env.office.addMain({ id: OTHER, provider: 'codex', account: '.codex', sessionId: 'thr', cwd: '/p/loja', role: 'Main agent', startedAt: Date.now(), status: 'working' });
       const a = join(env.dir, 'a.jsonl');
       const b = join(env.dir, 'b.jsonl');
       writeLines(a, [line('a1')]);

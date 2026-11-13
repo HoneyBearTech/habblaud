@@ -30,19 +30,19 @@ const D = 24 * H;
 describe('relativeTime', () => {
   const now = new Date(2026, 9, 6, 14, 0, 0).getTime();
   it('usa "agora" para menos de 5 s e para o futuro', () => {
-    expect(relativeTime(now, now)).toBe('agora');
-    expect(relativeTime(now - 4 * S, now)).toBe('agora');
-    expect(relativeTime(now + 10 * S, now)).toBe('agora');
+    expect(relativeTime(now, now)).toBe('now');
+    expect(relativeTime(now - 4 * S, now)).toBe('now');
+    expect(relativeTime(now + 10 * S, now)).toBe('now');
   });
   it('formata segundos, minutos, horas e dias', () => {
-    expect(relativeTime(now - 5 * S, now)).toBe('há 5 s');
-    expect(relativeTime(now - 59 * S, now)).toBe('há 59 s');
-    expect(relativeTime(now - 3 * M, now)).toBe('há 3 min');
-    expect(relativeTime(now - 2 * H - 10 * M, now)).toBe('há 2 h');
-    expect(relativeTime(now - 3 * D, now)).toBe('há 3 d');
+    expect(relativeTime(now - 5 * S, now)).toBe('5 s ago');
+    expect(relativeTime(now - 59 * S, now)).toBe('59 s ago');
+    expect(relativeTime(now - 3 * M, now)).toBe('3 min ago');
+    expect(relativeTime(now - 2 * H - 10 * M, now)).toBe('2 h ago');
+    expect(relativeTime(now - 3 * D, now)).toBe('3 d ago');
   });
   it('trata valores inválidos como "agora"', () => {
-    expect(relativeTime(Number.NaN, now)).toBe('agora');
+    expect(relativeTime(Number.NaN, now)).toBe('now');
   });
 });
 
@@ -57,8 +57,8 @@ describe('formatDuration / formatCountdown', () => {
   });
   it('formata contagem regressiva', () => {
     const now = 1_000_000;
-    expect(formatCountdown(now - 1, now)).toBe('agora');
-    expect(formatCountdown(now + 30 * S, now)).toBe('em menos de 1 min');
+    expect(formatCountdown(now - 1, now)).toBe('now');
+    expect(formatCountdown(now + 30 * S, now)).toBe('in less than 1 min');
     expect(formatCountdown(now + 2 * H + 10 * M, now)).toBe('em 2 h 10 min');
   });
 });
@@ -66,13 +66,13 @@ describe('formatDuration / formatCountdown', () => {
 describe('formatResetAt', () => {
   const now = new Date(2026, 9, 6, 9, 15).getTime(); // terça, 06/10/2026
   it('mesmo dia: "às HH:MM"', () => {
-    expect(formatResetAt(new Date(2026, 9, 6, 14, 30).getTime(), now)).toBe('às 14:30');
+    expect(formatResetAt(new Date(2026, 9, 6, 14, 30).getTime(), now)).toBe('at 14:30');
   });
   it('dia seguinte: "amanhã às HH:MM"', () => {
-    expect(formatResetAt(new Date(2026, 9, 7, 1, 30).getTime(), now)).toBe('amanhã às 01:30');
+    expect(formatResetAt(new Date(2026, 9, 7, 1, 30).getTime(), now)).toBe('tomorrow at 01:30');
   });
   it('mais adiante: dia da semana abreviado', () => {
-    expect(formatResetAt(new Date(2026, 9, 8, 20, 0).getTime(), now)).toBe('qui., 20:00');
+    expect(formatResetAt(new Date(2026, 9, 8, 20, 0).getTime(), now)).toBe('Thu, 20:00');
   });
   it('conta dias de calendário, não blocos de 24 h', () => {
     expect(calendarDayDiff(new Date(2026, 9, 7, 0, 5).getTime(), new Date(2026, 9, 6, 23, 55).getTime())).toBe(1);
@@ -83,20 +83,20 @@ describe('formatResetAt', () => {
 describe('números', () => {
   it('formatTokens usa k e M com vírgula decimal', () => {
     expect(formatTokens(850)).toBe('850');
-    expect(formatTokens(12_340)).toBe('12,3 k');
+    expect(formatTokens(12_340)).toBe('12.3 k');
     expect(formatTokens(1_000)).toBe('1 k');
-    expect(formatTokens(1_250_000)).toBe('1,3 M');
+    expect(formatTokens(1_250_000)).toBe('1.3 M');
     expect(formatTokens(-3)).toBe('0');
   });
   it('formatUSD e formatInt em pt-BR', () => {
-    expect(formatUSD(1.234)).toBe('US$ 1,23');
-    expect(formatUSD(0)).toBe('US$ 0,00');
-    expect(formatInt(12345)).toBe('12.345');
+    expect(formatUSD(1.234)).toBe('$1.23');
+    expect(formatUSD(0)).toBe('$0.00');
+    expect(formatInt(12345)).toBe('12,345');
   });
   it('plural', () => {
-    expect(plural(1, 'agente', 'agentes')).toBe('1 agente');
-    expect(plural(0, 'agente', 'agentes')).toBe('0 agentes');
-    expect(plural(3, 'agente', 'agentes')).toBe('3 agentes');
+    expect(plural(1, 'agent', 'agents')).toBe('1 agent');
+    expect(plural(0, 'agent', 'agents')).toBe('0 agents');
+    expect(plural(3, 'agent', 'agents')).toBe('3 agents');
   });
 });
 
@@ -137,7 +137,7 @@ describe('textos', () => {
     expect(prettyModel(undefined)).toBe('—');
   });
   it('permissionLabel traduz modos conhecidos', () => {
-    expect(permissionLabel('acceptEdits')).toBe('Aceita edições');
+    expect(permissionLabel('acceptEdits')).toBe('Accepts edits');
     expect(permissionLabel('custom')).toBe('custom');
     expect(permissionLabel(undefined)).toBe('—');
   });
@@ -169,16 +169,16 @@ describe('reinício das janelas de uso', () => {
   it('janela vigente: percentual e contagem regressiva (< 24 h) ou dia e hora', () => {
     const five = usageWindowView({ utilization: 35.4, resetsAt: now + H + 29 * 60_000 }, now - 60_000, now, FIVE_HOURS_MS)!;
     expect(five).toMatchObject({ pct: 35, renewed: false, reset: 'em 1 h 29 min', resetShort: '1h29' });
-    expect(five.summary).toBe('35% usado · reinicia às 10:44 (em 1 h 29 min)');
+    expect(five.summary).toBe('35% used · resets at 10:44 (em 1 h 29 min)');
     const week = usageWindowView({ utilization: 12, resetsAt: new Date(2026, 9, 8, 13, 49).getTime() }, now, now, WEEK_MS)!;
-    expect(week.reset).toBe('qui., 13:49');
+    expect(week.reset).toBe('Thu, 13:49');
     const tomorrow = usageWindowView({ utilization: 12, resetsAt: new Date(2026, 9, 7, 13, 49).getTime() }, now, now, WEEK_MS)!;
-    expect(tomorrow.reset).toBe('amanhã, 13:49');
+    expect(tomorrow.reset).toBe('tomorrow, 13:49');
   });
 
   it('janela que já renovou depois da leitura: sem percentual', () => {
     const v = usageWindowView({ utilization: 35, resetsAt: now - H }, now - 3 * H, now, FIVE_HOURS_MS)!;
-    expect(v).toMatchObject({ pct: null, renewed: true, reset: 'renovada' });
+    expect(v).toMatchObject({ pct: null, renewed: true, reset: 'renewed' });
     // Sem horário de reinício: números mais velhos que a janela também não valem.
     expect(usageWindowView({ utilization: 10 }, now - 6 * H, now, FIVE_HOURS_MS)!.renewed).toBe(true);
     expect(usageWindowView({ utilization: 10 }, now - 6 * H, now, WEEK_MS)!.pct).toBe(10);

@@ -43,7 +43,7 @@ export class WorldDialog implements UiComponent, WorldThemeLink {
     const badge = h('span', { class: 'ui-world-dialog__badge', attrs: { 'aria-hidden': 'true' } });
     badge.innerHTML = WORLD_BUILDING_ICON;
     this.title = h('h2', { class: 'ui-world-dialog__title', text: tr('Habblaud World'), tabIndex: -1, attrs: { id: TITLE_ID } });
-    const close = iconButton(ICONS.close, tr('Fechar (Esc)'), () => this.close(), 'ui-icon-btn--sm');
+    const close = iconButton(ICONS.close, tr('Close (Esc)'), () => this.close(), 'ui-icon-btn--sm');
     this.body = h('div', { class: 'ui-world-dialog__body' }, this.group.el);
     this.el = h(
       'dialog',

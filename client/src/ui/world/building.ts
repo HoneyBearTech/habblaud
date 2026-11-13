@@ -66,23 +66,23 @@ export class BuildingCard {
     const titleId = 'ui-world-building-title';
     this.badge = h('span', { class: 'ui-world__bstate' });
     this.desc = h('p', { class: 'ui-world__bdesc' });
-    this.stats = h('ul', { class: 'ui-world__bstats', attrs: { 'aria-label': tr('Seu prédio agora') } });
+    this.stats = h('ul', { class: 'ui-world__bstats', attrs: { 'aria-label': tr('Your building now') } });
     this.rejectedReason = h('span');
-    this.rejected = h('p', { class: 'ui-world__brejected', role: 'status', hidden: true }, h('strong', { text: tr('O mundo recusou a última remessa.') }), ' ', this.rejectedReason);
+    this.rejected = h('p', { class: 'ui-world__brejected', role: 'status', hidden: true }, h('strong', { text: tr('The world rejected the last upload.') }), ' ', this.rejectedReason);
     this.toggleBtn = h('button', { class: 'ui-btn', type: 'button', on: { click: () => void this.toggle() } });
-    this.sentBtn = h('button', { class: 'ui-btn', type: 'button', text: tr('Ver o que foi enviado'), attrs: { 'aria-haspopup': 'dialog' }, on: { click: () => host.openSent(this.sentBtn) } });
+    this.sentBtn = h('button', { class: 'ui-btn', type: 'button', text: tr('See what was sent'), attrs: { 'aria-haspopup': 'dialog' }, on: { click: () => host.openSent(this.sentBtn) } });
     this.visitBtn = h('button', {
       class: 'ui-btn',
       type: 'button',
-      text: `👁 ${tr('Ver como os outros veem')}`,
-      title: tr('Entrar no seu prédio pela cidade e ver o que quem visita vê (sem nada do escritório real)'),
+      text: `👁 ${tr('See it as others do')}`,
+      title: tr('Enter your building through the city and see what visitors see (nothing from your real office)'),
       hidden: true,
       on: { click: () => host.visitOwn?.()?.() },
     });
     this.actions = h('div', { class: 'ui-world__actions' }, this.toggleBtn, this.sentBtn, this.visitBtn);
     this.hint = h('p', { class: 'ui-set__hint' });
     this.error = h('p', { class: 'ui-world__error', role: 'alert', hidden: true });
-    this.leaveBtn = h('button', { class: 'ui-btn', type: 'button', text: tr('Sair do mundo'), on: { click: () => void this.leave() } });
+    this.leaveBtn = h('button', { class: 'ui-btn', type: 'button', text: tr('Leave the world'), on: { click: () => void this.leave() } });
     this.leaveRow = h('div', { class: 'ui-world__leave' }, h('p', { class: 'ui-set__hint', text: leaveHint() }), h('div', { class: 'ui-world__actions' }, this.leaveBtn));
     this.unverified = h('p', { class: 'ui-world__unverified', role: 'status', hidden: true });
     this.appealLink = h('a', { class: 'ui-btn', attrs: { href: appealMailto() } });
@@ -96,7 +96,7 @@ export class BuildingCard {
         'div',
         { class: 'ui-world__bhead' },
         h('span', { class: 'ui-world__bart', attrs: { 'aria-hidden': 'true' } }),
-        h('div', { class: 'ui-world__btitle' }, h('h4', { text: tr('Seu prédio'), attrs: { id: titleId } }), this.badge),
+        h('div', { class: 'ui-world__btitle' }, h('h4', { text: tr('Your building'), attrs: { id: titleId } }), this.badge),
       ),
       this.desc,
       this.unverified,
@@ -151,7 +151,7 @@ export class BuildingCard {
 
   private resetLeave(): void {
     this.confirmingLeave = false;
-    setText(this.leaveBtn, tr('Sair do mundo'));
+    setText(this.leaveBtn, tr('Leave the world'));
     this.leaveBtn.classList.remove('is-danger');
   }
 
@@ -161,7 +161,7 @@ export class BuildingCard {
     if (this.busy || !client) return;
     if (!this.confirmingLeave) {
       this.confirmingLeave = true;
-      setText(this.leaveBtn, tr('Confirmar: sair do mundo'));
+      setText(this.leaveBtn, tr('Confirm: leave the world'));
       this.leaveBtn.classList.add('is-danger');
       return;
     }
@@ -219,14 +219,14 @@ export class SentDialog {
   ) {
     const titleId = 'ui-world-sent-title';
     this.body = h('div', { class: 'ui-world-sent__content' });
-    const close = iconButton(ICONS.close, tr('Fechar'), () => this.close(), 'ui-icon-btn--sm');
+    const close = iconButton(ICONS.close, tr('Close'), () => this.close(), 'ui-icon-btn--sm');
     this.el = h(
       'dialog',
       { class: 'ui-world-sent', attrs: { 'aria-labelledby': titleId } },
       h(
         'div',
         { class: 'ui-world-sent__body' },
-        h('div', { class: 'ui-world-sent__head' }, h('h2', { class: 'ui-world-sent__title', text: tr('O que foi enviado'), attrs: { id: titleId } }), close),
+        h('div', { class: 'ui-world-sent__head' }, h('h2', { class: 'ui-world-sent__title', text: tr('What was sent'), attrs: { id: titleId } }), close),
         this.body,
       ),
     ) as HTMLDialogElement;
@@ -264,11 +264,11 @@ export class SentDialog {
     const client = this.client();
     if (!client) return;
     const req = ++this.req;
-    this.body.replaceChildren(h('p', { class: 'ui-set__hint', text: tr('Carregando…') }));
+    this.body.replaceChildren(h('p', { class: 'ui-set__hint', text: tr('Loading…') }));
     const r = await client.lastUplink();
     if (req !== this.req) return;
     if (!r.ok) {
-      const retry = h('button', { class: 'ui-btn ui-btn--sm', type: 'button', text: tr('Tentar de novo'), on: { click: () => void this.load() } });
+      const retry = h('button', { class: 'ui-btn ui-btn--sm', type: 'button', text: tr('Try again'), on: { click: () => void this.load() } });
       this.body.replaceChildren(h('p', { class: 'ui-world__error', role: 'alert', text: worldErrorText(r.code, 'sent') }), h('div', { class: 'ui-world__actions' }, retry));
       return;
     }
@@ -277,21 +277,21 @@ export class SentDialog {
 
   private nothing(): Node[] {
     return [
-      h('p', { class: 'ui-world-sent__lead', text: tr('Nada saiu deste computador ainda: o prédio entra no mundo com a primeira remessa.') }),
-      h('p', { class: 'ui-set__hint' }, extLink(tr('O que pode sair e o que nunca sai'), WORLD_PRIVACY_URL)),
+      h('p', { class: 'ui-world-sent__lead', text: tr('Nothing has left this computer yet: the building joins the world with the first upload.') }),
+      h('p', { class: 'ui-set__hint' }, extLink(tr('What can leave and what never does'), WORLD_PRIVACY_URL)),
     ];
   }
 
   private sent(last: WorldLastUplink): Node[] {
     const json = prettyUplink(last.uplink);
     const ack = ackView(last.ack, last.bytes);
-    const copy = h('button', { class: 'ui-btn', type: 'button', text: tr('Copiar') });
+    const copy = h('button', { class: 'ui-btn', type: 'button', text: tr('Copy') });
     let timer: ReturnType<typeof setTimeout> | undefined;
     copy.addEventListener('click', async () => {
       const ok = await copyText(json);
-      setText(copy, ok ? tr('Copiado!') : tr('Não deu para copiar'));
+      setText(copy, ok ? tr('Copied!') : tr("Couldn't copy"));
       clearTimeout(timer);
-      timer = setTimeout(() => setText(copy, tr('Copiar')), 1600);
+      timer = setTimeout(() => setText(copy, tr('Copy')), 1600);
     });
     const ackEl = h(
       'p',
@@ -304,19 +304,19 @@ export class SentDialog {
       h(
         'ul',
         { class: 'ui-world-sent__meta' },
-        h('li', { text: tr('Enviada {0} ({1})', [relativeTime(last.at, this.now()), formatClock(last.at)]) }),
+        h('li', { text: tr('Sent {0} ({1})', [relativeTime(last.at, this.now()), formatClock(last.at)]) }),
         h('li', { text: bytesText(last.bytes) }),
       ),
       ackEl,
       h(
         'p',
         { class: 'ui-world-sent__lead' },
-        tr('Isto é tudo o que saiu do seu computador. Nenhum caminho, nome de projeto, texto ou horário do escritório.'),
+        tr('This is everything that left your computer. No paths, project names, text or office times.'),
         ' ',
-        extLink(tr('O que pode sair e o que nunca sai'), WORLD_PRIVACY_URL),
+        extLink(tr('What can leave and what never does'), WORLD_PRIVACY_URL),
       ),
-      h('pre', { class: 'ui-world-sent__json', tabIndex: 0, text: json, attrs: { 'aria-label': tr('Pacote enviado (JSON)') } }),
-      h('div', { class: 'ui-world__actions' }, copy, h('button', { class: 'ui-btn', type: 'button', text: tr('Fechar'), on: { click: () => this.close() } })),
+      h('pre', { class: 'ui-world-sent__json', tabIndex: 0, text: json, attrs: { 'aria-label': tr('Sent packet (JSON)') } }),
+      h('div', { class: 'ui-world__actions' }, copy, h('button', { class: 'ui-btn', type: 'button', text: tr('Close'), on: { click: () => this.close() } })),
     ];
   }
 }

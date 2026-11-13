@@ -19,10 +19,10 @@ export function legacyEnvVars(keys: Iterable<string>): Array<{ from: string; to:
 }
 
 /** Aviso para as variáveis antigas (que não valem mais), ou undefined se não houver nenhuma. */
-export function legacyEnvWarning(keys: Iterable<string>, where = tr('no ambiente')): string | undefined {
+export function legacyEnvWarning(keys: Iterable<string>, where = tr('in the environment')): string | undefined {
   const vars = legacyEnvVars(keys);
   if (!vars.length) return undefined;
-  return tr('{0} {1}: {2}. Renomeie para valer de novo.', [vars.length === 1 ? tr('variável do nome antigo ignorada') : tr('variáveis do nome antigo ignoradas'), where, vars.map((v) => `${v.from} → ${v.to}`).join(', ')]);
+  return tr('{0} {1}: {2}. Rename to re-enable.', [vars.length === 1 ? tr('old-name variable ignored') : tr('old-name variables ignored'), where, vars.map((v) => `${v.from} → ${v.to}`).join(', ')]);
 }
 
 const isDir = (p: string) => {
@@ -78,7 +78,7 @@ export function migrateLegacyStateDir(home: string): { moved: string[]; error?: 
       renameSync(from, to);
       moved.push('.');
     } else if (isDir(to)) mergeInto(from, to, moved, '');
-    else return { moved, error: tr('{0} existe e não é uma pasta', [to]) };
+    else return { moved, error: tr("{0} exists and isn't a folder", [to]) };
     return { moved };
   } catch (err) {
     return { moved, error: (err as Error).message };
@@ -87,7 +87,7 @@ export function migrateLegacyStateDir(home: string): { moved: string[]; error?: 
 
 /** Frase curta para o log de quem migrou (undefined se nada mudou). */
 export function describeStateMigration(r: { moved: string[]; error?: string }): string | undefined {
-  if (r.error) return tr('não consegui levar ~/.{0} para ~/.habblaud ({1}); mova a pasta à mão.', [LEGACY_NAME, r.error]);
+  if (r.error) return tr("couldn't move ~/.{0} to ~/.habblaud ({1}); move the folder by hand.", [LEGACY_NAME, r.error]);
   if (!r.moved.length) return undefined;
-  return r.moved[0] === '.' ? tr('~/.{0} (nome antigo) agora é ~/.habblaud.', [LEGACY_NAME]) : tr('de ~/.{0} (nome antigo) para ~/.habblaud: {1}.', [LEGACY_NAME, r.moved.join(', ')]);
+  return r.moved[0] === '.' ? tr('~/.{0} (old name) is now ~/.habblaud.', [LEGACY_NAME]) : tr('from ~/.{0} (old name) to ~/.habblaud: {1}.', [LEGACY_NAME, r.moved.join(', ')]);
 }

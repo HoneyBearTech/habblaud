@@ -20,7 +20,7 @@ import { sampleBuildingDetail } from './visit-sample';
 const T0 = 1_790_000_000_000;
 const OPTS = { version: '0.12.0' };
 
-afterEach(() => setLocale('pt-BR'));
+afterEach(() => setLocale('en'));
 
 const byName = (snap: OfficeSnapshot, name: string) => snap.agents.find((a) => a.name === name)!;
 
@@ -33,9 +33,9 @@ describe('officeFromBuilding', () => {
     const d = sampleBuildingDetail();
     const s = officeFromBuilding(d, T0, OPTS);
     expect(s.rooms).toEqual([
-      { id: 'f_0a1b2c3d4e', name: 'Projeto Ipê', path: '', slot: 0, seed: hash32('f_0a1b2c3d4e'), createdAt: T0 },
-      { id: 'f_1b2c3d4e5f', name: 'Projeto Jade', path: '', slot: 1, seed: hash32('f_1b2c3d4e5f'), createdAt: T0 },
-      { id: 'f_2c3d4e5f60', name: 'Projeto Aurora', path: '', slot: 2, seed: hash32('f_2c3d4e5f60'), createdAt: T0 },
+      { id: 'f_0a1b2c3d4e', name: 'Project Ipê', path: '', slot: 0, seed: hash32('f_0a1b2c3d4e'), createdAt: T0 },
+      { id: 'f_1b2c3d4e5f', name: 'Project Jade', path: '', slot: 1, seed: hash32('f_1b2c3d4e5f'), createdAt: T0 },
+      { id: 'f_2c3d4e5f60', name: 'Project Aurora', path: '', slot: 2, seed: hash32('f_2c3d4e5f60'), createdAt: T0 },
     ]);
     expect(s.rev).toBe(1);
     expect(s.serverTime).toBe(T0);
@@ -53,7 +53,7 @@ describe('officeFromBuilding', () => {
       roomId: 'f_0a1b2c3d4e',
       name: 'Marina',
       look: 'f',
-      role: 'Agente principal',
+      role: 'Main agent',
       sessionId: 'world:a_1f2e3d4c',
       account: 'world:claude',
       status: 'working',
@@ -67,7 +67,7 @@ describe('officeFromBuilding', () => {
       parts: src.parts,
     });
     // subagente com o pai no prédio: parentId prefixado; o órfão vai sem
-    expect(byName(s, 'Rafael')).toMatchObject({ kind: 'sub', role: 'Subagente', parentId: 'world:a_1f2e3d4c', roomId: 'f_0a1b2c3d4e' });
+    expect(byName(s, 'Rafael')).toMatchObject({ kind: 'sub', role: 'Subagent', parentId: 'world:a_1f2e3d4c', roomId: 'f_0a1b2c3d4e' });
     const orphan = byName(s, 'Thiago');
     expect(orphan).toMatchObject({ kind: 'sub', provider: 'codex', status: 'shell', account: 'world:codex' });
     expect(orphan.parentId).toBeUndefined();
@@ -100,13 +100,13 @@ describe('officeFromBuilding', () => {
   });
 
   it('rótulos e papéis no idioma atual; id de andar desconhecido vira "Projeto"', () => {
-    setLocale('en');
+    setLocale('pt-BR');
     const d = sampleBuildingDetail();
     d.floors[2].label = 'novo-nome';
     const s = officeFromBuilding(d, T0, OPTS);
-    expect(s.rooms.map((r) => r.name)).toEqual(['Project Ipê', 'Project Jade', 'Project']);
-    expect(byName(s, 'Marina').role).toBe('Main agent');
-    expect(byName(s, 'Rafael').role).toBe('Subagent');
+    expect(s.rooms.map((r) => r.name)).toEqual(['Projeto Ipê', 'Projeto Jade', 'Projeto']);
+    expect(byName(s, 'Marina').role).toBe('Agente principal');
+    expect(byName(s, 'Rafael').role).toBe('Subagente');
   });
 
   it('modo discreto e prédio apagado: as salas ficam, sem ninguém, mesmo com agentes no pacote por engano', () => {
@@ -138,7 +138,7 @@ describe('officeFromBuilding', () => {
     expect(s.agents.filter((a) => a.id === 'world:a_1f2e3d4c')).toHaveLength(1);
     expect(byName(s, 'Marina').status).toBe('working');
     expect(s.agents.find((a) => a.id === 'world:a_99999999')!.parentId).toBeUndefined();
-    expect(s.agents.find((a) => a.id === 'world:a_88888888')).toMatchObject({ status: 'idle', provider: 'claude', look: 'm', kind: 'main', name: 'Agente', account: 'world:claude' });
+    expect(s.agents.find((a) => a.id === 'world:a_88888888')).toMatchObject({ status: 'idle', provider: 'claude', look: 'm', kind: 'main', name: 'Agent', account: 'world:claude' });
     // peça fora do formato cai sozinha; as outras ficam (cor em minúsculas)
     expect(s.agents.find((a) => a.id === 'world:a_77777777')!.parts).toEqual({ hair: '#abcdef', topStyle: 'polo' });
   });
@@ -188,7 +188,7 @@ describe('applyBuildingPatch', () => {
       ['f_0a1b2c3d4e', 0, T0],
       ['f_2c3d4e5f60', 2, T0],
     ]);
-    expect(snapshot.rooms[0].name).toBe('Projeto Órion');
+    expect(snapshot.rooms[0].name).toBe('Project Orion');
     expect(snapshot.agents.map((a) => a.name).sort()).toEqual(['Camila', 'Gustavo', 'Larissa', 'Marina', 'Rafael']);
     expect(byName(snapshot, 'Camila')).toMatchObject({ id: 'world:a_0badf00d', roomId: 'f_3d4e5f6071', statusSince: T1, startedAt: T1 });
     expect(snapshot.accounts.map((a) => a.sessions)).toEqual([3, 1]); // Marina, Larissa e Camila; Gustavo
@@ -243,8 +243,8 @@ describe('canários invertidos: o escritório da visita só tem o que veio do mu
       ...fromDetail,
       ...fromDetail.map(worldId),
       ...d.floors.map((f) => floorLabel(f.label)),
-      tr('Agente principal'),
-      tr('Subagente'),
+      tr('Main agent'),
+      tr('Subagent'),
       ...Object.values(WORLD_TOOL_ACCOUNTS).flatMap((t) => [t.name, t.short, t.color]),
       'world:claude',
       'world:codex',
@@ -272,7 +272,7 @@ describe('canários invertidos: o escritório da visita só tem o que veio do mu
       title: 'Título canário da sessão',
       model: 'modelo-canario',
       gitBranch: 'feat/canario',
-      activity: { text: 'Editando canario.ts' },
+      activity: { text: 'Editing canario.ts' },
       tasks: [{ id: '1', title: 'Tarefa canário', status: 'completed' }],
       statusSince: 123,
     });
@@ -289,7 +289,7 @@ describe('canários invertidos: o escritório da visita só tem o que veio do mu
   });
 
   it('o mesmo nos outros idiomas (os rótulos traduzidos entram na lista)', () => {
-    for (const locale of ['en', 'es', 'fr'] as const) {
+    for (const locale of ['pt-BR', 'es', 'fr'] as const) {
       setLocale(locale);
       const d = sampleBuildingDetail();
       const ok = allowed(d);

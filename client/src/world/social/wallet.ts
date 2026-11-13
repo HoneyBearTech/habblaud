@@ -134,14 +134,14 @@ export class Wallets {
     const start = START_COINS[a.kind] ?? START_COINS.main;
     w = { name: a.name, coins: start, earned: start, wins: 0, losses: 0, vs: {}, paid: [], ledger: [], createdAt: now, seenAt: now };
     this.map.set(a.id, w);
-    this.log(w, { at: now, delta: start, icon: '🏢', text: tr('Chegou ao escritório') });
+    this.log(w, { at: now, delta: start, icon: '🏢', text: tr('Arrived at the office') });
     const done = a.tasks.filter((t) => t.status === 'completed');
     if (done.length) {
       for (const t of done) w.paid.push(taskKey(t));
       const v = done.length * TASK_REWARD;
       w.coins += v;
       w.earned += v;
-      this.log(w, { at: now, delta: v, icon: '✅', text: done.length === 1 ? tr('1 tarefa já concluída') : tr('{0} tarefas já concluídas', [done.length]) });
+      this.log(w, { at: now, delta: v, icon: '✅', text: done.length === 1 ? tr('1 task already done') : tr('{0} tasks already done', [done.length]) });
     }
     this.touch(a.id);
     return { entry: w, created: true };
@@ -161,7 +161,7 @@ export class Wallets {
       w.coins += TASK_REWARD;
       w.earned += TASK_REWARD;
       total += TASK_REWARD;
-      this.log(w, { at: now, delta: TASK_REWARD, icon: '✅', text: tr('Tarefa concluída: {0}', [t.title]) });
+      this.log(w, { at: now, delta: TASK_REWARD, icon: '✅', text: tr('Task done: {0}', [t.title]) });
     }
     if (total) this.touch(a.id);
     return total;
@@ -190,8 +190,8 @@ export class Wallets {
     if (!v) return 0;
     from.coins -= v;
     to.coins += v;
-    this.log(from, { at: now, delta: -v, icon, text: tr('Perdeu {0} para {1}', [what, to.name]) });
-    this.log(to, { at: now, delta: v, icon, text: tr('Ganhou {0} de {1}', [what, from.name]) });
+    this.log(from, { at: now, delta: -v, icon, text: tr('Lost {0} to {1}', [what, to.name]) });
+    this.log(to, { at: now, delta: v, icon, text: tr('Won {0} against {1}', [what, from.name]) });
     this.touch(fromId);
     this.touch(toId);
     return v;

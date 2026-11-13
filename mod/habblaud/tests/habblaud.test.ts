@@ -246,9 +246,16 @@ describe('/habblaud', () => {
   })
 
   test('Habblaud de antes do mod (404 "rota desconhecida"): pede para atualizar', async ($, on) => {
-    world(on, { env: { HOME: '/home/fulano' }, answer: () => ({ status: 404, text: '{"error":"rota desconhecida"}' }) })
+    let text = '{"error":"rota desconhecida"}'
+    world(on, { env: { HOME: '/home/fulano' }, answer: () => ({ status: 404, text }) })
     const out = await $.command.run(RUN)
     expect(out.text).toMatch(/^O Habblaud em http:\/\/localhost:4747 está numa versão sem a rota do mod/)
+    // The same answer from a server whose texts are in English ("unknown route").
+    text = '{"error":"unknown route"}'
+    expect((await $.command.run(RUN)).text).toBe(out.text)
+    // Any other 404 is not Habblaud.
+    text = '{"error":"not found"}'
+    expect((await $.command.run(RUN)).text).not.toBe(out.text)
   })
 })
 

@@ -1401,14 +1401,14 @@ export class Sim {
     const steps: Step[] = [];
     this.pushLeave(ch, steps);
     const held = ch.rng() < 0.5 ? 'papers' : 'box';
-    const title = ch.info.title ?? tr('resultado');
+    const title = ch.info.title ?? tr('result');
     steps.push(
       { t: 'go', tx: target.x, ty: target.y, held },
       {
         t: 'do',
         fn: () => {
           ch.dir = facing(ch.x, ch.y, parent.x, parent.y);
-          ch.showBubble('📦', tr('Entregando: {0}', [title]), 3000, this.now);
+          ch.showBubble('📦', tr('Delivering: {0}', [title]), 3000, this.now);
           ch.setIcon('box', 2800, this.now);
           parent.setIcon(parent.rng() < 0.5 ? 'heart' : 'check', 2800, this.now);
         },

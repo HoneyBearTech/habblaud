@@ -62,7 +62,7 @@ describe('DemoSimulator', () => {
           if (f.activity.error) seen.failed++;
           else seen.ok++;
         }
-        seen.noticeWait += r.notices.filter((n) => n.text.includes('está esperando o shell')).length;
+        seen.noticeWait += r.notices.filter((n) => n.text.includes('is waiting on the shell')).length;
         if (!r.changed) continue;
         for (const a of sim.snapshot(t).agents) {
           if (a.status === 'shell') {
@@ -94,7 +94,7 @@ describe('DemoSimulator: Codex', () => {
       const room = codex[0].roomId;
       expect(mains.some((a) => a.roomId === room && a.provider === undefined)).toBe(true);
       // Agente do Codex: conta própria, modelo gpt-*-codex, papel neutro, aprovação no lugar do modo de permissão, sem custo.
-      expect(codex[0]).toMatchObject({ account: '.codex', role: 'Agente principal', permissionMode: 'on-request', canMessage: true });
+      expect(codex[0]).toMatchObject({ account: '.codex', role: 'Main agent', permissionMode: 'on-request', canMessage: true });
       expect(codex[0].model).toMatch(/^gpt-5\.\d-codex/);
       expect(codex[0].stats.costUSD).toBeUndefined();
       // Nunca grava provider 'claude'.
@@ -174,7 +174,7 @@ describe('DemoSimulator: Codex', () => {
     const codex = sim.snapshot(start).agents.find((a) => a.provider === 'codex')!;
     expect(sim.receiveMessage(codex.id, 'roda o lint também', start)).toBe(true);
     // Na hora, nada aparece (está na fila).
-    expect(sim.snapshot(start).agents.find((a) => a.id === codex.id)!.recent.some((r) => r.text === 'Mensagem pelo Habblaud')).toBe(false);
+    expect(sim.snapshot(start).agents.find((a) => a.id === codex.id)!.recent.some((r) => r.text === 'Message via Habblaud')).toBe(false);
     let t = start;
     let deliveredAt = 0;
     let statusAtDelivery = '';
@@ -182,7 +182,7 @@ describe('DemoSimulator: Codex', () => {
       t += 250;
       sim.tick(t);
       const a = sim.snapshot(t).agents.find((x) => x.id === codex.id)!;
-      const m = a.recent.find((r) => r.text === 'Mensagem pelo Habblaud');
+      const m = a.recent.find((r) => r.text === 'Message via Habblaud');
       if (m) {
         deliveredAt = m.at;
         statusAtDelivery = a.recent[a.recent.indexOf(m) - 1]?.kind ?? '';

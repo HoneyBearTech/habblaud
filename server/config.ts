@@ -153,10 +153,10 @@ export function terminalOffReason(env: NodeJS.ProcessEnv, host: string, inDocker
   if (flag && !isTruthy(flag)) return `HABBLAUD_TERMINAL=${flag}`;
   if (inDocker) {
     const bind = env.HABBLAUD_BIND?.trim();
-    if (!bind) return tr('HABBLAUD_BIND não chegou ao container, então a porta pode estar exposta na rede');
-    return isLoopbackBind(bind) ? undefined : tr('a porta está exposta na rede: HABBLAUD_BIND={0}', [bind]);
+    if (!bind) return tr("HABBLAUD_BIND didn't reach the container, so the port may be exposed on the network");
+    return isLoopbackBind(bind) ? undefined : tr('the port is exposed on the network: HABBLAUD_BIND={0}', [bind]);
   }
-  return isLoopbackBind(host) ? undefined : tr('a porta está exposta na rede: HABBLAUD_HOST={0}', [host]);
+  return isLoopbackBind(host) ? undefined : tr('the port is exposed on the network: HABBLAUD_HOST={0}', [host]);
 }
 
 /**
@@ -168,7 +168,7 @@ export function messagesOffReason(env: NodeJS.ProcessEnv, host: string, inDocker
   const flag = env.HABBLAUD_MENSAGENS?.trim();
   if (flag && !isTruthy(flag)) return `HABBLAUD_MENSAGENS=${flag}`;
   const terminal = terminalOffReason(env, host, inDocker);
-  return terminal ? tr('mesma trava do terminal: {0}', [terminal]) : undefined;
+  return terminal ? tr('same lock as the terminal: {0}', [terminal]) : undefined;
 }
 
 /**
@@ -198,7 +198,7 @@ export function parseWorldConfig(env: NodeJS.ProcessEnv, argv: string[]): WorldC
   try {
     u = new URL(raw);
   } catch {
-    return { enabled, dev, warning: tr('HABBLAUD_WORLD_URL não é um endereço válido') };
+    return { enabled, dev, warning: tr('HABBLAUD_WORLD_URL is not a valid address') };
   }
   const secure = u.protocol === 'https:' || u.protocol === 'wss:';
   const local = (u.protocol === 'http:' || u.protocol === 'ws:') && LOCAL_WORLD_HOSTS.includes(u.hostname);
@@ -207,12 +207,12 @@ export function parseWorldConfig(env: NodeJS.ProcessEnv, argv: string[]): WorldC
       enabled,
       dev,
       warning: local
-        ? tr('HABBLAUD_WORLD_URL com http:// (127.0.0.1 ou host.docker.internal) só vale no modo de desenvolvimento (--dev ou HABBLAUD_WORLD_DEV=1)')
-        : tr('HABBLAUD_WORLD_URL precisa começar com https:// ou wss://'),
+        ? tr('HABBLAUD_WORLD_URL with http:// (127.0.0.1 or host.docker.internal) only works in development mode (--dev or HABBLAUD_WORLD_DEV=1)')
+        : tr('HABBLAUD_WORLD_URL must start with https:// or wss://'),
     };
   }
   if (u.username || u.password || u.search || u.hash || (u.pathname !== '/' && u.pathname !== '')) {
-    return { enabled, dev, warning: tr('HABBLAUD_WORLD_URL deve ter só o endereço do servidor (sem caminho, usuário, senha ou parâmetros)') };
+    return { enabled, dev, warning: tr('HABBLAUD_WORLD_URL must contain only the server address (no path, user, password or parameters)') };
   }
   return { enabled, dev, url: `${secure ? 'https:' : 'http:'}//${u.host}` };
 }

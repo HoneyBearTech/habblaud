@@ -50,7 +50,7 @@ function agent(id: string, roomId: string, status: AgentInfo['status']): AgentIn
     roomId,
     name: id,
     look: 'f',
-    role: 'Agente principal',
+    role: 'Main agent',
     sessionId: `s-${id}`,
     account: '.claude',
     status,

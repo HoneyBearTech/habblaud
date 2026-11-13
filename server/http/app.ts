@@ -103,7 +103,7 @@ const AGENT_ACTION_ROUTE = /^\/api\/agents\/[^/]+\/(stop|takeover)$/;
 
 /** PUT|DELETE /api/agents/:id/character: personagem do projeto (ver Office.setCharacter). */
 const CHARACTER_ROUTE = /^\/api\/agents\/([^/]+)\/character$/;
-const NOT_EDITABLE = tr('agente não encontrado: só o agente principal de uma sessão aberta tem personagem editável');
+const NOT_EDITABLE = tr('agent not found: only the main agent of an open session has an editable character');
 
 /** Conexão vinda do próprio computador (127.x, ::1 ou ::ffff:127.x). */
 function isLoopbackAddress(addr: string | undefined): boolean {
@@ -186,7 +186,7 @@ function sendFile(res: ServerResponse, data: Buffer, type: string, name: string)
 export function readJson(req: IncomingMessage, max = MAX_BODY): Promise<unknown> {
   if (!isJsonContentType(req.headers['content-type'])) {
     req.resume();
-    return Promise.reject(new HttpError(415, tr('envie o corpo como JSON (Content-Type: application/json)')));
+    return Promise.reject(new HttpError(415, tr('send the body as JSON (Content-Type: application/json)')));
   }
   return new Promise((ok, fail) => {
     const chunks: Buffer[] = [];
@@ -194,7 +194,7 @@ export function readJson(req: IncomingMessage, max = MAX_BODY): Promise<unknown>
     req.on('data', (c: Buffer) => {
       size += c.length;
       // Grande demais: continua drenando (sem guardar) para conseguir responder 413.
-      if (size > max) return void fail(new HttpError(413, tr('corpo grande demais')));
+      if (size > max) return void fail(new HttpError(413, tr('body too large')));
       chunks.push(c);
     });
     req.on('end', () => {
@@ -204,7 +204,7 @@ export function readJson(req: IncomingMessage, max = MAX_BODY): Promise<unknown>
       try {
         ok(JSON.parse(raw));
       } catch {
-        fail(new HttpError(400, tr('JSON inválido')));
+        fail(new HttpError(400, tr('invalid JSON')));
       }
     });
     req.on('error', fail);
@@ -252,7 +252,7 @@ export function modSummary(
       name: a.name,
       room: rooms.get(a.roomId) ?? a.roomId,
       account: a.account,
-      waitingFor: a.waitingFor ?? tr('responder no terminal'),
+      waitingFor: a.waitingFor ?? tr('answer in the terminal'),
       since: a.statusSince,
       answerable: !!a.permission,
     }));
@@ -272,16 +272,16 @@ export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: Ser
   const trusted = (req: IncomingMessage, feature?: RemoteFeature): boolean =>
     isRemote(req) ? !!feature && !!deps.remote?.allows(feature) : isLoopbackHost(req.headers.host);
   const denied = (req: IncomingMessage, localMessage: string): string =>
-    isRemote(req) ? tr('não liberado no acesso remoto (veja HABBLAUD_REMOTE_ALLOW)') : localMessage;
+    isRemote(req) ? tr('not allowed over remote access (see HABBLAUD_REMOTE_ALLOW)') : localMessage;
 
   const methodNotAllowed = (res: ServerResponse, allow: string) => {
     res.setHeader('Allow', allow);
-    sendJson(res, 405, { error: tr('método não permitido') });
+    sendJson(res, 405, { error: tr('method not allowed') });
   };
 
   const handleDemo = async (req: IncomingMessage, res: ServerResponse) => {
     const body = (await readJson(req)) as { enabled?: unknown };
-    if (typeof body?.enabled !== 'boolean') throw new HttpError(400, tr('esperado {enabled: boolean}'));
+    if (typeof body?.enabled !== 'boolean') throw new HttpError(400, tr('expected {enabled: boolean}'));
     office.setDemo(body.enabled);
     sendJson(res, 200, { ok: true, demo: office.isDemo() });
   };
@@ -297,7 +297,7 @@ export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: Ser
     const seed = parseSeed(body?.seed);
     const parts = parseAppearanceParts(body?.parts);
     if (!name || seed === null || !parts) {
-      throw new HttpError(400, tr('esperado {name: texto de 1 a {0} caracteres, seed: inteiro de 0 a 4294967295, parts: peças da aparência}', [NAME_MAX]));
+      throw new HttpError(400, tr('expected {name: text of 1 to {0} characters, seed: integer from 0 to 4294967295, parts: appearance parts}', [NAME_MAX]));
     }
     const r = office.setCharacter(id, { name, seed, parts });
     if (r.result === 'not-found') return sendJson(res, 404, { error: NOT_EDITABLE });
@@ -324,7 +324,7 @@ export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: Ser
   const fail = (res: ServerResponse, err: unknown) => {
     if (res.headersSent) return void res.destroy();
     if (err instanceof HttpError) sendJson(res, err.status, { error: err.message });
-    else sendJson(res, 500, { error: tr('erro interno') });
+    else sendJson(res, 500, { error: tr('internal error') });
   };
 
   return (req, res, url) => {
@@ -335,7 +335,7 @@ export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: Ser
 
     if (isRemote(req) && isLocalOnlyPath(path)) {
       req.resume();
-      sendJson(res, 403, { error: tr('rota só do próprio computador (hooks, plugins e o auxiliar do host)') });
+      sendJson(res, 403, { error: tr('route only for the computer running Habblaud (hooks, plugins and the host helper)') });
       return true;
     }
     if (path === '/api/world' || path.startsWith('/api/world/')) {
@@ -343,10 +343,10 @@ export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: Ser
       // basta (o Tailscale chega pelo loopback e o Host se imita): a porta remota nunca passa, nem com login.
       if (!deps.world) {
         req.resume();
-        sendJson(res, 404, { error: tr('rota desconhecida') });
+        sendJson(res, 404, { error: tr('unknown route') });
       } else if (isRemote(req) || !isLoopbackHost(req.headers.host)) {
         req.resume();
-        sendJson(res, 403, { error: { code: 'local_only', message: tr('o Habblaud World só é usado pelo próprio computador (http://localhost)') } });
+        sendJson(res, 403, { error: { code: 'local_only', message: tr('Habblaud World can only be used from this computer (http://localhost)') } });
       } else deps.world(req, res, url);
       return true;
     }
@@ -417,15 +417,15 @@ export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: Ser
     if (terminalMatch) {
       if (method !== 'GET') methodNotAllowed(res, 'GET');
       else if (!terminals) {
-        sendJson(res, 403, { error: tr('terminal desligado: ele só funciona com o Habblaud acessível apenas pelo próprio computador') });
+        sendJson(res, 403, { error: tr('terminal disabled: it only works when Habblaud is reachable only from the computer running it') });
       } else if (!trusted(req, 'terminal')) {
-        sendJson(res, 403, { error: denied(req, tr('o terminal só abre pelo próprio computador (http://localhost ou http://127.0.0.1)')) });
+        sendJson(res, 403, { error: denied(req, tr('the terminal only opens from the computer running Habblaud (http://localhost or http://127.0.0.1)')) });
       } else {
         let id: string;
         try {
           id = decodeURIComponent(terminalMatch[1]);
         } catch {
-          sendJson(res, 400, { error: tr('id inválido') });
+          sendJson(res, 400, { error: tr('invalid id') });
           return true;
         }
         terminals.attach(req, res, id);
@@ -443,9 +443,9 @@ export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: Ser
     if (path === '/api/permissions' || path.startsWith('/api/permissions/')) {
       // Responder pelo escritório age sobre as sessões: a mesma trava do terminal (bind local + Host local).
       if (!deps.permissions) {
-        sendJson(res, 403, { error: tr('responder pelo escritório desligado: só funciona com o Habblaud acessível apenas pelo próprio computador') });
+        sendJson(res, 403, { error: tr('replying from the office disabled: it only works when Habblaud is reachable only from the computer running it') });
       } else if (!trusted(req, 'permissions')) {
-        sendJson(res, 403, { error: denied(req, tr('pedidos de permissão só são respondidos pelo próprio computador (http://localhost ou http://127.0.0.1)')) });
+        sendJson(res, 403, { error: denied(req, tr('permission requests can only be answered from the computer running Habblaud (http://localhost or http://127.0.0.1)')) });
       } else {
         deps.permissions(req, res, path);
       }
@@ -454,8 +454,8 @@ export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: Ser
     if (path === '/api/pty' || path.startsWith('/api/pty/') || AGENT_ACTION_ROUTE.test(path)) {
       // Executa comandos na máquina: nunca pela porta remota, nem com login (o Host e o endereço de quem conecta não
       // bastam: o Tailscale chega pelo loopback e o Host se imita).
-      if (isRemote(req)) sendJson(res, 403, { error: tr('o terminal interativo só pode ser usado no próprio computador') });
-      else if (!deps.pty) sendJson(res, 403, { error: tr('terminal interativo desligado (veja o log do servidor)') });
+      if (isRemote(req)) sendJson(res, 403, { error: tr('the interactive terminal can only be used on the computer running Habblaud') });
+      else if (!deps.pty) sendJson(res, 403, { error: tr('interactive terminal disabled (see the server log)') });
       else deps.pty(req, res, path);
       return true;
     }
@@ -464,15 +464,15 @@ export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: Ser
       // Mudar o personagem age sobre o escritório: a mesma trava do terminal (bind local + Host local).
       if (method !== 'PUT' && method !== 'DELETE') methodNotAllowed(res, 'PUT, DELETE');
       else if (!deps.terminal) {
-        sendJson(res, 403, { error: tr('editar o personagem desligado: só funciona com o Habblaud acessível apenas pelo próprio computador') });
+        sendJson(res, 403, { error: tr('character editing disabled: it only works when Habblaud is reachable only from the computer running it') });
       } else if (!trusted(req)) {
-        sendJson(res, 403, { error: denied(req, tr('o personagem só é editado pelo próprio computador (http://localhost ou http://127.0.0.1)')) });
+        sendJson(res, 403, { error: denied(req, tr('the character can only be edited from the computer running Habblaud (http://localhost or http://127.0.0.1)')) });
       } else {
         let id: string;
         try {
           id = decodeURIComponent(characterMatch[1]);
         } catch {
-          sendJson(res, 400, { error: tr('id inválido') });
+          sendJson(res, 400, { error: tr('invalid id') });
           return true;
         }
         handleCharacter(req, res, id, method).catch((err) => fail(res, err));
@@ -485,15 +485,15 @@ export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: Ser
       // publicada, com o endereço do gateway.
       if (method !== 'POST') methodNotAllowed(res, 'POST');
       else if (!trusted(req) || (!deps.inDocker && !isLoopbackAddress(req.socket.remoteAddress))) {
-        sendJson(res, 403, { error: denied(req, tr('eventos do Codex só são aceitos pelo próprio computador (http://localhost ou http://127.0.0.1)')) });
+        sendJson(res, 403, { error: denied(req, tr('Codex events are only accepted from the computer running Habblaud (http://localhost or http://127.0.0.1)')) });
       } else handleCodexEvent(req, res, { live: deps.codexLive, entries: () => accounts.entriesOf('codex') }).catch((err) => fail(res, err));
       return true;
     }
     if (path === '/api/spawn' || path.startsWith('/api/spawn/')) {
       // Abre uma sessão nova no app do Claude: roda código no computador, então a mesma trava das mensagens.
       const spawn = deps.spawn;
-      if (!spawn) sendJson(res, 403, { error: tr('novo agente pelo escritório desligado') });
-      else if (!trusted(req, 'spawn')) sendJson(res, 403, { error: denied(req, tr('agentes novos só são abertos pelo próprio computador (http://localhost)')) });
+      if (!spawn) sendJson(res, 403, { error: tr('new agent from the office disabled') });
+      else if (!trusted(req, 'spawn')) sendJson(res, 403, { error: denied(req, tr('new agents can only be opened from the computer running Habblaud (http://localhost)')) });
       else if (path === '/api/spawn' && isRead) sendJson(res, 200, { available: spawn.available(), mode: spawn.mode() });
       else if (path === '/api/spawn/folders') {
         if (!isRead) methodNotAllowed(res, 'GET');
@@ -501,7 +501,7 @@ export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: Ser
       } else if (path === '/api/spawn/attachments') {
         const store = deps.attachments;
         if (method !== 'POST') methodNotAllowed(res, 'POST');
-        else if (!store) sendJson(res, 403, { error: tr('anexos desligados') });
+        else if (!store) sendJson(res, 403, { error: tr('attachments disabled') });
         else
           readJson(req, ATTACHMENT_BODY_MAX)
             .then((body) => {
@@ -524,7 +524,7 @@ export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: Ser
       } else if (path !== '/api/spawn' && isRead) {
         const info = spawn.get(decodeURIComponent(path.slice('/api/spawn/'.length)));
         if (info) sendJson(res, 200, info);
-        else sendJson(res, 404, { error: tr('pedido desconhecido') });
+        else sendJson(res, 404, { error: tr('unknown request') });
       } else methodNotAllowed(res, path === '/api/spawn' ? 'GET, POST' : 'GET');
       return true;
     }
@@ -532,9 +532,9 @@ export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: Ser
       // Ditado do "Novo agente" e da caixa de mensagem: vale com qualquer uma das duas travas (o texto vira um pedido
       // ou uma mensagem, que continuam com a trava delas ao serem enviados).
       const dictation = deps.dictation;
-      if (!dictation) sendJson(res, 403, { error: tr('ditado desligado') });
+      if (!dictation) sendJson(res, 403, { error: tr('dictation disabled') });
       else if (!trusted(req, 'spawn') && !trusted(req, 'messages')) {
-        sendJson(res, 403, { error: denied(req, tr('o ditado só funciona pelo próprio computador (http://localhost)')) });
+        sendJson(res, 403, { error: denied(req, tr('dictation only works from the computer running Habblaud (http://localhost)')) });
       }
       else if (path === '/api/dictation' && isRead) sendJson(res, 200, { available: dictation.available() });
       else if (path === '/api/dictation' && method === 'POST') {
@@ -548,37 +548,37 @@ export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: Ser
       } else if (path !== '/api/dictation' && isRead) {
         const info = dictation.get(decodeURIComponent(path.slice('/api/dictation/'.length)));
         if (info) sendJson(res, 200, info);
-        else sendJson(res, 404, { error: tr('ditado desconhecido') });
+        else sendJson(res, 404, { error: tr('unknown dictation') });
       } else methodNotAllowed(res, path === '/api/dictation' ? 'GET, POST' : 'GET');
       return true;
     }
     if (path === '/api/deliveries' || path.startsWith('/api/deliveries/')) {
       // Entregas mostram a resposta inteira e arquivos do agente: a mesma trava do terminal.
       const deliveries = deps.deliveries;
-      if (!deliveries) sendJson(res, 403, { error: tr('entregas desligadas (precisam do terminal: acesso local)') });
+      if (!deliveries) sendJson(res, 403, { error: tr('deliveries disabled (they need the terminal: local access)') });
       else if (!isRead) methodNotAllowed(res, 'GET');
-      else if (!trusted(req, 'terminal')) sendJson(res, 403, { error: denied(req, tr('as entregas só abrem pelo próprio computador (http://localhost)')) });
+      else if (!trusted(req, 'terminal')) sendJson(res, 403, { error: denied(req, tr('deliveries only open from the computer running Habblaud (http://localhost)')) });
       else if (path === '/api/deliveries') deliveries.list().then((list) => sendJson(res, 200, { deliveries: list }), (err) => fail(res, err));
       else if (path.startsWith('/api/deliveries/file/')) {
         const att = deliveries.attachment(decodeURIComponent(path.slice('/api/deliveries/file/'.length)));
-        if (!att) sendJson(res, 404, { error: tr('anexo desconhecido: atualize a lista de entregas') });
+        if (!att) sendJson(res, 404, { error: tr('unknown attachment: refresh the deliveries list') });
         else if (att.kind === 'capture') sendFile(res, att.data, att.type, att.name);
-        else if (!deps.files) sendJson(res, 404, { error: tr('arquivos desligados') });
+        else if (!deps.files) sendJson(res, 404, { error: tr('files disabled') });
         else
           deps.files.get(att.path).then(
             (r) => ('data' in r ? sendFile(res, r.data, att.type, att.name) : sendJson(res, r.status, { error: r.error })),
             (err) => fail(res, err),
           );
-      } else sendJson(res, 404, { error: tr('rota desconhecida') });
+      } else sendJson(res, 404, { error: tr('unknown route') });
       return true;
     }
     if (path === '/api/host/files/poll' || path === '/api/host/files/ack') {
       // Só o auxiliar do host, pela porta local (nunca pela remota); fora do Docker, só pelo loopback.
       const files = deps.files;
       if (method !== 'POST') methodNotAllowed(res, 'POST');
-      else if (!files) sendJson(res, 403, { error: tr('arquivos desligados') });
+      else if (!files) sendJson(res, 403, { error: tr('files disabled') });
       else if (!trusted(req) || (!deps.inDocker && !isLoopbackAddress(req.socket.remoteAddress))) {
-        sendJson(res, 403, { error: denied(req, tr('só o auxiliar do próprio computador')) });
+        sendJson(res, 403, { error: denied(req, tr('only the helper on the computer running Habblaud')) });
       } else if (path === '/api/host/files/poll') {
         req.resume();
         hostWait(res, url, (ms, signal) => files.pollWait(ms, signal)).then((list) => list && sendJson(res, 200, { files: list }), (err) => fail(res, err));
@@ -596,9 +596,9 @@ export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: Ser
       // Só o auxiliar do host, pela porta local (nunca pela remota); fora do Docker, só pelo loopback.
       const dictation = deps.dictation;
       if (method !== 'POST') methodNotAllowed(res, 'POST');
-      else if (!dictation) sendJson(res, 403, { error: tr('ditado desligado') });
+      else if (!dictation) sendJson(res, 403, { error: tr('dictation disabled') });
       else if (!trusted(req) || (!deps.inDocker && !isLoopbackAddress(req.socket.remoteAddress))) {
-        sendJson(res, 403, { error: denied(req, tr('só o auxiliar do próprio computador')) });
+        sendJson(res, 403, { error: denied(req, tr('only the helper on the computer running Habblaud')) });
       } else if (path === '/api/host/dictation/poll') {
         req.resume();
         hostWait(res, url, (ms, signal) => dictation.pollWait(ms, signal)).then((list) => list && sendJson(res, 200, { dictations: list }), (err) => fail(res, err));
@@ -616,9 +616,9 @@ export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: Ser
       // Só o auxiliar do host, pela porta local (nunca pela remota); fora do Docker, só pelo loopback.
       const spawn = deps.spawn;
       if (method !== 'POST') methodNotAllowed(res, 'POST');
-      else if (!spawn) sendJson(res, 403, { error: tr('novo agente pelo escritório desligado') });
+      else if (!spawn) sendJson(res, 403, { error: tr('new agent from the office disabled') });
       else if (!trusted(req) || (!deps.inDocker && !isLoopbackAddress(req.socket.remoteAddress))) {
-        sendJson(res, 403, { error: denied(req, tr('só o auxiliar do próprio computador')) });
+        sendJson(res, 403, { error: denied(req, tr('only the helper on the computer running Habblaud')) });
       } else if (path === '/api/host/spawn/poll') {
         req.resume();
         sendJson(res, 200, { spawns: spawn.poll() });
@@ -636,10 +636,10 @@ export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: Ser
       // As mensagens entram na sessão como se você as tivesse digitado: a mesma trava (recurso ligado + Host local).
       if (!deps.messages) {
         sendJson(res, 403, {
-          error: tr('mensagens pelo escritório desligadas: só funcionam com o Habblaud acessível apenas pelo próprio computador (e sem HABBLAUD_MENSAGENS=0)'),
+          error: tr('messages from the office disabled: they only work when Habblaud is reachable only from the computer running it (and without HABBLAUD_MENSAGENS=0)'),
         });
       } else if (!trusted(req, 'messages')) {
-        sendJson(res, 403, { error: denied(req, tr('mensagens só são mandadas pelo próprio computador (http://localhost ou http://127.0.0.1)')) });
+        sendJson(res, 403, { error: denied(req, tr('messages can only be sent from the computer running Habblaud (http://localhost or http://127.0.0.1)')) });
       } else {
         deps.messages(req, res, path);
       }
@@ -654,26 +654,26 @@ export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: Ser
       try {
         id = decodeURIComponent(path.slice('/api/agents/'.length));
       } catch {
-        sendJson(res, 400, { error: tr('id inválido') });
+        sendJson(res, 400, { error: tr('invalid id') });
         return true;
       }
       const detail = office.detail(id);
       if (detail) sendJson(res, 200, detail);
-      else sendJson(res, 404, { error: tr('agente não encontrado') });
+      else sendJson(res, 404, { error: tr('agent not found') });
       return true;
     }
     if (path === '/api/rooms/rename') {
       // Como o personagem: a mesma trava do terminal (bind local + Host local).
       if (method !== 'POST') methodNotAllowed(res, 'POST');
-      else if (!deps.terminal) sendJson(res, 403, { error: tr('renomear salas desligado: só funciona com o Habblaud acessível apenas pelo próprio computador') });
-      else if (!trusted(req)) sendJson(res, 403, { error: denied(req, tr('renomear salas só pelo próprio computador (http://localhost)')) });
+      else if (!deps.terminal) sendJson(res, 403, { error: tr('room renaming disabled: it only works when Habblaud is reachable only from the computer running it') });
+      else if (!trusted(req)) sendJson(res, 403, { error: denied(req, tr('rooms can only be renamed from the computer running Habblaud (http://localhost)')) });
       else
         readJson(req)
           .then((body) => {
             const b = body as { id?: unknown; name?: unknown };
-            if (typeof b?.id !== 'string' || typeof b.name !== 'string') throw new HttpError(400, tr('esperado {id, name}'));
+            if (typeof b?.id !== 'string' || typeof b.name !== 'string') throw new HttpError(400, tr('expected {id, name}'));
             const name = deps.renameRoom?.(b.id, b.name);
-            if (name === undefined) throw new HttpError(404, tr('sala não encontrada'));
+            if (name === undefined) throw new HttpError(404, tr('room not found'));
             sendJson(res, 200, { name });
           })
           .catch((err) => fail(res, err));
@@ -686,7 +686,7 @@ export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: Ser
     if (path === '/api/demo') {
       // Liga o modo demonstração para todo mundo: só pelo computador (o celular com login só vê o que foi liberado).
       if (method !== 'POST') methodNotAllowed(res, 'POST');
-      else if (isRemote(req)) sendJson(res, 403, { error: tr('não liberado no acesso remoto (veja HABBLAUD_REMOTE_ALLOW)') });
+      else if (isRemote(req)) sendJson(res, 403, { error: tr('not allowed over remote access (see HABBLAUD_REMOTE_ALLOW)') });
       else handleDemo(req, res).catch((err) => fail(res, err));
       return true;
     }
@@ -711,7 +711,7 @@ export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: Ser
       return true;
     }
     if (deps.timeline?.(req, res, url)) return true;
-    sendJson(res, 404, { error: tr('rota desconhecida') });
+    sendJson(res, 404, { error: tr('unknown route') });
     return true;
   };
 }

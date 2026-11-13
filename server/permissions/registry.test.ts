@@ -31,7 +31,7 @@ function setup(opts: { viewers?: number; transcript?: string; orphanMs?: number;
     permissions: () => permissions?.snapshot() ?? new Map(),
     now: clock.now,
   });
-  office.addMain({ id: MAIN, account: 'acc', sessionId: SESSION, cwd: '/p/loja', role: 'Agente principal', startedAt: 0, status: 'working' });
+  office.addMain({ id: MAIN, account: 'acc', sessionId: SESSION, cwd: '/p/loja', role: 'Main agent', startedAt: 0, status: 'working' });
   let viewers = opts.viewers ?? 1;
   const paths = new Map<string, string>();
   if (opts.transcript) paths.set(MAIN, opts.transcript);
@@ -74,7 +74,7 @@ const ASK_INPUT = {
   questions: [
     { question: 'Qual banco usar? (Authorization: Bearer abcdef123456)', header: 'Banco', multiSelect: false, options: [{ label: 'Postgres', description: 'Já usado no projeto' }, { label: 'SQLite' }] },
     'lixo',
-    { question: 'Quais testes rodar?', header: 'Testes', multiSelect: true, options: [{ label: 'Unidade' }, { label: '' }, { label: 'E2E' }] },
+    { question: 'Quais testes rodar?', header: 'Tests', multiSelect: true, options: [{ label: 'Unit' }, { label: '' }, { label: 'E2E' }] },
   ],
 };
 
@@ -110,7 +110,7 @@ describe('PermissionRegistry: registro', () => {
     const commit = office.commit();
     const a = commit.snapshot.agents.find((x) => x.id === MAIN)!;
     expect(a.status).toBe('waiting');
-    expect(a.waitingFor).toBe('aprovar uma permissão');
+    expect(a.waitingFor).toBe('approve a permission');
     expect(a.permission).toMatchObject({ id, tool: 'Bash', createdAt: clock.now(), expiresAt: clock.now() + 60_000 });
     expect(a.permission!.title).toMatch(/^Bash\(curl/);
     expect(a.permission!.title).not.toContain('abcdef123456');
@@ -122,8 +122,8 @@ describe('PermissionRegistry: registro', () => {
     expect(d.input).toContain('Authorization: ***');
     expect(d.input).not.toContain('abcdef123456');
     // Feed e aviso.
-    expect(commit.feed.map((f) => f.activity.text)).toEqual([expect.stringMatching(/^Pede permissão:/)]);
-    expect(commit.notices.map((n) => n.text)).toEqual([expect.stringMatching(/^🔐 .+ pede permissão em loja:/)]);
+    expect(commit.feed.map((f) => f.activity.text)).toEqual([expect.stringMatching(/^Asks for permission:/)]);
+    expect(commit.notices.map((n) => n.text)).toEqual([expect.stringMatching(/^🔐 .+ asks for permission in loja:/)]);
     expect(commit.notices[0]).toMatchObject({ level: 'alert', agentId: MAIN });
   });
 
@@ -183,7 +183,7 @@ describe('PermissionRegistry: decisões e esperas do hook', () => {
     expect(a.status).toBe('working');
     expect(registry.wait(id, 10)).toBeUndefined();
     expect(registry.decide(id, { behavior: 'deny' })).toBe('not-found');
-    expect(office.detail(MAIN)!.history.map((h) => h.text)).toContain('Aprovado no Habblaud (sempre permitir)');
+    expect(office.detail(MAIN)!.history.map((h) => h.text)).toContain('Approved in Habblaud (always allow)');
   });
 
   it('recusa com motivo e interrupção; decisão sem ninguém esperando fica guardada para a próxima espera', async () => {
@@ -228,16 +228,16 @@ describe('PermissionRegistry: perguntas (AskUserQuestion)', () => {
     const id = registered(registry.register(askInput()));
     const commit = office.commit();
     const a = commit.snapshot.agents.find((x) => x.id === MAIN)!;
-    expect(a).toMatchObject({ status: 'waiting', waitingFor: 'responder uma pergunta' });
+    expect(a).toMatchObject({ status: 'waiting', waitingFor: 'answer a question' });
     expect(a.permission).toMatchObject({ id, tool: 'AskUserQuestion', icon: '❓' });
     expect(a.permission!.suggestions).toBeUndefined();
     const qs = a.permission!.questions!;
     expect(qs.map((q) => q.index)).toEqual([0, 2]);
     expect(qs[0]!.question).not.toContain('abcdef123456');
     expect(qs[0]!.multiSelect).toBeUndefined();
-    expect(qs[1]).toMatchObject({ header: 'Testes', multiSelect: true, options: [{ index: 0, label: 'Unidade' }, { index: 2, label: 'E2E' }] });
-    expect(commit.feed.map((f) => f.activity)).toEqual([expect.objectContaining({ icon: '❓', text: expect.stringMatching(/^Pergunta: Qual banco usar\?/) })]);
-    expect(commit.notices.map((n) => n.text)).toEqual([expect.stringMatching(/^❓ .+ tem uma pergunta em loja: Qual banco usar\?/)]);
+    expect(qs[1]).toMatchObject({ header: 'Tests', multiSelect: true, options: [{ index: 0, label: 'Unit' }, { index: 2, label: 'E2E' }] });
+    expect(commit.feed.map((f) => f.activity)).toEqual([expect.objectContaining({ icon: '❓', text: expect.stringMatching(/^Question: Qual banco usar\?/) })]);
+    expect(commit.notices.map((n) => n.text)).toEqual([expect.stringMatching(/^❓ .+ has a question in loja: Qual banco usar\?/)]);
     expect(commit.notices[0]!.text).not.toContain('abcdef123456');
   });
 
@@ -258,9 +258,9 @@ describe('PermissionRegistry: perguntas (AskUserQuestion)', () => {
     const a = snapAgent(office, MAIN)!;
     expect(a.permission).toBeUndefined();
     expect(a.status).toBe('working');
-    const act = office.detail(MAIN)!.history.find((h) => h.text === 'Respondido no Habblaud')!;
+    const act = office.detail(MAIN)!.history.find((h) => h.text === 'Answered in Habblaud')!;
     expect(act).toMatchObject({ icon: '💬', kind: 'other' });
-    expect(act.detail).toBe('Banco: SQLite · Testes: Unidade, E2E, “lint”');
+    expect(act.detail).toBe('Banco: SQLite · Tests: Unit, E2E, “lint”');
     expect(registry.decide(id, d)).toBe('not-found');
   });
 
@@ -288,7 +288,7 @@ describe('PermissionRegistry: perguntas (AskUserQuestion)', () => {
     const { office, registry, clock } = setup();
     const id = registered(registry.register(askInput()));
     const w = registry.wait(id, 25_000)!;
-    office.setStatus(MAIN, 'waiting', 'responder uma pergunta');
+    office.setStatus(MAIN, 'waiting', 'answer a question');
     registry.tick();
     office.setStatus(MAIN, 'working');
     registry.tick();
@@ -406,7 +406,7 @@ describe('PermissionRegistry: pedidos órfãos', () => {
     clock.advance(4_000);
     registry.tick();
     expect(registry.size).toBe(1);
-    office.setStatus(MAIN, 'waiting', 'aprovar uma permissão');
+    office.setStatus(MAIN, 'waiting', 'approve a permission');
     registry.tick();
     office.setStatus(MAIN, 'working');
     clock.advance(500);
@@ -426,7 +426,7 @@ describe('PermissionRegistry: pedidos órfãos', () => {
       writeLines(file, [L.assistant([L.tool('toolu_x', 'Bash', { command: 'npm test' })], { at: 1_000_000 })]);
       const { office, registry, clock } = setup({ transcript: file });
       registered(registry.register(hookInput()));
-      office.setStatus(MAIN, 'waiting', 'aprovar uma permissão');
+      office.setStatus(MAIN, 'waiting', 'approve a permission');
       registry.tick();
       office.setStatus(MAIN, 'working');
       clock.advance(5_000);

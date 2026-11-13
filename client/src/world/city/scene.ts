@@ -869,7 +869,7 @@ export class CityRenderer {
       const x = sx(hl.me.x * TILE) + 12 + 7 * Math.min(2, zoom);
       const y = sy(hl.me.y * TILE) - 20 * Math.min(2.2, Math.max(0.8, zoom));
       const bounce = Math.round(Math.sin(now / 240) * 2);
-      const label = tr('Entrar (E)');
+      const label = tr('Enter (E)');
       ctx.font = `700 11px ${UI_FONT}`;
       const w = Math.ceil(ctx.measureText(label).width) + 16;
       const left = Math.round(x - 10);

@@ -48,11 +48,11 @@ export function parseAttachment(raw: unknown): Attachment | { error: string } {
   const r = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
   const name = typeof r.name === 'string' ? safeFileName(r.name) : 'arquivo';
   const type = typeof r.type === 'string' && /^[\w.+-]+\/[\w.+-]+$/.test(r.type) ? r.type : 'application/octet-stream';
-  if (typeof r.data !== 'string' || !r.data) return { error: tr('arquivo vazio') };
-  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(r.data)) return { error: tr('arquivo ilegível (base64)') };
+  if (typeof r.data !== 'string' || !r.data) return { error: tr('empty file') };
+  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(r.data)) return { error: tr('unreadable file (base64)') };
   const data = Buffer.from(r.data, 'base64');
-  if (!data.length) return { error: tr('arquivo vazio') };
-  if (data.length > ATTACHMENT_MAX_BYTES) return { error: tr('o arquivo passa de {0} MB', [ATTACHMENT_MAX_BYTES / 1024 / 1024]) };
+  if (!data.length) return { error: tr('empty file') };
+  if (data.length > ATTACHMENT_MAX_BYTES) return { error: tr('the file exceeds {0} MB', [ATTACHMENT_MAX_BYTES / 1024 / 1024]) };
   return { name, type, data };
 }
 
@@ -72,7 +72,7 @@ export class AttachmentStore {
     this.prune();
     let total = a.data.length + this.held;
     for (const it of this.items.values()) total += it.data.length;
-    if (total > this.maxBytes) return { error: tr('anexos demais esperando: envie o pedido ou tente de novo daqui a pouco') };
+    if (total > this.maxBytes) return { error: tr('too many attachments waiting: send the request or try again shortly') };
     const id = this.newId();
     this.items.set(id, { ...a, at: this.now() });
     return { id };
@@ -82,12 +82,12 @@ export class AttachmentStore {
   take(ids: unknown): Attachment[] | { error: string } {
     this.prune();
     if (ids === undefined) return [];
-    if (!Array.isArray(ids) || ids.some((id) => typeof id !== 'string')) return { error: tr('anexos inválidos') };
-    if (ids.length > ATTACHMENTS_PER_SPAWN) return { error: tr('no máximo {0} anexos por pedido', [ATTACHMENTS_PER_SPAWN]) };
+    if (!Array.isArray(ids) || ids.some((id) => typeof id !== 'string')) return { error: tr('invalid attachments') };
+    if (ids.length > ATTACHMENTS_PER_SPAWN) return { error: tr('at most {0} attachments per request', [ATTACHMENTS_PER_SPAWN]) };
     const out: Attachment[] = [];
     for (const id of ids as string[]) {
       const it = this.items.get(id);
-      if (!it) return { error: tr('um anexo expirou: anexe de novo') };
+      if (!it) return { error: tr('an attachment expired: attach it again') };
       out.push({ name: it.name, type: it.type, data: it.data });
     }
     for (const id of ids as string[]) this.items.delete(id);
@@ -142,6 +142,6 @@ export function writeAttachments(root: string, spawnId: string, files: readonly 
 export function promptWithAttachments(prompt: string, paths: readonly string[]): string {
   if (!paths.length) return prompt;
   const list = paths.map((p) => `- ${p}`).join('\n');
-  const head = paths.length === 1 ? tr('Anexo enviado pelo Habblaud (leia antes de começar):') : tr('Anexos enviados pelo Habblaud (leia antes de começar):');
+  const head = paths.length === 1 ? tr('Attachment sent via Habblaud (read it before starting):') : tr('Attachments sent via Habblaud (read them before starting):');
   return `${prompt.trim() ? `${prompt.trimEnd()}\n\n` : ''}${head}\n${list}`;
 }

@@ -197,7 +197,7 @@ export class DayStatsService {
     try {
       return readdirSync(this.deps.dir).filter((n) => FILE_RE.test(n));
     } catch (err) {
-      if ((err as NodeJS.ErrnoException).code !== 'ENOENT') log.warnOnce('stats-dir', tr('Não foi possível ler {0} ({1}).', [this.deps.dir, errMsg(err)]));
+      if ((err as NodeJS.ErrnoException).code !== 'ENOENT') log.warnOnce('stats-dir', tr("Couldn't read {0} ({1}).", [this.deps.dir, errMsg(err)]));
       return [];
     }
   }
@@ -210,7 +210,7 @@ export class DayStatsService {
     try {
       raw = readFileSync(file, 'utf8');
     } catch (err) {
-      if ((err as NodeJS.ErrnoException).code !== 'ENOENT') log.warnOnce(`stats-read:${key}`, tr('Não foi possível ler {0} ({1}).', [file, errMsg(err)]));
+      if ((err as NodeJS.ErrnoException).code !== 'ENOENT') log.warnOnce(`stats-read:${key}`, tr("Couldn't read {0} ({1}).", [file, errMsg(err)]));
       return null;
     }
     let data: DayData | null = null;
@@ -220,7 +220,7 @@ export class DayStatsService {
       data = null;
     }
     if (data) return data;
-    log.warnOnce(`stats-corrupt:${key}`, tr('{0} está ilegível; guardado como .corrupt e o dia recomeça do zero.', [file]));
+    log.warnOnce(`stats-corrupt:${key}`, tr('{0} is unreadable; kept as .corrupt and the day starts over from zero.', [file]));
     try {
       renameSync(file, `${file}.corrupt`);
     } catch {
@@ -241,7 +241,7 @@ export class DayStatsService {
       log.clearOnce('stats-write');
       return true;
     } catch (err) {
-      log.warnOnce('stats-write', tr('Não foi possível gravar {0} ({1}); as estatísticas seguem só na memória.', [file, errMsg(err)]));
+      log.warnOnce('stats-write', tr("Couldn't write {0} ({1}); stats are kept in memory only.", [file, errMsg(err)]));
       return false;
     }
   }
@@ -257,7 +257,7 @@ export class DayStatsService {
       try {
         unlinkSync(join(this.deps.dir!, name));
       } catch (err) {
-        log.warnOnce(`stats-rm:${key}`, tr('Não foi possível apagar {0} ({1}).', [name, errMsg(err)]));
+        log.warnOnce(`stats-rm:${key}`, tr("Couldn't delete {0} ({1}).", [name, errMsg(err)]));
       }
     }
   }
@@ -267,7 +267,7 @@ export class DayStatsService {
       fn();
       log.clearOnce(`stats-${what}-fail`);
     } catch (err) {
-      log.warnOnce(`stats-${what}-fail`, tr('Falha nas estatísticas do dia ({0}): {1}', [what, errMsg(err)]));
+      log.warnOnce(`stats-${what}-fail`, tr('Day stats failed ({0}): {1}', [what, errMsg(err)]));
     }
   }
 }

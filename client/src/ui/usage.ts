@@ -18,14 +18,14 @@ import { createAccountChip, createProviderTag, updateAccountChip, updateProvider
 import { tr } from '../../../shared/i18n';
 
 export const SOURCE_LABEL: Record<NonNullable<AccountInfo['usage']>['source'], string> = {
-  cache: tr('cache do /usage do Claude Code'),
-  statusline: tr('ao vivo (statusline do Claude Code)'),
-  codex: tr('arquivos do Codex'),
+  cache: tr('Claude Code /usage cache'),
+  statusline: tr('live (Claude Code statusline)'),
+  codex: tr('Codex files'),
 };
 
 /** Origem para mostrar: o arquivo ao vivo pode ter sido gravado pelo mod do Habblaud ou pelo tap. */
 export function sourceLabel(u: NonNullable<AccountInfo['usage']>): string {
-  if (u.source === 'statusline' && u.via === 'mod') return tr('ao vivo (mod do Habblaud)');
+  if (u.source === 'statusline' && u.via === 'mod') return tr('live (Habblaud mod)');
   return SOURCE_LABEL[u.source] ?? u.source;
 }
 
@@ -36,13 +36,13 @@ export function sourceLabel(u: NonNullable<AccountInfo['usage']>): string {
 export const USAGE_SETUP_STEPS: readonly [string, string][] = [
   [
     'npm run mod:install',
-    tr('Recomendado: instala o mod do Habblaud no Claude Code (2.1.287 ou mais novo), que passa o uso de 5 h e da semana ao vivo. Rode na pasta do Habblaud, no computador onde o Claude Code roda; nas sessões já abertas, `/reload-plugins`.'),
+    tr('Recommended: installs the Habblaud mod in Claude Code (2.1.287 or newer), which streams 5 h and weekly usage live. Run it in the Habblaud folder, on the computer where Claude Code runs; in sessions already open, `/reload-plugins`.'),
   ],
   [
     'npm run usage:install',
-    tr('No Claude Code anterior ao 2.1.287: liga um tap na linha de status, que passa os mesmos números ao vivo.'),
+    tr('On Claude Code older than 2.1.287: hooks a tap into the status line, which streams the same numbers live.'),
   ],
-  ['/usage', tr('Sem instalar nada: rode `/usage` no Claude Code desta conta para atualizar o cache (os números envelhecem até a próxima vez).')],
+  ['/usage', tr('Without installing anything: run `/usage` in Claude Code on this account to refresh the cache (the numbers go stale until the next time).')],
 ];
 
 /** Texto com trechos `assim` como código. */
@@ -108,11 +108,11 @@ function updateMeter(m: Meter, view: UsageWindowView | null, windowName: string)
     m.el.classList.toggle('is-renewed', !!view?.renewed);
     setStyleVar(m.bar, '--pct', '0');
     setText(m.pct, '—');
-    setText(m.resetLong, view?.renewed ? tr('↻ renovada') : '');
+    setText(m.resetLong, view?.renewed ? tr('↻ reset') : '');
     setText(m.resetShort, '');
-    const text = view ? `${windowName}: ${view.summary}` : tr('{0}: sem dados', [windowName]);
+    const text = view ? `${windowName}: ${view.summary}` : tr('{0}: no data', [windowName]);
     setAttr(m.el, 'aria-label', text);
-    setTitle(m.el, view?.renewed ? tr('{0}: a janela já renovou depois da última leitura; o uso atual é desconhecido.', [windowName]) : text);
+    setTitle(m.el, view?.renewed ? tr('{0}: the window has reset since the last reading; current usage is unknown.', [windowName]) : text);
     return;
   }
   const p = view.pct;
@@ -177,16 +177,16 @@ export function showsUsageAge(a: Pick<AccountInfo, 'usage' | 'usageStatus' | 'pr
 /** Linha embaixo do nome: e-mail; no Codex (sem e-mail), o plano; nas outras, a pasta. */
 export function usageSubtitle(a: Pick<AccountInfo, 'email' | 'plan' | 'configDir' | 'provider'>): string {
   if (a.email) return a.email;
-  if (isCodex(a)) return a.plan ? tr('plano {0}', [a.plan]) : 'Codex';
+  if (isCodex(a)) return a.plan ? tr('{0} plan', [a.plan]) : 'Codex';
   return a.configDir;
 }
 
 /** Mensagem no lugar das barras (estados sem números): [longa, curta]. */
 export function usageMessage(a: Pick<AccountInfo, 'usage' | 'usageStatus' | 'provider'>): [string, string] {
   const state = cardState(a);
-  if (state === 'noquota') return [tr('sem cota'), tr('sem cota')];
-  if (isCodex(a)) return [tr('sem dados ainda'), tr('sem dados')];
-  return [tr('sem dados de uso'), tr('sem dados')];
+  if (state === 'noquota') return [tr('no quota'), tr('no quota')];
+  if (isCodex(a)) return [tr('no data yet'), tr('no data')];
+  return [tr('no usage data'), tr('no data')];
 }
 
 /** Explicação do cartão de uma conta do Codex (dica); '' nas outras. */
@@ -194,11 +194,11 @@ export function codexUsageNote(a: Pick<AccountInfo, 'usage' | 'usageStatus' | 'p
   if (!isCodex(a)) return '';
   const u = a.usage;
   const state = cardState(a);
-  if (state === 'empty') return tr('Não precisa instalar nada: os números chegam com a próxima sessão do Codex.');
+  if (state === 'empty') return tr('Nothing to install: the numbers arrive with the next Codex session.');
   const age = u ? relativeTime(u.fetchedAt, now) : '';
   if (state === 'noquota')
-    return tr('Na última leitura ({0}), a conta estava sem cota nem créditos para usar (ex.: os créditos do workspace acabaram). Não é 0%: o Codex não informou as janelas. Os números voltam com a próxima sessão.', [age]);
-  return tr('O Codex só grava o uso enquanto alguma sessão roda: estes números são da última leitura ({0}).', [age]);
+    return tr("At the last reading ({0}), the account had no quota or credits left to use (e.g. the workspace credits ran out). It's not 0%: Codex didn't report the windows. The numbers come back with the next session.", [age]);
+  return tr('Codex only records usage while a session is running: these numbers are from the last reading ({0}).', [age]);
 }
 
 export class UsageCards {
@@ -207,7 +207,7 @@ export class UsageCards {
   private refs = new WeakMap<HTMLElement, CardRefs>();
 
   constructor(private ctx: UiContext) {
-    this.el = h('div', { class: 'ui-usage', role: 'group', attrs: { 'aria-label': tr('Uso por conta') } });
+    this.el = h('div', { class: 'ui-usage', role: 'group', attrs: { 'aria-label': tr('Usage by account') } });
     this.list = new KeyedList<AccountInfo>(this.el, {
       key: (a) => a.id,
       create: () => this.createCard(),
@@ -275,19 +275,19 @@ export class UsageCards {
     stateIcon.innerHTML = ICONS.clock;
     const stateText = h('span');
     const state = h('span', { class: 'ui-usage-card__state' }, stateIcon, stateText);
-    const five = createMeter('5h', '5h', tr('Sessão de 5 horas'));
-    const week = createMeter(tr('Semana'), tr('Sem.'), tr('Limite semanal'));
+    const five = createMeter('5h', '5h', tr('5-hour session'));
+    const week = createMeter(tr('Week'), tr('Wk.'), tr('Weekly limit'));
     const meters = h('div', { class: 'ui-usage-card__meters' }, five.el, week.el);
-    const msgLong = h('span', { class: 'ui-usage-card__msg-long', text: tr('sem dados de uso') });
-    const msgShort = h('span', { class: 'ui-usage-card__msg-short', text: tr('sem dados'), attrs: { 'aria-hidden': 'true' } });
-    const howLong = h('span', { class: 'ui-usage-card__how-long', text: tr('Como ativar') });
-    const howShort = h('span', { class: 'ui-usage-card__how-short', text: tr('Ativar'), attrs: { 'aria-hidden': 'true' } });
+    const msgLong = h('span', { class: 'ui-usage-card__msg-long', text: tr('no usage data') });
+    const msgShort = h('span', { class: 'ui-usage-card__msg-short', text: tr('no data'), attrs: { 'aria-hidden': 'true' } });
+    const howLong = h('span', { class: 'ui-usage-card__how-long', text: tr('How to enable') });
+    const howShort = h('span', { class: 'ui-usage-card__how-short', text: tr('Enable'), attrs: { 'aria-hidden': 'true' } });
     const howBtn = h(
       'button',
       {
         class: 'ui-usage-card__how',
         type: 'button',
-        title: tr('Como mostrar o uso desta conta (abre a ajuda em “Contas e uso”)'),
+        title: tr("How to show this account's usage (opens help at “Accounts and usage”)"),
         on: { click: () => this.ctx.openHelp(howBtn.dataset.help === 'codex' ? 'codex' : 'usage') },
       },
       howLong,
@@ -297,7 +297,7 @@ export class UsageCards {
     const tipTitle = h('div', { class: 'ui-usage-tip__title' });
     const tipRows = h('dl', { class: 'ui-kv' });
     const tipNote = h('p', { class: 'ui-usage-tip__note' });
-    const tipSetup = h('div', { class: 'ui-usage-tip__setup' }, h('p', { class: 'ui-usage-tip__setup-title', text: tr('Como ter o uso ao vivo') }), createUsageSetup());
+    const tipSetup = h('div', { class: 'ui-usage-tip__setup' }, h('p', { class: 'ui-usage-tip__setup-title', text: tr('How to get live usage') }), createUsageSetup());
     const tip = h('div', { class: 'ui-usage-tip', role: 'tooltip', attrs: { id: tipId } }, tipTitle, tipRows, tipNote, tipSetup);
     const card = h(
       'div',
@@ -342,7 +342,7 @@ export class UsageCards {
     setText(r.name, a.name);
     updateProviderTag(r.prov, codex ? 'codex' : 'claude', a.name);
     setText(r.email, usageSubtitle(a));
-    setAttr(card, 'aria-label', tr('{0}{1}: uso do plano', [a.name, codex ? ' (Codex)' : '']));
+    setAttr(card, 'aria-label', tr('{0}{1}: plan usage', [a.name, codex ? ' (Codex)' : '']));
 
     const usage = a.usage;
     const state = cardState(a);
@@ -352,8 +352,8 @@ export class UsageCards {
     const showMeters = hasWindows(a);
     setHidden(r.meters, !showMeters);
     if (usage && showMeters) {
-      updateMeter(r.five, five, tr('Sessão de 5 horas'));
-      updateMeter(r.week, week, tr('Semana'));
+      updateMeter(r.five, five, tr('5-hour session'));
+      updateMeter(r.week, week, tr('Week'));
     }
     r.meters.classList.toggle('is-dim', state !== 'ok');
 
@@ -370,8 +370,8 @@ export class UsageCards {
       setTitle(
         r.state,
         codex
-          ? tr('Atualizado {0}: o Codex só grava o uso enquanto alguma sessão roda.', [age])
-          : tr('Números de {0}: podem não refletir o uso atual.', [age]),
+          ? tr('Updated {0}: Codex only records usage while a session is running.', [age])
+          : tr('Numbers from {0}: they may not reflect current usage.', [age]),
       );
     }
 
@@ -384,37 +384,37 @@ export class UsageCards {
     setHidden(r.how, state === 'noquota');
     r.msg.classList.toggle('is-noquota', state === 'noquota');
     setTitle(r.msg, state === 'noquota' ? codexUsageNote(a, now) : '');
-    setText(r.howLong, codex ? tr('Como funciona') : tr('Como ativar'));
-    setText(r.howShort, codex ? tr('Saber') : tr('Ativar'));
+    setText(r.howLong, codex ? tr('How it works') : tr('How to enable'));
+    setText(r.howShort, codex ? tr('Learn more') : tr('Enable'));
     r.how.dataset.help = codex ? 'codex' : 'usage';
-    setTitle(r.how, codex ? tr('Como o uso do Codex chega ao Habblaud (abre a ajuda em “Codex”)') : tr('Como mostrar o uso desta conta (abre a ajuda em “Contas e uso”)'));
+    setTitle(r.how, codex ? tr('How Codex usage reaches Habblaud (opens help at “Codex”)') : tr("How to show this account's usage (opens help at “Accounts and usage”)"));
     this.updateTip(r, a, state, five, week, now);
   }
 
   private updateTip(r: CardRefs, a: AccountInfo, state: CardState, five: UsageWindowView | null, week: UsageWindowView | null, now: number): void {
     const codex = isCodex(a);
-    setText(r.tipTitle, `${a.name}${codex && !/codex/i.test(a.name) ? ' · Codex' : ''}${a.plan ? tr(' · plano {0}', [a.plan]) : ''}`);
+    setText(r.tipTitle, `${a.name}${codex && !/codex/i.test(a.name) ? ' · Codex' : ''}${a.plan ? tr(' · {0} plan', [a.plan]) : ''}`);
     const rows: [string, string][] = [];
-    if (codex) rows.push([tr('Ferramenta'), 'Codex']);
+    if (codex) rows.push([tr('Tool'), 'Codex']);
     if (a.email) rows.push(['E-mail', a.email]);
-    if (a.organization) rows.push([tr('Organização'), a.organization]);
-    if (a.plan) rows.push([tr('Plano'), a.plan]);
-    rows.push([tr('Pasta'), a.configDir]);
-    rows.push([tr('Sessões abertas'), String(a.sessions)]);
+    if (a.organization) rows.push([tr('Organization'), a.organization]);
+    if (a.plan) rows.push([tr('Plan'), a.plan]);
+    rows.push([tr('Folder'), a.configDir]);
+    rows.push([tr('Open sessions'), String(a.sessions)]);
     const u = a.usage;
     if (u && (u.fiveHour || u.sevenDay)) {
-      rows.push([tr('Sessão de 5 h'), five?.summary ?? '—']);
-      rows.push([tr('Semana'), week?.summary ?? '—']);
+      rows.push([tr('5 h session'), five?.summary ?? '—']);
+      rows.push([tr('Week'), week?.summary ?? '—']);
       // Opus e Sonnet são janelas do Claude: no Codex não existem.
       const opus = codex ? null : usageWindowView(u.sevenDayOpus, u.fetchedAt, now, WEEK_MS);
       const sonnet = codex ? null : usageWindowView(u.sevenDaySonnet, u.fetchedAt, now, WEEK_MS);
-      if (opus) rows.push([tr('Opus (semana)'), opus.summary]);
-      if (sonnet) rows.push([tr('Sonnet (semana)'), sonnet.summary]);
+      if (opus) rows.push([tr('Opus (week)'), opus.summary]);
+      if (sonnet) rows.push([tr('Sonnet (week)'), sonnet.summary]);
     }
-    if (u && state === 'noquota') rows.push([tr('Cota'), tr('sem cota nem créditos agora')]);
+    if (u && state === 'noquota') rows.push([tr('Quota'), tr('no quota or credits right now')]);
     if (u && (state !== 'empty' || codex)) {
-      rows.push([tr('Origem'), sourceLabel(u)]);
-      rows.push([tr('Atualizado'), relativeTime(u.fetchedAt, now)]);
+      rows.push([tr('Source'), sourceLabel(u)]);
+      rows.push([tr('Updated'), relativeTime(u.fetchedAt, now)]);
     }
     syncRows(r.tipRows, rows);
 
@@ -429,10 +429,10 @@ export class UsageCards {
 
     let note = '';
     if (state === 'empty')
-      note = u ? tr('A última leitura ({0}, {1}) não trouxe números de 5 h nem da semana.', [sourceLabel(u), relativeTime(u.fetchedAt, now)]) : tr('Ainda não há números de uso para esta conta.');
-    else if (state === 'stale') note = tr('Números antigos: refletem a última leitura, não o uso de agora.');
-    else if (u?.source === 'cache') note = tr('Cache do /usage: atualiza quando alguém roda /usage nesta conta.');
-    else if (five?.renewed || week?.renewed) note = tr('Uma das janelas já reiniciou depois da última leitura.');
+      note = u ? tr('The last reading ({0}, {1}) had no 5 h or weekly numbers.', [sourceLabel(u), relativeTime(u.fetchedAt, now)]) : tr('No usage numbers for this account yet.');
+    else if (state === 'stale') note = tr('Old numbers: they reflect the last reading, not current usage.');
+    else if (u?.source === 'cache') note = tr('/usage cache: updates when someone runs /usage on this account.');
+    else if (five?.renewed || week?.renewed) note = tr('One of the windows has reset since the last reading.');
     setText(r.tipNote, note);
     setHidden(r.tipNote, !note);
     // O passo a passo aparece sempre que os números não são ao vivo.

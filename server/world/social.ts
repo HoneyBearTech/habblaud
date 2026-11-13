@@ -318,7 +318,7 @@ async function body(req: IncomingMessage, res: ServerResponse): Promise<Record<s
     return null;
   }
   if (!isObj(raw)) {
-    sendError(res, 400, 'invalid', tr('esperado um objeto JSON'));
+    sendError(res, 400, 'invalid', tr('expected a JSON object'));
     return null;
   }
   return raw;
@@ -326,7 +326,7 @@ async function body(req: IncomingMessage, res: ServerResponse): Promise<Record<s
 
 function reply(res: ServerResponse, r: Outcome): void {
   if (r.ok) return noContent(res);
-  sendError(res, r.status, r.code, r.code === 'not_connected' ? tr('sem conexão com o servidor do mundo agora') : tr('entre na conta do Habblaud World'));
+  sendError(res, r.status, r.code, r.code === 'not_connected' ? tr('no connection to the world server right now') : tr('sign in to your Habblaud World account'));
 }
 
 /** As rotas do social leve (entram no mapa de http.ts, com as mesmas travas). */
@@ -348,7 +348,7 @@ export function socialRoutes(social: OwnerSocial): Record<string, SocialRoute> {
       run: async (req, res) => {
         const b = await body(req, res);
         if (b === null) return;
-        if (typeof b.playerId !== 'string' || !ID_RE.test(b.playerId)) return sendError(res, 400, 'invalid', tr('esperado {playerId}'));
+        if (typeof b.playerId !== 'string' || !ID_RE.test(b.playerId)) return sendError(res, 400, 'invalid', tr('expected {playerId}'));
         reply(res, social.unblock(b.playerId));
       },
     },

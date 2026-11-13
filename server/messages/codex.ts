@@ -79,20 +79,20 @@ export function createCodexQueueRunner(bin: string, opts: { env?: NodeJS.Process
   const timeoutMs = opts.timeoutMs ?? QUEUE_TIMEOUT_MS;
   return (job) =>
     new Promise<CodexQueueResult>((done) => {
-      if (!THREAD_ID.test(job.thread)) return done({ ok: false, error: tr('id de thread do Codex inválido') });
-      if (!isAbsolute(job.codexHome)) return done({ ok: false, error: tr('pasta da conta do Codex inválida') });
+      if (!THREAD_ID.test(job.thread)) return done({ ok: false, error: tr('invalid Codex thread id') });
+      if (!isAbsolute(job.codexHome)) return done({ ok: false, error: tr('invalid Codex account folder') });
       const env = { ...(opts.env ?? process.env), CODEX_HOME: job.codexHome };
       try {
         execFile(bin, queueArgs(job.thread, job.text), { env, timeout: timeoutMs, maxBuffer: 256 * 1024, windowsHide: true, encoding: 'utf8' }, (err, _stdout, stderr) => {
           if (!err) return done({ ok: true });
           const e = err as NodeJS.ErrnoException & { killed?: boolean };
-          if (e.killed) return done({ ok: false, error: tr('o codex queue não respondeu em {0} s (a mensagem pode ter entrado na fila mesmo assim)', [Math.round(timeoutMs / 1_000)]) });
-          if (e.code === 'ENOENT' || e.code === 'EACCES') return done({ ok: false, error: tr('não consegui rodar o Codex ({0})', [bin]) });
-          done({ ok: false, error: firstLine(stderr) ?? tr('o codex queue falhou (código {0})', [String(e.code ?? '?')]) });
+          if (e.killed) return done({ ok: false, error: tr("codex queue didn't respond within {0} s (the message may have been queued anyway)", [Math.round(timeoutMs / 1_000)]) });
+          if (e.code === 'ENOENT' || e.code === 'EACCES') return done({ ok: false, error: tr("couldn't run Codex ({0})", [bin]) });
+          done({ ok: false, error: firstLine(stderr) ?? tr('codex queue failed (code {0})', [String(e.code ?? '?')]) });
         });
       } catch {
         // Argumento que não dá para passar a um processo (ex.: caractere NUL no texto).
-        done({ ok: false, error: tr('a mensagem tem caracteres que não dá para mandar ao Codex') });
+        done({ ok: false, error: tr("the message has characters that can't be sent to Codex") });
       }
     });
 }

@@ -29,7 +29,7 @@ describe('quadro de carimbos da recepção', () => {
       expect(Math.abs(p.rot)).toBeLessThanOrEqual(12);
     }
     expect(stampBoard(entries, 7)).toEqual(a);
-    expect(stampPinTitle(a[1]!)).toBe('Nota 10 ×3');
+    expect(stampPinTitle(a[1]!)).toBe('Top marks ×3');
   });
 
   it('no máximo `max` carimbos; ids fora da lista ficam de fora', () => {

@@ -13,7 +13,7 @@ function agent(id: string, roomId: string, account: string): AgentInfo {
     roomId,
     name: id,
     look: 'f',
-    role: 'Agente principal',
+    role: 'Main agent',
     sessionId: `s-${id}`,
     account,
     status: 'working',

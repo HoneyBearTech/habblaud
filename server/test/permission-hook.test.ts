@@ -32,7 +32,7 @@ const ASK = {
   questions: [
     { question: 'Qual banco usar?', header: 'Banco', multiSelect: false, options: [{ label: 'Postgres' }, { label: 'Bearer abcdef123456', description: 'o token' }] },
     null,
-    { question: 'Quais testes rodar?', header: 'Testes', multiSelect: true, options: [{ label: 'Unidade' }, { label: 'E2E' }, { label: 'Lint' }] },
+    { question: 'Quais testes rodar?', header: 'Tests', multiSelect: true, options: [{ label: 'Unit' }, { label: 'E2E' }, { label: 'Lint' }] },
   ],
   metadata: { source: 'teste' },
 };
@@ -132,7 +132,7 @@ describe('permission-hook.mjs (processo)', () => {
         hookEventName: 'PermissionRequest',
         decision: {
           behavior: 'allow',
-          updatedInput: { ...ASK, answers: { 'Qual banco usar?': 'Bearer abcdef123456', 'Quais testes rodar?': 'Unidade, Lint, e o build' } },
+          updatedInput: { ...ASK, answers: { 'Qual banco usar?': 'Bearer abcdef123456', 'Quais testes rodar?': 'Unit, Lint, e o build' } },
         },
       },
     });

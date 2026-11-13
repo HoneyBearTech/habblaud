@@ -423,7 +423,7 @@ export function createUI(root: HTMLElement, store: OfficeStore, world: WorldApi,
       case 'F':
         e.preventDefault();
         if (selection?.type === 'agent') drawer.toggleFollow();
-        else ctx.announce(tr('Selecione um agente para seguir.'));
+        else ctx.announce(tr('Select an agent to follow.'));
         break;
       case 't':
       case 'T':
@@ -442,7 +442,7 @@ export function createUI(root: HTMLElement, store: OfficeStore, world: WorldApi,
         e.preventDefault();
         const next = nextPermissionAgent(store.snapshot?.agents ?? [], selection?.type === 'agent' ? selection.id : undefined);
         if (next) focusPermission(ctx, next.id);
-        else ctx.announce(tr('Nenhum pedido de permissão ou pergunta para responder agora.'));
+        else ctx.announce(tr('No permission requests or questions to answer right now.'));
         break;
       }
       case 'o':
@@ -474,9 +474,9 @@ export function createUI(root: HTMLElement, store: OfficeStore, world: WorldApi,
     if (id !== null && pty.enabled && ctx.agent(id)?.kind === 'main') return router.toggle(id);
     if (id === null && pty.isOpen) return pty.close();
     if (terminal.isOpen && (id === null || terminal.agentId === id)) terminal.close();
-    else if (id === null) ctx.announce(tr('Selecione um agente para abrir o terminal.'));
+    else if (id === null) ctx.announce(tr('Select an agent to open the terminal.'));
     else if (!store.snapshot?.meta.terminal || !access().terminal) ctx.announce(`${TERMINAL_UNAVAILABLE_HINT}.`);
-    else if (!ctx.agent(id)) ctx.announce(tr('O agente já saiu do escritório.'));
+    else if (!ctx.agent(id)) ctx.announce(tr('The agent has already left the office.'));
     else terminal.open(id);
   }
 

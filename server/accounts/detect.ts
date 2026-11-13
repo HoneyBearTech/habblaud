@@ -380,7 +380,7 @@ export function detectAccounts(dirs: string[], opts: { home?: string; env?: Node
       id: p.id,
       configDir: str(p.ov?.configDir) ?? p.dir,
       short,
-      name: str(p.ov?.name) ?? tr('Conta {0}', [short]),
+      name: str(p.ov?.name) ?? tr('Account {0}', [short]),
       color: str(p.ov?.color) ?? ACCOUNT_COLORS[i % ACCOUNT_COLORS.length],
     };
     const email = str(p.ov?.email) ?? p.cfg.email;

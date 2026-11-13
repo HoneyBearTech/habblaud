@@ -133,8 +133,8 @@ export function mountVisitSocial(container: HTMLElement, api: VisitSocialApi): V
   const stampBtn = h('button', { class: 'ui-visit-social__stamp', type: 'button', attrs: { 'aria-expanded': 'false' }, on: { click: () => togglePicker() } });
   const picker = h(
     'div',
-    { class: 'ui-visit-social__picker', role: 'group', hidden: true, attrs: { 'aria-label': tr('Escolha um carimbo para a portaria') } },
-    h('p', { class: 'ui-visit-social__hint', text: tr('Um carimbo por prédio por dia. O dono vê quantos de cada recebeu, nunca quem deixou.') }),
+    { class: 'ui-visit-social__picker', role: 'group', hidden: true, attrs: { 'aria-label': tr('Pick a stamp for the front desk') } },
+    h('p', { class: 'ui-visit-social__hint', text: tr('One stamp per building per day. The owner sees how many of each they got, never who left them.') }),
     h(
       'div',
       { class: 'ui-visit-social__grid' },
@@ -173,12 +173,12 @@ export function mountVisitSocial(container: HTMLElement, api: VisitSocialApi): V
     const mine = api.mine();
     setHidden(el, !b || mine);
     if (!b) return;
-    likeBtn.replaceChildren(h('span', { text: liked ? '💔' : '❤️', attrs: { 'aria-hidden': 'true' } }), ` ${liked ? tr('Descurtir') : tr('Curtir')}`, h('b', { class: 'ui-visit-social__count', text: String(likes) }));
+    likeBtn.replaceChildren(h('span', { text: liked ? '💔' : '❤️', attrs: { 'aria-hidden': 'true' } }), ` ${liked ? tr('Unlike') : tr('Like')}`, h('b', { class: 'ui-visit-social__count', text: String(likes) }));
     likeBtn.classList.toggle('is-liked', liked);
-    likeBtn.title = liked ? tr('Desfazer o like no prédio de {0}', [b.owner.name]) : tr('Curtir o prédio de {0}', [b.owner.name]);
+    likeBtn.title = liked ? tr("Undo the like on {0}'s building", [b.owner.name]) : tr("Like {0}'s building", [b.owner.name]);
     const s = today();
     stampBtn.disabled = !!s;
-    stampBtn.replaceChildren(h('span', { text: s ? stampIcon(s) : '📮', attrs: { 'aria-hidden': 'true' } }), ` ${s ? tr('Carimbo de hoje: {0}', [stampLabel(s)]) : tr('Deixar um carimbo')}`);
+    stampBtn.replaceChildren(h('span', { text: s ? stampIcon(s) : '📮', attrs: { 'aria-hidden': 'true' } }), ` ${s ? tr("Today's stamp: {0}", [stampLabel(s)]) : tr('Leave a stamp')}`);
     if (s) closePicker();
   }
 
@@ -199,7 +199,7 @@ export function mountVisitSocial(container: HTMLElement, api: VisitSocialApi): V
     const b = api.building();
     if (!b || api.mine()) return;
     if (!likeGate.take(now())) {
-      api.toast(tr('Devagar com os likes: espere um pouquinho.'));
+      api.toast(tr('Easy on the likes: wait a moment.'));
       return;
     }
     const on = !liked;
@@ -232,7 +232,7 @@ export function mountVisitSocial(container: HTMLElement, api: VisitSocialApi): V
     api.send([{ t: 'stamp', buildingId: b.id, stampId: s }]);
     pending = { kind: 'stamp', at: now(), stampId: s };
     writeStamp(b.id, s);
-    api.toast(`${stampIcon(s)} ${tr('Carimbo deixado na portaria: {0}', [stampLabel(s)])}`);
+    api.toast(`${stampIcon(s)} ${tr('Stamp left at the front desk: {0}', [stampLabel(s)])}`);
     paint();
   }
 
@@ -253,17 +253,17 @@ export function mountVisitSocial(container: HTMLElement, api: VisitSocialApi): V
       const reply = stampReply(m.text);
       if (reply === 'ok') return true;
       if (reply === 'already') {
-        api.toast(tr('Você já deixou um carimbo aqui hoje.'));
+        api.toast(tr('You already left a stamp here today.'));
         return true;
       }
       // não valeu (longe, prédio que saiu): o carimbo não ficou
       writeStamp(id, null);
       paint();
-      api.toast(m.text === 'too_far' ? tr('Entre no prédio ou chegue mais perto da porta para carimbar.') : tr('O carimbo não foi deixado. Tente de novo.'));
+      api.toast(m.text === 'too_far' ? tr('Go into the building or get closer to the door to stamp.') : tr("The stamp wasn't left. Try again."));
       return true;
     }
-    if (m.text === 'daily_limit') api.toast(tr('Você já deu os 50 likes de hoje. Amanhã tem mais!'));
-    else if (m.text === 'rate_limited') api.toast(tr('Devagar com os likes: espere um pouquinho.'));
+    if (m.text === 'daily_limit') api.toast(tr("You've used today's 50 likes. More tomorrow!"));
+    else if (m.text === 'rate_limited') api.toast(tr('Easy on the likes: wait a moment.'));
     else return false;
     // o like não valeu: volta ao que era
     liked = !liked;

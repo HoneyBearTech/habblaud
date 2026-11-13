@@ -130,7 +130,7 @@ export function parseJournal(text: string): Map<string, JournalAgent> {
 /** Papel exibido para o subagente. */
 export function subagentRole(meta: SubagentMeta | undefined, spawnType?: string): string {
   const t = meta?.agentType ?? spawnType;
-  if (!t) return tr('Subagente');
+  if (!t) return tr('Subagent');
   if (t === 'workflow-subagent') return 'Workflow';
   return t;
 }

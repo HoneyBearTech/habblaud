@@ -18,20 +18,20 @@ export interface Trait {
 
 /** Na ordem de TRAIT_IDS (um teste confere: o sorteio de personaFor depende dela). */
 export const TRAITS: Readonly<Record<TraitId, Trait>> = {
-  competicao: { id: 'competicao', emoji: '🏆', label: tr('Competição'), desc: tr('Adora competir: desafia os colegas no ping-pong, no videogame e no jokenpô.') },
-  apostas: { id: 'apostas', emoji: '🎲', label: tr('Apostas'), desc: tr('Topa qualquer aposta e aposta alto no jokenpô.') },
-  games: { id: 'games', emoji: '🎮', label: tr('Games'), desc: tr('Vive no videogame do lounge e nos fliperamas — e costuma ganhar.') },
-  series: { id: 'series', emoji: '📺', label: tr('Séries e TV'), desc: tr('Não perde um programa na TV do lounge (de preferência com pipoca).') },
-  fofoca: { id: 'fofoca', emoji: '🗣️', label: tr('Fofoca'), desc: tr('Puxa papo na copa e sabe de tudo o que acontece nas salas.') },
-  vaidade: { id: 'vaidade', emoji: '💄', label: tr('Vaidade'), desc: tr('Passa no espelho do banheiro para se arrumar sempre que pode.') },
-  cafeina: { id: 'cafeina', emoji: '☕', label: tr('Cafeína'), desc: tr('Movido a café: a cafeteira da copa é a segunda casa.') },
-  piadas: { id: 'piadas', emoji: '😂', label: tr('Piadas'), desc: tr('Conta piada em toda conversa e faz a roda rir.') },
-  esporte: { id: 'esporte', emoji: '🏓', label: tr('Esporte'), desc: tr('Joga ping-pong, se alonga e vibra com o futebol na TV.') },
-  timidez: { id: 'timidez', emoji: '🙈', label: tr('Timidez'), desc: tr('Prefere ficar na sua: lê, olha a janela e entra menos nas rodas.') },
-  economia: { id: 'economia', emoji: '💰', label: tr('Economia'), desc: tr('Pão-duro: aposta pouco e às vezes foge da aposta.') },
-  sonecas: { id: 'sonecas', emoji: '😴', label: tr('Sonecas'), desc: tr('Qualquer sofá ou puff vira cama.') },
-  calma: { id: 'calma', emoji: '🧘', label: tr('Calma'), desc: tr('Zen: alongamentos, janela e conversas tranquilas.') },
-  leitura: { id: 'leitura', emoji: '📚', label: tr('Leitura'), desc: tr('Sempre com um livro da estante (ou o celular) na mão.') },
+  competicao: { id: 'competicao', emoji: '🏆', label: tr('Competition'), desc: tr('Loves to compete: challenges coworkers at ping-pong, video games and rock-paper-scissors.') },
+  apostas: { id: 'apostas', emoji: '🎲', label: tr('Betting'), desc: tr('Takes any bet and bets big at rock-paper-scissors.') },
+  games: { id: 'games', emoji: '🎮', label: tr('Games'), desc: tr('Lives on the lounge console and the arcade machines — and usually wins.') },
+  series: { id: 'series', emoji: '📺', label: tr('TV & shows'), desc: tr('Never misses a show on the lounge TV (ideally with popcorn).') },
+  fofoca: { id: 'fofoca', emoji: '🗣️', label: tr('Gossip'), desc: tr('Strikes up chats in the kitchen and knows everything going on in the rooms.') },
+  vaidade: { id: 'vaidade', emoji: '💄', label: tr('Vanity'), desc: tr('Stops by the bathroom mirror to freshen up whenever possible.') },
+  cafeina: { id: 'cafeina', emoji: '☕', label: tr('Caffeine'), desc: tr('Runs on coffee: the kitchen coffee maker is a second home.') },
+  piadas: { id: 'piadas', emoji: '😂', label: tr('Jokes'), desc: tr('Cracks a joke in every chat and gets the group laughing.') },
+  esporte: { id: 'esporte', emoji: '🏓', label: tr('Sports'), desc: tr('Plays ping-pong, stretches and cheers for soccer on TV.') },
+  timidez: { id: 'timidez', emoji: '🙈', label: tr('Shyness'), desc: tr('Keeps to themselves: reads, looks out the window and joins fewer groups.') },
+  economia: { id: 'economia', emoji: '💰', label: tr('Thrift'), desc: tr('Penny-pincher: bets small and sometimes dodges the bet.') },
+  sonecas: { id: 'sonecas', emoji: '😴', label: tr('Naps'), desc: tr('Any couch or beanbag becomes a bed.') },
+  calma: { id: 'calma', emoji: '🧘', label: tr('Calm'), desc: tr('Zen: stretches, the window and quiet chats.') },
+  leitura: { id: 'leitura', emoji: '📚', label: tr('Reading'), desc: tr('Always has a book from the shelf (or a phone) in hand.') },
 };
 
 export function isTraitId(v: unknown): v is TraitId {

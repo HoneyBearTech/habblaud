@@ -11,9 +11,9 @@ import { tr } from '../../../shared/i18n';
 export type TerminalFilter = 'all' | 'prompts' | 'noTools';
 
 export const TERMINAL_FILTERS: readonly [TerminalFilter, string, string][] = [
-  ['all', tr('Tudo'), tr('Toda a conversa')],
-  ['prompts', tr('Só prompts'), tr('Só os seus prompts e as respostas finais do agente')],
-  ['noTools', tr('Sem ferramentas'), tr('Esconde as ferramentas e os resultados')],
+  ['all', tr('Everything'), tr('The whole conversation')],
+  ['prompts', tr('Prompts only'), tr("Only your prompts and the agent's final replies")],
+  ['noTools', tr('No tools'), tr('Hides tools and their results')],
 ];
 
 /**

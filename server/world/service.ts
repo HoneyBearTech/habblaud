@@ -301,7 +301,7 @@ export class WorldService {
     if (!s || s.left) return;
     this.clearResumeRetry();
     this.o.store.update({ paused: true, left: true });
-    log.info(tr('Habblaud World: a conta saiu do mundo; o prédio só volta com "Voltar ao mundo".'));
+    log.info(tr('Habblaud World: the account left the world; the building only comes back with "Back to the world".'));
     void this.uplink?.pause();
     this.o.onChange?.();
   }
@@ -617,7 +617,7 @@ export class WorldService {
     this.meToken = undefined;
     this.lastFetchAt = -Infinity;
     this.lastError = 'account_deleted';
-    if (had) log.info(tr('Habblaud World: conta excluída; a sessão e o world.json foram apagados deste computador.'));
+    if (had) log.info(tr('Habblaud World: account deleted; the session and world.json were removed from this computer.'));
     // Sem sessão o uplink não quer conexão: pause() fecha e espera; o changed() depois esquece a sessão (última remessa).
     await this.uplink?.pause();
     this.changed();
@@ -769,10 +769,10 @@ export class WorldService {
     log.warnOnce(
       'world-building-call',
       what === 'leave'
-        ? tr('Habblaud World: o servidor do mundo não confirmou a saída do prédio ({0}).', [r.code])
+        ? tr("Habblaud World: the world server didn't confirm the building leaving the world ({0}).", [r.code])
         : what === 'join'
-          ? tr('Habblaud World: o servidor do mundo não confirmou a volta ao mundo ({0}).', [r.code])
-          : tr('Habblaud World: o servidor do mundo não confirmou a pausa ou a retomada do prédio ({0}).', [r.code]),
+          ? tr("Habblaud World: the world server didn't confirm the return to the world ({0}).", [r.code])
+          : tr("Habblaud World: the world server didn't confirm pausing or resuming the building ({0}).", [r.code]),
     );
     return r;
   }

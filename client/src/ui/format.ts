@@ -20,11 +20,11 @@ const dateTimeFmt = new Intl.DateTimeFormat(LOCALE, { day: '2-digit', month: 'sh
 /** Tempo relativo no passado: "agora", "há 5 s", "há 3 min", "há 2 h", "há 4 d". */
 export function relativeTime(at: number, now: number): string {
   const diff = now - at;
-  if (!Number.isFinite(diff) || diff < 5 * SECOND) return tr('agora');
-  if (diff < MINUTE) return tr('há {0} s', [Math.floor(diff / SECOND)]);
-  if (diff < HOUR) return tr('há {0} min', [Math.floor(diff / MINUTE)]);
-  if (diff < DAY) return tr('há {0} h', [Math.floor(diff / HOUR)]);
-  return tr('há {0} d', [Math.floor(diff / DAY)]);
+  if (!Number.isFinite(diff) || diff < 5 * SECOND) return tr('now');
+  if (diff < MINUTE) return tr('{0} s ago', [Math.floor(diff / SECOND)]);
+  if (diff < HOUR) return tr('{0} min ago', [Math.floor(diff / MINUTE)]);
+  if (diff < DAY) return tr('{0} h ago', [Math.floor(diff / HOUR)]);
+  return tr('{0} d ago', [Math.floor(diff / DAY)]);
 }
 
 /** Duração legível: "12 s", "3 min", "2 h 10 min", "3 d 4 h". */
@@ -59,8 +59,8 @@ export function formatElapsed(ms: number): string {
 /** Contagem regressiva: "em 2 h 10 min", "em 5 min", "em menos de 1 min", "agora". */
 export function formatCountdown(target: number, now: number): string {
   const diff = target - now;
-  if (diff <= 0) return tr('agora');
-  if (diff < MINUTE) return tr('em menos de 1 min');
+  if (diff <= 0) return tr('now');
+  if (diff < MINUTE) return tr('in less than 1 min');
   return `em ${formatDuration(diff)}`;
 }
 
@@ -83,8 +83,8 @@ export function formatResetAt(resetsAt: number, now: number): string {
   if (!Number.isFinite(resetsAt) || resetsAt <= now) return '';
   const time = clockFmt.format(resetsAt);
   const days = calendarDayDiff(resetsAt, now);
-  if (days <= 0) return tr('às {0}', [time]);
-  if (days === 1) return tr('amanhã às {0}', [time]);
+  if (days <= 0) return tr('at {0}', [time]);
+  if (days === 1) return tr('tomorrow at {0}', [time]);
   return `${weekdayFmt.format(resetsAt)}, ${time}`;
 }
 
@@ -132,19 +132,19 @@ export function usageWindowView(win: { utilization: number; resetsAt?: number } 
     return {
       pct: null,
       renewed: true,
-      reset: tr('renovada'),
-      resetShort: tr('renovada'),
-      summary: tr('renovada depois da última leitura (uso atual desconhecido)'),
+      reset: tr('renewed'),
+      resetShort: tr('renewed'),
+      summary: tr('renewed since the last reading (current usage unknown)'),
     };
   }
   const pct = clampPercent(win.utilization);
-  if (resetsAt === undefined) return { pct, renewed: false, reset: '', resetShort: '', summary: tr('{0}% usado', [pct]) };
+  if (resetsAt === undefined) return { pct, renewed: false, reset: '', resetShort: '', summary: tr('{0}% used', [pct]) };
   const diff = resetsAt - now;
   let reset: string;
   if (diff < DAY) reset = formatCountdown(resetsAt, now);
   else {
     const time = clockFmt.format(resetsAt);
-    reset = calendarDayDiff(resetsAt, now) === 1 ? tr('amanhã, {0}', [time]) : `${weekdayFmt.format(resetsAt)}, ${time}`;
+    reset = calendarDayDiff(resetsAt, now) === 1 ? tr('tomorrow, {0}', [time]) : `${weekdayFmt.format(resetsAt)}, ${time}`;
   }
   const at = formatResetAt(resetsAt, now);
   return {
@@ -152,7 +152,7 @@ export function usageWindowView(win: { utilization: number; resetsAt?: number } 
     renewed: false,
     reset,
     resetShort: compactDuration(diff),
-    summary: tr('{0}% usado · reinicia {1} ({2})', [pct, at, formatCountdown(resetsAt, now)]),
+    summary: tr('{0}% used · resets {1} ({2})', [pct, at, formatCountdown(resetsAt, now)]),
   };
 }
 
@@ -234,12 +234,12 @@ export function prettyModel(model: string | undefined): string {
 }
 
 const PERMISSION_LABELS: Record<string, string> = {
-  default: tr('Padrão (pergunta)'),
-  acceptEdits: tr('Aceita edições'),
-  plan: tr('Modo plano'),
-  bypassPermissions: tr('Sem confirmações'),
-  dontAsk: tr('Não pergunta'),
-  auto: tr('Automático'),
+  default: tr('Default (asks)'),
+  acceptEdits: tr('Accepts edits'),
+  plan: tr('Plan mode'),
+  bypassPermissions: tr('No confirmations'),
+  dontAsk: tr("Doesn't ask"),
+  auto: tr('Automatic'),
 };
 
 export function permissionLabel(mode: string | undefined): string {

@@ -133,51 +133,51 @@ export class WorldPopups implements UiComponent {
     const hint = (text: string) => h('p', { class: 'ui-set__hint ui-world-popup__hint', text });
     const para = (text: string) => h('p', { class: 'ui-world-popup__text', text });
     if (kind === 'waitlist') {
-      const ok = h('button', { class: 'ui-btn ui-btn--primary ui-world-popup__cta', type: 'button', text: tr('Entendi'), attrs: { autofocus: true }, on: { click: () => this.close() } });
+      const ok = h('button', { class: 'ui-btn ui-btn--primary ui-world-popup__cta', type: 'button', text: tr('Got it'), attrs: { autofocus: true }, on: { click: () => this.close() } });
       return {
-        title: tr('Você está na lista de espera'),
+        title: tr("You're on the waitlist"),
         body: [
-          para(tr('O acesso é liberado aos poucos, em lotes. Avisamos por e-mail quando chegar a sua vez.')),
-          hint(tr('Enquanto isso, o Habblaud continua normal e nada do escritório é enviado.')),
+          para(tr("Access opens gradually, in batches. We'll email you when it's your turn.")),
+          hint(tr('Meanwhile, Habblaud works as usual and nothing from the office is sent.')),
         ],
         actions: [ok],
         primary: ok,
       };
     }
     if (kind === 'approved') {
-      const create = h('button', { class: 'ui-btn ui-btn--primary ui-world-popup__cta', type: 'button', text: tr('Criar personagem'), attrs: { autofocus: true }, on: { click: () => this.go('character') } });
+      const create = h('button', { class: 'ui-btn ui-btn--primary ui-world-popup__cta', type: 'button', text: tr('Create character'), attrs: { autofocus: true }, on: { click: () => this.go('character') } });
       return {
-        title: tr('Acesso liberado!'),
-        body: [para(tr('Chegou a sua vez: crie o seu personagem e entre na cidade.'))],
-        actions: [create, h('button', { class: 'ui-btn', type: 'button', text: tr('Depois'), on: { click: () => this.close() } })],
+        title: tr('Access granted!'),
+        body: [para(tr("It's your turn: create your character and enter the city."))],
+        actions: [create, h('button', { class: 'ui-btn', type: 'button', text: tr('Later'), on: { click: () => this.close() } })],
         primary: create,
       };
     }
-    const create = h('button', { class: 'ui-btn ui-btn--primary ui-world-popup__cta', type: 'button', text: tr('Criar conta'), attrs: { autofocus: true }, on: { click: () => this.go('register') } });
+    const create = h('button', { class: 'ui-btn ui-btn--primary ui-world-popup__cta', type: 'button', text: tr('Create account'), attrs: { autofocus: true }, on: { click: () => this.go('register') } });
     return {
-      title: tr('Novidade: Habblaud World'),
+      title: tr('New: Habblaud World'),
       body: [
-        h('p', { class: 'ui-world-popup__lead', text: tr('Seu escritório agora pode virar um prédio numa cidade online, aceso enquanto os seus agentes trabalham.') }),
+        h('p', { class: 'ui-world-popup__lead', text: tr('Your office can now become a building in an online city, lit up while your agents work.') }),
         h(
           'ul',
           { class: 'ui-world-popup__perks' },
-          h('li', { text: tr('Seu escritório vira um prédio numa cidade em pixel art, aceso enquanto os seus agentes trabalham.') }),
-          h('li', { text: tr('Crie um personagem, ande pela cidade e visite os prédios de outras pessoas.') }),
-          h('li', { text: tr('Cumprimente quem passa e deixe likes nos prédios, sem chat e sem spam.') }),
+          h('li', { text: tr('Your office becomes a building in a pixel-art city, lit up while your agents work.') }),
+          h('li', { text: tr("Create a character, walk around the city and visit other people's buildings.") }),
+          h('li', { text: tr('Greet passersby and like buildings, with no chat and no spam.') }),
         ),
         h(
           'p',
           { class: 'ui-world-popup__privacy' },
-          tr('Nada do seu trabalho sai do computador: só o tema, quantos andares e se cada personagem está ocupado ou à toa.'),
+          tr('Nothing about your work leaves your computer: only the theme, how many floors, and whether each character is busy or idle.'),
           ' ',
-          extLink(tr('Ver a lista'), WORLD_PRIVACY_URL),
+          extLink(tr('See the list'), WORLD_PRIVACY_URL),
         ),
-        hint(tr('Nada é enviado enquanto você não criar a conta. O acesso é liberado aos poucos, por lista de espera.')),
+        hint(tr('Nothing is sent until you create an account. Access opens gradually, through a waitlist.')),
       ],
       actions: [
         create,
-        h('button', { class: 'ui-btn', type: 'button', text: tr('Agora não'), on: { click: () => this.close() } }),
-        h('button', { class: 'ui-link-btn', type: 'button', text: tr('Não mostrar de novo'), on: { click: () => this.never() } }),
+        h('button', { class: 'ui-btn', type: 'button', text: tr('Not now'), on: { click: () => this.close() } }),
+        h('button', { class: 'ui-link-btn', type: 'button', text: tr("Don't show again"), on: { click: () => this.never() } }),
       ],
       primary: create,
     };

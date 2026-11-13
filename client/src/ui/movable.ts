@@ -262,7 +262,7 @@ export function maximizeButton(get: () => Movable | undefined, onToggle?: () => 
   const sync = () => {
     const max = !!get()?.maximized;
     b.innerHTML = max ? ICONS.restore : ICONS.maximize;
-    const label = max ? tr('Restaurar o tamanho') : tr('Expandir na tela toda');
+    const label = max ? tr('Restore size') : tr('Expand to full screen');
     b.title = label;
     b.setAttribute('aria-label', label);
     b.setAttribute('aria-pressed', String(max));

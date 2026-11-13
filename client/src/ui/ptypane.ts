@@ -68,7 +68,7 @@ export class PtyPane {
       } catch {
         // sem código
       }
-      this.term.write(`\r\n\x1b[2m[${code ? tr('Claude Code encerrado (código {0})', [code]) : tr('Claude Code encerrado')}]\x1b[0m\r\n`);
+      this.term.write(`\r\n\x1b[2m[${code ? tr('Claude Code exited (code {0})', [code]) : tr('Claude Code exited')}]\x1b[0m\r\n`);
       es.close();
       this.onExit();
     });

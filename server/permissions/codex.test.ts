@@ -31,9 +31,9 @@ function setup() {
     permissions: () => permissions?.snapshot() ?? new Map(),
     now: clock.now,
   });
-  office.addMain({ id: MAIN, provider: 'codex', account: '.codex', sessionId: THREAD, cwd: '/p/loja', role: 'Agente principal', startedAt: 0, status: 'working' });
+  office.addMain({ id: MAIN, provider: 'codex', account: '.codex', sessionId: THREAD, cwd: '/p/loja', role: 'Main agent', startedAt: 0, status: 'working' });
   office.addSub({ id: SUB, parentId: MAIN, sessionId: CHILD, role: 'worker', background: false, startedAt: 0 });
-  office.addMain({ id: CLAUDE, account: 'acc', sessionId: 'sess-1', cwd: '/p/loja', role: 'Agente principal', startedAt: 0, status: 'working' });
+  office.addMain({ id: CLAUDE, account: 'acc', sessionId: 'sess-1', cwd: '/p/loja', role: 'Main agent', startedAt: 0, status: 'working' });
   const scans: string[] = [];
   permissions = new PermissionRegistry({
     office,
@@ -75,7 +75,7 @@ describe('PermissionRegistry: pedidos do Codex', () => {
     const permission_suggestions = [{ type: 'addRules', rules: [{ toolName: 'Bash' }], behavior: 'allow', destination: 'localSettings' }];
     const id = registered(registry.register(codexInput({ permission_suggestions })));
     const a = snapAgent(office, MAIN)!;
-    expect(a).toMatchObject({ status: 'waiting', waitingFor: 'aprovar um comando' });
+    expect(a).toMatchObject({ status: 'waiting', waitingFor: 'approve a command' });
     expect(a.permission).toMatchObject({ id, provider: 'codex', tool: 'Bash', title: 'Bash(npm test)', expiresAt: 1_025_000 });
     expect(a.permission!.suggestions).toBeUndefined();
     expect(registry.detail(id)).toMatchObject({ input: 'npm test', inputKind: 'command' });
@@ -94,7 +94,7 @@ describe('PermissionRegistry: pedidos do Codex', () => {
 
   it('a conta só desempata (pela pasta CODEX_HOME); thread desconhecido ou agente do Claude Code: unknown-session', () => {
     const { office, registry } = setup();
-    office.addMain({ id: `.codex~2:${THREAD}`, provider: 'codex', account: '.codex~2', sessionId: THREAD, cwd: '/p/api', role: 'Agente principal', startedAt: 0, status: 'working' });
+    office.addMain({ id: `.codex~2:${THREAD}`, provider: 'codex', account: '.codex~2', sessionId: THREAD, cwd: '/p/api', role: 'Main agent', startedAt: 0, status: 'working' });
     registered(registry.register(codexInput({ account: '.codex-dois', codexHome: '/u/.codex-dois' })));
     expect(snapAgent(office, `.codex~2:${THREAD}`)!.permission).toBeDefined();
     expect(snapAgent(office, MAIN)!.permission).toBeUndefined();
@@ -133,7 +133,7 @@ describe('PermissionRegistry: pedidos do Codex', () => {
     const { office, registry, clock, scans } = setup();
     const id = registered(registry.register(codexInput()));
     const w = registry.wait(id, 25_000)!;
-    office.setStatus(MAIN, 'waiting', 'aprovar um comando');
+    office.setStatus(MAIN, 'waiting', 'approve a command');
     for (let i = 0; i < 20; i++) {
       clock.advance(500);
       if (i === 5) office.setStatus(MAIN, 'working');
@@ -149,7 +149,7 @@ describe('codexToolView: nomes de ferramenta do Codex', () => {
   it('Bash: título e resumo; acesso à rede com título próprio', () => {
     expect(codexToolView('Bash', { command: 'npm test' }, '/p')).toMatchObject({ title: 'Bash(npm test)', input: 'npm test', inputKind: 'command' });
     const net = codexToolView('Bash', { command: 'curl https://api.exemplo.dev', description: 'network-access api.exemplo.dev:443' });
-    expect(net).toMatchObject({ title: 'Rede(api.exemplo.dev:443)', text: 'Acessar a rede: api.exemplo.dev:443', icon: '🌐', input: 'curl https://api.exemplo.dev' });
+    expect(net).toMatchObject({ title: 'Network(api.exemplo.dev:443)', text: 'Access the network: api.exemplo.dev:443', icon: '🌐', input: 'curl https://api.exemplo.dev' });
   });
 
   it('apply_patch: arquivos do patch no título e o patch como diff', () => {
@@ -159,22 +159,22 @@ describe('codexToolView: nomes de ferramenta do Codex', () => {
       { op: 'Add', path: '/p/src/novo.ts' },
     ]);
     const v = codexToolView('apply_patch', { command: patch }, '/p');
-    expect(v).toMatchObject({ title: 'apply_patch(src/app.ts +1)', text: 'Editando 2 arquivos', inputKind: 'diff' });
+    expect(v).toMatchObject({ title: 'apply_patch(src/app.ts +1)', text: 'Editing 2 files', inputKind: 'diff' });
     expect(v.input).toContain('-antes\n+depois');
-    expect(codexToolView('apply_patch', { command: '*** Begin Patch\n*** Add File: novo.md\n+oi\n*** End Patch' })).toMatchObject({ title: 'apply_patch(novo.md)', text: 'Criando novo.md', icon: '📝' });
-    expect(codexToolView('apply_patch', { command: '*** Begin Patch\n*** Delete File: velho.md\n*** End Patch' })).toMatchObject({ text: 'Apagando velho.md', icon: '🗑️' });
+    expect(codexToolView('apply_patch', { command: '*** Begin Patch\n*** Add File: novo.md\n+oi\n*** End Patch' })).toMatchObject({ title: 'apply_patch(novo.md)', text: 'Creating novo.md', icon: '📝' });
+    expect(codexToolView('apply_patch', { command: '*** Begin Patch\n*** Delete File: velho.md\n*** End Patch' })).toMatchObject({ text: 'Deleting velho.md', icon: '🗑️' });
   });
 
   it('request_permissions, mcp__ e write_stdin (session_id ali é de processo; o texto só no detalhe, mascarado)', () => {
     expect(codexToolView('request_permissions', { reason: 'Preciso gravar fora do projeto', permissions: { fileSystem: { write: ['/tmp/x'] } } })).toMatchObject({
       title: 'request_permissions(Preciso gravar fora do projeto)',
-      text: 'Pedindo mais permissões',
+      text: 'Asking for more permissions',
       icon: '🔐',
       inputKind: 'json',
     });
     expect(codexToolView('mcp__github__create_issue', { title: 'Bug' }).title).toBe('github - create_issue (MCP)');
     const stdin = codexToolView('write_stdin', { session_id: 42, chars: 'y\n', parent_call_id: 'c1' });
-    expect(stdin).toMatchObject({ title: 'write_stdin(2 caracteres)', text: 'Digitando num processo do terminal', input: 'y\\n', inputKind: 'text' });
+    expect(stdin).toMatchObject({ title: 'write_stdin(2 caracteres)', text: 'Typing into a terminal process', input: 'y\\n', inputKind: 'text' });
     expect(JSON.stringify(stdin)).not.toContain('42');
     const secret = codexToolView('write_stdin', { session_id: 7, chars: 'Authorization: Bearer abcdef1234567890abcdef\n' });
     expect(secret.title).not.toContain('abcdef');

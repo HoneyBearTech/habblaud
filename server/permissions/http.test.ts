@@ -28,7 +28,7 @@ describe('trava local', () => {
     ]) {
       const r = await request(srv.base, path, { method, body: method === 'POST' ? {} : undefined });
       expect(r.status, `${method} ${path}`).toBe(403);
-      expect(r.json).toMatchObject({ error: expect.stringMatching(/desligado/) });
+      expect(r.json).toMatchObject({ error: expect.stringMatching(/disabled/) });
     }
     expect((await request(srv.base, '/api/health')).json).toMatchObject({ permissions: false });
   });
@@ -39,7 +39,7 @@ describe('trava local', () => {
     for (const host of ['habblaud.lan', '192.168.0.10:4747']) {
       const r = await request(srv.base, '/api/permissions', { method: 'POST', body: hookJson(), headers: { Host: host } });
       expect(r.status, host).toBe(403);
-      expect(r.json).toMatchObject({ error: expect.stringMatching(/próprio computador/) });
+      expect(r.json).toMatchObject({ error: expect.stringMatching(/the computer running/) });
     }
     // Host local com porta e localhost: valem.
     expect((await request(srv.base, '/api/permissions', { method: 'POST', body: hookJson(), headers: { Host: `localhost:${srv.port}` } })).status).toBe(201);
@@ -132,13 +132,13 @@ describe('rotas', () => {
     srv = await servePermissions();
     const questions = [
       { question: 'Qual banco usar?', header: 'Banco', options: [{ label: 'Postgres' }, { label: 'SQLite' }] },
-      { question: 'Quais testes rodar?', multiSelect: true, options: [{ label: 'Unidade' }, { label: 'E2E' }] },
+      { question: 'Quais testes rodar?', multiSelect: true, options: [{ label: 'Unit' }, { label: 'E2E' }] },
     ];
     const reg = await register(srv, { tool_name: 'AskUserQuestion', tool_input: { questions }, permission_suggestions: [] });
     expect(reg.status).toBe(201);
     const { id } = reg.json as { id: string };
     const agent = ((await request(srv.base, '/api/snapshot')).json as OfficeSnapshot).agents.find((a) => a.id === MAIN)!;
-    expect(agent).toMatchObject({ status: 'waiting', waitingFor: 'responder uma pergunta', permission: { id, tool: 'AskUserQuestion' } });
+    expect(agent).toMatchObject({ status: 'waiting', waitingFor: 'answer a question', permission: { id, tool: 'AskUserQuestion' } });
     expect(agent.permission!.questions!.map((q) => q.question)).toEqual(['Qual banco usar?', 'Quais testes rodar?']);
 
     const decide = (body: unknown) => request(srv!.base, `/api/permissions/${id}/decision`, { method: 'POST', body });
@@ -149,7 +149,7 @@ describe('rotas', () => {
     }
     const allow = await decide({ behavior: 'allow' });
     expect(allow.status).toBe(400);
-    expect(allow.json).toMatchObject({ error: expect.stringMatching(/^resposta que não serve/) });
+    expect(allow.json).toMatchObject({ error: expect.stringMatching(/^response doesn't fit/) });
     expect((await decide({ behavior: 'answer', answers: [{ question: 0, options: [1] }] })).status).toBe(400);
 
     const waiting = request(srv.base, `/api/permissions/${id}/wait?timeout=20`);
@@ -180,7 +180,7 @@ describe('rotas', () => {
     const after = ((await request(srv.base, '/api/snapshot')).json as OfficeSnapshot).agents.find((a) => a.id === agentId)!;
     expect(after.permission).toBeUndefined();
     expect(after.status).toBe('working');
-    expect(after.recent.at(-1)).toMatchObject({ icon: '💬', text: 'Respondido no Habblaud' });
+    expect(after.recent.at(-1)).toMatchObject({ icon: '💬', text: 'Answered in Habblaud' });
   });
 
   it('demo: o pedido fictício responde pela mesma rota', async () => {

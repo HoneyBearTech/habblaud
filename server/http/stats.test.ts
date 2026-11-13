@@ -31,7 +31,7 @@ describe('parseStatsQuery', () => {
     for (const bad of ['?day=', '?day=hoje', '?day=2026-10-8', '?day=2026-02-30', '?day=%202026-10-08', '?day=2026-10-08T00:00', '?day=../../etc', '?day=2026-10-09']) {
       expect(q(bad), bad).toMatchObject({ ok: false, status: 400 });
     }
-    expect(q('?day=2026-10-01&day=2026-10-02')).toMatchObject({ ok: false, status: 400, error: expect.stringContaining('repetido') });
+    expect(q('?day=2026-10-01&day=2026-10-02')).toMatchObject({ ok: false, status: 400, error: expect.stringContaining('repeated') });
   });
 
   it('fuso e fonte inválidos (400); fora da retenção (404)', () => {
@@ -69,7 +69,7 @@ describe('GET /api/stats', () => {
     });
     await new Promise<void>((ok) => server.listen(0, '127.0.0.1', ok));
     base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
-    office.addMain({ id: '.claude:1', account: '.claude', sessionId: 's1', cwd: '/p/loja', role: 'Agente principal', startedAt: Date.now(), status: 'working' });
+    office.addMain({ id: '.claude:1', account: '.claude', sessionId: 's1', cwd: '/p/loja', role: 'Main agent', startedAt: Date.now(), status: 'working' });
     close = () =>
       new Promise((ok) => {
         hub.stop();
@@ -107,7 +107,7 @@ describe('GET /api/stats', () => {
     const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
     const r404 = await fetch(`${base}/api/stats?day=${yesterday}&tz=UTC`);
     expect(r404.status).toBe(404);
-    expect(await r404.json()).toEqual({ error: 'sem estatísticas para este dia' });
+    expect(await r404.json()).toEqual({ error: 'no stats for this day' });
     expect((await fetch(`${base}/api/stats?source=demo`)).status).toBe(404);
     expect((await fetch(`${base}/api/stats/outra`)).status).toBe(404);
     const post = await fetch(`${base}/api/stats`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });

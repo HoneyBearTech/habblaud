@@ -106,10 +106,10 @@ export function createVisitScene(o: VisitSceneOptions): VisitScene {
   const mode = h('span', { class: 'ui-visit-bar__mode', hidden: true });
   const visitors = h('span', { class: 'ui-visit-bar__visitors' });
   const panelBtn = h('button', { class: 'ui-btn ui-visit-bar__panel', type: 'button', attrs: { 'aria-expanded': 'false', 'aria-controls': 'ui-visit-panel' }, on: { click: () => setPanel(!panelOpen) } });
-  const leaveBtn = h('button', { class: 'ui-btn ui-btn--primary ui-visit-bar__leave', type: 'button', text: tr('Sair do prédio'), title: tr('Sair do prédio (Esc)'), on: { click: () => leave() } });
+  const leaveBtn = h('button', { class: 'ui-btn ui-btn--primary ui-visit-bar__leave', type: 'button', text: tr('Leave'), title: tr('Leave the building (Esc)'), on: { click: () => leave() } });
   const bar = h(
     'header',
-    { class: 'ui-visit-bar', attrs: { 'aria-label': tr('Visita') } },
+    { class: 'ui-visit-bar', attrs: { 'aria-label': tr('Visit') } },
     h('div', { class: 'ui-visit-bar__text' }, h('div', { class: 'ui-visit-bar__line' }, title, mode), h('div', { class: 'ui-visit-bar__line' }, details, visitors)),
     h('div', { class: 'ui-visit-bar__actions' }, panelBtn, leaveBtn),
   );
@@ -120,12 +120,12 @@ export function createVisitScene(o: VisitSceneOptions): VisitScene {
   const cardRoom = h('span', { class: 'ui-visit-card__room' });
   const card = h(
     'section',
-    { class: 'ui-visit-card', hidden: true, attrs: { 'aria-live': 'polite', 'aria-label': tr('Agente') } },
+    { class: 'ui-visit-card', hidden: true, attrs: { 'aria-live': 'polite', 'aria-label': tr('Agent') } },
     h(
       'div',
       { class: 'ui-visit-card__head' },
       cardName,
-      h('button', { class: 'ui-visit-card__close', type: 'button', text: '×', title: tr('Fechar'), attrs: { 'aria-label': tr('Fechar') }, on: { click: () => world.select(null) } }),
+      h('button', { class: 'ui-visit-card__close', type: 'button', text: '×', title: tr('Close'), attrs: { 'aria-label': tr('Close') }, on: { click: () => world.select(null) } }),
     ),
     cardMeta,
     h('div', { class: 'ui-visit-card__row' }, cardStatus, cardRoom),
@@ -136,26 +136,26 @@ export function createVisitScene(o: VisitSceneOptions): VisitScene {
   const socialBox = h('div', { class: 'ui-visit-panel__social' });
   const panel = h(
     'aside',
-    { class: 'ui-visit-panel', attrs: { id: 'ui-visit-panel', 'aria-label': tr('Salas do prédio') } },
+    { class: 'ui-visit-panel', attrs: { id: 'ui-visit-panel', 'aria-label': tr('Building rooms') } },
     socialBox,
-    h('h3', { class: 'ui-visit-panel__title', text: tr('Salas') }),
+    h('h3', { class: 'ui-visit-panel__title', text: tr('Rooms') }),
     card,
     emptyNote,
     roomsEl,
-    h('p', { class: 'ui-visit-panel__hint', text: tr('Só o nome, o papel, a ferramenta e o status de cada agente: o resto do escritório não sai do computador do dono.') }),
+    h('p', { class: 'ui-visit-panel__hint', text: tr("Only each agent's name, role, tool and status: the rest of the office never leaves the owner's computer.") }),
   );
   // perto do elevador: "Sair pelo elevador (E)", que também é um botão (no celular, sem teclado)
-  const exitHint = h('button', { class: 'ui-visit-exit', type: 'button', hidden: true, on: { click: () => exitByElevator() } }, h('kbd', { text: 'E' }), tr('Sair pelo elevador'));
+  const exitHint = h('button', { class: 'ui-visit-exit', type: 'button', hidden: true, on: { click: () => exitByElevator() } }, h('kbd', { text: 'E' }), tr('Leave by the elevator'));
   const help = h(
     'div',
     { class: 'ui-visit-help', attrs: { 'aria-hidden': 'true' } },
-    h('span', {}, h('kbd', { text: 'WASD' }), ' ', tr('andar')),
-    h('span', {}, h('kbd', { text: 'Shift' }), ' ', tr('correr')),
-    h('span', {}, h('kbd', { text: tr('clique') }), ' ', tr('ir até lá')),
-    h('span', {}, h('kbd', { text: 'E' }), ' ', tr('elevador')),
-    h('span', {}, h('kbd', { text: 'Esc' }), ' ', tr('sair')),
+    h('span', {}, h('kbd', { text: 'WASD' }), ' ', tr('walk')),
+    h('span', {}, h('kbd', { text: 'Shift' }), ' ', tr('run')),
+    h('span', {}, h('kbd', { text: tr('click') }), ' ', tr('go there')),
+    h('span', {}, h('kbd', { text: 'E' }), ' ', tr('elevator')),
+    h('span', {}, h('kbd', { text: 'Esc' }), ' ', tr('leave')),
   );
-  const leaving = h('div', { class: 'ui-visit-leaving', hidden: true, role: 'status', text: tr('Saindo do prédio…') });
+  const leaving = h('div', { class: 'ui-visit-leaving', hidden: true, role: 'status', text: tr('Leaving the building…') });
   // o quadro de carimbos da portaria, em cima do quadro da parede da recepção (acompanha a câmera a cada quadro)
   const boardPins = h('div', { class: 'ui-visit-board__pins' });
   const board = h('div', { class: 'ui-visit-board', hidden: true, role: 'img' }, boardPins);
@@ -190,7 +190,7 @@ export function createVisitScene(o: VisitSceneOptions): VisitScene {
         }),
       ),
     );
-    const label = pins.length ? `${tr('Carimbos da portaria')}: ${pins.map(stampPinTitle).join(', ')}` : tr('Carimbos da portaria: nenhum ainda');
+    const label = pins.length ? `${tr('Stamps at the front desk')}: ${pins.map(stampPinTitle).join(', ')}` : tr('Stamps at the front desk: none yet');
     board.setAttribute('aria-label', label);
     board.title = label;
     board.classList.toggle('is-empty', !pins.length);
@@ -204,7 +204,7 @@ export function createVisitScene(o: VisitSceneOptions): VisitScene {
     setText(title, ban.title);
     setText(details, ban.details.join(' · '));
     setHidden(mode, !ban.mode);
-    setText(mode, ban.mode === 'away' ? `🌙 ${tr('apagado')}` : ban.mode === 'discreet' ? `🙈 ${tr('discreto')}` : '');
+    setText(mode, ban.mode === 'away' ? `🌙 ${tr('lights off')}` : ban.mode === 'discreet' ? `🙈 ${tr('discreet')}` : '');
     mode.className = `ui-visit-bar__mode${ban.mode ? ` is-${ban.mode}` : ''}`;
     setText(visitors, d.visitors > 0 ? `👀 ${visitorsLabel(d.visitors)}` : '');
     setHidden(leaving, !controller.leaving);
@@ -253,7 +253,7 @@ export function createVisitScene(o: VisitSceneOptions): VisitScene {
       );
     }
     renderCard();
-    setText(panelBtn, `${tr('Salas')} (${d.floors.length})`);
+    setText(panelBtn, `${tr('Rooms')} (${d.floors.length})`);
     renderBoard();
     panelBtn.setAttribute('aria-expanded', String(panelOpen));
     layer.classList.toggle('has-panel', panelOpen);

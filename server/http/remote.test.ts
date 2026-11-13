@@ -43,12 +43,12 @@ describe('parseRemoteConfig', () => {
     expect(parseRemoteConfig({}, false)).toEqual({});
   });
   it('recusa senha em texto puro e hash ausente ou inválido', () => {
-    expect(parseRemoteConfig({ HABBLAUD_REMOTE_USER: 'a', HABBLAUD_REMOTE_PASSWORD: '12345678' }, false).warning).toMatch(/texto puro/);
+    expect(parseRemoteConfig({ HABBLAUD_REMOTE_USER: 'a', HABBLAUD_REMOTE_PASSWORD: '12345678' }, false).warning).toMatch(/plain-text/);
     expect(parseRemoteConfig({ HABBLAUD_REMOTE_USER: 'a' }, false).warning).toMatch(/remote:setup/);
-    expect(parseRemoteConfig({ HABBLAUD_REMOTE_USER: 'a', HABBLAUD_REMOTE_PASSWORD_HASH: 'scrypt:1:2' }, false, TLS_FILES).warning).toMatch(/inválido/);
+    expect(parseRemoteConfig({ HABBLAUD_REMOTE_USER: 'a', HABBLAUD_REMOTE_PASSWORD_HASH: 'scrypt:1:2' }, false, TLS_FILES).warning).toMatch(/invalid/);
   });
   it('exige HTTPS: sem certificado não sobe, a menos de HABBLAUD_REMOTE_INSECURE_HTTP=1', () => {
-    expect(parseRemoteConfig(base, false, () => false).warning).toMatch(/HTTPS é obrigatório/);
+    expect(parseRemoteConfig(base, false, () => false).warning).toMatch(/HTTPS is required/);
     const insecure = parseRemoteConfig({ ...base, HABBLAUD_REMOTE_INSECURE_HTTP: '1' }, false, () => false).config;
     expect(insecure?.tls).toBeUndefined();
   });
@@ -533,7 +533,7 @@ describe('porta local (inalterada)', () => {
       body: { behavior: 'allow' },
     });
     expect(lanHost.status).toBe(403);
-    expect(JSON.parse(lanHost.body).error).toMatch(/próprio computador/);
+    expect(JSON.parse(lanHost.body).error).toMatch(/computer running Habblaud/);
     expect(h.permissionCalls).toEqual(['local POST /api/permissions/p1/decision']);
     const health = JSON.parse((await request(h.localBase, '/api/health')).body);
     expect(health).toMatchObject({ remote: false, permissions: true, messages: true });

@@ -50,7 +50,7 @@ function agent(id: string, roomId: string, status: AgentInfo['status'], extra: P
     roomId,
     name: id,
     look: 'f',
-    role: 'Agente principal',
+    role: 'Main agent',
     sessionId: `s-${id}`,
     account: '.claude',
     status,
@@ -71,7 +71,7 @@ function snap(rooms: RoomInfo[], agents: AgentInfo[], rev = 1): OfficeSnapshot {
     serverTime: T0,
     rooms,
     agents,
-    accounts: [{ id: '.claude', short: 'C', name: 'Conta C', color: '#f08a3c', configDir: '~/.claude', sessions: 1, usageStatus: 'ok' }],
+    accounts: [{ id: '.claude', short: 'C', name: 'Account C', color: '#f08a3c', configDir: '~/.claude', sessions: 1, usageStatus: 'ok' }],
     meta: { demo: true, sources: [], startedAt: T0, version: 't' },
   };
 }
@@ -213,7 +213,7 @@ describe('simulação do escritório', () => {
     expect(beto.mode).toBe('deliver');
     let delivered = false;
     run(sim, clock, 40, () => {
-      if (beto.bubbleText?.startsWith('Entregando')) delivered = true;
+      if (beto.bubbleText?.startsWith('Delivering')) delivered = true;
       return delivered;
     });
     expect(delivered).toBe(true);
@@ -346,7 +346,7 @@ describe('simulação do escritório', () => {
   it('delegar: conversa virado para a porta com 💬 (a mão levantada é só para "precisa de você")', () => {
     const sim = newSim();
     const clock = { now: T0 };
-    const main = agent('ana', '/a', 'working', { activity: { id: 'a1', kind: 'edit', icon: '✏️', text: 'Editando', at: T0 } });
+    const main = agent('ana', '/a', 'working', { activity: { id: 'a1', kind: 'edit', icon: '✏️', text: 'Editing', at: T0 } });
     sim.applySnapshot(snap([room('/a', 0)], [main]), clock.now);
     run(sim, clock, 0.5);
     sim.applySnapshot(snap([room('/a', 0)], [{ ...main, activity: { id: 'a2', kind: 'delegate', icon: '👥', text: 'Delegando', at: T0 } }], 2), clock.now);
@@ -725,7 +725,7 @@ describe('espera de shell', () => {
     const clock = { now: T0 };
     const rooms = [room('/a', 0)];
     const old = done('old')!;
-    const base = agent('ana', '/a', 'working', { recent: [old], activity: { id: 'a0', kind: 'edit', icon: '✏️', text: 'Editando', at: T0 } });
+    const base = agent('ana', '/a', 'working', { recent: [old], activity: { id: 'a0', kind: 'edit', icon: '✏️', text: 'Editing', at: T0 } });
     sim.applySnapshot(snap(rooms, [base]), clock.now);
     run(sim, clock, 0.5);
     const ana = sim.chars.get('ana')!;

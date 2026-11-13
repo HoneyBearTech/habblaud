@@ -114,7 +114,7 @@ function characterEditor() {
   const button = editor.button as unknown as EditorElement;
   const input = elements.find((el) => el.className === 'ui-char__name')!;
   const error = elements.find((el) => el.className === 'ui-char__error')!;
-  const save = elements.find((el) => el.textContent === 'Salvar')!;
+  const save = elements.find((el) => el.textContent === 'Save')!;
   const reset = elements.find((el) => el.className === 'ui-link-btn ui-char__reset')!;
   const open = (id: string) => { editor.open(id); button.click(); };
   const send = (operation: 'save' | 'reset') => {
@@ -130,7 +130,7 @@ describe('respostas assíncronas do editor de personagem', () => {
 
   for (const operation of ['save', 'reset'] as const) {
     for (const next of ['b', 'a']) {
-      it.each([undefined, 'Sem conexão com o Habblaud.'])(`${operation}: resposta %s não altera a nova edição de ${next}`, async (error) => {
+      it.each([undefined, 'No connection to Habblaud.'])(`${operation}: resposta %s não altera a nova edição de ${next}`, async (error) => {
         const ui = characterEditor();
         ui.open('a');
         ui.send(operation);
@@ -161,7 +161,7 @@ describe('respostas assíncronas do editor de personagem', () => {
       expect(ui.editor.el.hidden).toBe(true);
       expect(ui.button.getAttribute('aria-expanded')).toBe('false');
       expect(document.activeElement).toBe(ui.button);
-      expect(ui.announce).toHaveBeenCalledWith(operation === 'save' ? 'Personagem salvo: a.' : 'O personagem voltou ao sorteio.');
+      expect(ui.announce).toHaveBeenCalledWith(operation === 'save' ? 'Character saved: a.' : 'The character is back to random.');
     });
   }
 });

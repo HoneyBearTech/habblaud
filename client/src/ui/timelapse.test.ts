@@ -54,11 +54,11 @@ afterEach(() => {
 
 describe('timelapse: rótulos', () => {
   it('dia: Hoje, Ontem ou a data curta', () => {
-    expect(dayLabel('2026-10-08', '2026-10-08')).toBe('Hoje');
-    expect(dayLabel('2026-10-07', '2026-10-08')).toBe('Ontem');
-    expect(dayLabel('2026-10-01', '2026-10-01')).toBe('Hoje');
-    expect(dayLabel('2026-09-30', '2026-10-01')).toBe('Ontem');
-    expect(dayLabel('2026-10-05', '2026-10-08')).toMatch(/5 de out/);
+    expect(dayLabel('2026-10-08', '2026-10-08')).toBe('Today');
+    expect(dayLabel('2026-10-07', '2026-10-08')).toBe('Yesterday');
+    expect(dayLabel('2026-10-01', '2026-10-01')).toBe('Today');
+    expect(dayLabel('2026-09-30', '2026-10-01')).toBe('Yesterday');
+    expect(dayLabel('2026-10-05', '2026-10-08')).toMatch(/Oct 5/);
   });
 
   it('régua: horas cheias, no máximo ~6 marcas', () => {

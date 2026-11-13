@@ -19,7 +19,7 @@ export class AppearanceFields {
   private draft: Appearance | null = null;
 
   constructor(private readonly onChange: (a: Appearance) => void = () => {}) {
-    this.preview = h('canvas', { class: 'ui-char__preview', role: 'img', attrs: { 'aria-label': tr('Prévia do personagem') } });
+    this.preview = h('canvas', { class: 'ui-char__preview', role: 'img', attrs: { 'aria-label': tr('Character preview') } });
     this.groups = h('div', { class: 'ui-char__groups' });
   }
 

@@ -16,12 +16,12 @@ export function visitLightOf(b: Pick<WorldBuildingPublic, 'state' | 'discreet'>)
 
 /** "1 agente", "6 agentes". */
 export function agentsLabel(n: number): string {
-  return n === 1 ? tr('1 agente') : tr('{0} agentes', [n]);
+  return n === 1 ? tr('1 agent') : tr('{0} agents', [n]);
 }
 
 /** "1 visitante agora", "3 visitantes agora". */
 export function visitorsLabel(n: number): string {
-  return n === 1 ? tr('1 visitante agora') : tr('{0} visitantes agora', [n]);
+  return n === 1 ? tr('1 visitor now') : tr('{0} visitors now', [n]);
 }
 
 /** Agentes que aparecem (no modo discreto e apagado, nenhum, mesmo que algum venha no pacote por engano). */
@@ -45,9 +45,9 @@ export function visitBanner(d: WorldBuildingDetail, mine: boolean): VisitBanner 
   const light = visitLightOf(b);
   const details = [floorsLabel(d.floors.length)];
   if (light === 'live') details.push(agentsLabel(shownAgents(d)));
-  else details.push(light === 'away' ? tr('apagado') : tr('modo discreto'));
+  else details.push(light === 'away' ? tr('lights off') : tr('discreet mode'));
   return {
-    title: mine ? tr('Seu prédio, como os outros veem') : tr('Prédio de {0}', [b.owner.name]),
+    title: mine ? tr('Your building, as others see it') : tr("{0}'s building", [b.owner.name]),
     details,
     mode: light === 'live' ? null : light,
   };
@@ -83,13 +83,13 @@ const STATUS: readonly VisitStatus[] = ['working', 'waiting', 'idle', 'shell'];
 export function statusText(s: VisitStatus): string {
   switch (s) {
     case 'working':
-      return tr('trabalhando');
+      return tr('working');
     case 'waiting':
-      return tr('esperando o dono');
+      return tr('waiting for the owner');
     case 'shell':
-      return tr('de olho no terminal');
+      return tr('watching the terminal');
     default:
-      return tr('à toa');
+      return tr('idle');
   }
 }
 
@@ -99,8 +99,8 @@ export function agentRow(a: WorldAgent): VisitAgentRow {
   const provider = a.provider === 'codex' ? 'codex' : 'claude';
   return {
     id: worldId(a.id),
-    name: typeof a.name === 'string' && a.name ? a.name : tr('Agente'),
-    role: a.kind === 'sub' ? tr('Subagente') : tr('Agente principal'),
+    name: typeof a.name === 'string' && a.name ? a.name : tr('Agent'),
+    role: a.kind === 'sub' ? tr('Subagent') : tr('Main agent'),
     tool: WORLD_TOOL_ACCOUNTS[provider].name,
     status,
     statusText: statusText(status),
@@ -118,9 +118,9 @@ export function visitPanel(d: WorldBuildingDetail): VisitPanel {
   const light = visitLightOf(d.building);
   const empty =
     light === 'away'
-      ? tr('Prédio apagado: o dono pausou ou não está com o Habblaud aberto. As salas ficam escuras e vazias.')
+      ? tr("Lights off: the owner paused or doesn't have Habblaud open. The rooms are dark and empty.")
       : light === 'discreet'
-        ? tr('Modo discreto: o dono não mostra os agentes. As salas aparecem vazias, com a luz acesa.')
+        ? tr("Discreet mode: the owner doesn't show the agents. The rooms look empty, with the lights on.")
         : null;
   return { rooms, empty };
 }

@@ -119,7 +119,7 @@ export class TimelineRecorder {
       this.latest = compactSnapshot(snap, this.isDemo);
       this.pending = true;
     } catch (err) {
-      log.warnOnce(`timeline-ingest:${errMsg(err)}`, tr('Snapshot ignorado pela linha do tempo: {0}', [errMsg(err)]));
+      log.warnOnce(`timeline-ingest:${errMsg(err)}`, tr('Snapshot ignored by the timeline: {0}', [errMsg(err)]));
       return;
     }
     this.tick();
@@ -129,7 +129,7 @@ export class TimelineRecorder {
     try {
       this.pump();
     } catch (err) {
-      log.warnOnce(`timeline-tick:${errMsg(err)}`, tr('Falha no gravador da linha do tempo: {0}', [errMsg(err)]));
+      log.warnOnce(`timeline-tick:${errMsg(err)}`, tr('Timeline recorder failed: {0}', [errMsg(err)]));
     }
   }
 
@@ -197,7 +197,7 @@ export class TimelineRecorder {
   private hitLimit(now: number): void {
     this.limited = true;
     this.append({ t: 'end', at: now, reason: 'limit' }, now);
-    log.warn(tr('Linha do tempo de {0} chegou a {1} MB: a gravação para até a virada do dia.', [this.day, Math.round(this.bytes / 1024 / 1024)]));
+    log.warn(tr('Timeline for {0} reached {1} MB: recording stops until the day rolls over.', [this.day, Math.round(this.bytes / 1024 / 1024)]));
   }
 
   private append(rec: TimelineRecord, now: number): boolean {
@@ -208,14 +208,14 @@ export class TimelineRecorder {
     } catch (err) {
       this.failedAt = now;
       this.needKeyframe = true;
-      log.warnOnce('timeline-write', tr('Não foi possível gravar a linha do tempo em {0} ({1}); tento de novo em {2} s.', [this.file, errMsg(err), Math.round(this.retryMs / 1000)]));
+      log.warnOnce('timeline-write', tr("Couldn't write the timeline to {0} ({1}); retrying in {2} s.", [this.file, errMsg(err), Math.round(this.retryMs / 1000)]));
       return false;
     }
     this.bytes += Buffer.byteLength(line);
     if (this.failedAt !== null) {
       this.failedAt = null;
       log.clearOnce('timeline-write');
-      log.info(tr('Linha do tempo: voltou a gravar.'));
+      log.info(tr('Timeline: recording again.'));
     }
     return true;
   }
@@ -236,7 +236,7 @@ export class TimelineRecorder {
       try {
         unlinkSync(join(this.dir, name));
       } catch (err) {
-        log.warnOnce(`timeline-prune:${name}`, tr('Não foi possível apagar {0} da linha do tempo ({1}).', [name, errMsg(err)]));
+        log.warnOnce(`timeline-prune:${name}`, tr("Couldn't delete {0} from the timeline ({1}).", [name, errMsg(err)]));
       }
     }
   }

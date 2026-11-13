@@ -168,7 +168,7 @@ describe('PtyManager: assumir', () => {
     const s = setup();
     for (let i = 0; i < MAX_PTYS - 1; i++) s.manager.create({ cwd: tmpdir() });
     const run = s.manager.takeover(`acc:${PID}`);
-    expect(() => s.manager.create({ cwd: tmpdir() })).toThrow(/limite/);
+    expect(() => s.manager.create({ cwd: tmpdir() })).toThrow(/limit/);
     await run;
     expect(s.spawned).toHaveLength(MAX_PTYS);
   });
@@ -191,7 +191,7 @@ describe('PtyManager: assumir', () => {
   it('nem à força: erro, sem abrir a segunda cópia da conversa', async () => {
     const s = setup({ killPid: vi.fn(), forceKill: vi.fn() });
     const err = await rejects(s.manager.takeover(`acc:${PID}`), 500);
-    expect(err.message).toMatch(/continua aberta/);
+    expect(err.message).toMatch(/still open/);
     expect(s.spawned).toHaveLength(0);
   });
 
@@ -289,11 +289,11 @@ describe('ptyRequestProblem', () => {
   });
 
   it('recusa conexão de fora, Host da rede, outra origem e pedido de outro site', () => {
-    expect(ptyRequestProblem(req({ host: 'localhost:4747' }, '192.168.0.9'))).toMatch(/próprio computador/);
+    expect(ptyRequestProblem(req({ host: 'localhost:4747' }, '192.168.0.9'))).toMatch(/the computer running/);
     expect(ptyRequestProblem(req({ host: 'meu-mac.local:4747' }))).toMatch(/localhost/);
-    expect(ptyRequestProblem(req({ host: 'localhost:4747', origin: 'http://evil.example' }))).toMatch(/origem/);
-    expect(ptyRequestProblem(req({ host: 'localhost:4747', 'sec-fetch-site': 'same-site' }))).toMatch(/origem/);
-    expect(ptyRequestProblem(req({ host: 'localhost:4747', 'sec-fetch-site': 'cross-site' }))).toMatch(/origem/);
+    expect(ptyRequestProblem(req({ host: 'localhost:4747', origin: 'http://evil.example' }))).toMatch(/origin/);
+    expect(ptyRequestProblem(req({ host: 'localhost:4747', 'sec-fetch-site': 'same-site' }))).toMatch(/origin/);
+    expect(ptyRequestProblem(req({ host: 'localhost:4747', 'sec-fetch-site': 'cross-site' }))).toMatch(/origin/);
   });
 });
 
@@ -337,7 +337,7 @@ describe('carregar o node-pty e achar o claude', () => {
       return p;
     };
     expect(await spawnProblem(exiting(0))).toBeNull();
-    expect(await spawnProblem(exiting(1))).toMatch(/código 1/);
+    expect(await spawnProblem(exiting(1))).toMatch(/code 1/);
   });
 
   it.runIf(unix)(

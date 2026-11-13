@@ -9,7 +9,7 @@ import { clearWorldWallets, DELIVERY_REWARD, START_COINS, TASK_REWARD, Wallets, 
 const T0 = 1_700_000_000_000;
 
 function persona(traits: Persona['traits']): Persona {
-  return { traits, sociability: 0.5, skill: 0.5, catchphrase: 'Bora!' };
+  return { traits, sociability: 0.5, skill: 0.5, catchphrase: "Let's go!" };
 }
 
 function memStorage(): StorageLike & { data: Map<string, string> } {
@@ -75,17 +75,17 @@ describe('personalidade', () => {
 describe('falas', () => {
   it('preenche os campos; sem valor para um campo, a fala é descartada', () => {
     expect(fill('Viram o commit de {nome}?', { nome: 'Rafaela' })).toBe('Viram o commit de Rafaela?');
-    expect(fill('Jokenpô valendo 🪙{v}?', { v: 10 })).toBe('Jokenpô valendo 🪙10?');
-    expect(fill('Ei, {nome}!', {})).toBeNull();
+    expect(fill('Rock-paper-scissors for 🪙{v}?', { v: 10 })).toBe('Rock-paper-scissors for 🪙10?');
+    expect(fill('Hey, {nome}!', {})).toBeNull();
     const rng = () => 0;
-    expect(pick(['Ei, {nome}!', 'E aí?'], rng, {})).toBe('E aí?');
+    expect(pick(['Hey, {nome}!', 'E aí?'], rng, {})).toBe('E aí?');
     expect(pick(['A', 'B'], rng, {}, 'A')).toBe('B');
   });
 
   it('dia e hora mudam o papo', () => {
-    expect(timeLine(new Date(2026, 9, 9, 15, 0))).toBe('Sextou! 🎉'); // sexta à tarde
-    expect(timeLine(new Date(2026, 9, 5, 9, 0))).toBe('Segunda-feira, né…');
-    expect(timeLine(new Date(2026, 9, 7, 12, 30))).toMatch(/almoço/);
+    expect(timeLine(new Date(2026, 9, 9, 15, 0))).toBe('TGIF! 🎉'); // sexta à tarde
+    expect(timeLine(new Date(2026, 9, 5, 9, 0))).toBe('Monday, huh…');
+    expect(timeLine(new Date(2026, 9, 7, 12, 30))).toMatch(/lunch/);
     expect(timeLine(new Date(2026, 9, 7, 16, 0))).toBeNull();
   });
 });
@@ -98,7 +98,7 @@ describe('carteira', () => {
     const sub = { id: 's1', name: 'Rui', kind: 'sub' as const, tasks: [] };
     expect(w.ensure(sub, T0).created).toBe(true);
     expect(w.coins('s1')).toBe(START_COINS.sub);
-    const done = { ...ana, tasks: [{ id: '1', title: 'Login', status: 'completed' }, { id: '2', title: 'Testes', status: 'pending' }] };
+    const done = { ...ana, tasks: [{ id: '1', title: 'Login', status: 'completed' }, { id: '2', title: 'Tests', status: 'pending' }] };
     expect(w.ensure(done, T0).created).toBe(true);
     expect(w.coins('ana')).toBe(START_COINS.main + TASK_REWARD);
     expect(w.payTasks(done, T0)).toBe(0);
@@ -113,7 +113,7 @@ describe('carteira', () => {
     expect(w.payTasks(t1, T0)).toBe(0);
     const t2 = { ...ana, tasks: [{ id: '1', title: 'Cadastro', status: 'completed' }] };
     expect(w.payTasks(t2, T0)).toBe(TASK_REWARD);
-    expect(w.get('ana')!.ledger[0]).toMatchObject({ delta: TASK_REWARD, text: 'Tarefa concluída: Cadastro' });
+    expect(w.get('ana')!.ledger[0]).toMatchObject({ delta: TASK_REWARD, text: 'Task done: Cadastro' });
     expect(w.credit('ana', DELIVERY_REWARD, '📦', 'Entregou', T0)).toBe(DELIVERY_REWARD);
     expect(w.get('ana')!.earned).toBe(START_COINS.main + 2 * TASK_REWARD + DELIVERY_REWARD);
   });
@@ -122,12 +122,12 @@ describe('carteira', () => {
     const w = new Wallets(null);
     w.ensure(ana, T0);
     w.ensure({ id: 'bia', name: 'Bia', kind: 'sub', tasks: [] }, T0);
-    expect(w.transfer('bia', 'ana', 50, '✊', 'no jokenpô', T0)).toBe(START_COINS.sub);
+    expect(w.transfer('bia', 'ana', 50, '✊', 'at rock-paper-scissors', T0)).toBe(START_COINS.sub);
     expect(w.coins('bia')).toBe(0);
     expect(w.coins('ana')).toBe(START_COINS.main + START_COINS.sub);
-    expect(w.transfer('bia', 'ana', 10, '✊', 'no jokenpô', T0)).toBe(0);
-    expect(w.get('ana')!.ledger[0].text).toBe('Ganhou no jokenpô de Bia');
-    expect(w.get('bia')!.ledger[0].text).toBe('Perdeu no jokenpô para Ana');
+    expect(w.transfer('bia', 'ana', 10, '✊', 'at rock-paper-scissors', T0)).toBe(0);
+    expect(w.get('ana')!.ledger[0].text).toBe('Won at rock-paper-scissors against Bia');
+    expect(w.get('bia')!.ledger[0].text).toBe('Lost at rock-paper-scissors to Ana');
     w.recordMatch('ana', 'bia');
     expect(w.get('ana')).toMatchObject({ wins: 1, losses: 0, vs: { bia: [1, 0] } });
     expect(w.get('bia')).toMatchObject({ wins: 0, losses: 1, vs: { ana: [0, 1] } });
@@ -137,7 +137,7 @@ describe('carteira', () => {
     const st = memStorage();
     const w = new Wallets(st);
     w.ensure(ana, T0);
-    w.credit('ana', 7, '💬', 'Pedido atendido', T0);
+    w.credit('ana', 7, '💬', 'Request handled', T0);
     w.save(T0);
     const again = new Wallets(st);
     expect(again.coins('ana')).toBe(START_COINS.main + 7);
@@ -153,7 +153,7 @@ describe('carteira', () => {
     // o escritório local já tem a sua economia gravada
     const office = new Wallets(st);
     office.ensure(ana, T0);
-    office.credit('ana', 7, '💬', 'Pedido atendido', T0);
+    office.credit('ana', 7, '💬', 'Request handled', T0);
     office.save(T0);
     const officeRaw = st.data.get('habblaud.wallets.v1');
     expect(officeRaw).toBeDefined();
@@ -163,10 +163,10 @@ describe('carteira', () => {
     const rafael = { id: 'world:a_2a3b4c5d', name: 'Rafael', kind: 'sub' as const, tasks: [] };
     visit.ensure(marina, T0);
     visit.ensure(rafael, T0);
-    visit.transfer('world:a_2a3b4c5d', 'world:a_1f2e3d4c', 10, '✊', 'no jokenpô', T0);
+    visit.transfer('world:a_2a3b4c5d', 'world:a_1f2e3d4c', 10, '✊', 'at rock-paper-scissors', T0);
     visit.recordMatch('world:a_1f2e3d4c', 'world:a_2a3b4c5d');
     // enquanto isso, o escritório ganhou mais (em outra instância): a visita não regrava a cópia velha por cima
-    office.credit('ana', 3, '💬', 'Pedido atendido', T0 + 1);
+    office.credit('ana', 3, '💬', 'Request handled', T0 + 1);
     office.save(T0 + 1);
     const officeNow = st.data.get('habblaud.wallets.v1');
     visit.save(T0 + 2);
@@ -176,7 +176,7 @@ describe('carteira', () => {
     const world = JSON.parse(st.data.get(WORLD_STORAGE_KEY)!) as { wallets: Record<string, unknown> };
     expect(Object.keys(world.wallets).sort()).toEqual(['world:a_1f2e3d4c', 'world:a_2a3b4c5d']);
     // e o escritório também não regrava a chave da visita
-    office.credit('ana', 1, '💬', 'Pedido atendido', T0 + 3);
+    office.credit('ana', 1, '💬', 'Request handled', T0 + 3);
     const worldRaw = st.data.get(WORLD_STORAGE_KEY);
     office.save(T0 + 3);
     expect(st.data.get(WORLD_STORAGE_KEY)).toBe(worldRaw);

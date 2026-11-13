@@ -104,7 +104,7 @@ describe('HttpWorldApi', () => {
   });
 
   it('sem código (guarda, rota desligada, corpo vazio): decide pelo status HTTP', async () => {
-    expect(await recorder(403, { error: 'Origem não permitida.' }).api.logout()).toMatchObject({ code: 'forbidden' });
+    expect(await recorder(403, { error: 'Origin not allowed.' }).api.logout()).toMatchObject({ code: 'forbidden' });
     expect(await recorder(404, undefined).api.status()).toMatchObject({ code: 'not_configured' });
     expect(await recorder(429, '').api.resend({ email: 'a@b.co' })).toMatchObject({ code: 'rate_limited' });
     expect(await recorder(500, { error: { code: 'algo_novo' } }).api.logout()).toMatchObject({ code: 'unknown' });

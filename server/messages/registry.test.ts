@@ -43,8 +43,8 @@ function setup() {
     messages: () => registry?.reachable() ?? new Set(),
     now: clock.now,
   });
-  office.addMain({ id: MAIN, account: 'acc', sessionId: SESSION, cwd: '/p/loja', role: 'Agente principal', startedAt: 0, status: 'idle' });
-  office.addMain({ id: OTHER, account: 'acc', sessionId: 'sess-2', cwd: '/p/api', role: 'Agente principal', startedAt: 0, status: 'idle' });
+  office.addMain({ id: MAIN, account: 'acc', sessionId: SESSION, cwd: '/p/loja', role: 'Main agent', startedAt: 0, status: 'idle' });
+  office.addMain({ id: OTHER, account: 'acc', sessionId: 'sess-2', cwd: '/p/api', role: 'Main agent', startedAt: 0, status: 'idle' });
   registry = new MessageRegistry({
     office,
     demoAgent: (id) => office.demoAgent(id),
@@ -109,7 +109,7 @@ describe('MessageRegistry: presença', () => {
     const snap = office.commit().snapshot;
     expect(snap.agents.find((a) => a.id === MAIN)?.canMessage).toBe(true);
     expect(snap.agents.find((a) => a.id === SUB)?.canMessage).toBeUndefined();
-    expect(registry.send({ agentId: SUB, text: 'oi' })).toEqual({ error: 'unavailable', reason: expect.stringMatching(/subagentes/) });
+    expect(registry.send({ agentId: SUB, text: 'oi' })).toEqual({ error: 'unavailable', reason: expect.stringMatching(/subagents/) });
   });
 });
 
@@ -118,8 +118,8 @@ describe('MessageRegistry: mandar', () => {
     const { registry } = setup();
     registry.inbox({ session: SESSION });
     for (const bad of [null, {}, { agentId: MAIN }, { text: 'oi' }, { agentId: MAIN, text: 3 }]) expect(() => registry.send(bad)).toThrow(/agentId/);
-    expect(() => registry.send({ agentId: MAIN, text: '  \n ' })).toThrow(/vazia/);
-    expect(() => registry.send({ agentId: MAIN, text: 'x'.repeat(20_001) })).toThrow(/20\.000/);
+    expect(() => registry.send({ agentId: MAIN, text: '  \n ' })).toThrow(/empty/);
+    expect(() => registry.send({ agentId: MAIN, text: 'x'.repeat(20_001) })).toThrow(/20,000/);
     expect('message' in registry.send({ agentId: MAIN, text: 'x'.repeat(20_000) })).toBe(true);
   });
 
@@ -129,7 +129,7 @@ describe('MessageRegistry: mandar', () => {
     expect(registry.send({ agentId: MAIN, text: 'oi' })).toEqual({ error: 'unavailable', reason: expect.stringMatching(/habblaud-mensagens/) });
     registry.inbox({ session: SESSION });
     office.closeMain(MAIN);
-    expect(registry.send({ agentId: MAIN, text: 'oi' })).toEqual({ error: 'unavailable', reason: expect.stringMatching(/saiu/) });
+    expect(registry.send({ agentId: MAIN, text: 'oi' })).toEqual({ error: 'unavailable', reason: expect.stringMatching(/left/) });
   });
 
   it(`no máximo ${MAX_OPEN} mensagens não resolvidas por agente (too-many); resolvidas não contam`, () => {
@@ -195,7 +195,7 @@ describe('MessageRegistry: entrega pelo plugin', () => {
     const commit = office.commit();
     const feed = commit.feed.map((f) => f.activity);
     expect(feed).toHaveLength(1);
-    expect(feed[0]).toMatchObject({ kind: 'communicate', icon: '✉️', text: 'Mensagem pelo Habblaud', at: clock.now() });
+    expect(feed[0]).toMatchObject({ kind: 'communicate', icon: '✉️', text: 'Message via Habblaud', at: clock.now() });
     expect(feed[0].detail).not.toContain(secret);
     expect(feed[0].detail!.length).toBeLessThanOrEqual(300);
     expect(feed[0].detail).toMatch(/^Use /);
@@ -315,7 +315,7 @@ describe('MessageRegistry: demo', () => {
     registry.tick();
     expect(registry.get(id)?.status).toBe('delivered');
     const after = office.commit().snapshot.agents.find((a) => a.id === demo.id)!;
-    expect(after.recent.at(-1)).toMatchObject({ kind: 'communicate', text: 'Mensagem pelo Habblaud', detail: 'oi, demo' });
+    expect(after.recent.at(-1)).toMatchObject({ kind: 'communicate', text: 'Message via Habblaud', detail: 'oi, demo' });
   });
 
   it('demo desligado no meio do caminho: a mensagem falha (o agente saiu)', () => {

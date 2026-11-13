@@ -15,7 +15,7 @@ const T0 = new Date(2026, 9, 7, 9, 0).getTime();
 const MIN = 60_000;
 
 function ag(id: string, extra: Partial<TimelineAgent> = {}): TimelineAgent {
-  return { id, kind: 'main', roomId: '/p/loja', name: id, look: 'f', role: 'Agente principal', account: '.claude', status: 'working', statusSince: T0, startedAt: T0, seed: 1, ...extra };
+  return { id, kind: 'main', roomId: '/p/loja', name: id, look: 'f', role: 'Main agent', account: '.claude', status: 'working', statusSince: T0, startedAt: T0, seed: 1, ...extra };
 }
 
 const key = (at: number, agents: TimelineAgent[], extra: Partial<TimelineKeyframe> = {}): TimelineKeyframe => ({
@@ -38,8 +38,8 @@ function day(): TimelineRecord[] {
     { t: 'd', at: T0 + 1 * MIN, agents: [['ana', { activity: act('Lendo b.ts', T0 + MIN) }]] },
     { t: 'd', at: T0 + 2 * MIN, agents: [['bia', ag('bia', { kind: 'sub', parentId: 'ana', statusSince: T0 + 2 * MIN })]] },
     { t: 'd', at: T0 + 3 * MIN, agents: [['ana', { status: 'waiting', waitingFor: 'responder', statusSince: T0 + 3 * MIN }], ['bia', null]] },
-    { t: 'd', at: T0 + 4 * MIN, agents: [['ana', { status: 'idle', waitingFor: null, statusSince: T0 + 4 * MIN, activity: { kind: 'done', icon: '✅', text: 'Concluiu', at: T0 + 4 * MIN } }]] },
-    key(T0 + 5 * MIN, [ag('ana', { status: 'idle', statusSince: T0 + 4 * MIN, activity: { kind: 'done', icon: '✅', text: 'Concluiu', at: T0 + 4 * MIN } })]),
+    { t: 'd', at: T0 + 4 * MIN, agents: [['ana', { status: 'idle', waitingFor: null, statusSince: T0 + 4 * MIN, activity: { kind: 'done', icon: '✅', text: 'Done', at: T0 + 4 * MIN } }]] },
+    key(T0 + 5 * MIN, [ag('ana', { status: 'idle', statusSince: T0 + 4 * MIN, activity: { kind: 'done', icon: '✅', text: 'Done', at: T0 + 4 * MIN } })]),
     { t: 'end', at: T0 + 6 * MIN },
     key(T0 + 30 * MIN, [ag('caio', { statusSince: T0 + 30 * MIN })], { boot: true }),
   ];
@@ -66,7 +66,7 @@ describe('reconstrução do timelapse', () => {
     expect(s4.agents[0]).toMatchObject({ status: 'idle' });
     expect(s4.agents[0].waitingFor).toBeUndefined();
     // As atividades vistas desde o keyframe viram o `recent` (o mundo usa para reagir ao fim de shells).
-    expect(s4.agents[0].recent.map((a) => a.text)).toEqual(['Lendo a.ts', 'Lendo b.ts', 'Concluiu']);
+    expect(s4.agents[0].recent.map((a) => a.text)).toEqual(['Lendo a.ts', 'Lendo b.ts', 'Done']);
     // Para trás: nada "do futuro".
     const back = at(r, T0 + 1.5 * MIN);
     expect(back.agents[0]).toMatchObject({ status: 'working', activity: { text: 'Lendo b.ts' } });

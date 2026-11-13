@@ -271,13 +271,13 @@ export function passwordProblem(password: string, email = ''): PasswordProblem |
 export function passwordProblemText(p: PasswordProblem): string {
   switch (p) {
     case 'short':
-      return tr('A senha precisa ter pelo menos 12 caracteres.');
+      return tr('The password needs at least 12 characters.');
     case 'long':
-      return tr('A senha pode ter no máximo 128 caracteres.');
+      return tr('The password can have at most 128 characters.');
     case 'email':
-      return tr('A senha não pode ser o seu e-mail.');
+      return tr("The password can't be your email.");
     case 'repeated':
-      return tr('A senha não pode ser só uma repetição (como "aaaaaaaaaaaa").');
+      return tr('The password can\'t be just a repetition (like "aaaaaaaaaaaa").');
   }
 }
 
@@ -290,17 +290,17 @@ export function nameProblemText(p: PlayerNameProblem): string {
   switch (p) {
     case 'type':
     case 'length':
-      return tr('O nome precisa ter de 3 a 20 caracteres.');
+      return tr('The name needs 3 to 20 characters.');
     case 'invisible':
-      return tr('Tire do nome os caracteres invisíveis e os espaços especiais.');
+      return tr('Remove invisible characters and special spaces from the name.');
     case 'chars':
-      return tr('Use só letras, números, espaço, _ - e . no nome.');
+      return tr('Use only letters, numbers, space, _ - and . in the name.');
     case 'scripts':
-      return tr('Use letras de um só alfabeto no nome.');
+      return tr('Use letters from a single alphabet in the name.');
     case 'no_letter':
-      return tr('O nome precisa ter pelo menos uma letra.');
+      return tr('The name needs at least one letter.');
     case 'reserved':
-      return tr('Este nome é reservado. Escolha outro.');
+      return tr('This name is reserved. Pick another one.');
   }
 }
 
@@ -407,12 +407,12 @@ export function appealMailto(accountId?: string): string {
 
 /** O selo de um prédio marcado como "não verificado" (WorldBuildingPublic.unverified), para o cartão da cidade. */
 export function unverifiedLabel(): string {
-  return tr('Não verificado');
+  return tr('Unverified');
 }
 
 /** O que o selo quer dizer, para quem vê o prédio na cidade (dica do selo no cartão). */
 export function unverifiedHint(): string {
-  return tr('Os números deste prédio pareceram fora do normal e estão em revisão; enquanto isso, ele fica fora de placares e destaques.');
+  return tr("This building's numbers looked unusual and are under review; meanwhile, it stays out of leaderboards and highlights.");
 }
 
 // ------------------------------------------------------------------ erros
@@ -457,102 +457,102 @@ export function worldErrorText(raw: WorldErrorCode | string, action: WorldAction
   const code: WorldErrorCode = isWorldKnownErrorCode(raw) || raw === 'offline' || raw === 'forbidden' ? raw : 'unknown';
   switch (code) {
     case 'invalid_code':
-      return tr('Código errado ou vencido. Confira o e-mail ou peça outro código.');
+      return tr('Wrong or expired code. Check the email or ask for another code.');
     case 'invalid_credentials':
-      return tr('E-mail ou senha não conferem.');
+      return tr("Email or password don't match.");
     case 'email_not_verified':
-      return tr('Falta confirmar o e-mail: mandamos um código novo.');
+      return tr('Your email still needs confirming: we sent a new code.');
     case 'banned':
-      return tr('Esta conta foi banida do Habblaud World. Para recorrer, responda ao e-mail do banimento.');
+      return tr('This account was banned from Habblaud World. To appeal, reply to the ban email.');
     case 'suspended':
-      return tr('Esta conta está suspensa no Habblaud World por enquanto.');
+      return tr('This account is suspended from Habblaud World for now.');
     case 'unauthorized':
     case 'not_logged_in':
     case 'session_expired':
-      return tr('A sessão do Habblaud World neste computador terminou. Entre de novo.');
+      return tr('The Habblaud World session on this computer has ended. Sign in again.');
     case 'name_taken':
-      return tr('Este nome já está em uso no mundo. Escolha outro.');
+      return tr('This name is already taken in the world. Pick another one.');
     case 'name_invalid':
-      return tr('Nome inválido: de 3 a 20 caracteres, com letras de um só alfabeto, números, espaço, _ - e .');
+      return tr('Invalid name: 3 to 20 characters, with letters from a single alphabet, numbers, space, _ - and .');
     case 'name_blocked':
-      return tr('Este nome não é permitido. Escolha outro.');
+      return tr("This name isn't allowed. Pick another one.");
     case 'name_cooldown':
-      return tr('O nome só pode ser trocado uma vez a cada 30 dias.');
+      return tr('The name can only be changed once every 30 days.');
     case 'password_invalid':
-      return tr('A senha precisa ter de 12 a 128 caracteres.');
+      return tr('The password must be 12 to 128 characters long.');
     case 'password_weak':
-      return tr('Senha fraca: não use o e-mail, o nome de jogador nem só repetição.');
+      return tr("Weak password: don't use your email, your player name or just repetition.");
     case 'password_pwned':
-      return tr('Esta senha aparece em vazamentos de dados conhecidos. Escolha outra.');
+      return tr('This password appears in known data breaches. Choose another one.');
     case 'invalid_email':
-      return tr('E-mail inválido. Confira o endereço.');
+      return tr('Invalid email. Check the address.');
     case 'altcha_required':
     case 'altcha_invalid':
     case 'altcha_failed':
-      return tr('A verificação anti-robô não passou. Tente de novo em instantes.');
+      return tr("The anti-bot check didn't pass. Try again in a moment.");
     case 'device_limit':
-      return tr('Esta conta já tem 3 computadores; revogue um em Dispositivos.');
+      return tr('This account already has 3 computers; revoke one in Devices.');
     case 'no_player':
-      return tr('Crie o personagem primeiro.');
+      return tr('Create your character first.');
     case 'unavailable':
-      return tr('O Habblaud World está em manutenção. Tente de novo mais tarde.');
+      return tr('Habblaud World is under maintenance. Try again later.');
     case 'maintenance':
-      return tr('O mundo está em manutenção; tentamos de novo em instantes.');
+      return tr("The world is under maintenance; we'll try again in a moment.");
     case 'not_found':
-      return action === 'revoke' ? tr('Este dispositivo não está mais na conta.') : tr('O servidor do Habblaud World não encontrou o que foi pedido.');
+      return action === 'revoke' ? tr('This device is no longer on the account.') : tr("The Habblaud World server couldn't find what was requested.");
     case 'invalid_json':
     case 'too_large':
     case 'unsupported_media_type':
     case 'method_not_allowed':
-      return tr('O pedido saiu num formato que o servidor não aceita. Atualize o Habblaud e tente de novo.');
+      return tr("The request was sent in a format the server doesn't accept. Update Habblaud and try again.");
     case 'not_configured':
-      return tr('O Habblaud World não está ligado neste Habblaud (HABBLAUD_WORLD_URL recusada; veja o log do servidor).');
+      return tr("Habblaud World isn't turned on in this Habblaud (HABBLAUD_WORLD_URL was rejected; see the server log).");
     case 'rate_limited':
       return action === 'export'
-        ? tr('Dá para baixar os dados uma vez por dia. Tente de novo amanhã.')
-        : tr('Muitas tentativas seguidas. Espere alguns minutos e tente de novo.');
+        ? tr('You can download your data once a day. Try again tomorrow.')
+        : tr('Too many attempts in a row. Wait a few minutes and try again.');
     case 'network':
     case 'world_unreachable':
     case 'world_timeout':
-      return tr('O servidor do Habblaud World não respondeu. Tente de novo em instantes.');
+      return tr("The Habblaud World server didn't respond. Try again in a moment.");
     case 'world_bad_response':
-      return tr('O servidor do Habblaud World respondeu algo inesperado. Tente de novo em instantes.');
+      return tr('The Habblaud World server sent an unexpected response. Try again in a moment.');
     case 'account_deleted':
-      return tr('A conta do Habblaud World foi excluída. O prédio e o perfil saíram do mundo na hora; o resto é apagado do banco em 7 dias e dos backups em até 30.');
+      return tr('The Habblaud World account was deleted. The building and the profile left the world right away; the rest is deleted from the database within 7 days and from backups within 30.');
     case 'storage_failed':
-      return tr('Não deu para gravar a sessão neste computador: ela vale só até o Habblaud reiniciar.');
+      return tr("Couldn't save the session on this computer: it only lasts until Habblaud restarts.");
     case 'too_many_streams':
-      return tr('A cidade já está aberta em outras abas do Habblaud. Feche uma delas para abrir aqui.');
+      return tr('The city is already open in other Habblaud tabs. Close one of them to open it here.');
     case 'no_stream':
-      return tr('A cena Mundo perdeu a conexão com o Habblaud. Abra a cidade de novo.');
+      return tr('The World scene lost its connection to Habblaud. Open the city again.');
     case 'not_connected':
-      if (action === 'unblock') return tr('Sem conexão com o Habblaud World agora: desbloquear precisa do prédio aceso ou da cidade aberta.');
-      return tr('Sem conexão com o Habblaud World agora; o Habblaud tenta de novo sozinho.');
+      if (action === 'unblock') return tr('No connection to Habblaud World right now: unblocking needs your building lit or the city open.');
+      return tr('No connection to Habblaud World right now; Habblaud tries again on its own.');
     case 'offline':
-      return tr('Sem conexão com o Habblaud.');
+      return tr('No connection to Habblaud.');
     case 'forbidden':
     case 'local_only':
-      return tr('A conta do World só pode ser mexida pelo próprio computador, com o Habblaud aberto em localhost.');
+      return tr('The World account can only be managed from the computer itself, with Habblaud opened on localhost.');
     case 'terminal_off':
-      return tr('A conta do World só pode ser mexida com o Habblaud acessível apenas pelo próprio computador (acesso local, bind 127.0.0.1).');
+      return tr('The World account can only be managed when Habblaud is reachable only from this computer (local access, bind 127.0.0.1).');
     case 'invalid':
       switch (action) {
         case 'register':
         case 'reset':
-          return tr('O servidor recusou o e-mail ou a senha. A senha precisa ter de 12 a 128 caracteres e não pode estar numa lista de senhas vazadas.');
+          return tr("The server rejected the email or the password. The password needs 12 to 128 characters and can't be on a list of leaked passwords.");
         case 'character':
-          return tr('O servidor recusou o personagem. Confira o nome, os traços (2 ou 3) e a frase de apresentação.');
+          return tr('The server rejected the character. Check the name, the traits (2 or 3) and the intro phrase.');
         case 'visibility':
         case 'inactivity':
-          return tr('O servidor recusou as opções de visibilidade.');
+          return tr('The server rejected the visibility options.');
         default:
-          return tr('O servidor recusou o pedido. Confira os dados e tente de novo.');
+          return tr('The server rejected the request. Check the details and try again.');
       }
     case 'internal':
-      return tr('O servidor do mundo teve um erro; tente de novo.');
+      return tr('The world server had an error; try again.');
     case 'world_error':
     case 'unknown':
-      return tr('Algo deu errado. Tente de novo em instantes.');
+      return tr('Something went wrong. Try again in a moment.');
   }
 }
 
@@ -577,29 +577,29 @@ export function buildingState(b: WorldBuildingStatus | undefined, hasPlayer: boo
 export function buildingStopView(reason: WorldBuildingStop): { label: string; desc: string; toggle: BuildingView['toggle'] } {
   switch (reason) {
     case 'update':
-      return { label: tr('Atualize o Habblaud'), desc: tr('Esta versão do Habblaud não entra mais no mundo. Atualize para o prédio voltar a acender.'), toggle: null };
+      return { label: tr('Update Habblaud'), desc: tr('This version of Habblaud can no longer join the world. Update it to light the building up again.'), toggle: null };
     case 'other-device':
       return {
-        label: tr('Conectado em outro computador'),
-        desc: tr('A sua conta conectou o prédio em outro computador, e este parou de enviar.'),
-        toggle: { action: 'resume', text: tr('Trazer para este computador'), hint: tr('O prédio volta a subir daqui, e o outro computador para de enviar.') },
+        label: tr('Connected on another computer'),
+        desc: tr('Your account connected the building on another computer, and this one stopped sending.'),
+        toggle: { action: 'resume', text: tr('Bring it to this computer'), hint: tr('The building goes back to uploading from here, and the other computer stops sending.') },
       };
     case 'banned':
-      return { label: tr('Conta banida'), desc: tr('O Habblaud World baniu esta conta: o prédio saiu do mundo e nada mais sai deste computador.'), toggle: null };
+      return { label: tr('Account banned'), desc: tr('Habblaud World banned this account: the building left the world and nothing else leaves this computer.'), toggle: null };
     case 'suspended':
       return {
-        label: tr('Conta suspensa'),
-        desc: tr('Esta conta está suspensa no Habblaud World: o prédio fica apagado e nada sai deste computador.'),
-        toggle: { action: 'resume', text: tr('Tentar de novo'), hint: tr('Se a suspensão já acabou, o prédio volta a acender.') },
+        label: tr('Account suspended'),
+        desc: tr('This account is suspended in Habblaud World: the building stays dark and nothing leaves this computer.'),
+        toggle: { action: 'resume', text: tr('Try again'), hint: tr('If the suspension is over, the building lights up again.') },
       };
     case 'waiting':
-      return { label: tr('Na lista de espera'), desc: tr('A conta voltou para a lista de espera: o prédio sai do mundo até o acesso ser liberado de novo.'), toggle: null };
+      return { label: tr('On the waitlist'), desc: tr('The account went back to the waiting list: the building leaves the world until access is granted again.'), toggle: null };
     case 'no_player':
-      return { label: tr('Sem personagem'), desc: tr('O mundo não encontrou o seu personagem: crie de novo para o prédio voltar.'), toggle: null };
+      return { label: tr('No character'), desc: tr("The world couldn't find your character: create it again to bring the building back."), toggle: null };
     case 'unauthorized':
-      return { label: tr('Entre de novo'), desc: tr('O servidor do mundo não reconheceu este computador: entre de novo na conta.'), toggle: null };
+      return { label: tr('Sign in again'), desc: tr("The world server didn't recognize this computer: sign in to the account again."), toggle: null };
     case 'deleted':
-      return { label: tr('Conta excluída'), desc: tr('A conta do Habblaud World foi excluída: o prédio e o perfil saíram do mundo e nada mais sai deste computador.'), toggle: null };
+      return { label: tr('Account deleted'), desc: tr('The Habblaud World account was deleted: the building and the profile left the world, and nothing else leaves this computer.'), toggle: null };
   }
 }
 
@@ -613,25 +613,25 @@ export const UPLINK_REJECT_CODES = UPLINK_ACK_ERRORS;
 export function uplinkRejectText(code: string | undefined): string {
   switch (code) {
     case 'schema':
-      return tr('O pacote saiu fora do formato do protocolo. Atualize o Habblaud.');
+      return tr("The packet didn't match the protocol format. Update Habblaud.");
     case 'limits':
-      return tr('O escritório passou dos limites do mundo (64 andares, 64 agentes por andar, 256 agentes ou 64 KB).');
+      return tr("The office went over the world's limits (64 floors, 64 agents per floor, 256 agents or 64 KB).");
     case 'name_pool':
-      return tr('Um nome de personagem não está na lista de nomes do mundo.');
+      return tr("A character name isn't on the world's list of names.");
     case 'parts':
-      return tr('Uma peça de aparência está fora das paletas do editor.');
+      return tr("An appearance part is outside the editor's palettes.");
     case 'ids':
-      return tr('Um código de andar ou de agente está fora do formato.');
+      return tr("A floor or agent code isn't in the right format.");
     case 'rate':
-      return tr('Remessas demais em pouco tempo (o limite é 12 por minuto). A próxima vai normalmente.');
+      return tr('Too many uploads in a short time (the limit is 12 per minute). The next one goes through normally.');
     case 'internal':
-      return tr('Um erro no servidor do mundo. A próxima remessa tenta de novo.');
+      return tr('An error on the world server. The next upload tries again.');
     case 'left':
-      return tr('A conta saiu do mundo (por este ou por outro computador): nada mais sai até você voltar ao mundo.');
+      return tr('The account left the world (from this or another computer): nothing else is sent until you come back to the world.');
     case 'implausible':
-      return tr('O pacote contradiz o anterior de um jeito que o Habblaud não produz: o mundo o descartou, e o prédio fica com o último aceito. As próximas remessas vão normalmente.');
+      return tr("The packet contradicts the previous one in a way Habblaud doesn't produce: the world discarded it, and the building keeps the last accepted one. The next uploads go out normally.");
     default:
-      return tr('Um motivo que esta versão do Habblaud não conhece.');
+      return tr("A reason this version of Habblaud doesn't know.");
   }
 }
 
@@ -663,8 +663,8 @@ export interface BuildingViewOptions {
 /** "Recorrer por e-mail", com a explicação ao lado. */
 function appealFor(kind: 'appeal' | 'contest'): { text: string; hint: string } {
   return kind === 'appeal'
-    ? { text: tr('Recorrer por e-mail'), hint: tr('Abre um e-mail para {0}: conte o que aconteceu, e uma pessoa revê o caso.', [APPEAL_EMAIL]) }
-    : { text: tr('Contestar por e-mail'), hint: tr('Abre um e-mail para {0}: se for engano, uma pessoa revê os números e tira o selo.', [APPEAL_EMAIL]) };
+    ? { text: tr('Appeal by e-mail'), hint: tr('Opens an e-mail to {0}: tell us what happened, and a person reviews the case.', [APPEAL_EMAIL]) }
+    : { text: tr('Dispute by e-mail'), hint: tr("Opens an e-mail to {0}: if it's a mistake, a person reviews the numbers and removes the badge.", [APPEAL_EMAIL]) };
 }
 
 /** "1 byte", "1.174 bytes". */
@@ -674,17 +674,17 @@ export function bytesText(n: number): string {
 
 /** "1 andar", "3 andares". */
 export function floorsText(n: number): string {
-  return n === 1 ? tr('1 andar') : tr('{0} andares', [formatInt(n)]);
+  return n === 1 ? tr('1 floor') : tr('{0} floors', [formatInt(n)]);
 }
 
 /** "1 agente", "3 agentes". */
 export function agentsText(n: number): string {
-  return n === 1 ? tr('1 agente') : tr('{0} agentes', [formatInt(n)]);
+  return n === 1 ? tr('1 agent') : tr('{0} agents', [formatInt(n)]);
 }
 
 /** "1 visitante agora", "3 visitantes agora". */
 export function visitorsText(n: number): string {
-  return n === 1 ? tr('1 visitante agora') : tr('{0} visitantes agora', [formatInt(n)]);
+  return n === 1 ? tr('1 visitor now') : tr('{0} visitors now', [formatInt(n)]);
 }
 
 /**
@@ -720,7 +720,7 @@ export function buildingView(b: WorldBuildingStatus | undefined, hasPlayer: bool
   if (b?.unverified && v.state !== 'stopped' && v.state !== 'left' && v.state !== 'no_player') {
     return {
       ...v,
-      unverified: tr('O mundo marcou o seu prédio como "não verificado": os números pareceram fora do normal e estão em revisão. Ele continua no mundo, mas fora de placares e destaques.'),
+      unverified: tr('The world marked your building as "unverified": its numbers looked unusual and are under review. It stays in the world, but out of leaderboards and highlights.'),
       appeal: appealFor('contest'),
     };
   }
@@ -738,23 +738,23 @@ function buildingViewBase(b: WorldBuildingStatus | undefined, hasPlayer: boolean
       : [
           floorsText(floors),
           agentsText(agents),
-          b?.lastUplinkAt ? tr('Última remessa: {0}', [relativeTime(b.lastUplinkAt, now)]) : tr('Nenhuma remessa ainda'),
+          b?.lastUplinkAt ? tr('Last upload: {0}', [relativeTime(b.lastUplinkAt, now)]) : tr('No uploads yet'),
           ...(b?.visitors ? [`👀 ${visitorsText(b.visitors)}`] : []),
         ];
   const live = state === 'connected' || state === 'reconnecting' || state === 'paused';
   const rejected = live && b?.lastAck?.ok === false ? uplinkRejectText(b.lastAck.error) : null;
-  const later = tr('Pausado por 30 dias, o prédio some do mapa e, 30 dias depois, é retirado; retomar antes disso traz de volta, no mesmo lote.');
+  const later = tr('After 30 days paused, the building disappears from the map and is removed 30 days later; resuming before that brings it back, on the same lot.');
   switch (state) {
     case 'no_player':
-      return { state, label: tr('Sem personagem'), desc: tr('Crie o seu personagem: o prédio entra no mundo junto com ele.'), stats, rejected, toggle: null, leave: false, ...extra };
+      return { state, label: tr('No character'), desc: tr('Create your character: the building joins the world along with it.'), stats, rejected, toggle: null, leave: false, ...extra };
     case 'left':
       return {
         state,
-        label: tr('Fora do mundo'),
-        desc: tr('Você saiu do mundo: o prédio foi retirado e o lote, liberado. Dá para andar pela cidade; nada do escritório sai deste computador.'),
+        label: tr('Out of the world'),
+        desc: tr('You left the world: the building was removed and the lot freed. You can still walk around the city; nothing from the office leaves this computer.'),
         stats,
         rejected: null,
-        toggle: { action: 'join', text: tr('Voltar ao mundo'), hint: tr('Voltar cria um prédio novo, em outro lote; a conta e o personagem são os mesmos.') },
+        toggle: { action: 'join', text: tr('Back to the world'), hint: tr('Coming back creates a new building, on another lot; the account and the character are the same.') },
         leave: false,
         ...extra,
       };
@@ -766,11 +766,11 @@ function buildingViewBase(b: WorldBuildingStatus | undefined, hasPlayer: boolean
     case 'paused':
       return {
         state,
-        label: tr('Pausado'),
-        desc: tr('Pausado: seu prédio está apagado, mas você pode andar pela cidade. Nada do escritório sai deste computador.'),
+        label: tr('Paused'),
+        desc: tr('Paused: your building is dark, but you can walk around the city. Nothing from the office leaves this computer.'),
         stats,
         rejected,
-        toggle: { action: 'resume', text: tr('Retomar'), hint: `${tr('Retomar volta a enviar e acende o prédio.')} ${later}` },
+        toggle: { action: 'resume', text: tr('Resume'), hint: `${tr('Resuming starts sending again and lights the building up.')} ${later}` },
         leave: true,
         ...extra,
       };
@@ -782,17 +782,17 @@ function buildingViewBase(b: WorldBuildingStatus | undefined, hasPlayer: boolean
       const maintenance = !connected && !!opts.maintenance;
       return {
         state,
-        label: connected ? tr('Conectado') : maintenance ? tr('Em manutenção') : first ? tr('Conectando…') : tr('Reconectando…'),
+        label: connected ? tr('Connected') : maintenance ? tr('Under maintenance') : first ? tr('Connecting…') : tr('Reconnecting…'),
         desc: connected
-          ? tr('Aceso no mundo: um andar por sala aberta e cada personagem no status de agora. Os tokens, se você deixar, aparecem só em faixas, no medidor da fachada.')
+          ? tr('Lit in the world: one floor per open room and each character in its current status. Tokens, if you allow it, show up only as ranges, on the facade meter.')
           : maintenance
-            ? tr('O mundo está em manutenção; tentamos de novo em instantes.')
+            ? tr("The world is under maintenance; we'll try again in a moment.")
             : first
-              ? tr('O prédio acende com a primeira remessa.')
-              : tr('Sem conexão com o mundo agora: o Habblaud tenta de novo sozinho. Com 2 minutos sem notícias, o prédio apaga.'),
+              ? tr('The building lights up with the first upload.')
+              : tr('No connection to the world right now: Habblaud keeps retrying on its own. After 2 minutes without news, the building goes dark.'),
         stats,
         rejected,
-        toggle: { action: 'pause', text: tr('Pausar'), hint: `${tr('Pausar interrompe o envio na hora e apaga o prédio no mundo.')} ${later}` },
+        toggle: { action: 'pause', text: tr('Pause'), hint: `${tr('Pausing stops sending right away and turns the building off in the world.')} ${later}` },
         leave: true,
         ...extra,
       };
@@ -803,7 +803,7 @@ function buildingViewBase(b: WorldBuildingStatus | undefined, hasPlayer: boolean
 /** A diferença entre pausar e sair do mundo (PLANO.md, seção 2.6), ao lado do botão "Sair do mundo". */
 export function leaveHint(): string {
   return tr(
-    'Pausar apaga o prédio e guarda o lote: retomar traz de volta, no mesmo lugar. Sair do mundo retira o prédio na hora e libera o lote; a conta e o personagem continuam, e voltar depois cria um prédio novo, em outro lote.',
+    'Pausing turns the building off and keeps the lot: resuming brings it back, in the same place. Leaving the world removes the building right away and frees the lot; the account and the character stay, and coming back later creates a new building, on another lot.',
   );
 }
 
@@ -814,13 +814,13 @@ export type AckKind = 'accepted' | 'rejected' | 'pending';
  * (iguais aos enviados, `sentBytes`, quando o pacote chegou inteiro).
  */
 export function ackView(ack: WorldLastUplink['ack'], sentBytes?: number): { kind: AckKind; label: string; reason: string | null } {
-  if (!ack) return { kind: 'pending', label: tr('Sem resposta do mundo ainda.'), reason: null };
+  if (!ack) return { kind: 'pending', label: tr('No reply from the world yet.'), reason: null };
   if (ack.ok) {
     const reason =
-      ack.bytes === undefined ? null : ack.bytes === sentBytes ? tr('O mundo recebeu os mesmos {0}.', [bytesText(ack.bytes)]) : tr('O mundo contou {0}.', [bytesText(ack.bytes)]);
-    return { kind: 'accepted', label: tr('Aceita pelo mundo.'), reason };
+      ack.bytes === undefined ? null : ack.bytes === sentBytes ? tr('The world received the same {0}.', [bytesText(ack.bytes)]) : tr('The world counted {0}.', [bytesText(ack.bytes)]);
+    return { kind: 'accepted', label: tr('Accepted by the world.'), reason };
   }
-  return { kind: 'rejected', label: tr('Recusada pelo mundo.'), reason: uplinkRejectText(ack.error) };
+  return { kind: 'rejected', label: tr('Rejected by the world.'), reason: uplinkRejectText(ack.error) };
 }
 
 /** O pacote como a janela mostra: o mesmo objeto que foi para o fio, só com recuo (2 espaços). */

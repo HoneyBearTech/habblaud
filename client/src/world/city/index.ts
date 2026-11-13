@@ -161,15 +161,15 @@ export function createCityScene(o: CitySceneOptions): CityScene {
     camera.animateTo(c.x, c.y, z, Date.now(), 380);
   });
   const toast = h('div', { class: 'ui-city-toast', role: 'status', attrs: { 'aria-live': 'polite' }, hidden: true });
-  const loading = h('div', { class: 'ui-city-loading', text: tr('Entrando na cidade…') });
+  const loading = h('div', { class: 'ui-city-loading', text: tr('Entering the city…') });
   const help = h(
     'div',
     { class: 'ui-city-help', attrs: { 'aria-hidden': 'true' } },
-    h('span', {}, h('kbd', { text: 'WASD' }), ' ', tr('andar')),
-    h('span', {}, h('kbd', { text: 'Shift' }), ' ', tr('correr')),
-    h('span', {}, h('kbd', { text: tr('clique') }), ' ', tr('ir até lá')),
-    h('span', {}, h('kbd', { text: 'E' }), ' ', tr('entrar')),
-    h('span', {}, h('kbd', { text: 'Esc' }), ' ', tr('escritório')),
+    h('span', {}, h('kbd', { text: 'WASD' }), ' ', tr('walk')),
+    h('span', {}, h('kbd', { text: 'Shift' }), ' ', tr('run')),
+    h('span', {}, h('kbd', { text: tr('click') }), ' ', tr('go there')),
+    h('span', {}, h('kbd', { text: 'E' }), ' ', tr('enter')),
+    h('span', {}, h('kbd', { text: 'Esc' }), ' ', tr('office')),
   );
   const layer = h('div', { class: 'ui-city', hidden: true }, cards.el, minimap.el, help, toast, loading);
   o.uiRoot.append(layer);
@@ -438,7 +438,7 @@ export function createCityScene(o: CitySceneOptions): CityScene {
 
   // ------------------------------------------------------------------ stream
 
-  const offline = () => tr('Sem conexão com o Habblaud World agora; o Habblaud tenta de novo sozinho.');
+  const offline = () => tr('No connection to Habblaud World right now; Habblaud tries again on its own.');
 
   const onStream = (ev: WorldStreamEvent) => {
     switch (ev.type) {
@@ -454,7 +454,7 @@ export function createCityScene(o: CitySceneOptions): CityScene {
         else if (visit) endVisit();
         enterOwnIfPending();
         // sem conexão com o servidor do mundo, nada desce: diz isso em vez de "Entrando na cidade…"
-        loading.textContent = state.connected ? tr('Entrando na cidade…') : offline();
+        loading.textContent = state.connected ? tr('Entering the city…') : offline();
         loading.hidden = state.connected && !!me;
         return;
       }
@@ -496,7 +496,7 @@ export function createCityScene(o: CitySceneOptions): CityScene {
       renderer.fx = social;
       me = null;
       sender = null;
-      loading.textContent = tr('Entrando na cidade…');
+      loading.textContent = tr('Entering the city…');
       loading.hidden = false;
     }
     social?.reset();
@@ -606,7 +606,7 @@ export function createCityScene(o: CitySceneOptions): CityScene {
       const d = nearestDoor(me.x, me.y, (lot) => !!state.buildingAt(lot), ENTER_RADIUS);
       const b = d ? state.buildingAt(d.lot) : undefined;
       if (!b) {
-        showToast(tr('Chegue perto da porta de um prédio e aperte E.'));
+        showToast(tr("Get close to a building's door and press E."));
         return;
       }
       enter(b.id);

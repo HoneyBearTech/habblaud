@@ -39,7 +39,7 @@ export const WAIT_ROUND_MIN_MS = 500;
 export const REFUSED_RETRY_MS = 60_000;
 const REQUEST_TIMEOUT_MS = 5_000;
 
-const USAGE = tr('Uso: npm run codex:bridge [-- opções]\n\nEntrega as mensagens do escritório às sessões do Codex quando o Habblaud roda no Docker (deixe rodando no computador).\n\nOpções:\n  --port <n>   porta do Habblaud (padrão: HABBLAUD_PORT ou {0})\n  --once       faz uma rodada só e sai\n  -h, --help   mostra esta ajuda\n\nBinário do Codex: HABBLAUD_CODEX_BIN ou `codex` do PATH.', [DEFAULT_PORT]);
+const USAGE = tr('Usage: npm run codex:bridge [-- options]\n\nDelivers office messages to Codex sessions when Habblaud runs in Docker (keep it running on the computer).\n\nOptions:\n  --port <n>   Habblaud port (default: HABBLAUD_PORT or {0})\n  --once       runs a single pass and exits\n  -h, --help   shows this help\n\nCodex binary: HABBLAUD_CODEX_BIN or `codex` from PATH.', [DEFAULT_PORT]);
 
 export interface BridgeMessage {
   id: string;
@@ -76,8 +76,8 @@ export function parseArgs(argv: string[], env: NodeJS.ProcessEnv = process.env):
     if (a === '--once') once = true;
     else if (a === '--port') {
       port = Number(argv[++i]);
-      if (!Number.isInteger(port) || port <= 0 || port >= 65_536) throw new FatalError(tr('--port precisa de um número entre 1 e 65535.'));
-    } else throw new FatalError(tr('opção desconhecida: {0}\n\n{1}', [a, USAGE]));
+      if (!Number.isInteger(port) || port <= 0 || port >= 65_536) throw new FatalError(tr('--port needs a number between 1 and 65535.'));
+    } else throw new FatalError(tr('unknown option: {0}\n\n{1}', [a, USAGE]));
   }
   return { port, once };
 }
@@ -97,11 +97,11 @@ function isDir(p: string): boolean {
 export function checkMessage(raw: unknown): BridgeMessage | { id?: string; error: string } {
   const r = rec(raw);
   const id = typeof r?.id === 'string' && r.id.trim() ? r.id : undefined;
-  if (!r || !id) return { error: tr('mensagem sem id') };
-  if (typeof r.text !== 'string' || !r.text.trim()) return { id, error: tr('mensagem vazia') };
-  if (typeof r.thread !== 'string' || !THREAD_ID.test(r.thread)) return { id, error: tr('id de thread do Codex inválido') };
+  if (!r || !id) return { error: tr('message without id') };
+  if (typeof r.text !== 'string' || !r.text.trim()) return { id, error: tr('empty message') };
+  if (typeof r.thread !== 'string' || !THREAD_ID.test(r.thread)) return { id, error: tr('invalid Codex thread id') };
   const home = typeof r.codexHome === 'string' ? r.codexHome : '';
-  if (!home || !isAbsolute(home) || !isDir(home) || isClaudeDir(home)) return { id, error: tr('a pasta do Codex {0} não existe neste computador', [home || tr('(vazia)')]) };
+  if (!home || !isAbsolute(home) || !isDir(home) || isClaudeDir(home)) return { id, error: tr("the Codex folder {0} doesn't exist on this computer", [home || tr('(empty)')]) };
   return { id, account: typeof r.account === 'string' ? r.account : '', codexHome: resolve(home), thread: r.thread, text: r.text };
 }
 
@@ -155,7 +155,7 @@ export async function round(post: Post, run: CodexQueueRunner, log: (line: strin
         results.push(result);
         await post('/api/codex/bridge/ack', { results: [result] });
       }
-      log(tr('✗ mensagem recusada: {0}', [m.error]));
+      log(tr('✗ message rejected: {0}', [m.error]));
       continue;
     }
     let r: CodexQueueResult;
@@ -167,7 +167,7 @@ export async function round(post: Post, run: CodexQueueRunner, log: (line: strin
     const result = r.ok ? { id: m.id, ok: true } : { id: m.id, ok: false, error: r.error };
     results.push(result);
     await post('/api/codex/bridge/ack', { results: [result] });
-    log(r.ok ? tr('✓ mensagem na fila do thread {0}… ({1})', [m.thread.slice(0, 8), m.account || 'Codex']) : `✗ thread ${m.thread.slice(0, 8)}…: ${r.error}`);
+    log(r.ok ? tr('✓ message queued for thread {0}… ({1})', [m.thread.slice(0, 8), m.account || 'Codex']) : `✗ thread ${m.thread.slice(0, 8)}…: ${r.error}`);
   }
   return { state: 'ok', results };
 }
@@ -175,13 +175,13 @@ export async function round(post: Post, run: CodexQueueRunner, log: (line: strin
 /** Anexos de um pedido vindo do Habblaud: nomes seguros, base64 válido, tamanho e quantidade no limite. */
 export function checkFiles(raw: unknown): Attachment[] | { error: string } {
   if (raw === undefined) return [];
-  if (!Array.isArray(raw) || raw.length > ATTACHMENTS_PER_SPAWN) return { error: tr('anexos inválidos') };
+  if (!Array.isArray(raw) || raw.length > ATTACHMENTS_PER_SPAWN) return { error: tr('invalid attachments') };
   const out: Attachment[] = [];
   for (const f of raw) {
     const r = rec(f);
-    if (!r || typeof r.data !== 'string' || !/^[A-Za-z0-9+/]*={0,2}$/.test(r.data)) return { error: tr('anexo ilegível') };
+    if (!r || typeof r.data !== 'string' || !/^[A-Za-z0-9+/]*={0,2}$/.test(r.data)) return { error: tr('unreadable attachment') };
     const data = Buffer.from(r.data, 'base64');
-    if (!data.length || data.length > ATTACHMENT_MAX_BYTES) return { error: tr('anexo vazio ou grande demais') };
+    if (!data.length || data.length > ATTACHMENT_MAX_BYTES) return { error: tr('attachment empty or too large') };
     out.push({ name: safeFileName(typeof r.name === 'string' ? r.name : 'arquivo'), type: typeof r.type === 'string' ? r.type : '', data });
   }
   return out;
@@ -190,21 +190,21 @@ export function checkFiles(raw: unknown): Attachment[] | { error: string } {
 /** Linha do log de um agente novo que abriu: uma frase inteira por caso (anexos e nota), para traduzir. */
 function spawnedLine(folder: string, how: SpawnHow, files: number, note?: string): string {
   if (how === 'cli') {
-    if (!files) return tr('✓ agente novo rodando em segundo plano em {0}', [folder]);
+    if (!files) return tr('✓ new agent in {0} running in the background', [folder]);
     return files > 1
-      ? tr('✓ agente novo rodando em segundo plano em {0} com {1} anexos', [folder, files])
-      : tr('✓ agente novo rodando em segundo plano em {0} com 1 anexo', [folder]);
+      ? tr('✓ new agent in {0} running in the background with {1} attachments', [folder, files])
+      : tr('✓ new agent in {0} running in the background with 1 attachment', [folder]);
   }
   if (note) {
-    if (!files) return tr('✓ agente novo aberto no app do Claude em {0} (não rodou sozinho: {1})', [folder, note]);
+    if (!files) return tr("✓ new agent in {0} opened in the Claude app (didn't run on its own: {1})", [folder, note]);
     return files > 1
-      ? tr('✓ agente novo aberto no app do Claude em {0} com {1} anexos (não rodou sozinho: {2})', [folder, files, note])
-      : tr('✓ agente novo aberto no app do Claude em {0} com 1 anexo (não rodou sozinho: {1})', [folder, note]);
+      ? tr("✓ new agent in {0} opened in the Claude app with {1} attachments (didn't run on its own: {2})", [folder, files, note])
+      : tr("✓ new agent in {0} opened in the Claude app with 1 attachment (didn't run on its own: {1})", [folder, note]);
   }
-  if (!files) return tr('✓ agente novo aberto no app do Claude em {0}', [folder]);
+  if (!files) return tr('✓ new agent in {0} opened in the Claude app', [folder]);
   return files > 1
-    ? tr('✓ agente novo aberto no app do Claude em {0} com {1} anexos', [folder, files])
-    : tr('✓ agente novo aberto no app do Claude em {0} com 1 anexo', [folder]);
+    ? tr('✓ new agent in {0} opened in the Claude app with {1} attachments', [folder, files])
+    : tr('✓ new agent in {0} opened in the Claude app with 1 attachment', [folder]);
 }
 
 /**
@@ -232,8 +232,8 @@ export async function spawnRound(
     const files = checkFiles(rec(raw)?.files);
     const bad = 'error' in req ? req.error : 'error' in files ? files.error : problem(req.folder);
     if (bad || 'error' in req || 'error' in files) {
-      results.push({ id, ok: false, error: bad ?? tr('pedido inválido') });
-      log(tr('✗ agente novo recusado: {0}', [bad]));
+      results.push({ id, ok: false, error: bad ?? tr('invalid request') });
+      log(tr('✗ new agent rejected: {0}', [bad]));
       continue;
     }
     let r: { ok: true; how: SpawnHow; note?: string } | { ok: false; error: string };
@@ -244,7 +244,7 @@ export async function spawnRound(
       r = { ok: false, error: String((err as Error)?.message ?? err) };
     }
     results.push(r.ok ? { id, ok: true, how: r.how, ...(r.note ? { note: r.note } : {}) } : { id, ok: false, error: r.error });
-    log(!r.ok ? tr('✗ agente novo em {0}: {1}', [req.folder, r.error]) : spawnedLine(req.folder, r.how, files.length, r.note));
+    log(!r.ok ? tr('✗ new agent in {0}: {1}', [req.folder, r.error]) : spawnedLine(req.folder, r.how, files.length, r.note));
   }
   if (results.length) await post('/api/host/spawn/ack', { results });
   return { state: 'ok', results };
@@ -265,18 +265,18 @@ export async function dictationRound(post: Post, transcribe: Transcriber, log: (
     const id = typeof r?.id === 'string' ? r.id : '';
     if (!id) continue;
     if (typeof r?.data !== 'string' || !/^[A-Za-z0-9+/]*={0,2}$/.test(r.data)) {
-      results.push({ id, ok: false, error: tr('áudio ilegível') });
+      results.push({ id, ok: false, error: tr('unreadable audio') });
       continue;
     }
     const started = Date.now();
     try {
       const t = await transcribe(Buffer.from(r.data, 'base64'), typeof r.type === 'string' ? r.type : '');
       results.push({ id, ok: true, text: t.text, lang: t.lang });
-      log(tr('✓ ditado transcrito ({0}, {1} s)', [t.lang || '?', ((Date.now() - started) / 1000).toFixed(1)]));
+      log(tr('✓ dictation transcribed ({0}, {1} s)', [t.lang || '?', ((Date.now() - started) / 1000).toFixed(1)]));
     } catch (err) {
-      const error = (err as Error)?.message || tr('o Whisper falhou');
+      const error = (err as Error)?.message || tr('Whisper failed');
       results.push({ id, ok: false, error });
-      log(tr('✗ ditado: {0}', [error]));
+      log(tr('✗ dictation: {0}', [error]));
     }
   }
   if (results.length) await post('/api/host/dictation/ack', { results });
@@ -305,16 +305,16 @@ export async function filesRound(
     const id = typeof r?.id === 'string' ? r.id : '';
     if (!id) continue;
     const checked = check(typeof r?.path === 'string' ? r.path : '');
-    const c = 'error' in checked || !opts.inside || opts.inside(checked.path) ? checked : { error: tr('fora das pastas de projeto conhecidas') };
+    const c = 'error' in checked || !opts.inside || opts.inside(checked.path) ? checked : { error: tr('outside the known project folders') };
     if ('error' in c) {
       results.push({ id, ok: false, error: c.error });
-      log(tr('✗ arquivo de entrega recusado: {0}', [c.error]));
+      log(tr('✗ delivery file rejected: {0}', [c.error]));
       continue;
     }
     try {
       results.push({ id, ok: true, data: read(c.path).toString('base64') });
     } catch {
-      results.push({ id, ok: false, error: tr('arquivo ilegível') });
+      results.push({ id, ok: false, error: tr('unreadable file') });
     }
   }
   if (results.length) await post('/api/host/files/ack', { results });
@@ -346,15 +346,15 @@ async function main(): Promise<void> {
   const log = (line: string) => console.log(`[codex-bridge] ${line}`);
   log(
     bin
-      ? tr('Entregando as mensagens do Habblaud (http://127.0.0.1:{0}) às sessões do Codex com {1}, e começando os agentes novos pedidos no escritório. Ctrl+C para parar.', [parsed.port, bin])
-      : tr('Sem o Codex (codex no PATH ou HABBLAUD_CODEX_BIN): só começo os agentes novos pedidos no Habblaud (http://127.0.0.1:{0}). Ctrl+C para parar.', [parsed.port]),
+      ? tr('Delivering Habblaud messages (http://127.0.0.1:{0}) to Codex sessions with {1}, and starting the new agents requested in the office. Ctrl+C to stop.', [parsed.port, bin])
+      : tr('No Codex (codex in PATH or HABBLAUD_CODEX_BIN): only starting the new agents requested in Habblaud (http://127.0.0.1:{0}). Ctrl+C to stop.', [parsed.port]),
   );
-  log(cli ? tr('Agentes novos rodam em segundo plano com {0} --bg (pasta confiável; senão, no app do Claude).', [claudeBin]) : tr('Sem o claude no PATH (ou HABBLAUD_CLAUDE_BIN): agentes novos abrem no app do Claude e esperam o Enter.'));
+  log(cli ? tr('New agents run in the background with {0} --bg (trusted folder; otherwise, in the Claude app).', [claudeBin]) : tr('No claude in PATH (or HABBLAUD_CLAUDE_BIN): new agents open in the Claude app and wait for Enter.'));
   const whisper = findWhisper(process.env);
   let transcribe: Transcriber | undefined;
-  if ('missing' in whisper) log(tr('Ditado desligado: falta {0}.', [whisper.missing]));
+  if ('missing' in whisper) log(tr('Dictation off: {0} is missing.', [whisper.missing]));
   else {
-    log(tr('Ditado: Whisper local ({0}), idiomas {1} detectados sozinhos.', [whisper.model.split('/').pop(), whisper.langs.join('/')]));
+    log(tr('Dictation: local Whisper ({0}), languages {1} auto-detected.', [whisper.model.split('/').pop(), whisper.langs.join('/')]));
     transcribe = createWhisperTranscriber(whisper);
   }
   // Arquivos das entregas e ditado (a pessoa está esperando): rodadas com espera, cada uma no seu laço.
@@ -381,12 +381,12 @@ async function main(): Promise<void> {
     const r = run ? await round(post, run, log) : spawned;
     const state =
       r.state === 'down'
-        ? tr('Habblaud fora do ar em http://127.0.0.1:{0}; tentando de novo a cada {1} s.', [parsed.port, POLL_MS / 1_000])
+        ? tr('Habblaud is down at http://127.0.0.1:{0}; retrying every {1} s.', [parsed.port, POLL_MS / 1_000])
         : r.state === 'refused'
-          ? tr('o Habblaud recusou ({0}{1}).', [r.status, r.error ? `: ${r.error}` : ''])
+          ? tr('Habblaud refused ({0}{1}).', [r.status, r.error ? `: ${r.error}` : ''])
           : run
-            ? tr('conectado: os agentes do Codex já recebem mensagens pelo escritório.')
-            : tr('conectado ao Habblaud.');
+            ? tr('connected: Codex agents now receive messages from the office.')
+            : tr('connected to Habblaud.');
     if (state !== last) log(state);
     last = state;
     if (parsed.once) {
@@ -399,7 +399,7 @@ async function main(): Promise<void> {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   main().catch((err: unknown) => {
-    console.error(err instanceof FatalError ? tr('[codex-bridge] Erro: {0}', [err.message]) : tr('[codex-bridge] Erro inesperado: {0}', [String(err)]));
+    console.error(err instanceof FatalError ? tr('[codex-bridge] Error: {0}', [err.message]) : tr('[codex-bridge] Unexpected error: {0}', [String(err)]));
     process.exitCode = 1;
   });
 }

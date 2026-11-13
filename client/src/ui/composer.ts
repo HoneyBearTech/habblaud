@@ -88,11 +88,11 @@ export class MessageComposer {
       {
         class: term ? 'ui-msg__send' : 'ui-btn ui-msg__send',
         type: 'button',
-        title: tr('Mandar (Enter)'),
-        attrs: { 'aria-label': tr('Mandar a mensagem') },
+        title: tr('Send (Enter)'),
+        attrs: { 'aria-label': tr('Send the message') },
         on: { click: () => void this.send() },
       },
-      term ? '↵' : tr('Enviar'),
+      term ? '↵' : tr('Send'),
     );
     this.dictStatus = h('p', { class: 'ui-msg__status ui-msg__dictation', role: 'status', hidden: true, attrs: { 'aria-live': 'polite' } });
     this.dictate = new DictationButton(
@@ -146,10 +146,10 @@ export class MessageComposer {
       if (ready) requestAnimationFrame(() => this.resize());
     }
     this.box.disabled = !ready;
-    const name = agent?.name ?? tr('o agente');
-    const placeholder = ready ? (term ? tr('Mensagem para {0} (Enter manda, Shift+Enter quebra a linha)', [name]) : tr('Mensagem para {0}…', [name])) : mode.text;
+    const name = agent?.name ?? tr('the agent');
+    const placeholder = ready ? (term ? tr('Message to {0} (Enter sends, Shift+Enter adds a new line)', [name]) : tr('Message to {0}…', [name])) : mode.text;
     setAttr(this.box, 'placeholder', placeholder);
-    setAttr(this.box, 'aria-label', ready ? tr('Mensagem para {0}', [name]) : mode.text);
+    setAttr(this.box, 'aria-label', ready ? tr('Message to {0}', [name]) : mode.text);
     setTitle(this.box, ready ? '' : mode.text);
     this.row.classList.toggle('is-disabled', !ready);
     setHidden(this.sendBtn, !ready);

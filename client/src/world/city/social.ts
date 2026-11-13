@@ -145,11 +145,11 @@ export class CitySocial implements CityFx {
   constructor(private readonly o: CitySocialOptions) {
     this.fadeEl = h('div', { class: 'ui-city-fade', hidden: true, attrs: { 'aria-hidden': 'true' } });
     this.panel = new TeleportPanel({ go: (code) => this.teleport(code), random: () => this.teleport() });
-    this.dock = h('div', { class: 'ui-city-dock', role: 'toolbar', attrs: { 'aria-label': tr('Ações perto de você') } });
+    this.dock = h('div', { class: 'ui-city-dock', role: 'toolbar', attrs: { 'aria-label': tr('Actions near you') } });
     const params = typeof location === 'undefined' ? null : new URLSearchParams(location.search);
     if (o.testFireworks && params?.has('fireworks')) {
       const test = o.testFireworks;
-      this.testBtn = h('button', { class: 'ui-city-testfw', type: 'button', text: `🎆 ${tr('Testar os fogos')}`, on: { click: () => test() } });
+      this.testBtn = h('button', { class: 'ui-city-testfw', type: 'button', text: `🎆 ${tr('Test the fireworks')}`, on: { click: () => test() } });
     }
     this.el = h('div', { class: 'ui-city-social' }, this.dock, this.panel.el, this.wheel.el, this.fadeEl, this.testBtn);
     window.addEventListener('keydown', this.onKeyDown, true);
@@ -158,9 +158,9 @@ export class CitySocial implements CityFx {
   /** As dicas das teclas novas (para a barra de ajuda da cena). */
   helpItems(): HTMLElement[] {
     return [
-      h('span', {}, h('kbd', { text: 'L' }), ' ', tr('curtir')),
-      h('span', {}, h('kbd', { text: 'G' }), ' ', tr('cumprimentar')),
-      h('span', {}, h('kbd', { text: 'K' }), ' ', tr('bater')),
+      h('span', {}, h('kbd', { text: 'L' }), ' ', tr('leave a like')),
+      h('span', {}, h('kbd', { text: 'G' }), ' ', tr('greet')),
+      h('span', {}, h('kbd', { text: 'K' }), ' ', tr('knock')),
     ];
   }
 
@@ -245,7 +245,7 @@ export class CitySocial implements CityFx {
         this.fireworks.start(now);
         const g = typeof msg.goalId === 'string' ? reachedGoalView(msg.goalId) : null;
         if (g) this.celebrating = { goal: g, until: now + FIREWORKS_MS };
-        this.o.toast(g ? `🎆 ${tr('A cidade bateu a meta da semana: {0}!', [g.label])}` : `🎆 ${tr('A cidade bateu a meta da semana!')}`);
+        this.o.toast(g ? `🎆 ${tr("The city hit this week's goal: {0}!", [g.label])}` : `🎆 ${tr("The city hit this week's goal!")}`);
         return false;
       }
       case 'pos':
@@ -276,8 +276,8 @@ export class CitySocial implements CityFx {
     if (msg.to === me && me) {
       // alguém me cumprimentou: G responde para essa pessoa
       this.replyTo = { id: from, at: now, got: id };
-      const name = this.o.state().players.get(from)?.info.name ?? tr('Alguém');
-      this.o.toast(tr('{0}: {1} {2} — G para responder', [name, greetingIcon(id), greetingLabel(id)]));
+      const name = this.o.state().players.get(from)?.info.name ?? tr('Someone');
+      this.o.toast(tr('{0}: {1} {2} — G to reply', [name, greetingIcon(id), greetingLabel(id)]));
     }
   }
 
@@ -314,33 +314,33 @@ export class CitySocial implements CityFx {
     switch (p.kind) {
       case 'like':
       case 'unlike':
-        if (text === 'too_far') say = tr('Chegue mais perto da porta para curtir (até 4 passos).');
-        else if (text === 'daily_limit') say = tr('Você já deu os 50 likes de hoje. Amanhã tem mais!');
-        else if (text === 'invalid') say = tr('Não dá para curtir o próprio prédio.');
-        else if (text === 'not_found') say = tr('Este prédio não está mais aqui.');
-        else if (text === 'rate_limited') say = tr('Devagar com os likes: espere um pouquinho.');
+        if (text === 'too_far') say = tr('Get closer to the door to like (up to 4 steps).');
+        else if (text === 'daily_limit') say = tr("You've used today's 50 likes. More tomorrow!");
+        else if (text === 'invalid') say = tr("You can't like your own building.");
+        else if (text === 'not_found') say = tr("This building isn't here anymore.");
+        else if (text === 'rate_limited') say = tr('Easy on the likes: wait a moment.');
         break;
       case 'knock':
-        if (text === 'too_far') say = tr('Chegue mais perto da porta para bater (até 2 passos).');
-        else if (text === 'rate_limited') say = tr('Você bateu nesta porta há pouco. Espere um minuto.');
-        else if (text === 'not_found') say = tr('Este prédio não está mais aqui.');
+        if (text === 'too_far') say = tr('Get closer to the door to knock (up to 2 steps).');
+        else if (text === 'rate_limited') say = tr('You knocked on this door a moment ago. Wait a minute.');
+        else if (text === 'not_found') say = tr("This building isn't here anymore.");
         break;
       case 'stamp':
-        if (text === 'already_done') say = tr('Você já deixou um carimbo aqui hoje.');
-        else if (text === 'too_far') say = tr('Chegue mais perto da porta para carimbar.');
-        else if (text === 'not_found') say = tr('Este prédio não está mais aqui.');
+        if (text === 'already_done') say = tr('You already left a stamp here today.');
+        else if (text === 'too_far') say = tr('Get closer to the door to stamp.');
+        else if (text === 'not_found') say = tr("This building isn't here anymore.");
         break;
       case 'teleport':
-        if (text === 'not_found') say = p.code ? tr('Nenhum prédio com o código {0}.', [p.code]) : tr('Nenhum prédio aceso para visitar agora.');
-        else if (text === 'rate_limited') say = tr('Devagar: espere um pouco antes de ir para outro prédio.');
+        if (text === 'not_found') say = p.code ? tr('No building with code {0}.', [p.code]) : tr('No lit building to visit right now.');
+        else if (text === 'rate_limited') say = tr('Slow down: wait a bit before going to another building.');
         if (say) {
           this.fade.failed();
           if (p.code) this.panel.showError(say);
         }
         break;
       case 'greet':
-        if (text === 'not_found') say = tr('Essa pessoa não está mais por perto.');
-        else if (text === 'rate_limited') say = tr('Devagar: um cumprimento a cada 3 segundos.');
+        if (text === 'not_found') say = tr("That person isn't nearby anymore.");
+        else if (text === 'rate_limited') say = tr('Slow down: one greeting every 3 seconds.');
         break;
       case 'block':
       case 'report':
@@ -349,8 +349,8 @@ export class CitySocial implements CityFx {
           this.pending = null;
           return true;
         }
-        if (text === 'daily_limit') say = tr('Você já mandou as 5 denúncias de hoje.');
-        else if (text === 'not_found') say = tr('Essa pessoa não está mais por perto.');
+        if (text === 'daily_limit') say = tr("You've already sent today's 5 reports.");
+        else if (text === 'not_found') say = tr("That person isn't nearby anymore.");
         break;
     }
     if (!say) return false;
@@ -373,7 +373,7 @@ export class CitySocial implements CityFx {
     if (!me) return;
     const t = doorTarget(me, (lot) => state.buildingAt(lot), state.myBuildingId, LIKE_DISTANCE);
     if (!t) {
-      this.o.toast(tr('Chegue perto da porta de um prédio (até 4 passos) e aperte L para curtir.'));
+      this.o.toast(tr("Get close to a building's door (up to 4 steps) and press L to like."));
       return;
     }
     this.toggleLike(t.building, now);
@@ -386,11 +386,11 @@ export class CitySocial implements CityFx {
     if (!me || b.id === state.myBuildingId || this.fade.busy) return;
     const a = doorActions(b, me, state.myBuildingId);
     if (!a.canLike) {
-      this.o.toast(tr('Chegue mais perto da porta para curtir (até 4 passos).'));
+      this.o.toast(tr('Get closer to the door to like (up to 4 steps).'));
       return;
     }
     if (!this.likeGate.take(now)) {
-      this.o.toast(tr('Devagar com os likes: espere um pouquinho.'));
+      this.o.toast(tr('Easy on the likes: wait a moment.'));
       return;
     }
     const on = !b.likedByMe;
@@ -407,7 +407,7 @@ export class CitySocial implements CityFx {
     if (!me) return;
     const t = doorTarget(me, (lot) => state.buildingAt(lot), state.myBuildingId, KNOCK_DISTANCE);
     if (!t) {
-      this.o.toast(tr('Chegue a 2 passos da porta de um prédio e aperte K para bater.'));
+      this.o.toast(tr("Get within 2 steps of a building's door and press K to knock."));
       return;
     }
     this.knock(t.building, now);
@@ -418,15 +418,15 @@ export class CitySocial implements CityFx {
     if (!me || this.fade.busy) return;
     const a = doorActions(b, me, this.o.state().myBuildingId);
     if (!b.knocks) {
-      this.o.toast(tr('O dono deste prédio não recebe batidas na porta.'));
+      this.o.toast(tr("This building's owner doesn't take knocks."));
       return;
     }
     if (!a.canKnock) {
-      this.o.toast(tr('Chegue mais perto da porta para bater (até 2 passos).'));
+      this.o.toast(tr('Get closer to the door to knock (up to 2 steps).'));
       return;
     }
     if (!this.knocks.take(b.id, now)) {
-      this.o.toast(tr('Você bateu nesta porta há pouco. Espere um minuto.'));
+      this.o.toast(tr('You knocked on this door a moment ago. Wait a minute.'));
       return;
     }
     this.send({ t: 'knock', buildingId: b.id }, { kind: 'knock', at: now, buildingId: b.id });
@@ -435,7 +435,7 @@ export class CitySocial implements CityFx {
       const d = lotDoor(b.lot).front;
       this.pops.push({ x: d.x * TILE, y: v.m.side === 'front' ? v.y + v.m.height - 26 : v.y + 8, at: now, text: '✊' });
     }
-    this.o.toast(`🚪 ${tr('Toc, toc! Você bateu na porta de {0}.', [b.owner.name])}`);
+    this.o.toast(`🚪 ${tr("Knock, knock! You knocked on {0}'s door.", [b.owner.name])}`);
   }
 
   /** A roda de cumprimentos para quem me cumprimentou há pouco, o selecionado no cartão ou o mais perto. */
@@ -449,7 +449,7 @@ export class CitySocial implements CityFx {
     const selected = forceTarget ?? (this.o.cards.kind === 'player' ? this.o.cards.id : null);
     const id = forceTarget && state.players.has(forceTarget) ? forceTarget : pickGreetTarget(me, near, { selected, replyTo: reply?.id ?? null });
     if (!id) {
-      this.o.toast(tr('Ninguém por perto para cumprimentar.'));
+      this.o.toast(tr('Nobody nearby to greet.'));
       return;
     }
     const rp = state.players.get(id);
@@ -465,7 +465,7 @@ export class CitySocial implements CityFx {
     if (this.fade.busy) return;
     const wait = this.greetGate.wait(now);
     if (wait > 0) {
-      this.o.toast(tr('Devagar: um cumprimento a cada 3 segundos.'));
+      this.o.toast(tr('Slow down: one greeting every 3 seconds.'));
       return;
     }
     this.greetGate.take(now);
@@ -481,7 +481,7 @@ export class CitySocial implements CityFx {
     if (!this.o.me()) return;
     if (this.fade.busy) return;
     if (!this.teleportGate.take(now)) {
-      this.o.toast(tr('Devagar: espere um pouco antes de ir para outro prédio.'));
+      this.o.toast(tr('Slow down: wait a bit before going to another building.'));
       return;
     }
     this.wheel.close();
@@ -496,7 +496,7 @@ export class CitySocial implements CityFx {
     this.send({ t: 'block', playerId }, { kind: 'block', at: now, playerId });
     this.blocked.add(playerId);
     this.o.cards.hide();
-    this.o.toast(tr('{0} bloqueado. Para desfazer: Configurações › Habblaud World › Bloqueados.', [name]));
+    this.o.toast(tr('{0} blocked. To undo: Settings › Habblaud World › Blocked.', [name]));
   }
 
   private report(playerId: string, reason: ReportReason, now: number): boolean {
@@ -504,13 +504,13 @@ export class CitySocial implements CityFx {
     const day = new Date().toISOString().slice(0, 10);
     if (this.reports.day !== day) this.reports = { day, n: 0 };
     if (this.reports.n >= 5) {
-      this.o.toast(tr('Você já mandou as 5 denúncias de hoje.'));
+      this.o.toast(tr("You've already sent today's 5 reports."));
       return false;
     }
     this.reports.n++;
     this.send({ t: 'report', playerId, reason }, { kind: 'report', at: now, playerId });
     this.reported.add(playerId);
-    this.o.toast(tr('Denúncia enviada. Obrigado: a moderação vai olhar.'));
+    this.o.toast(tr('Report sent. Thanks: the moderators will take a look.'));
     return true;
   }
 
@@ -581,7 +581,7 @@ export class CitySocial implements CityFx {
     if (f.phase === 'idle' || f.phase === 'in') this.panel.setBusy(false);
     if (f.timedOut) {
       this.pending = null;
-      this.o.toast(tr('O mundo não respondeu a tempo. Tente de novo.'));
+      this.o.toast(tr("The world didn't answer in time. Try again."));
     }
     if (this.snapCamera && this.o.me()) {
       this.snapCamera = false;
@@ -620,15 +620,15 @@ export class CitySocial implements CityFx {
       const b = like;
       buttons.push(
         b.likedByMe
-          ? btn('💔', tr('Descurtir'), 'L', tr('Desfazer o like no prédio de {0}', [b.owner.name]), () => this.toggleLike(this.o.state().buildings.get(b.id) ?? b, performance.now()), 'is-liked')
-          : btn('❤️', tr('Curtir'), 'L', tr('Curtir o prédio de {0}', [b.owner.name]), () => this.toggleLike(this.o.state().buildings.get(b.id) ?? b, performance.now()), 'is-like'),
+          ? btn('💔', tr('Unlike'), 'L', tr("Undo the like on {0}'s building", [b.owner.name]), () => this.toggleLike(this.o.state().buildings.get(b.id) ?? b, performance.now()), 'is-liked')
+          : btn('❤️', tr('Like'), 'L', tr("Like {0}'s building", [b.owner.name]), () => this.toggleLike(this.o.state().buildings.get(b.id) ?? b, performance.now()), 'is-like'),
       );
     }
     if (knock) {
       const b = knock;
-      buttons.push(btn('🚪', tr('Bater'), 'K', tr('Bater na porta de {0}', [b.owner.name]), () => this.knock(this.o.state().buildings.get(b.id) ?? b, performance.now())));
+      buttons.push(btn('🚪', tr('Knock'), 'K', tr("Knock on {0}'s door", [b.owner.name]), () => this.knock(this.o.state().buildings.get(b.id) ?? b, performance.now())));
     }
-    if (greet) buttons.push(btn('👋', tr('Cumprimentar'), 'G', tr('Cumprimentar quem está perto'), () => this.openWheel(performance.now())));
+    if (greet) buttons.push(btn('👋', tr('Greet'), 'G', tr('Greet someone nearby'), () => this.openWheel(performance.now())));
     this.dock.replaceChildren(...buttons);
     setHidden(this.dock, !buttons.length);
     void now;
@@ -1029,7 +1029,7 @@ export class CitySocial implements CityFx {
       const x = map.sx(r.x);
       const y = map.sy(r.y);
       const w = r.w * k;
-      line(tr('META DA CIDADE'), x + w / 2, y + 4 * k, w - 4, Math.max(7, Math.min(11, 4.6 * k)), '#fff1e0', 800, 'center');
+      line(tr('CITY GOAL'), x + w / 2, y + 4 * k, w - 4, Math.max(7, Math.min(11, 4.6 * k)), '#fff1e0', 800, 'center');
       const left = x + 16 * k;
       const tw = w - 19 * k;
       if (g) {
@@ -1043,7 +1043,7 @@ export class CitySocial implements CityFx {
         line(g.progressText, left, yy, tw, small * 0.92, '#9aa4b8', 600);
       } else {
         let yy = y + 17 * k;
-        for (const l of wrap(tr('A meta aparece com 10 prédios acesos.'), tw, small).slice(0, 4)) {
+        for (const l of wrap(tr('The goal shows up with 10 lit buildings.'), tw, small).slice(0, 4)) {
           line(l, left, yy, tw, small, '#9aa4b8', 600);
           yy += step;
         }
@@ -1055,7 +1055,7 @@ export class CitySocial implements CityFx {
       const x = map.sx(r.x);
       const y = map.sy(r.y);
       const w = r.w * k;
-      line(tr('PREFEITURA'), x + w / 2, y + 4 * k, w - 4, Math.max(7, Math.min(11, 4.6 * k)), '#e3f1ff', 800, 'center');
+      line(tr('CITY HALL'), x + w / 2, y + 4 * k, w - 4, Math.max(7, Math.min(11, 4.6 * k)), '#e3f1ff', 800, 'center');
       const left = x + 23 * k;
       const tw = w - 26 * k;
       if (hall) {
@@ -1090,10 +1090,10 @@ class BuildingExtras {
 
   constructor(private readonly s: CitySocial) {
     this.likeBtn = h('button', { class: 'ui-city-x__btn', type: 'button', on: { click: () => this.like() } });
-    this.knockBtn = h('button', { class: 'ui-city-x__btn', type: 'button', on: { click: () => this.knock() } }, h('span', { text: '🚪', attrs: { 'aria-hidden': 'true' } }), ` ${tr('Bater')}`);
+    this.knockBtn = h('button', { class: 'ui-city-x__btn', type: 'button', on: { click: () => this.knock() } }, h('span', { text: '🚪', attrs: { 'aria-hidden': 'true' } }), ` ${tr('Knock')}`);
     this.hint = h('span', { class: 'ui-city-x__hint' });
-    this.code = h('span', { class: 'ui-city-x__code', title: tr('Código do prédio: "Ir para", no minimapa, leva até a porta') });
-    this.seal = h('div', { class: 'ui-city-x__seal', text: `❔ ${tr('Não verificado: os dados deste prédio estão em revisão.')}` });
+    this.code = h('span', { class: 'ui-city-x__code', title: tr('Building code: "Go to", on the minimap, takes you to the door') });
+    this.seal = h('div', { class: 'ui-city-x__seal', text: `❔ ${tr("Unverified: this building's data is under review.")}` });
     this.el = h('div', { class: 'ui-city-x' }, h('div', { class: 'ui-city-x__row' }, this.likeBtn, this.knockBtn, this.code), this.hint, this.seal);
   }
 
@@ -1116,14 +1116,14 @@ class BuildingExtras {
     if (key === this.key) return;
     this.key = key;
     setHidden(this.likeBtn, a.mine);
-    this.likeBtn.replaceChildren(h('span', { text: a.liked ? '💔' : '❤️', attrs: { 'aria-hidden': 'true' } }), ` ${a.liked ? tr('Descurtir') : tr('Curtir')}`);
+    this.likeBtn.replaceChildren(h('span', { text: a.liked ? '💔' : '❤️', attrs: { 'aria-hidden': 'true' } }), ` ${a.liked ? tr('Unlike') : tr('Like')}`);
     this.likeBtn.classList.toggle('is-liked', a.liked);
     this.likeBtn.disabled = !a.canLike;
     setHidden(this.knockBtn, a.mine || !b.knocks);
     this.knockBtn.disabled = !a.canKnock;
     setText(this.code, b.code ?? '');
     setHidden(this.code, !b.code);
-    const hint = a.mine ? tr('Seu prédio: os likes de hoje aparecem na barra do escritório.') : !a.canLike ? tr('Chegue perto da porta para curtir (L).') : b.knocks && !a.canKnock ? tr('Mais perto da porta, dá para bater (K).') : '';
+    const hint = a.mine ? tr("Your building: today's likes show up in the office bar.") : !a.canLike ? tr('Get close to the door to like (L).') : b.knocks && !a.canKnock ? tr('Closer to the door, you can knock (K).') : '';
     setText(this.hint, hint);
     setHidden(this.hint, !hint);
     setHidden(this.seal, (b as { unverified?: boolean }).unverified !== true);
@@ -1152,16 +1152,16 @@ class PlayerExtras {
   private confirming = false;
 
   constructor(private readonly s: CitySocial) {
-    this.greetBtn = h('button', { class: 'ui-city-x__btn is-primary', type: 'button', on: { click: () => this.s.act.greet(this.id) } }, h('span', { text: '👋', attrs: { 'aria-hidden': 'true' } }), ` ${tr('Cumprimentar')}`, h('kbd', { text: 'G' }));
+    this.greetBtn = h('button', { class: 'ui-city-x__btn is-primary', type: 'button', on: { click: () => this.s.act.greet(this.id) } }, h('span', { text: '👋', attrs: { 'aria-hidden': 'true' } }), ` ${tr('Greet')}`, h('kbd', { text: 'G' }));
     this.blockBtn = h('button', { class: 'ui-city-x__btn is-quiet', type: 'button', on: { click: () => this.block() } });
     this.reportBtn = h('button', { class: 'ui-city-x__btn is-quiet', type: 'button', attrs: { 'aria-expanded': 'false' }, on: { click: () => this.toggleReasons() } });
     this.reasons = h(
       'div',
-      { class: 'ui-city-x__reasons', hidden: true, role: 'group', attrs: { 'aria-label': tr('Motivo da denúncia') } },
-      h('span', { class: 'ui-city-x__hint', text: tr('Qual o motivo?') }),
+      { class: 'ui-city-x__reasons', hidden: true, role: 'group', attrs: { 'aria-label': tr('Report reason') } },
+      h('span', { class: 'ui-city-x__hint', text: tr("What's the reason?") }),
       ...REPORT_REASONS.map((r) => h('button', { class: 'ui-city-x__reason', type: 'button', text: reportLabel(r), on: { click: () => this.report(r) } })),
     );
-    this.done = h('div', { class: 'ui-city-x__done', hidden: true, text: `✓ ${tr('Denúncia enviada.')}` });
+    this.done = h('div', { class: 'ui-city-x__done', hidden: true, text: `✓ ${tr('Report sent.')}` });
     this.el = h('div', { class: 'ui-city-x' }, h('div', { class: 'ui-city-x__row' }, this.greetBtn, this.blockBtn, this.reportBtn), this.reasons, this.done);
   }
 
@@ -1177,10 +1177,10 @@ class PlayerExtras {
   sync(): void {
     if (!this.el.isConnected) return;
     const reported = this.s.ctx.reported.has(this.id);
-    setText(this.blockBtn, this.confirming ? `🚫 ${tr('Confirmar: bloquear')}` : `🚫 ${tr('Bloquear')}`);
+    setText(this.blockBtn, this.confirming ? `🚫 ${tr('Confirm: block')}` : `🚫 ${tr('Block')}`);
     this.blockBtn.classList.toggle('is-danger', this.confirming);
-    this.blockBtn.title = tr('Vocês deixam de se ver: na rua, nos prédios, nos cumprimentos e nos carimbos.');
-    setText(this.reportBtn, reported ? `✓ ${tr('Denunciado')}` : `⚑ ${tr('Denunciar')}`);
+    this.blockBtn.title = tr('You stop seeing each other: on the street, in buildings, in greetings and in stamps.');
+    setText(this.reportBtn, reported ? `✓ ${tr('Reported')}` : `⚑ ${tr('Report')}`);
     this.reportBtn.disabled = reported;
     setHidden(this.done, !reported);
     if (reported) setHidden(this.reasons, true);

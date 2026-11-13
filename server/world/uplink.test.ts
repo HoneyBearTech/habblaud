@@ -50,7 +50,7 @@ afterEach(async () => {
 
 function agent(id: string, roomId: string, extra: Partial<AgentInfo> = {}): AgentInfo {
   return {
-    id, kind: 'main', roomId, name: 'Marina', look: 'f', role: 'Agente principal', sessionId: `s-${id}`, account: '.claude',
+    id, kind: 'main', roomId, name: 'Marina', look: 'f', role: 'Main agent', sessionId: `s-${id}`, account: '.claude',
     status: 'working', recent: [], tasks: [], startedAt: 1, lastEventAt: 1, statusSince: 1,
     stats: { toolCalls: 0, tokensIn: 0, tokensOut: 0, subagents: 0 }, seed: hash32(id), ...extra,
   };

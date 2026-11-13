@@ -58,7 +58,7 @@ export function shortPath(path: string): string {
 export function ago(at: number, now = Date.now()): string {
   if (!at) return '';
   const min = Math.max(0, Math.round((now - at) / 60_000));
-  if (min < 1) return tr('agora');
+  if (min < 1) return tr('now');
   if (min < 60) return `${min} min`;
   const hours = Math.round(min / 60);
   if (hours < 48) return `${hours} h`;
@@ -75,7 +75,7 @@ function fileToBase64(file: Blob): Promise<string> {
   return new Promise((ok, fail) => {
     const r = new FileReader();
     r.onload = () => ok(String(r.result).replace(/^data:[^,]*,/, ''));
-    r.onerror = () => fail(new Error(tr('não deu para ler o arquivo')));
+    r.onerror = () => fail(new Error(tr("couldn't read the file")));
     r.readAsDataURL(file);
   });
 }
@@ -85,10 +85,10 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   try {
     res = await fetch(path, { credentials: 'same-origin', cache: 'no-store', ...init });
   } catch {
-    throw new Error(tr('o Habblaud não respondeu'));
+    throw new Error(tr("Habblaud didn't respond"));
   }
   const body = (await res.json().catch(() => ({}))) as T & { error?: string };
-  if (!res.ok) throw new Error(body.error ?? tr('erro {0}', [res.status]));
+  if (!res.ok) throw new Error(body.error ?? tr('error {0}', [res.status]));
   return body;
 }
 
@@ -133,27 +133,27 @@ export class SpawnPanel {
   private files: PendingFile[] = [];
 
   constructor(private readonly ctx: UiContext) {
-    this.folderList = h('div', { class: 'ui-spawn__folders', role: 'radiogroup', attrs: { 'aria-label': tr('Projetos recentes') } });
-    this.otherBtn = h('button', { class: 'ui-spawn__other', type: 'button', on: { click: () => this.showOther(true) } }, tr('+ Outra pasta'));
+    this.folderList = h('div', { class: 'ui-spawn__folders', role: 'radiogroup', attrs: { 'aria-label': tr('Recent projects') } });
+    this.otherBtn = h('button', { class: 'ui-spawn__other', type: 'button', on: { click: () => this.showOther(true) } }, tr('+ Other folder'));
     this.folder = h('input', {
       class: 'ui-rename__input ui-spawn__path',
       type: 'text',
       hidden: true,
-      attrs: { id: 'ui-spawn-folder', placeholder: '/Users/voce/projeto', spellcheck: 'false', autocomplete: 'off', autocapitalize: 'none', 'aria-label': tr('Caminho da pasta') },
+      attrs: { id: 'ui-spawn-folder', placeholder: '/Users/voce/projeto', spellcheck: 'false', autocomplete: 'off', autocapitalize: 'none', 'aria-label': tr('Folder path') },
     });
     this.prompt = h('textarea', {
       class: 'ui-rename__input ui-spawn__prompt',
-      attrs: { id: 'ui-spawn-prompt', rows: 5, maxlength: SPAWN_PROMPT_MAX, placeholder: tr('O que o agente deve fazer (opcional)') },
+      attrs: { id: 'ui-spawn-prompt', rows: 5, maxlength: SPAWN_PROMPT_MAX, placeholder: tr('What the agent should do (optional)') },
     });
     this.fileInput = h('input', { type: 'file', hidden: true, attrs: { multiple: true, 'aria-hidden': 'true', tabindex: '-1' } });
     this.fileInput.addEventListener('change', () => {
       this.addFiles([...(this.fileInput.files ?? [])]);
       this.fileInput.value = '';
     });
-    const attachBtn = h('button', { class: 'ui-btn ui-spawn__attach', type: 'button', attrs: { title: tr('Anexar imagens ou arquivos ao pedido') }, on: { click: () => this.fileInput.click() } });
+    const attachBtn = h('button', { class: 'ui-btn ui-spawn__attach', type: 'button', attrs: { title: tr('Attach images or files to the request') }, on: { click: () => this.fileInput.click() } });
     const clip = h('span', { attrs: { 'aria-hidden': 'true' } });
     clip.innerHTML = ICONS.attach;
-    attachBtn.append(clip, h('span', { text: tr('Anexar') }));
+    attachBtn.append(clip, h('span', { text: tr('Attach') }));
     this.dictate = new DictationButton(
       (t) => {
         const { value, caret } = insertDictation(this.prompt.value, this.prompt.selectionStart ?? this.prompt.value.length, this.prompt.selectionEnd ?? this.prompt.value.length, t.text);
@@ -163,8 +163,8 @@ export class SpawnPanel {
       (text, error) => this.say(text, error),
     );
     setHidden(this.dictate.el, true);
-    this.fileList = h('ul', { class: 'ui-spawn__files', attrs: { 'aria-label': tr('Anexos') } });
-    this.submitBtn = h('button', { class: 'ui-btn ui-perm__btn ui-perm__btn--allow ui-spawn__go', type: 'button', on: { click: () => void this.submit() } }, tr('Começar'));
+    this.fileList = h('ul', { class: 'ui-spawn__files', attrs: { 'aria-label': tr('Attachments') } });
+    this.submitBtn = h('button', { class: 'ui-btn ui-perm__btn ui-perm__btn--allow ui-spawn__go', type: 'button', on: { click: () => void this.submit() } }, tr('Start'));
     this.status = h('p', { class: 'ui-rename__hint ui-spawn__status', attrs: { role: 'status', 'aria-live': 'polite' } });
     for (const field of [this.folder, this.prompt] as HTMLElement[]) {
       field.addEventListener('keydown', (e: KeyboardEvent) => {
@@ -180,23 +180,23 @@ export class SpawnPanel {
       this.selected = this.folder.value.trim();
       this.renderFolders();
     });
-    const close = iconButton(ICONS.close, tr('Fechar'), () => this.hide(), 'ui-icon-btn--sm');
+    const close = iconButton(ICONS.close, tr('Close'), () => this.hide(), 'ui-icon-btn--sm');
     this.el = h(
       'div',
-      { class: 'ui-popover ui-spawn', role: 'dialog', tabIndex: -1, attrs: { 'aria-label': tr('Novo agente'), id: 'ui-spawn', popover: 'auto' } },
-      h('div', { class: 'ui-popover__head' }, h('h2', { text: tr('Novo agente') }), close),
+      { class: 'ui-popover ui-spawn', role: 'dialog', tabIndex: -1, attrs: { 'aria-label': tr('New agent'), id: 'ui-spawn', popover: 'auto' } },
+      h('div', { class: 'ui-popover__head' }, h('h2', { text: tr('New agent') }), close),
       h(
         'div',
         { class: 'ui-set-group ui-spawn__body' },
-        h('p', { class: 'ui-spawn__label', attrs: { id: 'ui-spawn-folders-label' }, text: tr('Projeto') }),
+        h('p', { class: 'ui-spawn__label', attrs: { id: 'ui-spawn-folders-label' }, text: tr('Project') }),
         this.folderList,
         this.otherBtn,
         this.folder,
-        h('label', { class: 'ui-spawn__label', attrs: { for: 'ui-spawn-prompt' }, text: tr('Pedido') }),
+        h('label', { class: 'ui-spawn__label', attrs: { for: 'ui-spawn-prompt' }, text: tr('Request') }),
         this.prompt,
         h('div', { class: 'ui-spawn__tools' }, this.dictate.el, attachBtn, this.fileInput),
         this.fileList,
-        h('p', { class: 'ui-rename__hint', text: tr('Começa na hora uma sessão do Claude Code em segundo plano no computador, na pasta escolhida; as permissões chegam aqui. Pasta que o Claude Code ainda não conhece abre no app do Claude e espera o Enter lá. Anexos vão para ~/.habblaud/attachments e o pedido leva os caminhos.') }),
+        h('p', { class: 'ui-rename__hint', text: tr("Instantly starts a Claude Code session in the background on the computer, in the chosen folder; permissions come here. A folder Claude Code doesn't know yet opens in the Claude app and waits for Enter there. Attachments go to ~/.habblaud/attachments and the request includes their paths.") }),
         this.submitBtn,
         this.status,
       ),
@@ -314,18 +314,18 @@ export class SpawnPanel {
   private addFiles(list: File[]): void {
     for (const file of list) {
       if (this.files.length >= MAX_FILES) {
-        this.say(tr('No máximo {0} anexos por pedido.', [MAX_FILES]), true);
+        this.say(tr('At most {0} attachments per request.', [MAX_FILES]), true);
         break;
       }
       if (file.size > MAX_FILE_BYTES) {
-        this.say(tr('{0} passa de {1} MB.', [file.name, MAX_FILE_BYTES / 1024 / 1024]), true);
+        this.say(tr('{0} is over {1} MB.', [file.name, MAX_FILE_BYTES / 1024 / 1024]), true);
         continue;
       }
       if (!file.size) continue;
       const url = file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined;
       const item: PendingFile = { file, url, el: h('li', { class: 'ui-spawn__file' }) };
-      const thumb = url ? h('img', { class: 'ui-spawn__thumb', attrs: { src: url, alt: '' } }) : h('span', { class: 'ui-spawn__thumb ui-spawn__thumb--doc', attrs: { 'aria-hidden': 'true' }, text: (file.name.split('.').pop() ?? '').slice(0, 4).toUpperCase() || tr('ARQ') });
-      const remove = iconButton(ICONS.close, tr('Tirar {0}', [file.name]), () => this.removeFile(item), 'ui-icon-btn--sm ui-spawn__file-x');
+      const thumb = url ? h('img', { class: 'ui-spawn__thumb', attrs: { src: url, alt: '' } }) : h('span', { class: 'ui-spawn__thumb ui-spawn__thumb--doc', attrs: { 'aria-hidden': 'true' }, text: (file.name.split('.').pop() ?? '').slice(0, 4).toUpperCase() || tr('FILE') });
+      const remove = iconButton(ICONS.close, tr('Remove {0}', [file.name]), () => this.removeFile(item), 'ui-icon-btn--sm ui-spawn__file-x');
       item.el.append(thumb, h('span', { class: 'ui-spawn__file-name', text: file.name, attrs: { title: file.name } }), h('span', { class: 'ui-spawn__file-size', text: formatBytes(file.size) }), remove);
       this.files.push(item);
       this.fileList.append(item.el);
@@ -349,15 +349,15 @@ export class SpawnPanel {
 
   private async submit(): Promise<void> {
     if (this.busy) return;
-    if (this.dictate.busy) return this.say(tr('Espere o ditado terminar.'), true);
+    if (this.dictate.busy) return this.say(tr('Wait for the dictation to finish.'), true);
     const folder = (this.typing ? this.folder.value : this.selected).trim();
-    if (!folder) return this.say(tr('Escolha o projeto.'), true);
+    if (!folder) return this.say(tr('Choose the project.'), true);
     this.busy = true;
     this.submitBtn.disabled = true;
     try {
       const ids: string[] = [];
       for (const [i, f] of this.files.entries()) {
-        this.say(this.files.length > 1 ? tr('Enviando anexos ({0} de {1})…', [i + 1, this.files.length]) : tr('Enviando o anexo…'));
+        this.say(this.files.length > 1 ? tr('Sending attachments ({0} of {1})…', [i + 1, this.files.length]) : tr('Sending the attachment…'));
         const r = await api<{ id: string }>('/api/spawn/attachments', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -365,7 +365,7 @@ export class SpawnPanel {
         });
         ids.push(r.id);
       }
-      this.say(tr('Começando no computador…'));
+      this.say(tr('Starting on the computer…'));
       let info = await api<SpawnInfo>('/api/spawn', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -380,19 +380,19 @@ export class SpawnPanel {
         const running = info.how === 'cli';
         this.say(
           running
-            ? tr('Rodando: a sessão já começou no computador e aparece no escritório em instantes.')
+            ? tr('Running: the session has started on the computer and will show up in the office in a moment.')
             : info.note
-              ? tr('Abri no app do Claude: aperte Enter lá para começar. Não rodou sozinho: {0}.', [info.note])
-              : tr('Abri no app do Claude: aperte Enter lá para começar.'),
+              ? tr("Opened in the Claude app: press Enter there to start. It didn't run on its own: {0}.", [info.note])
+              : tr('Opened in the Claude app: press Enter there to start.'),
           !running && !!info.note,
         );
         this.prompt.value = '';
         this.clearFiles();
         writePref(folder);
-        this.ctx.announce(running ? tr('Agente novo rodando.') : tr('Agente novo aberto no app do Claude.'));
-      } else this.say(info.error ? tr('Não abriu: {0}', [info.error]) : tr('O computador não confirmou a abertura.'), true);
+        this.ctx.announce(running ? tr('New agent running.') : tr('New agent opened in the Claude app.'));
+      } else this.say(info.error ? tr("Didn't open: {0}", [info.error]) : tr("The computer didn't confirm it opened."), true);
     } catch (err) {
-      this.say(tr('Não abriu: {0}', [(err as Error).message]), true);
+      this.say(tr("Didn't open: {0}", [(err as Error).message]), true);
     } finally {
       this.busy = false;
       this.submitBtn.disabled = false;

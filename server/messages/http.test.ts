@@ -75,7 +75,7 @@ async function serveMessages(opts: { enabled?: boolean; demo?: boolean; registry
   });
   await new Promise<void>((ok) => server.listen(0, '127.0.0.1', ok));
   const port = (server.address() as AddressInfo).port;
-  office.addMain({ id: MAIN, account: 'acc', sessionId: SESSION, cwd: '/p/loja', role: 'Agente principal', startedAt: Date.now(), status: 'idle' });
+  office.addMain({ id: MAIN, account: 'acc', sessionId: SESSION, cwd: '/p/loja', role: 'Main agent', startedAt: Date.now(), status: 'idle' });
   if (opts.demo) office.setDemo(true);
   return {
     base: `http://127.0.0.1:${port}`,
@@ -109,7 +109,7 @@ describe('trava das mensagens (config)', () => {
     expect(messagesOffReason({}, '127.0.0.1', false)).toBeUndefined();
     for (const v of ['1', 'true', 'sim', '']) expect(messagesOffReason({ HABBLAUD_MENSAGENS: v }, '127.0.0.1', false), v).toBeUndefined();
     for (const v of ['0', 'false', 'off', 'no']) expect(messagesOffReason({ HABBLAUD_MENSAGENS: v }, '127.0.0.1', false)).toBe(`HABBLAUD_MENSAGENS=${v}`);
-    expect(messagesOffReason({}, '0.0.0.0', false)).toMatch(/^mesma trava do terminal: a porta está exposta/);
+    expect(messagesOffReason({}, '0.0.0.0', false)).toMatch(/^same lock as the terminal: the port is exposed/);
     expect(messagesOffReason({ HABBLAUD_TERMINAL: '0' }, '127.0.0.1', false)).toMatch(/HABBLAUD_TERMINAL=0/);
     // Ligar as mensagens não liga o que a trava do terminal desliga.
     expect(messagesOffReason({ HABBLAUD_MENSAGENS: '1' }, '0.0.0.0', false)).toBeDefined();
@@ -145,7 +145,7 @@ describe('trava das rotas', () => {
     for (const [method, path] of ROUTES) {
       const r = await request(srv.base, path, { method, body: method === 'POST' ? {} : undefined });
       expect(r.status, `${method} ${path}`).toBe(403);
-      expect(r.json).toMatchObject({ error: expect.stringMatching(/desligad/) });
+      expect(r.json).toMatchObject({ error: expect.stringMatching(/disabled/) });
     }
     expect((await request(srv.base, '/api/health')).json).toMatchObject({ messages: false });
     expect((await snapshot(srv)).meta.messages).toBe(false);
@@ -162,7 +162,7 @@ describe('trava das rotas', () => {
       for (const [method, path] of ROUTES) {
         const r = await request(srv.base, path, { method, body: method === 'POST' ? { session: SESSION } : undefined, headers: { Host: host } });
         expect(r.status, `${host} ${path}`).toBe(403);
-        expect(r.json).toMatchObject({ error: expect.stringMatching(/próprio computador/) });
+        expect(r.json).toMatchObject({ error: expect.stringMatching(/computer running Habblaud/) });
       }
     }
     expect((await post(srv, '/api/mod/inbox', { session: SESSION }, { Host: 'localhost:4747' })).status).toBe(200);
@@ -202,7 +202,7 @@ describe('rotas', () => {
     for (let i = 0; i < 5; i++) expect((await post(srv, '/api/messages', { agentId: MAIN, text: `m${i}` })).status).toBe(201);
     const full = await post(srv, '/api/messages', { agentId: MAIN, text: 'demais' });
     expect(full.status).toBe(429);
-    expect(full.json).toMatchObject({ error: expect.stringMatching(/5 mensagens/) });
+    expect(full.json).toMatchObject({ error: expect.stringMatching(/5 messages/) });
   });
 
   it('caixa de entrada de sessão desconhecida: 200 com nenhuma mensagem (nunca 404)', async () => {
@@ -236,7 +236,7 @@ describe('rotas', () => {
     expect(done).toMatchObject({ id: msg.id, status: 'delivered' });
     expect(done.updatedAt).toBeGreaterThanOrEqual(done.createdAt);
     const agent = (await snapshot(srv)).agents.find((a) => a.id === MAIN)!;
-    expect(agent.recent.at(-1)).toMatchObject({ icon: '✉️', text: 'Mensagem pelo Habblaud', detail: 'Agora roda os testes de novo e me diga o que falhou' });
+    expect(agent.recent.at(-1)).toMatchObject({ icon: '✉️', text: 'Message via Habblaud', detail: 'Agora roda os testes de novo e me diga o que falhou' });
   });
 
   it('a sessão some (sem rodadas): canMessage volta a falso e a mensagem na fila falha no prazo', async () => {
@@ -249,7 +249,7 @@ describe('rotas', () => {
     now += 250;
     srv.registry!.tick();
     expect((await snapshot(srv)).agents.find((a) => a.id === MAIN)?.canMessage).toBeUndefined();
-    expect((await request(srv.base, `/api/messages/${encodeURIComponent(msg.id)}`)).json).toMatchObject({ status: 'failed', error: expect.stringMatching(/não buscou/) });
+    expect((await request(srv.base, `/api/messages/${encodeURIComponent(msg.id)}`)).json).toMatchObject({ status: 'failed', error: expect.stringMatching(/didn't fetch/) });
     expect((await post(srv, '/api/messages', { agentId: MAIN, text: 'oi' })).status).toBe(409);
   });
 
@@ -265,7 +265,7 @@ describe('rotas', () => {
     expect((await request(srv.base, `/api/messages/${encodeURIComponent(msg.id)}`)).json).toMatchObject({ status: 'delivered' });
     srv.office.tick();
     const after = (await snapshot(srv)).agents.find((a) => a.id === demo.id)!;
-    expect(after.recent.some((a) => a.text === 'Mensagem pelo Habblaud' && a.detail === 'oi, demo')).toBe(true);
+    expect(after.recent.some((a) => a.text === 'Message via Habblaud' && a.detail === 'oi, demo')).toBe(true);
   });
 
   it('demo com o recurso desligado: os agentes fictícios também não recebem', async () => {

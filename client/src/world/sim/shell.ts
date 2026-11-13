@@ -122,8 +122,8 @@ export function shellLabel(a: { status: AgentStatus; shells?: ShellJob[] }): str
   const j = oldestShell(a.shells, fg);
   const label = j?.label?.trim();
   if (label) return label;
-  if (j?.kind === 'monitor') return tr('Monitorando um processo');
-  return fg ? tr('Comando no terminal') : tr('Comando em segundo plano');
+  if (j?.kind === 'monitor') return tr('Monitoring a process');
+  return fg ? tr('Terminal command') : tr('Background command');
 }
 
 /**

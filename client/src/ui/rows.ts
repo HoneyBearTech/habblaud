@@ -82,8 +82,8 @@ export function updateAgentRow(
   // Agente principal ocioso há 1 min ou mais: o tempo aparece no lugar do "Principal".
   const idleFor = agent.kind === 'main' && agent.status === 'idle' && agent.statusSince ? now - agent.statusSince : 0;
   const showIdle = idleFor >= 60_000;
-  setText(r.since, showIdle ? tr('ocioso {0}', [formatDuration(idleFor)]) : '');
-  setTitle(r.since, showIdle ? tr('Ocioso há {0}', [formatDuration(idleFor)]) : '');
+  setText(r.since, showIdle ? tr('idle {0}', [formatDuration(idleFor)]) : '');
+  setTitle(r.since, showIdle ? tr('Idle for {0}', [formatDuration(idleFor)]) : '');
   setHidden(r.since, !showIdle);
   setHidden(r.role, showIdle);
   // Esperando um shell (ou parado num comando longo): ampulheta no ponto e o cronômetro na linha de atividade.
@@ -96,10 +96,10 @@ export function updateAgentRow(
   row.classList.toggle('is-selected', selected);
   setAttr(row, 'aria-current', selected ? 'true' : null);
   // Para leitores de tela, o tempo em minutos (o cronômetro mudaria o rótulo a cada segundo).
-  const doing = wait ? tr('{0}, há {1}', [shellLine(wait, now).label, formatDuration(now - wait.since)]) : agent.activity?.text;
+  const doing = wait ? tr('{0}, for {1}', [shellLine(wait, now).label, formatDuration(now - wait.since)]) : agent.activity?.text;
   setAttr(
     row,
     'aria-label',
-    `${agent.name}, ${agent.kind === 'main' ? tr('agente principal') : tr('subagente {0}', [agent.role])}, ${account?.name ?? agent.account}${agent.provider === 'codex' ? ' (Codex)' : ''}, ${statusLabel(status)}${doing ? `: ${doing}` : ''}`,
+    `${agent.name}, ${agent.kind === 'main' ? tr('main agent') : tr('subagent {0}', [agent.role])}, ${account?.name ?? agent.account}${agent.provider === 'codex' ? ' (Codex)' : ''}, ${statusLabel(status)}${doing ? `: ${doing}` : ''}`,
   );
 }

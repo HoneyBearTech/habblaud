@@ -17,11 +17,11 @@ export async function postPty<T = unknown>(url: string, body: unknown): Promise<
   try {
     res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body ?? {}) });
   } catch {
-    throw new Error(tr('o Habblaud não respondeu'));
+    throw new Error(tr("Habblaud didn't respond"));
   }
   if (res.status === 204) return undefined;
   const j = (await res.json().catch(() => ({}))) as { error?: string };
-  if (!res.ok) throw new Error(j.error ?? tr('erro {0}', [res.status]));
+  if (!res.ok) throw new Error(j.error ?? tr('error {0}', [res.status]));
   return j as T;
 }
 

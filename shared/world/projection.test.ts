@@ -56,7 +56,7 @@ function agent(id: string, roomId: string, extra: Partial<AgentInfo> = {}): Agen
     roomId,
     name: 'Marina',
     look: 'f',
-    role: 'Agente principal',
+    role: 'Main agent',
     sessionId: `sess-${id}`,
     account: '.claude',
     status: 'working',
@@ -174,7 +174,7 @@ describe('projeção: lista fechada', () => {
 
   it('teste de canários: nenhum texto do escritório aparece no JSON', () => {
     expect(json.toLowerCase()).not.toContain('canario');
-    for (const s of [CANARY_ROOM, CANARY_ROOM_2, MAIN_ID, SUB_ID, CODEX_ID, '@exemplo.com', 'Silva', 'Bash', 'opus', 'feat/', '/Users', '/home', '.claude', '.codex', 'sess-', 'Agente principal']) {
+    for (const s of [CANARY_ROOM, CANARY_ROOM_2, MAIN_ID, SUB_ID, CODEX_ID, '@exemplo.com', 'Silva', 'Bash', 'opus', 'feat/', '/Users', '/home', '.claude', '.codex', 'sess-', 'Main agent']) {
       expect(json, s).not.toContain(s);
     }
   });

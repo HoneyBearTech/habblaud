@@ -14,8 +14,8 @@ describe('variáveis do nome antigo', () => {
 
   it('avisa só quando há alguma', () => {
     expect(legacyEnvWarning(['PATH', 'HABBLAUD_PORT'])).toBeUndefined();
-    expect(legacyEnvWarning(['CODETOWN_PORT'], 'no .env')).toBe(
-      'variável do nome antigo ignorada no .env: CODETOWN_PORT → HABBLAUD_PORT. Renomeie para valer de novo.',
+    expect(legacyEnvWarning(['CODETOWN_PORT'], 'in .env')).toBe(
+      'old-name variable ignored in .env: CODETOWN_PORT → HABBLAUD_PORT. Rename to re-enable.',
     );
   });
 });
@@ -48,7 +48,7 @@ describe('migrateLegacyStateDir', () => {
     expect(read('.habblaud/names.json')).toBe('{"a":"Marina"}');
     expect(existsSync(join(home, '.habblaud/usage/.claude.json'))).toBe(true);
     expect(existsSync(join(home, '.codetown'))).toBe(false);
-    expect(describeStateMigration(r)).toBe('~/.codetown (nome antigo) agora é ~/.habblaud.');
+    expect(describeStateMigration(r)).toBe('~/.codetown (old name) is now ~/.habblaud.');
   });
 
   it('com a pasta nova já criada, move o que falta e, nos arquivos dos dois lados, fica o mais recente', () => {
@@ -86,8 +86,8 @@ describe('migrateLegacyStateDir', () => {
     write('.codetown/names.json', '{}');
     write('.habblaud', 'arquivo');
     const r = migrateLegacyStateDir(home);
-    expect(r).toEqual({ moved: [], error: `${join(home, '.habblaud')} existe e não é uma pasta` });
+    expect(r).toEqual({ moved: [], error: `${join(home, '.habblaud')} exists and isn't a folder` });
     expect(existsSync(join(home, '.codetown/names.json'))).toBe(true);
-    expect(describeStateMigration(r)).toMatch(/^não consegui levar ~\/\.codetown para ~\/\.habblaud/);
+    expect(describeStateMigration(r)).toMatch(/^couldn't move ~\/\.codetown to ~\/\.habblaud/);
   });
 });

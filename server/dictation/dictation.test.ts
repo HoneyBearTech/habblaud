@@ -49,6 +49,6 @@ describe('ditado', () => {
     s.poll();
     s.submit(audio());
     now += 31_000;
-    expect(s.get('d4')).toMatchObject({ status: 'failed', error: 'o auxiliar do computador não buscou o áudio' });
+    expect(s.get('d4')).toMatchObject({ status: 'failed', error: "the computer's helper didn't fetch the audio" });
   });
 });

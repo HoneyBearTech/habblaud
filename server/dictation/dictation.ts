@@ -51,11 +51,11 @@ export type DictationSubmit = { dictation: DictationInfo } | { error: 'invalid' 
 export function parseAudio(raw: unknown): { type: string; data: Buffer } | { error: string } {
   const r = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
   const type = typeof r.type === 'string' && /^audio\/[\w.+-]+(;\s*codecs=[\w.,"' -]+)?$/i.test(r.type) ? r.type : '';
-  if (!type) return { error: tr('formato de áudio desconhecido') };
-  if (typeof r.data !== 'string' || !r.data || !/^[A-Za-z0-9+/]*={0,2}$/.test(r.data)) return { error: tr('áudio ilegível') };
+  if (!type) return { error: tr('unknown audio format') };
+  if (typeof r.data !== 'string' || !r.data || !/^[A-Za-z0-9+/]*={0,2}$/.test(r.data)) return { error: tr('unreadable audio') };
   const data = Buffer.from(r.data, 'base64');
-  if (data.length < 64) return { error: tr('gravação curta demais') };
-  if (data.length > AUDIO_MAX_BYTES) return { error: tr('gravação longa demais (até uns 3 minutos)') };
+  if (data.length < 64) return { error: tr('recording too short') };
+  if (data.length > AUDIO_MAX_BYTES) return { error: tr('recording too long (up to about 3 minutes)') };
   return { type, data };
 }
 
@@ -78,11 +78,11 @@ export class DictationService {
     const audio = parseAudio(raw);
     if ('error' in audio) return { error: 'invalid', reason: audio.error };
     if (!this.available()) {
-      return { error: 'unavailable', reason: tr('ditado indisponível: o Whisper não está instalado no computador ou o auxiliar (npm run codex:bridge) parou') };
+      return { error: 'unavailable', reason: tr("dictation unavailable: Whisper isn't installed on the computer or the helper (npm run codex:bridge) stopped") };
     }
     let open = 0;
     for (const e of this.entries.values()) if (e.info.status === 'queued' || e.info.status === 'sent') open++;
-    if (open >= MAX_OPEN) return { error: 'too-many', reason: tr('ditados demais esperando: aguarde o anterior') };
+    if (open >= MAX_OPEN) return { error: 'too-many', reason: tr('too many dictations waiting: wait for the previous one') };
     const info: DictationInfo = { id: this.opts.newId?.() ?? randomUUID(), status: 'queued' };
     const entry: Entry = { info, audio: audio.data, type: audio.type, at: this.now() };
     this.entries.set(info.id, entry);
@@ -125,7 +125,7 @@ export class DictationService {
       const e = typeof x.id === 'string' ? this.entries.get(x.id) : undefined;
       if (!e || e.info.status !== 'sent') continue;
       if (x.ok === true && typeof x.text === 'string') this.finish(e, { text: x.text, lang: typeof x.lang === 'string' ? x.lang : '' });
-      else this.fail(e, typeof x.error === 'string' && x.error ? x.error : tr('o auxiliar não transcreveu'));
+      else this.fail(e, typeof x.error === 'string' && x.error ? x.error : tr("the helper didn't transcribe"));
     }
   }
 
@@ -133,11 +133,11 @@ export class DictationService {
     const audio = e.audio;
     e.audio = null;
     e.info.status = 'sent';
-    if (!audio) return this.fail(e, tr('áudio perdido'));
+    if (!audio) return this.fail(e, tr('audio lost'));
     try {
       this.finish(e, await transcribe(audio, e.type));
     } catch (err) {
-      this.fail(e, (err as Error).message || tr('o Whisper falhou'));
+      this.fail(e, (err as Error).message || tr('Whisper failed'));
     }
   }
 
@@ -159,8 +159,8 @@ export class DictationService {
     const now = this.now();
     for (const [id, e] of this.entries) {
       const age = now - e.at;
-      if (e.info.status === 'queued' && age > QUEUED_TIMEOUT_MS) this.fail(e, tr('o auxiliar do computador não buscou o áudio'));
-      else if (e.info.status === 'sent' && age > SENT_TIMEOUT_MS) this.fail(e, tr('a transcrição demorou demais'));
+      if (e.info.status === 'queued' && age > QUEUED_TIMEOUT_MS) this.fail(e, tr("the computer's helper didn't fetch the audio"));
+      else if (e.info.status === 'sent' && age > SENT_TIMEOUT_MS) this.fail(e, tr('transcription took too long'));
       else if ((e.info.status === 'done' || e.info.status === 'failed') && age > KEEP_MS) this.entries.delete(id);
     }
   }

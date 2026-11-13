@@ -288,7 +288,7 @@ export function deliveredMessage(line: Rec): { id?: string; text: string } | und
 /** Atividade de uma instrução recebida pelo Codex: "Recebeu “…”" (kind 'prompt', a base do "Concluiu em X"). */
 export function describeCodexPrompt(text: string): ActivityDescription {
   const shown = truncate(maskSecrets(text.slice(0, 1_000)), 34);
-  return { ...describePrompt(text), text: truncate(tr('Recebeu “{0}”', [shown]), 46) };
+  return { ...describePrompt(text), text: truncate(tr('Received “{0}”', [shown]), 46) };
 }
 
 const PLAN_STATUS = new Set<string>(['pending', 'in_progress', 'completed']);
@@ -325,7 +325,7 @@ export function describeCodexTool(rawName: string, input: Rec, namespace?: strin
       return { desc: describeTool('Bash', { command, description: input.description }), tool: 'Bash' };
     }
     case 'write_stdin':
-      return { desc: { kind: 'run', icon: '⌨️', text: tr('Interagindo com um comando') }, tool: name };
+      return { desc: { kind: 'run', icon: '⌨️', text: tr('Interacting with a command') }, tool: name };
     case 'apply_patch': {
       const patch = typeof input.command === 'string' ? input.command : typeof input.input === 'string' ? input.input : typeof input.patch === 'string' ? input.patch : '';
       const files = patchFiles(patch);
@@ -338,9 +338,9 @@ export function describeCodexTool(rawName: string, input: Rec, namespace?: strin
     }
     case 'exec':
       // Code mode do app: o argumento é JavaScript; o comando legível só aparece no CommandExecution ao concluir.
-      return { desc: { kind: 'run', icon: '⚙️', text: tr('Executando código') }, tool: name };
+      return { desc: { kind: 'run', icon: '⚙️', text: tr('Running code') }, tool: name };
     case 'update_plan':
-      return { desc: { kind: 'plan', icon: '🗒️', text: tr('Atualizando o plano') }, tool: name };
+      return { desc: { kind: 'plan', icon: '🗒️', text: tr('Updating the plan') }, tool: name };
     case 'view_image': {
       const path = str(input.path);
       return { desc: describeTool('Read', { file_path: path ?? 'imagem.png' }), tool: 'Read' };
@@ -355,15 +355,15 @@ export function describeCodexTool(rawName: string, input: Rec, namespace?: strin
     }
     case 'wait':
     case 'wait_agent':
-      return { desc: { kind: 'delegate', icon: '⏳', text: tr('Esperando os subagentes') }, tool: name };
+      return { desc: { kind: 'delegate', icon: '⏳', text: tr('Waiting on subagents') }, tool: name };
     case 'send_input':
     case 'send_message':
     case 'followup_task':
-      return { desc: { kind: 'communicate', icon: '💬', text: tr('Mensagem para um subagente') }, tool: name };
+      return { desc: { kind: 'communicate', icon: '💬', text: tr('Message to a subagent') }, tool: name };
     case 'close_agent':
-      return { desc: { kind: 'delegate', icon: '👥', text: tr('Encerrando um subagente') }, tool: name };
+      return { desc: { kind: 'delegate', icon: '👥', text: tr('Closing a subagent') }, tool: name };
     case 'request_permissions':
-      return { desc: { kind: 'wait', icon: '🔐', text: tr('Pedindo permissões') }, tool: name };
+      return { desc: { kind: 'wait', icon: '🔐', text: tr('Asking for permissions') }, tool: name };
     default:
       return { desc: describeTool(name, input), tool: name };
   }
@@ -674,7 +674,7 @@ class RolloutLineParser {
   }
 
   private prompt(raw: string, images: number, key?: string): void {
-    const text = promptText(raw) || (images ? tr('[imagem]') : '');
+    const text = promptText(raw) || (images ? tr('[image]') : '');
     if (!text) return;
     if (this.s.title === undefined) {
       this.s.title = truncate(maskSecrets(text.slice(0, 1_000)), TITLE_MAX);
@@ -783,7 +783,7 @@ class RolloutLineParser {
       return;
     }
     const failed = c.status === 'failed' || (c.exitCode !== undefined && c.exitCode !== 0);
-    if (failed) this.push(SPECIAL.error('Bash', firstLine(c.output) ?? (c.exitCode !== undefined ? tr('Código de saída {0}', [c.exitCode]) : undefined)), { key: `${key}:e`, tool: 'Bash' });
+    if (failed) this.push(SPECIAL.error('Bash', firstLine(c.output) ?? (c.exitCode !== undefined ? tr('Exit code {0}', [c.exitCode]) : undefined)), { key: `${key}:e`, tool: 'Bash' });
     // GitHub: a mesma detecção do Claude Code, com o comando, a saída e o código de saída.
     const gh = command ? githubCallOf('Bash', { command }) : undefined;
     if (gh && c.status !== 'declined') {

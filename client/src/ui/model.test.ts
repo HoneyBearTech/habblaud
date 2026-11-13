@@ -33,7 +33,7 @@ function agent(p: Partial<AgentInfo> & Pick<AgentInfo, 'id' | 'roomId'>): AgentI
     kind: 'main',
     name: p.id,
     look: 'f',
-    role: p.kind === 'sub' ? 'Explore' : 'Agente principal',
+    role: p.kind === 'sub' ? 'Explore' : 'Main agent',
     sessionId: `s-${p.id}`,
     account: '.claude',
     status: 'working',
@@ -53,8 +53,8 @@ function room(id: string, slot: number, path = `/Users/dev/projetos/${id}`): Roo
 }
 
 const accounts: AccountInfo[] = [
-  { id: '.claude', short: 'C', name: 'Conta C', email: 'dev@empresa.example', color: '#f08a3c', configDir: '~/.claude', sessions: 1, usageStatus: 'ok' },
-  { id: '.claude-conta2', short: 'D', name: 'Conta D', email: 'eu@pessoal.example', color: '#4aa8e8', configDir: '~/.claude-conta2', sessions: 1, usageStatus: 'disabled' },
+  { id: '.claude', short: 'C', name: 'Account C', email: 'dev@empresa.example', color: '#f08a3c', configDir: '~/.claude', sessions: 1, usageStatus: 'ok' },
+  { id: '.claude-conta2', short: 'D', name: 'Account D', email: 'eu@pessoal.example', color: '#4aa8e8', configDir: '~/.claude-conta2', sessions: 1, usageStatus: 'disabled' },
 ];
 
 const rooms = [room('loja', 2), room('api', 0), room('site', 1)];
@@ -130,8 +130,8 @@ describe('utilidades', () => {
     expect(matchesQuery(a, rooms[1], accounts[0], '   ')).toBe(true);
   });
   it('roleLabel', () => {
-    expect(roleLabel({ kind: 'main', role: 'Agente principal' })).toBe('Agente principal');
-    expect(roleLabel({ kind: 'sub', role: '' })).toBe('Subagente');
+    expect(roleLabel({ kind: 'main', role: 'Main agent' })).toBe('Main agent');
+    expect(roleLabel({ kind: 'sub', role: '' })).toBe('Subagent');
   });
   it('aggregateTasks soma tarefas de vários agentes', () => {
     expect(aggregateTasks(agents)).toEqual({ completed: 1, inProgress: 1, total: 3 });
@@ -143,9 +143,9 @@ describe('utilidades', () => {
     expect(sortByUrgency(agents.filter((a) => a.roomId === 'api')).map((a) => a.id)).toEqual(['marina', 'joao', 'sub1', 'sub2']);
   });
   it('shortcutHint', () => {
-    expect(shortcutHint(accounts)).toBe('atalhos c ou d');
-    expect(shortcutHint([accounts[0]])).toBe('atalho c');
-    expect(shortcutHint([{ short: 'C' }, { short: 'D' }, { short: 'E' }])).toBe('atalhos c, d ou e');
+    expect(shortcutHint(accounts)).toBe('shortcuts c or d');
+    expect(shortcutHint([accounts[0]])).toBe('shortcut c');
+    expect(shortcutHint([{ short: 'C' }, { short: 'D' }, { short: 'E' }])).toBe('shortcuts c, d or e');
     expect(shortcutHint([])).toBe('');
   });
   it('mergeHistory deduplica e ordena por horário', () => {
@@ -182,13 +182,13 @@ describe('utilidades', () => {
 
 describe('activityFallback', () => {
   it('sem atividade ainda: texto pelo status, nunca "Chegando…" para quem já está sentado', () => {
-    expect(activityFallback({ status: 'idle' })).toBe('Aguardando instruções');
-    expect(activityFallback({ status: 'working' })).toBe('Trabalhando…');
-    expect(activityFallback({ status: 'waiting', waitingFor: 'aprovar uma permissão' })).toBe('Precisa de você: aprovar uma permissão');
-    expect(activityFallback({ status: 'waiting' })).toBe('Precisa de você');
-    expect(activityFallback({ status: 'shell' })).toBe('Esperando o shell terminar');
-    expect(activityFallback({ status: 'done' })).toBe('Concluiu a tarefa');
-    expect(activityFallback({ status: 'offline' })).toBe('Saindo do escritório');
+    expect(activityFallback({ status: 'idle' })).toBe('Waiting for instructions');
+    expect(activityFallback({ status: 'working' })).toBe('Working…');
+    expect(activityFallback({ status: 'waiting', waitingFor: 'approve a permission' })).toBe('Needs you: approve a permission');
+    expect(activityFallback({ status: 'waiting' })).toBe('Needs you');
+    expect(activityFallback({ status: 'shell' })).toBe('Waiting for the shell to finish');
+    expect(activityFallback({ status: 'done' })).toBe('Finished the task');
+    expect(activityFallback({ status: 'offline' })).toBe('Leaving the office');
   });
 });
 
@@ -251,7 +251,7 @@ describe('shellWait', () => {
     expect(displayStatus({ status: 'working', statusSince: 0, shells: [long] }, NOW)).toBe('shell');
     expect(displayStatus({ status: 'working', statusSince: 0, shells: [] }, NOW)).toBe('working');
     expect(displayStatus({ status: 'shell', statusSince: 0 }, NOW)).toBe('shell');
-    expect(statusLabel('shell')).toBe('Esperando o shell');
+    expect(statusLabel('shell')).toBe('Waiting on shell');
   });
 });
 
@@ -288,7 +288,7 @@ describe('contagem e ordem com shells', () => {
   it('a busca encontra o agente pelo shell que ele espera', () => {
     const a = agent({ id: 'b', roomId: 'mega', status: 'shell', shells: [job({ id: 'b1', label: 'Rodar a suíte completa com phpunit' })] });
     expect(matchesQuery(a, shellRoom[0], undefined, 'phpunit')).toBe(true);
-    expect(matchesQuery(a, shellRoom[0], undefined, 'esperando shell')).toBe(true);
+    expect(matchesQuery(a, shellRoom[0], undefined, 'waiting shell')).toBe(true);
     expect(matchesQuery(agent({ id: 'x', roomId: 'mega', status: 'idle' }), shellRoom[0], undefined, 'shell')).toBe(false);
   });
 });
@@ -325,17 +325,17 @@ describe('textos da espera', () => {
     expect(two.text).toBe('⏳ Build · 1:02:00 (2 shells)');
   });
   it('shellLine sem comandos conhecidos usa um texto genérico', () => {
-    expect(shellLine({ jobs: [], since: NOW, foreground: false }, NOW).label).toBe('Esperando o shell terminar');
-    expect(shellLine({ jobs: [], since: NOW, foreground: true }, NOW).label).toBe('Esperando o comando terminar');
+    expect(shellLine({ jobs: [], since: NOW, foreground: false }, NOW).label).toBe('Waiting for the shell to finish');
+    expect(shellLine({ jobs: [], since: NOW, foreground: true }, NOW).label).toBe('Waiting for the command to finish');
   });
   it('shellBoxText explica o que está acontecendo', () => {
-    expect(shellBoxText({ foreground: false, jobs: [job({ id: 'a' })] })).toMatch(/^Terminou o turno e está esperando o shell terminar\./);
-    expect(shellBoxText({ foreground: false, jobs: [job({ id: 'a' }), job({ id: 'b' })] })).toMatch(/esperando 2 shells terminarem/);
-    expect(shellBoxText({ foreground: true, jobs: [] })).toMatch(/parado num comando/);
+    expect(shellBoxText({ foreground: false, jobs: [job({ id: 'a' })] })).toMatch(/^Finished the turn and is waiting for the shell to finish\./);
+    expect(shellBoxText({ foreground: false, jobs: [job({ id: 'a' }), job({ id: 'b' })] })).toMatch(/waiting for 2 shells to finish/);
+    expect(shellBoxText({ foreground: true, jobs: [] })).toMatch(/Stuck on a terminal command/);
   });
   it('shellKindLabel', () => {
-    expect(shellKindLabel({ kind: 'shell', background: true })).toBe('segundo plano');
-    expect(shellKindLabel({ kind: 'shell', background: false })).toBe('primeiro plano');
+    expect(shellKindLabel({ kind: 'shell', background: true })).toBe('background');
+    expect(shellKindLabel({ kind: 'shell', background: false })).toBe('foreground');
     expect(shellKindLabel({ kind: 'monitor', background: true })).toBe('monitor');
   });
   it('shellStage segue a escalada: pipoca, giro na cadeira, teia, cochilo', () => {

@@ -139,7 +139,7 @@ describe('a meta da cidade', () => {
   it('termômetro: porcentagem, rótulo e quantas metas a semana já bateu', () => {
     const v = goalView({ lit: 40, goal: goal('agent_hours_10k', 10_000, 8_000) })!;
     expect(v).toMatchObject({ pct: 0.8, pctText: '80%', reached: 0 });
-    expect(v.label).toMatch(/horas de agentes trabalhando/);
+    expect(v.label).toMatch(/hours of agents working/);
     expect(goalView({ lit: 40, goal: goal('agent_hours_50k', 50_000, 12_000) })?.reached).toBe(1);
     expect(goalsReached(goal('agent_hours_100k', 100_000, 100_000))).toBe(3);
     expect(goalView({ lit: 3 })).toBeNull();
@@ -147,14 +147,14 @@ describe('a meta da cidade', () => {
   });
 
   it('durante os fogos, o termômetro mostra a meta que acabou de bater, cheia', () => {
-    expect(reachedGoalView('2026-10-12:agent_hours_10k')).toMatchObject({ pct: 1, pctText: '100%', reached: 1, progressText: 'Meta batida!' });
+    expect(reachedGoalView('2026-10-12:agent_hours_10k')).toMatchObject({ pct: 1, pctText: '100%', reached: 1, progressText: 'Goal reached!' });
     expect(reachedGoalView('2026-10-12:agent_hours_50k')?.reached).toBe(2);
     expect(reachedGoalView('qualquer')).toBeNull();
   });
 
   it('prefeitura: prédios acesos e a faixa dos tokens (ou o aviso dos 10 prédios)', () => {
-    expect(cityHallView({ lit: 1 })).toMatchObject({ lit: '1 prédio aceso agora', tokens: 'A soma aparece com 10 prédios ou mais.' });
-    expect(cityHallView({ lit: 42, tokensBand: 5 })?.tokens).toBe('A cidade consumiu ≈ mais de 100 milhões de tokens esta semana');
+    expect(cityHallView({ lit: 1 })).toMatchObject({ lit: '1 building lit now', tokens: 'The total shows up with 10 buildings or more.' });
+    expect(cityHallView({ lit: 42, tokensBand: 5 })?.tokens).toBe('The city used ≈ over 100 million tokens this week');
   });
 
   it('o enfeite da estação: abóboras em outubro, Natal em novembro e dezembro, festa no resto', () => {

@@ -21,7 +21,7 @@ function agent(id: string, permission?: Partial<PermissionRequestInfo>, status: 
     roomId: 'r',
     name: id,
     look: 'f',
-    role: 'Agente principal',
+    role: 'Main agent',
     sessionId: `s-${id}`,
     account: 'acc',
     status,
@@ -39,16 +39,16 @@ function agent(id: string, permission?: Partial<PermissionRequestInfo>, status: 
 
 describe('responder pelo escritório (peças puras)', () => {
   it('expiryText: quanto falta para o pedido voltar ao terminal', () => {
-    expect(expiryText(10 * 60_000, 0)).toBe('volta ao terminal em 10 min');
-    expect(expiryText(30_000, 0)).toBe('volta ao terminal em menos de 1 min');
-    expect(expiryText(0, 5)).toBe('voltando ao terminal…');
+    expect(expiryText(10 * 60_000, 0)).toBe('returns to the terminal in 10 min');
+    expect(expiryText(30_000, 0)).toBe('returns to the terminal in under 1 min');
+    expect(expiryText(0, 5)).toBe('returning to the terminal…');
   });
 
   it('expiryText com segundos (prazo curto do Codex)', () => {
-    expect(expiryText(25_000, 0, true)).toBe('volta ao terminal em 25 s');
-    expect(expiryText(25_000, 24_200, true)).toBe('volta ao terminal em 1 s');
-    expect(expiryText(25_000, 25_000, true)).toBe('voltando ao terminal…');
-    expect(expiryText(5 * 60_000, 0, true)).toBe('volta ao terminal em 5 min');
+    expect(expiryText(25_000, 0, true)).toBe('returns to the terminal in 25 s');
+    expect(expiryText(25_000, 24_200, true)).toBe('returns to the terminal in 1 s');
+    expect(expiryText(25_000, 25_000, true)).toBe('returning to the terminal…');
+    expect(expiryText(5 * 60_000, 0, true)).toBe('returns to the terminal in 5 min');
   });
 
   it('cartão do Codex: sem "sempre permitir" nem "interromper", recusa com motivo e o aviso do terminal', () => {
@@ -60,17 +60,17 @@ describe('responder pelo escritório (peças puras)', () => {
       seconds: true,
       note: CODEX_PERMISSION_NOTE,
     });
-    expect(CODEX_PERMISSION_NOTE).toBe('No Codex, a aprovação só aparece no terminal depois que você responder aqui ou o prazo acabar.');
+    expect(CODEX_PERMISSION_NOTE).toBe('In Codex, the approval only shows up in the terminal after you answer here or the time runs out.');
     // Claude Code: como antes.
     expect(permissionOptions({ suggestions }, { kind: 'main' })).toEqual({ always: true, interrupt: true, reasonRequired: false, seconds: false, note: '' });
     expect(permissionOptions({}, { kind: 'main' }).always).toBe(false);
-    expect(permissionOptions({}, { kind: 'sub', background: true }).note).toMatch(/^Este subagente roda em segundo plano/);
+    expect(permissionOptions({}, { kind: 'sub', background: true }).note).toMatch(/^This subagent runs in the background/);
   });
 
   it('destinationLabel', () => {
-    expect(destinationLabel('localSettings')).toBe('neste projeto, só para você');
-    expect(destinationLabel('userSettings')).toBe('em todos os projetos');
-    expect(destinationLabel('session')).toBe('só nesta sessão');
+    expect(destinationLabel('localSettings')).toBe('in this project, just for you');
+    expect(destinationLabel('userSettings')).toBe('in all projects');
+    expect(destinationLabel('session')).toBe('this session only');
     expect(destinationLabel('outro')).toBe('outro');
   });
 
@@ -94,7 +94,7 @@ describe('responder pelo escritório (peças puras)', () => {
 describe('cartão de pergunta (AskUserQuestion)', () => {
   // Posições do original: a opção 1 da primeira pergunta e a pergunta 1 foram puladas.
   const single: AskQuestion = { index: 0, header: 'Banco', question: 'Qual banco usar?', options: [{ index: 0, label: 'Postgres' }, { index: 2, label: 'SQLite' }] };
-  const multi: AskQuestion = { index: 2, question: 'Quais testes rodar?', multiSelect: true, options: [{ index: 0, label: 'Unidade' }, { index: 1, label: 'E2E' }] };
+  const multi: AskQuestion = { index: 2, question: 'Quais testes rodar?', multiSelect: true, options: [{ index: 0, label: 'Unit' }, { index: 1, label: 'E2E' }] };
   const choice = (options: number[], otherOn = false, otherText = ''): AskChoice => ({ options, otherOn, otherText });
 
   it('isQuestionRequest: só AskUserQuestion com perguntas', () => {

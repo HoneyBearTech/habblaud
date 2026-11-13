@@ -39,7 +39,7 @@ export function visitorInfo(me: { name: string; look: 'f' | 'm'; parts?: Appeara
     name: me.name,
     look: me.look,
     ...(me.parts && Object.keys(me.parts).length ? { parts: me.parts } : {}),
-    role: tr('Visitante'),
+    role: tr('Visitor'),
     sessionId: VISITOR_ID,
     account: '',
     status: 'idle',

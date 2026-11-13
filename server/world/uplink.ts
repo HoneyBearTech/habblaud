@@ -518,7 +518,7 @@ export class BuildingUplink {
     this.stop_ = undefined;
     if (this.welcomeTimer) this.timers.clearTimeout(this.welcomeTimer);
     log.clearOnce('world-uplink-conn');
-    log.info(tr('Habblaud World: prédio conectado.'));
+    log.info(tr('Habblaud World: building connected.'));
     this.pingTimer = this.timers.setInterval(() => this.ping(), this.t.pingMs);
     // A cada welcome o pacote vai inteiro, mesmo igual ao último (o servidor não guarda o conteúdo dos andares); pausado
     // ou fora do mundo (conexão só da cena Mundo), nada vai, e a retomada manda o pacote inteiro.
@@ -577,7 +577,7 @@ export class BuildingUplink {
       this.clearSendTimer();
       this.o.onLeft?.();
     } else if (!ack.ok) {
-      log.warnOnce(`world-uplink-ack:${ack.error}`, tr('Habblaud World: o servidor recusou o pacote do prédio ({0}).', [ack.error ?? 'internal']));
+      log.warnOnce(`world-uplink-ack:${ack.error}`, tr('Habblaud World: the server rejected the building packet ({0}).', [ack.error ?? 'internal']));
     }
     this.o.onChange?.();
   }
@@ -590,8 +590,8 @@ export class BuildingUplink {
     this.stop_ = { reason, key: sessionKey(this.o.store.get()) };
     log.warn(
       reason === 'update'
-        ? tr('Habblaud World: esta versão do Habblaud não entra mais no mundo; atualize para o prédio voltar.')
-        : tr('Habblaud World: o servidor encerrou a conexão do prédio ({0}).', [reason]),
+        ? tr('Habblaud World: this Habblaud version can no longer join the world; update it to bring the building back.')
+        : tr('Habblaud World: the server closed the building connection ({0}).', [reason]),
     );
     this.clearReconnect();
     void this.closeSocket();
@@ -604,7 +604,7 @@ export class BuildingUplink {
     this.teardown();
     if (was) this.o.onChange?.();
     if (this.wanted()) {
-      if (!was) log.warnOnce('world-uplink-conn', tr('Habblaud World: sem conexão com o servidor do mundo; tentando de novo.'));
+      if (!was) log.warnOnce('world-uplink-conn', tr('Habblaud World: no connection to the world server; trying again.'));
       this.scheduleReconnect();
     }
   }
@@ -751,7 +751,7 @@ export class BuildingUplink {
     );
     this.ids.sweep();
     if (r.truncated) {
-      log.warnOnce('world-uplink-truncated', tr('Habblaud World: o prédio passou dos limites do mundo; {0} andar(es) e {1} agente(s) ficaram de fora.', [r.truncated.floors, r.truncated.agents]));
+      log.warnOnce('world-uplink-truncated', tr("Habblaud World: the building went over the world's limits; {0} floor(s) and {1} agent(s) were left out.", [r.truncated.floors, r.truncated.agents]));
     } else log.clearOnce('world-uplink-truncated');
     const json = JSON.stringify(r.uplink);
     if (json === this.lastJson && !this.forceNext) return;
@@ -823,7 +823,7 @@ export class BuildingUplink {
       } catch {
         // nada sobrou
       }
-      log.warnOnce('world-last-uplink', tr('Não foi possível gravar {0} ({1}).', [file, (err as NodeJS.ErrnoException).code ?? '?']));
+      log.warnOnce('world-last-uplink', tr("Couldn't write {0} ({1}).", [file, (err as NodeJS.ErrnoException).code ?? '?']));
     }
   }
 

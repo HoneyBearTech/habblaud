@@ -28,14 +28,14 @@ export interface KindInfo {
 }
 
 export const KINDS: Readonly<Record<GatherKind, KindInfo>> = {
-  tv: { label: tr('Vendo TV'), emoji: '📺', min: 2, max: 5 },
-  videogame: { label: tr('Jogando videogame'), emoji: '🎮', min: 2, max: 5, match: true },
-  arcade: { label: tr('Duelo no fliperama'), emoji: '👾', min: 2, max: 2, match: true },
-  pingpong: { label: tr('Jogando pingue-pongue'), emoji: '🏓', min: 2, max: 4, match: true },
-  kitchen: { label: tr('Papo na copa'), emoji: '☕', min: 2, max: 4 },
-  talk: { label: tr('Conversando'), emoji: '💬', min: 2, max: 2 },
-  rps: { label: tr('Jokenpô'), emoji: '✊', min: 2, max: 4, match: true },
-  mirror: { label: tr('Se arrumando no espelho'), emoji: '💄', min: 1, max: 2, solo: true },
+  tv: { label: tr('Watching TV'), emoji: '📺', min: 2, max: 5 },
+  videogame: { label: tr('Playing video games'), emoji: '🎮', min: 2, max: 5, match: true },
+  arcade: { label: tr('Arcade showdown'), emoji: '👾', min: 2, max: 2, match: true },
+  pingpong: { label: tr('Playing ping-pong'), emoji: '🏓', min: 2, max: 4, match: true },
+  kitchen: { label: tr('Kitchen chat'), emoji: '☕', min: 2, max: 4 },
+  talk: { label: tr('Chatting'), emoji: '💬', min: 2, max: 2 },
+  rps: { label: tr('Rock-paper-scissors'), emoji: '✊', min: 2, max: 4, match: true },
+  mirror: { label: tr('Primping at the mirror'), emoji: '💄', min: 1, max: 2, solo: true },
 };
 
 export interface Member {

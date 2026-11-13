@@ -250,7 +250,7 @@ export class OfficeStore {
   async decidePermission(id: string, d: PermissionDecision): Promise<string | undefined> {
     if (this.mock) {
       const sim = this.mockSim;
-      if (!sim?.decidePermission(id, d)) return tr('Este pedido já foi respondido.');
+      if (!sim?.decidePermission(id, d)) return tr('This request has already been answered.');
       this.applySnapshot(sim.snapshot());
       return undefined;
     }
@@ -266,7 +266,7 @@ export class OfficeStore {
     } catch {
       // Resposta sem JSON (ex.: guard): usa a mensagem padrão.
     }
-    return tr('Não foi possível responder (erro {0}).', [res.status]);
+    return tr("Couldn't reply (error {0}).", [res.status]);
   }
 
   /**
@@ -283,7 +283,7 @@ export class OfficeStore {
   }
 
   private async characterRequest(id: string, method: 'PUT' | 'DELETE', body: object): Promise<string | undefined> {
-    if (this.mock || this.replay) return tr('Editar o personagem só funciona com o escritório ao vivo.');
+    if (this.mock || this.replay) return tr('Editing the character only works with the live office.');
     let res: Response;
     try {
       res = await fetch(`/api/agents/${encodeURIComponent(id)}/character`, {
@@ -292,7 +292,7 @@ export class OfficeStore {
         body: JSON.stringify(body),
       });
     } catch {
-      return tr('Sem conexão com o Habblaud.');
+      return tr('No connection to Habblaud.');
     }
     if (res.ok) return undefined;
     try {
@@ -301,7 +301,7 @@ export class OfficeStore {
     } catch {
       // Resposta sem JSON (ex.: guard): usa a mensagem padrão.
     }
-    return tr('Não foi possível salvar o personagem (erro {0}).', [res.status]);
+    return tr("Couldn't save the character (error {0}).", [res.status]);
   }
 
   // ---------------------------------------------------------------- mensagens pelo escritório
@@ -322,7 +322,7 @@ export class OfficeStore {
     }
     if (res.status === 201 && body && typeof body === 'object') return { message: body as OutboxMessage };
     const error = (body as { error?: unknown } | undefined)?.error;
-    return { error: typeof error === 'string' ? error : tr('erro {0}', [res.status]) };
+    return { error: typeof error === 'string' ? error : tr('error {0}', [res.status]) };
   }
 
   /** Situação de uma mensagem (GET /api/messages/:id). null = o servidor não a conhece (404). Sem conexão: lança. */
@@ -333,7 +333,7 @@ export class OfficeStore {
     }
     const res = await fetch(`/api/messages/${encodeURIComponent(id)}`);
     if (res.status === 404) return null;
-    if (!res.ok) throw new Error(tr('erro {0}', [res.status]));
+    if (!res.ok) throw new Error(tr('error {0}', [res.status]));
     return (await res.json()) as OutboxMessage;
   }
 
@@ -343,15 +343,15 @@ export class OfficeStore {
 
   private mockSend(agentId: string, text: string): { message: OutboxMessage } | { error: string } {
     const a = this.agent(agentId);
-    if (!a) return { error: tr('agente desconhecido: ele já saiu do escritório?') };
-    if (!a.canMessage || a.kind !== 'main' || a.status === 'offline') return { error: tr('este agente não recebe mensagens agora') };
+    if (!a) return { error: tr('unknown agent: has it already left the office?') };
+    if (!a.canMessage || a.kind !== 'main' || a.status === 'offline') return { error: tr("this agent can't receive messages right now") };
     const now = Date.now();
     const msg: OutboxMessage = { id: `mock-${now.toString(36)}-${++this.mockSeq}`, agentId, status: 'queued', createdAt: now, updatedAt: now };
     this.mockOutbox.set(msg.id, msg);
     setTimeout(() => {
       const sim = this.mockSim;
       const ok = !!sim?.receiveMessage(agentId, text);
-      Object.assign(msg, { status: ok ? 'delivered' : 'failed', updatedAt: Date.now() }, ok ? {} : { error: tr('o agente saiu do escritório') });
+      Object.assign(msg, { status: ok ? 'delivered' : 'failed', updatedAt: Date.now() }, ok ? {} : { error: tr('the agent left the office') });
       if (ok && sim) this.applySnapshot(sim.snapshot());
     }, 1_000);
     return { message: { ...msg } };

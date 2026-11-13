@@ -45,14 +45,14 @@ export function monthLabel(ym: string | undefined): string {
 /** "1 andar", "7 andares", "24+ andares", "só o térreo". */
 export function floorsLabel(floors: number): string {
   const n = Number.isFinite(floors) ? Math.max(0, Math.floor(floors)) : 0;
-  if (n === 0) return tr('só o térreo');
-  if (n > CARD_MAX_FLOORS) return tr('{0} andares', [`${CARD_MAX_FLOORS}+`]);
-  return n === 1 ? tr('1 andar') : tr('{0} andares', [n]);
+  if (n === 0) return tr('ground floor only');
+  if (n > CARD_MAX_FLOORS) return tr('{0} floors', [`${CARD_MAX_FLOORS}+`]);
+  return n === 1 ? tr('1 floor') : tr('{0} floors', [n]);
 }
 
 export function likesLabel(n: number): string {
   const v = Number.isFinite(n) ? Math.max(0, Math.floor(n)) : 0;
-  return v === 1 ? tr('1 curtida') : tr('{0} curtidas', [v.toLocaleString(intlLocale())]);
+  return v === 1 ? tr('1 like') : tr('{0} likes', [v.toLocaleString(intlLocale())]);
 }
 
 export interface BuildingCardModel {
@@ -77,7 +77,7 @@ export function buildingCardModel(b: WorldBuildingPublic, myBuildingId: string |
     flag: flagEmoji(b.owner.country),
     country: countryName(b.owner.country),
     online,
-    state: online ? tr('Luzes acesas') : tr('Luzes apagadas'),
+    state: online ? tr('Lights on') : tr('Lights off'),
     floors: floorsLabel(b.floors),
     agents: b.agents ? { working: b.agents.working, waiting: b.agents.waiting, idle: b.agents.idle } : null,
     likes: likesLabel(b.likes),
@@ -149,10 +149,10 @@ export class CityCards {
     this.title = h('strong', { class: 'ui-city-card__title' });
     this.sub = h('div', { class: 'ui-city-card__sub' });
     this.body = h('div', { class: 'ui-city-card__body' });
-    this.closeBtn = h('button', { class: 'ui-city-card__close', type: 'button', title: tr('Fechar'), attrs: { 'aria-label': tr('Fechar') }, text: '×', on: { click: () => this.hide() } });
+    this.closeBtn = h('button', { class: 'ui-city-card__close', type: 'button', title: tr('Close'), attrs: { 'aria-label': tr('Close') }, text: '×', on: { click: () => this.hide() } });
     this.el = h(
       'section',
-      { class: 'ui-city-card', hidden: true, role: 'dialog', attrs: { 'aria-live': 'polite', 'aria-label': tr('Cartão') } },
+      { class: 'ui-city-card', hidden: true, role: 'dialog', attrs: { 'aria-live': 'polite', 'aria-label': tr('Card') } },
       h('div', { class: 'ui-city-card__head' }, this.avatar, h('div', { class: 'ui-city-card__names' }, h('div', { class: 'ui-city-card__line' }, this.flag, this.title), this.sub), this.closeBtn),
       this.body,
     );
@@ -183,7 +183,7 @@ export class CityCards {
       setText(this.flag, m.flag);
       this.flag.title = m.country;
       setText(this.title, m.owner);
-      setText(this.sub, [m.mine ? tr('Seu prédio') : '', m.country].filter(Boolean).join(' · '));
+      setText(this.sub, [m.mine ? tr('Your building') : '', m.country].filter(Boolean).join(' · '));
       this.el.classList.toggle('is-online', m.online);
       const rows: HTMLElement[] = [];
       rows.push(h('div', { class: 'ui-city-card__row' }, h('span', { class: `ui-city-card__dot ${m.online ? 'is-on' : 'is-off'}` }), h('span', { text: m.state }), h('span', { class: 'ui-city-card__sep', text: '·' }), h('span', { text: m.floors })));
@@ -192,19 +192,19 @@ export class CityCards {
           h(
             'div',
             { class: 'ui-city-card__agents' },
-            h('span', { class: 'ui-city-card__agent is-working', title: tr('Agentes trabalhando') }, h('b', { text: String(m.agents.working) }), ` ${tr('trabalhando')}`),
-            h('span', { class: 'ui-city-card__agent is-waiting', title: tr('Agentes esperando o dono') }, h('b', { text: String(m.agents.waiting) }), ` ${tr('esperando')}`),
-            h('span', { class: 'ui-city-card__agent is-idle', title: tr('Agentes à toa') }, h('b', { text: String(m.agents.idle) }), ` ${tr('à toa')}`),
+            h('span', { class: 'ui-city-card__agent is-working', title: tr('Agents working') }, h('b', { text: String(m.agents.working) }), ` ${tr('working')}`),
+            h('span', { class: 'ui-city-card__agent is-waiting', title: tr('Agents waiting for the owner') }, h('b', { text: String(m.agents.waiting) }), ` ${tr('waiting')}`),
+            h('span', { class: 'ui-city-card__agent is-idle', title: tr('Idle agents') }, h('b', { text: String(m.agents.idle) }), ` ${tr('idle')}`),
           ),
         );
-      } else rows.push(h('div', { class: 'ui-city-card__muted', text: tr('Modo discreto: o dono não mostra os agentes.') }));
-      if (m.closed) rows.push(h('div', { class: 'ui-city-card__muted', text: `🔒 ${tr('Fechado a visitas')}` }));
-      rows.push(h('div', { class: 'ui-city-card__row ui-city-card__foot' }, h('span', { text: `❤️ ${m.likes}` }), m.since ? h('span', { class: 'ui-city-card__since', text: tr('No mundo desde {0}', [m.since]) }) : null));
+      } else rows.push(h('div', { class: 'ui-city-card__muted', text: tr("Discreet mode: the owner doesn't show the agents.") }));
+      if (m.closed) rows.push(h('div', { class: 'ui-city-card__muted', text: `🔒 ${tr('Closed to visitors')}` }));
+      rows.push(h('div', { class: 'ui-city-card__row ui-city-card__foot' }, h('span', { text: `❤️ ${m.likes}` }), m.since ? h('span', { class: 'ui-city-card__since', text: tr('In the world since {0}', [m.since]) }) : null));
       // o meu prédio: entrar de qualquer lugar e ver o que os outros veem lá dentro
       const enter = this.actions.enter;
       if (m.mine && enter) {
         const id = b.id;
-        rows.push(h('button', { class: 'ui-city-card__link', type: 'button', text: `👁 ${tr('Ver como os outros veem')}`, on: { click: () => enter(id) } }));
+        rows.push(h('button', { class: 'ui-city-card__link', type: 'button', text: `👁 ${tr('See it as others do')}`, on: { click: () => enter(id) } }));
       }
       const extra = this.actions.extras?.('building', b.id);
       if (extra) rows.push(extra);
@@ -239,13 +239,13 @@ export class CityCards {
       const rows: HTMLElement[] = [];
       if (m.intro) rows.push(h('div', { class: 'ui-city-card__intro', text: `“${m.intro}”` }));
       if (m.traits.length) rows.push(h('div', { class: 'ui-city-card__traits' }, ...m.traits.map((t) => h('span', { class: 'ui-trait', title: t.desc, text: `${t.emoji} ${t.label}` }))));
-      const foot = h('div', { class: 'ui-city-card__row ui-city-card__foot' }, h('span', { text: `❤️ ${tr('{0} recebidas', [m.likes])}` }));
+      const foot = h('div', { class: 'ui-city-card__row ui-city-card__foot' }, h('span', { text: `❤️ ${tr('{0} received', [m.likes])}` }));
       if (m.building) {
         const b = m.building;
         foot.append(
-          h('button', { class: 'ui-city-card__link', type: 'button', text: `🏢 ${tr('Ver o prédio')} (${b.floors})`, on: { click: () => this.actions.showBuilding(b.id) } }),
+          h('button', { class: 'ui-city-card__link', type: 'button', text: `🏢 ${tr('See the building')} (${b.floors})`, on: { click: () => this.actions.showBuilding(b.id) } }),
         );
-      } else foot.append(h('span', { class: 'ui-city-card__muted', text: m.hasBuilding ? tr('Prédio longe daqui') : tr('Ainda sem prédio') }));
+      } else foot.append(h('span', { class: 'ui-city-card__muted', text: m.hasBuilding ? tr('Building far from here') : tr('No building yet') }));
       rows.push(foot);
       const extra = this.actions.extras?.('player', p.id);
       if (extra) rows.push(extra);

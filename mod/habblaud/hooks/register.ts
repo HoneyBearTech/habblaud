@@ -302,7 +302,7 @@ async function askHabblaud($: EngineInterface, port: number, query: string): Pro
     const res = await Promise.race([$.http.fetch(`http://127.0.0.1:${port}/api/mod/summary${query}`, { headers: { accept: 'application/json' } }), timeout])
     if (!res) return { kind: 'offline' }
     // 404 JSON = um Habblaud de antes do mod (rota desconhecida); outro 404 qualquer = não é o Habblaud.
-    if (res.status === 404 && res.text.includes('rota desconhecida')) return { kind: 'outdated' }
+    if (res.status === 404 && (res.text.includes('unknown route') || res.text.includes('rota desconhecida'))) return { kind: 'outdated' }
     const summary = res.ok ? parseSummary(res.text) : undefined
     return summary ? { kind: 'ok', summary } : { kind: 'offline' }
   } catch {

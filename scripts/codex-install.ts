@@ -55,14 +55,14 @@ export const OBSERVE_TIMEOUT_S = 5;
 export const SESSION_END_TIMEOUT_S = 1;
 /** Folga do tempo limite do PermissionRequest sobre a espera (node subindo, evento e registro; o hook desiste antes). */
 export const PERMISSION_SLACK_S = 10;
-export const STATUS_MESSAGE = tr('Aguardando resposta no Habblaud…');
+export const STATUS_MESSAGE = tr('Waiting for an answer in Habblaud…');
 /** Configuração lida pelo hook (porta e espera), em ~/.habblaud. */
 export const CONFIG_NAME = 'codex-hook.json';
 
 /** Versão mínima do Node para o hook (o mesmo `engines` do Habblaud, na parte que importa: fetch e AbortSignal). */
 export const MIN_NODE_MAJOR = 22;
 
-const USAGE = tr('Uso: npm run codex:<install|uninstall|status> [-- opções]\n\n  install     acrescenta os hooks do Habblaud no hooks.json de cada pasta do Codex (faz backup antes)\n  uninstall   tira os hooks do Habblaud de cada pasta (os outros hooks ficam)\n  status      mostra se os hooks estão lá e se o Habblaud está respondendo\n\nOpções:\n  --dry-run        mostra o que mudaria, sem gravar nada\n  --conta <id>     só a pasta desta conta (o nome da pasta, ex.: .codex)\n  --port <n>       porta do Habblaud (padrão: HABBLAUD_PORT ou {0})\n  --espera <s>     quanto o Codex espera sua resposta no Habblaud antes de pedir a aprovação no terminal\n                   (padrão: {1} s; entre {2} e {3})\n  --node <caminho> o Node {4}+ que roda os hooks (padrão: o `node` do shell de login, se for {5}+;\n                   senão o primeiro {6}+ entre /opt/homebrew/bin, /usr/local/bin e o deste comando)\n  -h, --help       mostra esta ajuda\n\nPastas: HABBLAUD_CODEX_DIRS (lista separada por vírgula) ou CODEX_HOME e as pastas ~/.codex* do Codex.\nDepois de instalar, abra o Codex e aprove os hooks do Habblaud em /hooks.', [DEFAULT_PORT, DEFAULT_WAIT_S, MIN_WAIT_S, MAX_WAIT_S, MIN_NODE_MAJOR, MIN_NODE_MAJOR, MIN_NODE_MAJOR]);
+const USAGE = tr("Usage: npm run codex:<install|uninstall|status> [-- options]\n\n  install     adds the Habblaud hooks to the hooks.json in each Codex folder (backs it up first)\n  uninstall   removes the Habblaud hooks from each folder (other hooks stay)\n  status      shows whether the hooks are there and whether Habblaud is responding\n\nOptions:\n  --dry-run        shows what would change, without writing anything\n  --conta <id>     only this account's folder (the folder name, e.g. .codex)\n  --port <n>       Habblaud port (default: HABBLAUD_PORT or {0})\n  --espera <s>     how long Codex waits for your answer in Habblaud before asking for approval in the terminal\n                   (default: {1} s; between {2} and {3})\n  --node <path>    the Node {4}+ that runs the hooks (default: the login shell's `node`, if it is {5}+;\n                   otherwise the first {6}+ among /opt/homebrew/bin, /usr/local/bin and the one running this command)\n  -h, --help       shows this help\n\nFolders: HABBLAUD_CODEX_DIRS (comma-separated list) or CODEX_HOME and Codex's ~/.codex* folders.\nAfter installing, open Codex and approve the Habblaud hooks in /hooks.", [DEFAULT_PORT, DEFAULT_WAIT_S, MIN_WAIT_S, MAX_WAIT_S, MIN_NODE_MAJOR, MIN_NODE_MAJOR, MIN_NODE_MAJOR]);
 
 // ---------------------------------------------------------------------------------------------
 // Funções puras (testadas em server/test/codex-install.test.ts)
@@ -150,10 +150,10 @@ export type PlanAction =
 
 /** `hooks` num formato que dá para editar (ou o motivo para não mexer). */
 function hooksOf(file: Settings): Rec | string {
-  if (file.hooks !== undefined && !rec(file.hooks)) return tr('"hooks" em formato desconhecido; nada foi alterado');
+  if (file.hooks !== undefined && !rec(file.hooks)) return tr('"hooks" in an unknown format; nothing was changed');
   const hooks = rec(file.hooks) ?? {};
   for (const [event, list] of Object.entries(hooks)) {
-    if (!Array.isArray(list)) return tr('"hooks.{0}" em formato desconhecido; nada foi alterado', [event]);
+    if (!Array.isArray(list)) return tr('"hooks.{0}" in an unknown format; nothing was changed', [event]);
   }
   return hooks;
 }
@@ -229,8 +229,8 @@ export function planInstall(file: Settings, command: string, waitS: number): Pla
     }
     hooks[event] = list;
   }
-  if (!added.length && !updated.length) return { action: 'none', message: tr('já instalado') };
-  const parts = [added.length ? (updated.length ? tr('instalado em {0}', [added.join(', ')]) : tr('instalado ({0} eventos)', [added.length])) : '', updated.length ? tr('atualizado em {0}', [updated.join(', ')]) : ''].filter(Boolean);
+  if (!added.length && !updated.length) return { action: 'none', message: tr('already installed') };
+  const parts = [added.length ? (updated.length ? tr('installed in {0}', [added.join(', ')]) : tr('installed ({0} events)', [added.length])) : '', updated.length ? tr('updated in {0}', [updated.join(', ')]) : ''].filter(Boolean);
   return { action: 'install', file: { ...file, hooks }, message: parts.join('; '), approve: [...added, ...updated] };
 }
 
@@ -256,11 +256,11 @@ export function planUninstall(file: Settings): PlanAction {
     if (next.length) hooks[event] = next;
     else delete hooks[event];
   }
-  if (!removed) return { action: 'none', message: tr('não estava instalado') };
+  if (!removed) return { action: 'none', message: tr("wasn't installed") };
   const next: Settings = { ...file };
   if (Object.keys(hooks).length) next.hooks = hooks;
   else delete next.hooks;
-  return { action: 'uninstall', file: next, message: tr('hooks do Habblaud removidos'), shifted };
+  return { action: 'uninstall', file: next, message: tr('Habblaud hooks removed'), shifted };
 }
 
 export interface InstallState {
@@ -362,20 +362,20 @@ export function parseArgs(argv: string[], env: NodeJS.ProcessEnv = process.env):
     if (a === '--dry-run') dryRun = true;
     else if (a === '--conta') {
       account = argv[++i];
-      if (!account) throw new FatalError(tr('--conta precisa do nome da pasta da conta (ex.: .codex).'));
+      if (!account) throw new FatalError(tr('--conta needs the account folder name (e.g. .codex).'));
     } else if (a === '--port') {
       port = Number(argv[++i]);
-      if (!Number.isInteger(port) || port <= 0 || port >= 65_536) throw new FatalError(tr('--port precisa de um número entre 1 e 65535.'));
+      if (!Number.isInteger(port) || port <= 0 || port >= 65_536) throw new FatalError(tr('--port needs a number between 1 and 65535.'));
     } else if (a === '--espera') {
       waitS = Number(argv[++i]);
-      if (!Number.isInteger(waitS) || waitS < MIN_WAIT_S || waitS > MAX_WAIT_S) throw new FatalError(tr('--espera precisa de um número de segundos entre {0} e {1}.', [MIN_WAIT_S, MAX_WAIT_S]));
+      if (!Number.isInteger(waitS) || waitS < MIN_WAIT_S || waitS > MAX_WAIT_S) throw new FatalError(tr('--espera needs a number of seconds between {0} and {1}.', [MIN_WAIT_S, MAX_WAIT_S]));
     } else if (a === '--node') {
       node = argv[++i];
-      if (!node || !isAbsolute(node)) throw new FatalError(tr('--node precisa do caminho absoluto de um Node 22+ (ex.: /opt/homebrew/bin/node).'));
+      if (!node || !isAbsolute(node)) throw new FatalError(tr('--node needs the absolute path to a Node 22+ (e.g. /opt/homebrew/bin/node).'));
     } else if ((a === 'install' || a === 'uninstall' || a === 'status') && !command) command = a;
-    else throw new FatalError(tr('opção desconhecida: {0}\n\n{1}', [a, USAGE]));
+    else throw new FatalError(tr('unknown option: {0}\n\n{1}', [a, USAGE]));
   }
-  if (!command) throw new FatalError(tr('diga o que fazer: install, uninstall ou status.\n\n{0}', [USAGE]));
+  if (!command) throw new FatalError(tr('specify what to do: install, uninstall or status.\n\n{0}', [USAGE]));
   return { command, dryRun, account, port, waitS, ...(node ? { node } : {}) };
 }
 
@@ -420,13 +420,13 @@ async function fetchHealth(port: number): Promise<Health | undefined> {
 export async function run(opts: RunOptions, ctx: RunContext): Promise<number> {
   const { env, home, out } = ctx;
   const found = discoverCodexHomes(env, home);
-  for (const p of found.refused) out(tr('! {0}: é uma pasta do Claude Code, não do Codex; fica de fora.', [tildify(p, home)]));
+  for (const p of found.refused) out(tr("! {0}: it's a Claude Code folder, not a Codex one; skipped.", [tildify(p, home)]));
   const dirs = opts.account ? found.dirs.filter((d) => basename(d) === opts.account) : found.dirs;
   if (!dirs.length) {
     out(
       opts.account
-        ? tr('Nenhuma pasta do Codex com o nome {0} (pastas encontradas: {1}).', [opts.account, found.dirs.map((d) => basename(d)).join(', ') || tr('nenhuma')])
-        : tr('Nenhuma pasta do Codex encontrada (~/.codex ou CODEX_HOME). Use HABBLAUD_CODEX_DIRS se ela estiver em outro lugar.'),
+        ? tr('No Codex folder named {0} (folders found: {1}).', [opts.account, found.dirs.map((d) => basename(d)).join(', ') || tr('none')])
+        : tr("No Codex folder found (~/.codex or CODEX_HOME). Use HABBLAUD_CODEX_DIRS if it's somewhere else."),
     );
     return 1;
   }
@@ -434,10 +434,10 @@ export async function run(opts: RunOptions, ctx: RunContext): Promise<number> {
   if (!nodeBin && ctx.nodeProbe) {
     const pick = chooseNode(ctx.nodeProbe, ctx.nodeCandidates ?? []);
     nodeBin = pick.bin;
-    const login = pick.login ? `Node ${pick.login}` : tr('nenhum Node');
-    if (pick.bin) out(tr('i O shell de login (onde o Codex roda os hooks) tem {0}; o hook precisa do {1}+ e vai usar {2} ({3}).', [login, MIN_NODE_MAJOR, tildify(pick.bin, home), pick.chosen]));
+    const login = pick.login ? `Node ${pick.login}` : tr('no Node');
+    if (pick.bin) out(tr('i The login shell (where Codex runs the hooks) has {0}; the hook needs {1}+ and will use {2} ({3}).', [login, MIN_NODE_MAJOR, tildify(pick.bin, home), pick.chosen]));
     else if ((nodeMajor(pick.login) ?? 0) < MIN_NODE_MAJOR)
-      out(tr('! O shell de login (onde o Codex roda os hooks) tem {0} e não achei um Node {1}+: os hooks podem falhar. Use --node <caminho de um Node {2}+>.', [login, MIN_NODE_MAJOR, MIN_NODE_MAJOR]));
+      out(tr('! The login shell (where Codex runs the hooks) has {0} and no Node {1}+ was found: the hooks may fail. Use --node <path to a Node {2}+>.', [login, MIN_NODE_MAJOR, MIN_NODE_MAJOR]));
   }
   const command = hookCommand(ctx.hookPath, nodeBin);
   let failures = 0;
@@ -456,17 +456,17 @@ export async function run(opts: RunOptions, ctx: RunContext): Promise<number> {
       const cfgWait = readHookConfig(home)?.permissionTimeoutS;
       const st = installState(read.settings, command, typeof cfgWait === 'number' ? cfgWait : opts.waitS);
       if (!st.ok.length && !st.outdated.length) {
-        out(tr('• {0}: não instalado', [label]));
+        out(tr('• {0}: not installed', [label]));
         continue;
       }
       for (const p of st.paths) {
         if (resolve(p) === resolve(ctx.hookPath)) continue;
-        const gone = !existsSync(p) ? tr(' (esse arquivo não existe mais: os hooks falham e nada chega ao escritório)') : '';
-        out(tr('! {0}: os hooks apontam para {1}{2}; rode npm run codex:install para atualizar', [label, p, gone]));
+        const gone = !existsSync(p) ? tr(' (that file no longer exists: the hooks fail and nothing reaches the office)') : '';
+        out(tr('! {0}: the hooks point to {1}{2}; run npm run codex:install to update', [label, p, gone]));
       }
-      if (st.outdated.length) out(tr('! {0}: diferente do esperado em {1}; rode npm run codex:install para atualizar', [label, st.outdated.join(', ')]));
-      if (st.missing.length) out(tr('! {0}: faltando em {1}; rode npm run codex:install', [label, st.missing.join(', ')]));
-      out(tr('• {0}: instalado em {1} de {2} eventos', [label, st.ok.length + st.outdated.length, EVENTS.length]));
+      if (st.outdated.length) out(tr('! {0}: not as expected in {1}; run npm run codex:install to update', [label, st.outdated.join(', ')]));
+      if (st.missing.length) out(tr('! {0}: missing in {1}; run npm run codex:install', [label, st.missing.join(', ')]));
+      out(tr('• {0}: installed on {1} of {2} events', [label, st.ok.length + st.outdated.length, EVENTS.length]));
       continue;
     }
     const plan = opts.command === 'install' ? planInstall(read.settings, command, opts.waitS) : planUninstall(read.settings);
@@ -480,34 +480,34 @@ export async function run(opts: RunOptions, ctx: RunContext): Promise<number> {
       continue;
     }
     if (opts.dryRun) {
-      out(tr('~ {0}: {1} (simulação: nada gravado)', [label, plan.message]));
+      out(tr('~ {0}: {1} (dry run: nothing written)', [label, plan.message]));
       out(`    hooks → ${JSON.stringify(plan.file.hooks ?? null)}`);
       continue;
     }
     try {
       const backup = writeSettings(file, plan.file, read.raw, ctx.now);
-      out(`✓ ${label}: ${plan.message}${backup ? tr(' · backup em {0}', [tildify(backup, home)]) : ''}`);
+      out(`✓ ${label}: ${plan.message}${backup ? tr(' · backup in {0}', [tildify(backup, home)]) : ''}`);
       changed++;
       if (plan.action === 'install') for (const e of plan.approve) approve.add(e);
       if (plan.action === 'uninstall' && plan.shifted.length) {
-        out(tr('    Hooks de outros apps que vinham depois dos do Habblaud ({0}) mudaram de posição:', [plan.shifted.join(', ')]));
-        out(tr('    o Codex vai pedir para aprová-los de novo em /hooks.'));
+        out(tr("    Hooks from other apps that came after Habblaud's ({0}) changed position:", [plan.shifted.join(', ')]));
+        out(tr('    Codex will ask you to approve them again in /hooks.'));
       }
     } catch (err) {
-      out(tr('✗ {0}: não consegui gravar ({1})', [label, (err as Error).message]));
+      out(tr("✗ {0}: couldn't write ({1})", [label, (err as Error).message]));
       failures++;
     }
   }
   const cfgFile = tildify(configPath(home), home);
   if (opts.command === 'install') {
     const cfg: HookConfig = { port: opts.port, permissionTimeoutS: opts.waitS };
-    if (opts.dryRun) out(tr('~ configuração do hook ({0}): porta {1}, espera {2} s (simulação: nada gravado)', [cfgFile, cfg.port, cfg.permissionTimeoutS]));
+    if (opts.dryRun) out(tr('~ hook config ({0}): port {1}, wait {2} s (dry run: nothing written)', [cfgFile, cfg.port, cfg.permissionTimeoutS]));
     else {
       try {
-        if (writeHookConfig(home, cfg)) out(tr('✓ configuração do hook gravada em {0} (porta {1}, espera {2} s)', [cfgFile, cfg.port, cfg.permissionTimeoutS]));
-        else out(tr('= configuração do hook ({0}): porta {1}, espera {2} s', [cfgFile, cfg.port, cfg.permissionTimeoutS]));
+        if (writeHookConfig(home, cfg)) out(tr('✓ hook config written to {0} (port {1}, wait {2} s)', [cfgFile, cfg.port, cfg.permissionTimeoutS]));
+        else out(tr('= hook config ({0}): port {1}, wait {2} s', [cfgFile, cfg.port, cfg.permissionTimeoutS]));
       } catch (err) {
-        out(tr('✗ não consegui gravar {0} ({1}): o hook usa a porta {2} e espera {3} s', [cfgFile, (err as Error).message, DEFAULT_PORT, DEFAULT_WAIT_S]));
+        out(tr("✗ couldn't write {0} ({1}): the hook uses port {2} and waits {3} s", [cfgFile, (err as Error).message, DEFAULT_PORT, DEFAULT_WAIT_S]));
         failures++;
       }
     }
@@ -516,18 +516,18 @@ export async function run(opts: RunOptions, ctx: RunContext): Promise<number> {
     const cfg = readHookConfig(home);
     out(
       cfg
-        ? tr('Configuração do hook ({0}): porta {1}, espera {2} s.', [cfgFile, cfg.port ?? DEFAULT_PORT, cfg.permissionTimeoutS ?? DEFAULT_WAIT_S])
-        : tr('Configuração do hook ({0}): não existe (o hook usa HABBLAUD_PORT ou a porta {1} e espera {2} s).', [cfgFile, DEFAULT_PORT, DEFAULT_WAIT_S]),
+        ? tr('Hook config ({0}): port {1}, wait {2} s.', [cfgFile, cfg.port ?? DEFAULT_PORT, cfg.permissionTimeoutS ?? DEFAULT_WAIT_S])
+        : tr('Hook config ({0}): missing (the hook uses HABBLAUD_PORT or port {1} and waits {2} s).', [cfgFile, DEFAULT_PORT, DEFAULT_WAIT_S]),
     );
     const port = cfg?.port ?? opts.port;
     const health = await (ctx.health ?? fetchHealth)(port);
-    if (!health) out(tr('Habblaud em http://127.0.0.1:{0}: fora do ar (com ele parado, os hooks saem na hora e o Codex segue normal).', [port]));
+    if (!health) out(tr("Habblaud at http://127.0.0.1:{0}: down (while it's stopped, the hooks exit right away and Codex works as usual).", [port]));
     else {
-      const events = health.codexEvents ? tr('recebendo os eventos do Codex') : tr('no ar, mas sem a fonte do Codex (os eventos são ignorados)');
-      const perms = health.permissions ? tr('aprovar pelo escritório ligado (com alguma página aberta)') : tr('aprovar pelo escritório desligado (porta exposta na rede ou HABBLAUD_TERMINAL=0)');
-      out(tr('Habblaud em http://127.0.0.1:{0}: {1}; {2}.', [port, events, perms]));
+      const events = health.codexEvents ? tr('receiving Codex events') : tr('up, but without the Codex source (events are ignored)');
+      const perms = health.permissions ? tr('office approvals on (with a page open)') : tr('office approvals off (port exposed on the network or HABBLAUD_TERMINAL=0)');
+      out(tr('Habblaud at http://127.0.0.1:{0}: {1}; {2}.', [port, events, perms]));
     }
-    out(tr('Confiança: o Codex só roda um hook novo ou alterado depois que você o aprova; confira em /hooks dentro do Codex.'));
+    out(tr('Trust: Codex only runs a new or changed hook after you approve it; check /hooks inside Codex.'));
   }
   if (opts.command === 'install' && opts.account && !opts.dryRun) {
     // A espera fica num arquivo só, mas o timeout do PermissionRequest fica em cada hooks.json: as outras pastas com o
@@ -538,20 +538,20 @@ export async function run(opts: RunOptions, ctx: RunContext): Promise<number> {
       return !('error' in r) && installState(r.settings, command, opts.waitS).outdated.includes('PermissionRequest');
     });
     if (behind.length) {
-      out(tr('! {0}: o Habblaud está lá com outra espera; rode npm run codex:install sem --conta para alinhar.', [behind.map((d) => basename(d)).join(', ')]));
+      out(tr('! {0}: Habblaud is there with a different wait; run npm run codex:install without --conta to align.', [behind.map((d) => basename(d)).join(', ')]));
     }
   }
   if (opts.command === 'install' && approve.size && !opts.dryRun) {
     out('');
-    out(tr('Pronto. Falta um passo: abra o Codex e aprove os hooks do Habblaud em /hooks (o Codex só roda hook novo'));
-    out(tr('ou alterado depois que você aprova). Com o Habblaud aberto no navegador, as sessões do Codex aparecem no'));
-    out(tr('escritório e os pedidos de aprovação esperam sua resposta lá por até {0} s antes de irem para o terminal.', [opts.waitS]));
+    out(tr('Done. One step left: open Codex and approve the Habblaud hooks in /hooks (Codex only runs a new'));
+    out(tr('or changed hook after you approve it). With Habblaud open in the browser, Codex sessions show up in the'));
+    out(tr('office and approval requests wait for your answer there for up to {0} s before going to the terminal.', [opts.waitS]));
     if (approve.has('PermissionRequest') && approve.size < EVENTS.length) {
-      out(tr('(A espera ou o caminho do Habblaud mudou: aprove de novo os hooks alterados em /hooks.)'));
+      out(tr('(The wait or the Habblaud path changed: approve the changed hooks again in /hooks.)'));
     }
-    out(tr('Para desfazer: npm run codex:uninstall'));
+    out(tr('To undo: npm run codex:uninstall'));
   }
-  if (opts.command === 'uninstall' && changed) out(tr('A configuração em ~/.habblaud/codex-hook.json fica (só o hook a lê).'));
+  if (opts.command === 'uninstall' && changed) out(tr('The config in ~/.habblaud/codex-hook.json stays (only the hook reads it).'));
   return failures ? 1 : 0;
 }
 
@@ -586,7 +586,7 @@ async function main(): Promise<void> {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   main().catch((err: unknown) => {
-    console.error(err instanceof FatalError ? tr('[codex] Erro: {0}', [err.message]) : tr('[codex] Erro inesperado: {0}', [String(err)]));
+    console.error(err instanceof FatalError ? tr('[codex] Error: {0}', [err.message]) : tr('[codex] Unexpected error: {0}', [String(err)]));
     process.exitCode = 1;
   });
 }

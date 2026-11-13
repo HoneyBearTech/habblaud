@@ -18,7 +18,7 @@ function agent(id: string, extra: Partial<AgentInfo> = {}): AgentInfo {
     roomId: '/p/loja',
     name: 'Marina',
     look: 'f',
-    role: 'Agente principal',
+    role: 'Main agent',
     sessionId: `s-${id}`,
     account: '.claude',
     status: 'working',
@@ -107,7 +107,7 @@ describe('gravador da linha do tempo', () => {
       [agent('.claude:1')],
       [agent('.claude:1', { activity: { id: 'a', kind: 'read', icon: '📖', text: 'Lendo App.tsx', at: T0 + 1 } })],
       [agent('.claude:1', { status: 'shell', shells: [{ id: 'j', label: 'Build', startedAt: T0, background: true, kind: 'shell' }] }), agent('s:x', { kind: 'sub', parentId: '.claude:1' })],
-      [agent('.claude:1', { status: 'idle', activity: { id: 'b', kind: 'done', icon: '✅', text: 'Concluiu', at: T0 + 2 } })],
+      [agent('.claude:1', { status: 'idle', activity: { id: 'b', kind: 'done', icon: '✅', text: 'Done', at: T0 + 2 } })],
     ];
     for (const s of states) {
       rec.ingest(snap(s));
@@ -118,7 +118,7 @@ describe('gravador da linha do tempo', () => {
     const frame = frameOf(recs[0] as TimelineKeyframe);
     for (const r of recs.slice(1)) applyChanges(frame, r as TimelineDelta);
     expect([...frame.agents.keys()]).toEqual(['.claude:1']);
-    expect(frame.agents.get('.claude:1')).toMatchObject({ status: 'idle', activity: { text: 'Concluiu' } });
+    expect(frame.agents.get('.claude:1')).toMatchObject({ status: 'idle', activity: { text: 'Done' } });
     expect(frame.agents.get('.claude:1')!.shells).toBeUndefined();
   });
 

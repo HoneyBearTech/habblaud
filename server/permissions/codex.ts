@@ -68,7 +68,7 @@ export function codexToolView(tool: string, input: Rec, cwd?: string): CodexTool
     case 'Bash': {
       const command = str(input.command);
       const target = NETWORK.exec(str(input.description)?.trim() ?? '')?.[1];
-      if (target) return { title: tr('Rede({0})', [line(target, TITLE_ARG_MAX)]), text: line(tr('Acessar a rede: {0}', [target]), TEXT_MAX), icon: '🌐', ...shown(command, 'command') };
+      if (target) return { title: tr('Network({0})', [line(target, TITLE_ARG_MAX)]), text: line(tr('Access the network: {0}', [target]), TEXT_MAX), icon: '🌐', ...shown(command, 'command') };
       const view = toolView('Bash', { command: command ?? '' }, cwd);
       const desc = describeTool('Bash', { command: command ?? '', description: str(input.description) });
       return { title: view.title, text: desc.text, icon: desc.icon, ...shown(command, 'command') };
@@ -82,22 +82,22 @@ export function codexToolView(tool: string, input: Rec, cwd?: string): CodexTool
       const name = first ? line(basename(first.path), TEXT_MAX) : '';
       const [text, icon] =
         files.length > 1
-          ? [tr('Editando {0} arquivos', [files.length]), '✏️']
+          ? [tr('Editing {0} files', [files.length]), '✏️']
           : first?.op === 'Add'
-            ? [tr('Criando {0}', [name]), '📝']
+            ? [tr('Creating {0}', [name]), '📝']
             : first?.op === 'Delete'
-              ? [tr('Apagando {0}', [name]), '🗑️']
-              : [first ? tr('Editando {0}', [name]) : tr('Aplicando um patch'), '✏️'];
+              ? [tr('Deleting {0}', [name]), '🗑️']
+              : [first ? tr('Editing {0}', [name]) : tr('Applying a patch'), '✏️'];
       return { title, text: truncate(text, TEXT_MAX), icon, ...shown(patch, 'diff') };
     }
     case 'request_permissions': {
       const view = toolView(tool, input, cwd);
-      return { ...view, text: tr('Pedindo mais permissões'), icon: '🔐' };
+      return { ...view, text: tr('Asking for more permissions'), icon: '🔐' };
     }
     case 'write_stdin': {
       const chars = typeof input.chars === 'string' ? input.chars : '';
       const title = chars ? `write_stdin(${chars.length} caractere${chars.length === 1 ? '' : 's'})` : 'write_stdin';
-      return { title, text: tr('Digitando num processo do terminal'), icon: '⌨️', ...shown(chars ? escaped(chars) : undefined, 'text') };
+      return { title, text: tr('Typing into a terminal process'), icon: '⌨️', ...shown(chars ? escaped(chars) : undefined, 'text') };
     }
     default: {
       const view = toolView(tool, input, cwd);

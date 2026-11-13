@@ -12,7 +12,7 @@ import { tr } from '../i18n';
 /** Intensidade do trabalho por hora local (0 = parado, 1 = pico). */
 const PROFILE = [0.03, 0.01, 0, 0, 0, 0, 0.02, 0.1, 0.4, 0.75, 0.95, 0.85, 0.4, 0.55, 0.9, 1, 0.95, 0.8, 0.55, 0.35, 0.3, 0.25, 0.15, 0.06];
 
-const REASONS = [tr('aprovar uma permissão'), tr('responder uma pergunta'), tr('escolher uma opção'), tr('aprovar o plano')];
+const REASONS = [tr('approve a permission'), tr('answer a question'), tr('choose an option'), tr('approve the plan')];
 
 interface FakeRoom {
   id: string;
@@ -147,7 +147,7 @@ export function seedDemoHistory(book: StatsBook, view: StatsView, now: number, t
             account: room.account,
             start: Math.round(start),
             end: Math.round(start + dur),
-            reason: room.codex ? tr('aprovar um comando') : reason,
+            reason: room.codex ? tr('approve a command') : reason,
           });
         }
         wall += waiting * between(0.75, 0.95);

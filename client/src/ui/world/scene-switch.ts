@@ -76,7 +76,7 @@ export class SceneSwitch implements UiComponent {
       // a gaveta e o terminal fecham: na cidade não há agente selecionado
       if (this.ctx.selection()) this.ctx.select(null);
       await this.host.show();
-      this.ctx.announce(tr('Você está na cidade do Habblaud World. Esc volta ao escritório.'));
+      this.ctx.announce(tr("You're in the Habblaud World city. Esc goes back to the office."));
     } catch (err) {
       console.error('[ui] a cidade não abriu', err);
     } finally {
@@ -94,7 +94,7 @@ export class SceneSwitch implements UiComponent {
   close(): void {
     if (!this.host.open) return;
     this.host.hide();
-    this.ctx.announce(tr('De volta ao escritório.'));
+    this.ctx.announce(tr('Back at the office.'));
     this.onChange();
   }
 
@@ -113,8 +113,8 @@ export class SceneSwitch implements UiComponent {
     setHidden(this.button, !ok && !this.host.open);
     const city = this.host.open;
     this.icon.innerHTML = city ? ICONS.office : ICONS.city;
-    setText(this.label, city ? tr('Escritório') : tr('Mundo'));
-    const title = city ? tr('Voltar ao escritório (Esc)') : tr('Mundo: andar pela cidade do Habblaud World');
+    setText(this.label, city ? tr('Office') : tr('World'));
+    const title = city ? tr('Back to the office (Esc)') : tr('World: walk around the Habblaud World city');
     setTitle(this.button, title);
     setAttr(this.button, 'aria-label', title);
     setAttr(this.button, 'aria-pressed', String(city));

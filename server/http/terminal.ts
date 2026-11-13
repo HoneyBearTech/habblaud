@@ -84,7 +84,7 @@ function parseInto(parser: TerminalParser, lines: readonly string[], out: Termin
     try {
       entries = parser.push(line);
     } catch (err) {
-      log.warnOnce(`terminal-parse:${errMsg(err)}`, tr('Terminal: linha do transcript ignorada ({0}).', [errMsg(err)]));
+      log.warnOnce(`terminal-parse:${errMsg(err)}`, tr('Terminal: transcript line ignored ({0}).', [errMsg(err)]));
       continue;
     }
     for (const e of entries) out.push(e);
@@ -248,14 +248,14 @@ export class TerminalStreams {
   /** Limite de terminais, `init` e o stream SSE de uma fonte já escolhida. */
   private serve(req: IncomingMessage, res: ServerResponse, id: string, source: ConversationSource): void {
     if (this.streams.size >= this.maxStreams) {
-      return sendJson(res, 429, { error: tr('terminais abertos demais (máximo de {0}); feche algum e tente de novo', [this.maxStreams]) });
+      return sendJson(res, 429, { error: tr('too many open terminals (max {0}); close one and try again', [this.maxStreams]) });
     }
     let init: TerminalInit;
     try {
       init = source.load();
     } catch (err) {
-      log.warnOnce(`terminal-load:${id}:${errMsg(err)}`, tr('Terminal de {0}: não foi possível ler o transcript ({1}).', [id, errMsg(err)]));
-      return sendJson(res, 500, { error: tr('não foi possível ler o transcript') });
+      log.warnOnce(`terminal-load:${id}:${errMsg(err)}`, tr("Terminal for {0}: couldn't read the transcript ({1}).", [id, errMsg(err)]));
+      return sendJson(res, 500, { error: tr("couldn't read the transcript") });
     }
     req.socket.setTimeout(0);
     req.socket.setNoDelay(true);
@@ -288,7 +288,7 @@ export class TerminalStreams {
     const office = this.opts.office;
     if (office.has(agentId)) {
       const path = this.opts.transcriptPathOf(agentId);
-      if (!path) return tr('transcript do agente não encontrado');
+      if (!path) return tr('agent transcript not found');
       const parserFor = this.opts.parserFor;
       const createParser = parserFor ? () => parserFor(agentId) ?? this.createParser() : this.createParser;
       const o = { transcriptPathOf: this.opts.transcriptPathOf, createParser, initTailBytes: this.initTailBytes, initEntries: this.initEntries };
@@ -298,7 +298,7 @@ export class TerminalStreams {
     if (agentId.startsWith(DEMO_PREFIX) && office.detail(agentId)) {
       return new DemoSource(agentId, { office, demoEntries: this.demoEntries, initEntries: this.initEntries }, this.demoPollMs);
     }
-    return tr('agente não encontrado');
+    return tr('agent not found');
   }
 
   private pump(s: Stream, source: ConversationSource, agentId: string): void {
@@ -307,7 +307,7 @@ export class TerminalStreams {
       r = source.poll();
     } catch (err) {
       // Ex.: transcript sem permissão de leitura. Tenta de novo no próximo ciclo.
-      log.warnOnce(`terminal:${agentId}:${errMsg(err)}`, tr('Terminal de {0}: {1}', [agentId, errMsg(err)]));
+      log.warnOnce(`terminal:${agentId}:${errMsg(err)}`, tr('Terminal for {0}: {1}', [agentId, errMsg(err)]));
       return;
     }
     if (r.init) this.write(s, frame('init', r.init));

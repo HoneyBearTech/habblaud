@@ -121,8 +121,8 @@ describe('ClaudeWatcher', () => {
     expect(snap.rooms).toHaveLength(1);
     expect(snap.rooms[0]).toMatchObject({ id: CWD, name: 'loja', slot: 0 });
     const a = c.agent(id)!;
-    expect(a).toMatchObject({ kind: 'main', status: 'working', title: 'Carrinho de compras', role: 'Agente principal', account: '.claude', roomId: CWD });
-    expect(a.activity?.text).toBe('Lendo Cart.tsx');
+    expect(a).toMatchObject({ kind: 'main', status: 'working', title: 'Carrinho de compras', role: 'Main agent', account: '.claude', roomId: CWD });
+    expect(a.activity?.text).toBe('Reading Cart.tsx');
     expect(snap.accounts[0]).toMatchObject({ id: '.claude', short: 'A', sessions: 1 });
     expect(c.notices).toEqual([]);
     expect(c.office.recentFeed(10).map((f) => f.activity.kind)).toEqual(['prompt', 'read']);
@@ -132,11 +132,11 @@ describe('ClaudeWatcher', () => {
     const id = bootWithSession();
     appendLines(c.transcript('sess-a'), [L.assistant([L.tool('e1', 'Edit', { file_path: `${CWD}/src/Cart.tsx` })])]);
     c.poll();
-    expect(c.agent(id)!.activity?.text).toBe('Editando Cart.tsx');
+    expect(c.agent(id)!.activity?.text).toBe('Editing Cart.tsx');
     c.openSession(100, 'sess-a', { status: 'waiting', waitingFor: 'permission' });
     c.poll();
-    expect(c.agent(id)).toMatchObject({ status: 'waiting', waitingFor: 'aprovar uma permissão' });
-    expect(c.notices.at(-1)?.text).toMatch(/^✋ .+ precisa de você em loja: aprovar uma permissão$/);
+    expect(c.agent(id)).toMatchObject({ status: 'waiting', waitingFor: 'approve a permission' });
+    expect(c.notices.at(-1)?.text).toMatch(/^✋ .+ needs you in loja: approve a permission$/);
     c.openSession(100, 'sess-a', { status: 'busy' });
     c.poll();
     c.openSession(100, 'sess-a', { status: 'idle' });
@@ -144,7 +144,7 @@ describe('ClaudeWatcher', () => {
     const a = c.agent(id)!;
     expect(a.status).toBe('idle');
     expect(a.activity?.kind).toBe('done');
-    expect(c.notices.at(-1)).toMatchObject({ level: 'success', text: `✅ ${a.name} concluiu em loja` });
+    expect(c.notices.at(-1)).toMatchObject({ level: 'success', text: `✅ ${a.name} finished in loja` });
   });
 
   it('publica os prompts antes e depois de um TodoWrite malformado no mesmo lote', () => {
@@ -165,7 +165,7 @@ describe('ClaudeWatcher', () => {
 
   it.each(['abertura', 'append'])('preserva as linhas válidas do subagente com TodoWrite malformado (%s)', (mode) => {
     bootWithSession();
-    const path = c.subFile('sess-a', 'malformado', { agentType: 'Explore', description: 'Revisar tarefas' }, [L.prompt('Início', { agentId: 'malformado' })]);
+    const path = c.subFile('sess-a', 'malformado', { agentType: 'Explore', description: 'Revisar tarefas' }, [L.prompt('Started', { agentId: 'malformado' })]);
     if (mode === 'append') c.poll();
     appendLines(path, [
       L.prompt('Prompt anterior', { agentId: 'malformado' }),
@@ -175,7 +175,7 @@ describe('ClaudeWatcher', () => {
     c.poll();
     expect(c.agent('sess-a:malformado')?.activity?.detail).toBe('Prompt posterior');
     expect(c.office.recentFeed(10).filter((f) => f.activity.kind === 'prompt' && f.agentId === 'sess-a:malformado').map((f) => f.activity.detail)).toEqual([
-      'Início', 'Prompt anterior', 'Prompt posterior',
+      'Started', 'Prompt anterior', 'Prompt posterior',
     ]);
   });
 
@@ -185,7 +185,7 @@ describe('ClaudeWatcher', () => {
     const id = mode === 'principal' ? mainId : `sess-a:${agentId}`;
     const path = mode === 'principal'
       ? c.transcript('sess-a')
-      : c.subFile('sess-a', agentId, { agentType: 'Explore', description: 'Revisar CI' }, [L.prompt('Início', { agentId })]);
+      : c.subFile('sess-a', agentId, { agentType: 'Explore', description: 'Revisar CI' }, [L.prompt('Started', { agentId })]);
     if (mode === 'append') c.poll();
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     setQuiet(false);
@@ -203,7 +203,7 @@ describe('ClaudeWatcher', () => {
         'Prompt anterior', 'Prompt posterior',
       ]);
       expect(c.agent(id)!.activity?.detail).toBe('Prompt posterior');
-      expect(warn).toHaveBeenCalledWith(`[habblaud] Linha do transcript de ${id} ignorada: Cannot convert object to primitive value`);
+      expect(warn).toHaveBeenCalledWith(`[habblaud] Transcript line from ${id} skipped: Cannot convert object to primitive value`);
       expect(warn).toHaveBeenCalledTimes(1);
     } finally {
       setQuiet(true);
@@ -224,13 +224,13 @@ describe('ClaudeWatcher', () => {
     expect(sub).toMatchObject({ kind: 'sub', parentId: mainId, role: 'Explore', title: 'Mapear arquivos', status: 'working', account: '.claude', roomId: CWD });
     expect(sub.background).toBeUndefined();
     expect(sub.name).not.toBe(main.name);
-    expect(sub.activity?.text).toBe('Buscando “useCart”');
+    expect(sub.activity?.text).toBe('Searching for “useCart”');
     expect(main.stats.subagents).toBe(1);
 
     appendLines(c.transcript('sess-a'), [L.result('toolu_f', 'achei', { toolUseResult: { status: 'completed', agentId: 'f1' } })]);
     c.poll();
     expect(c.agent('sess-a:f1')!.status).toBe('done');
-    expect(c.notices.at(-1)?.text).toBe(`📦 ${sub.name} entregou “Mapear arquivos” para ${main.name}`);
+    expect(c.notices.at(-1)?.text).toBe(`📦 ${sub.name} delivered “Mapear arquivos” to ${main.name}`);
     c.advance(26_000);
     c.poll();
     expect(c.agent('sess-a:f1')).toBeUndefined();
@@ -269,7 +269,7 @@ describe('ClaudeWatcher', () => {
     c.advance(2_000);
     c.poll();
     expect(c.agent('sess-a:fk1')).toMatchObject({ kind: 'sub', parentId: mainId, role: 'fork', title: 'Arte nova', status: 'working', background: true });
-    expect(c.agent('sess-a:fk1')!.activity?.text).toBe('Lendo art.ts');
+    expect(c.agent('sess-a:fk1')!.activity?.text).toBe('Reading art.ts');
     expect(c.agent(mainId)!.stats.subagents).toBe(1);
     appendLines(c.transcript('sess-a'), [L.notification('toolu_fk', 'completed', 'Poses prontas')]);
     c.poll();
@@ -400,10 +400,10 @@ describe('ClaudeWatcher', () => {
       L.result('q1', 'Postgres', { at: c.now() - 1_000 }),
     ]);
     c.poll();
-    expect(c.agent(id)!.activity).toMatchObject({ kind: 'ask', text: 'Recebeu a sua resposta', detail: 'Qual banco usar?' });
+    expect(c.agent(id)!.activity).toMatchObject({ kind: 'ask', text: 'Got your answer', detail: 'Qual banco usar?' });
     appendLines(c.transcript('sess-q'), [L.assistant([L.tool('q2', 'AskUserQuestion', q)], { stop: 'tool_use' })]);
     c.poll();
-    expect(c.agent(id)!.activity).toMatchObject({ kind: 'ask', text: 'Fazendo uma pergunta a você' });
+    expect(c.agent(id)!.activity).toMatchObject({ kind: 'ask', text: 'Asking you a question' });
   });
 
   it('sessão fechada: principal vai embora (offline), subagentes saem junto, sala some', () => {
@@ -419,7 +419,7 @@ describe('ClaudeWatcher', () => {
     // ...mas um sumiço que persiste, sim.
     expect(c.agent(id)!.status).toBe('offline');
     expect(c.agent('sess-a:s1')!.status).toBe('done');
-    expect(c.notices.at(-1)?.text).toMatch(/^🚪 .+ encerrou a sessão$/);
+    expect(c.notices.at(-1)?.text).toMatch(/^🚪 .+ ended the session$/);
     c.advance(21_000);
     c.poll();
     const snap = c.office.commit().snapshot;
@@ -458,10 +458,10 @@ describe('ClaudeWatcher', () => {
     c.openSession(300, 'sess-n', { agent: 'frinus' });
     c.poll();
     const a = c.agent('.claude:300')!;
-    expect(a.role).toBe('Agente frinus');
+    expect(a.role).toBe('Agent frinus');
     const texts = c.notices.map((n) => n.text);
-    expect(texts).toContain('🏗️ Nova sala: loja');
-    expect(texts).toContain(`👋 ${a.name} chegou em loja (Conta A)`);
+    expect(texts).toContain('🏗️ New room: loja');
+    expect(texts).toContain(`👋 ${a.name} arrived in loja (Account A)`);
   });
 });
 
@@ -479,7 +479,7 @@ describe('ClaudeWatcher com transcript maior que a janela do boot', () => {
       await c.watcher.idle();
       const history = c.office.detail('.claude:600')!.history;
       expect(history).toHaveLength(30);
-      expect(history.map((a) => a.text)).toEqual(Array.from({ length: 30 }, (_, i) => `Lendo arquivo${i}.ts`));
+      expect(history.map((a) => a.text)).toEqual(Array.from({ length: 30 }, (_, i) => `Reading arquivo${i}.ts`));
       expect(c.office.recentFeed(100).filter((f) => f.agentId === '.claude:600')).toHaveLength(before);
     } finally {
       c.watcher.stop();
@@ -525,8 +525,8 @@ describe('ClaudeWatcher — esperando o shell', () => {
     c.poll();
     let a = c.agent(id)!;
     expect(a.status).toBe('shell');
-    expect(a.activity).toMatchObject({ kind: 'wait', icon: '⏳', text: 'Esperando o shell: Rodar a suíte completa', tool: 'ShellWait' });
-    expect(c.notices.map((n) => n.text)).toEqual([`⏳ ${a.name} está esperando o shell em loja: Rodar a suíte completa`]);
+    expect(a.activity).toMatchObject({ kind: 'wait', icon: '⏳', text: 'Waiting on shell: Rodar a suíte completa', tool: 'ShellWait' });
+    expect(c.notices.map((n) => n.text)).toEqual([`⏳ ${a.name} is waiting on the shell in loja: Rodar a suíte completa`]);
     expect(c.office.recentFeed(1)[0].activity.tool).toBe('ShellWait');
 
     // Passa o tempo; nada muda (sem novos avisos, sem novo balão).
@@ -544,22 +544,22 @@ describe('ClaudeWatcher — esperando o shell', () => {
     a = c.agent(id)!;
     expect(a.status).toBe('working');
     expect(a.shells).toBeUndefined();
-    expect(a.activity).toMatchObject({ tool: 'ShellDone', icon: '✅', text: 'Shell terminou: Rodar a suíte comp… (1min 10s)', durationMs: 69_500 });
+    expect(a.activity).toMatchObject({ tool: 'ShellDone', icon: '✅', text: 'Shell finished: Rodar a suíte comp… (1min 10s)', durationMs: 69_500 });
     expect(a.activity!.error).toBeUndefined();
-    expect(c.notices.at(-1)).toMatchObject({ level: 'success', text: `✅ ${a.name}: shell terminou em loja — Rodar a suíte completa` });
-    expect(c.office.recentFeed(2).map((f) => f.activity.text)).toEqual(['Shell terminou: Rodar a suíte comp… (1min 10s)', 'Recebeu resultado em segundo plano']);
+    expect(c.notices.at(-1)).toMatchObject({ level: 'success', text: `✅ ${a.name}: shell finished in loja — Rodar a suíte completa` });
+    expect(c.office.recentFeed(2).map((f) => f.activity.text)).toEqual(['Shell finished: Rodar a suíte comp… (1min 10s)', 'Got a background result']);
     // Nenhum "concluiu" no caminho: o fim do turno virou espera pelo shell.
-    expect(c.notices.some((n) => n.text.includes('concluiu'))).toBe(false);
+    expect(c.notices.some((n) => n.text.includes(`${a.name} finished`))).toBe(false);
   });
 
   it('boot em "shell": balão sem aviso; só a mensagem (sem fila) encerra; falha => error e aviso de alerta amarelo', () => {
     const t0 = c.now();
-    writeLines(c.transcript('sess-f'), backgroundTurn(t0 - 30_000, 'toolu_m', 'bmig1', { command: 'php artisan migrate', description: 'Migração do banco', run_in_background: true }));
+    writeLines(c.transcript('sess-f'), backgroundTurn(t0 - 30_000, 'toolu_m', 'bmig1', { command: 'php artisan migrate', description: 'Database migration', run_in_background: true }));
     c.openSession(710, 'sess-f', { status: 'shell' });
     c.watcher.boot();
     c.notices.push(...c.office.commit().notices);
     const id = '.claude:710';
-    expect(c.agent(id)).toMatchObject({ status: 'shell', activity: { text: 'Esperando o shell: Migração do banco' } });
+    expect(c.agent(id)).toMatchObject({ status: 'shell', activity: { text: 'Waiting on shell: Database migration' } });
     expect(c.notices).toEqual([]);
     appendLines(c.transcript('sess-f'), [
       L.shellNotification('message', { taskId: 'bmig1', status: 'failed', summary: 'Background command "Migração do banco" failed with exit code 1' }, { at: c.now() }),
@@ -567,9 +567,9 @@ describe('ClaudeWatcher — esperando o shell', () => {
     c.openSession(710, 'sess-f', { status: 'busy' });
     c.poll();
     const a = c.agent(id)!;
-    expect(a.activity).toMatchObject({ tool: 'ShellDone', icon: '❌', text: 'Shell falhou: Migração do banco', error: true });
-    expect(a.activity!.detail).toBe('Código de saída 1 — php artisan migrate');
-    expect(c.notices.at(-1)).toMatchObject({ level: 'warn', text: `❌ ${a.name}: shell falhou em loja — Migração do banco` });
+    expect(a.activity).toMatchObject({ tool: 'ShellDone', icon: '❌', text: 'Shell failed: Database migration', error: true });
+    expect(a.activity!.detail).toBe('Exit code 1 — php artisan migrate');
+    expect(c.notices.at(-1)).toMatchObject({ level: 'warn', text: `❌ ${a.name}: shell failed in loja — Database migration` });
   });
 
   it('CLI antiga: registro "idle" + Bash em segundo plano sem notificação = shell; KillShell encerra como interrompido (sem aviso)', () => {
@@ -588,7 +588,7 @@ describe('ClaudeWatcher — esperando o shell', () => {
     const a = c.agent(id)!;
     expect(a.status).toBe('idle');
     expect(a.shells).toBeUndefined();
-    expect(a.recent.find((x) => x.tool === 'ShellDone')).toMatchObject({ icon: '🛑', text: 'Shell interrompido: Rodar a suíte completa', error: true });
+    expect(a.recent.find((x) => x.tool === 'ShellDone')).toMatchObject({ icon: '🛑', text: 'Shell interrupted: Rodar a suíte completa', error: true });
     expect(c.notices.filter((n) => n.text.includes('shell'))).toEqual([]);
   });
 
@@ -632,7 +632,7 @@ describe('ClaudeWatcher — esperando o shell', () => {
     const t0 = c.now();
     writeLines(c.transcript('sess-p'), [
       L.prompt('Instala tudo', { at: t0 - 40_000 }),
-      L.assistant([L.tool('fg1', 'Bash', { command: 'npm ci', description: 'Instalar as dependências' })], { at: t0 - 30_000, stop: 'tool_use' }),
+      L.assistant([L.tool('fg1', 'Bash', { command: 'npm ci', description: 'Install the dependencies' })], { at: t0 - 30_000, stop: 'tool_use' }),
     ]);
     c.openSession(740, 'sess-p', { status: 'waiting', waitingFor: 'permission' });
     c.watcher.boot();
@@ -642,11 +642,11 @@ describe('ClaudeWatcher — esperando o shell', () => {
     c.openSession(740, 'sess-p', { status: 'busy' });
     c.poll();
     // O relógio do comando começa quando a aprovação termina.
-    expect(c.agent(id)!.shells).toEqual([{ id: 'fg1', label: 'Instalar as dependências', command: 'npm ci', startedAt: t0, background: false, kind: 'shell' }]);
+    expect(c.agent(id)!.shells).toEqual([{ id: 'fg1', label: 'Install the dependencies', command: 'npm ci', startedAt: t0, background: false, kind: 'shell' }]);
     c.advance(30_000);
     c.poll();
     // 30 s sem nada novo no transcript: continua mostrando o comando (não "Pensando…").
-    expect(c.agent(id)).toMatchObject({ status: 'working', activity: { kind: 'run', text: 'Instalando dependências' } });
+    expect(c.agent(id)).toMatchObject({ status: 'working', activity: { kind: 'run', text: 'Installing dependencies' } });
     appendLines(c.transcript('sess-p'), [L.result('fg1', 'added 812 packages', { at: c.now() })]);
     c.poll();
     expect(c.agent(id)!.shells).toBeUndefined();
@@ -660,15 +660,15 @@ describe('ClaudeWatcher — esperando o shell', () => {
       ...backgroundTurn(t0 - 40_000, 'b1', 'bfeito'),
       L.shellNotification('queue', { taskId: 'bfeito', toolUseId: 'b1', status: 'completed', summary: 'x (exit code 0)' }, { at: t0 - 20_000 }),
       L.shellNotification('message', { taskId: 'bfeito', toolUseId: 'b1', status: 'completed' }, { at: t0 - 20_000 }),
-      ...backgroundTurn(t0 - 15_000, 'b2', 'brodando', { command: 'npm run build', description: 'Build de produção', run_in_background: true }),
+      ...backgroundTurn(t0 - 15_000, 'b2', 'brodando', { command: 'npm run build', description: 'Production build', run_in_background: true }),
     ]);
     c.openSession(750, 'sess-b', { status: 'shell' });
     c.watcher.boot();
     c.notices.push(...c.office.commit().notices);
     const a = c.agent('.claude:750')!;
-    expect(a.shells?.map((j) => [j.id, j.label])).toEqual([['brodando', 'Build de produção']]);
-    expect(a.activity?.text).toBe('Esperando o shell: Build de produção');
-    expect(c.office.recentFeed(50).filter((f) => f.activity.tool === 'ShellDone').map((f) => f.activity.text)).toEqual(['Shell terminou: Rodar a suíte completa (20s)']);
+    expect(a.shells?.map((j) => [j.id, j.label])).toEqual([['brodando', 'Production build']]);
+    expect(a.activity?.text).toBe('Waiting on shell: Production build');
+    expect(c.office.recentFeed(50).filter((f) => f.activity.tool === 'ShellDone').map((f) => f.activity.text)).toEqual(['Shell finished: Rodar a suíte completa (20s)']);
     expect(c.notices).toEqual([]);
   });
 
@@ -689,7 +689,7 @@ describe('ClaudeWatcher — esperando o shell', () => {
     c.poll();
     const sub = c.agent('sess-u:sub1')!;
     expect(sub.shells).toBeUndefined();
-    expect(sub.activity).toMatchObject({ tool: 'ShellDone', text: 'Shell terminou: Rodar os testes (5s)' });
+    expect(sub.activity).toMatchObject({ tool: 'ShellDone', text: 'Shell finished: Rodar os testes (5s)' });
   });
 
   it('/clear e sessão encerrada limpam os shells', () => {
@@ -721,7 +721,7 @@ describe('ClaudeWatcher — shell lançado no começo de um transcript maior que
     try {
       const t0 = c.now() - 600_000;
       const lines = [
-        L.assistant([L.tool('cedo', 'Bash', { command: 'npm run e2e', description: 'Testes de ponta a ponta', run_in_background: true })], { at: t0 }),
+        L.assistant([L.tool('cedo', 'Bash', { command: 'npm run e2e', description: 'End-to-end tests', run_in_background: true })], { at: t0 }),
         L.bgLaunched('cedo', 'bcedo', { at: t0 + 100 }),
         L.assistant([L.tool('fim', 'Bash', { command: 'npm run build', description: 'Build', run_in_background: true })], { at: t0 + 200 }),
         L.bgLaunched('fim', 'bfim', { at: t0 + 300 }),
@@ -736,8 +736,8 @@ describe('ClaudeWatcher — shell lançado no começo de um transcript maior que
       await c.watcher.idle();
       c.poll();
       const a = c.agent('.claude:800')!;
-      expect(a.shells?.map((j) => [j.id, j.label, j.startedAt])).toEqual([['bcedo', 'Testes de ponta a ponta', t0 + 100]]);
-      expect(a.activity?.text).toBe('Esperando o shell: Testes de ponta a ponta');
+      expect(a.shells?.map((j) => [j.id, j.label, j.startedAt])).toEqual([['bcedo', 'End-to-end tests', t0 + 100]]);
+      expect(a.activity?.text).toBe('Waiting on shell: End-to-end tests');
     } finally {
       c.watcher.stop();
       c.tmp.cleanup();

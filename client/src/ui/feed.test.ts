@@ -55,14 +55,14 @@ class Element {
 
 function agent(id: string, account = '.claude'): AgentInfo {
   return {
-    id, account, kind: 'main', roomId: 'r', name: id, look: 'f', role: 'Agente principal', sessionId: id,
+    id, account, kind: 'main', roomId: 'r', name: id, look: 'f', role: 'Main agent', sessionId: id,
     status: 'working', recent: [], tasks: [], startedAt: 0, lastEventAt: 0, statusSince: 0, seed: 1,
     stats: { toolCalls: 0, tokensIn: 0, tokensOut: 0, subagents: 0 },
   };
 }
 
 function item(id: string, a: AgentInfo): FeedItem {
-  return { id, agentId: a.id, agentName: a.name, account: a.account, roomId: a.roomId, roomName: 'Sala', activity: { id, kind: 'other', icon: '💬', text: id, at: 0 } };
+  return { id, agentId: a.id, agentName: a.name, account: a.account, roomId: a.roomId, roomName: 'Room', activity: { id, kind: 'other', icon: '💬', text: id, at: 0 } };
 }
 
 let elements: Element[];
@@ -110,11 +110,11 @@ describe('FeedPanel pausado', () => {
     expect(retained.map((f) => f.id)).toEqual(fresh.slice(70).map((f) => f.id));
     p.view.render();
     expect(p.list.children.map((e) => e.dataset.key)).toEqual(['antes']);
-    expect(p.pill.textContent).toBe('99 novas');
+    expect(p.pill.textContent).toBe('99 new');
     p.prefs.hiddenAccounts = ['.claude-2'];
     p.view.render();
     expect(p.pill.hidden).toBe(false);
-    expect(p.pill.textContent).toBe('70 novas');
+    expect(p.pill.textContent).toBe('70 new');
     p.prefs.hiddenAccounts = [];
     p.pill.fire('click');
     p.view.render();
@@ -124,7 +124,7 @@ describe('FeedPanel pausado', () => {
     p.scroller.fire('scroll');
     p.receive([item('depois', shown)]);
     p.view.render();
-    expect(p.pill.textContent).toBe('1 nova');
+    expect(p.pill.textContent).toBe('1 new');
   });
 
   it.each(['retomar', 'recolher'])('preserva os metadados das linhas e pendências, liberando o resto ao %s', (action) => {

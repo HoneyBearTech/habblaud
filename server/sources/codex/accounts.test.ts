@@ -68,7 +68,7 @@ describe('contas do Codex', () => {
     const mounted = h.codex('.codex');
     const env = {
       HABBLAUD_ACCOUNTS: JSON.stringify([
-        { id: '.claude', configDir: '/Users/fulano/.claude', mountDir: '/claude/.claude', short: 'C', name: 'Conta C', color: '#111111' },
+        { id: '.claude', configDir: '/Users/fulano/.claude', mountDir: '/claude/.claude', short: 'C', name: 'Account C', color: '#111111' },
         { id: '.codex', provider: 'codex', configDir: '/Users/fulano/.codex', mountDir: mounted, short: 'CX', name: 'Codex', color: '#222222', plan: 'Plus' },
       ]),
     };
@@ -77,7 +77,7 @@ describe('contas do Codex', () => {
     ]);
     // As contas do Claude Code não pegam o override do Codex (nem pela pasta montada).
     expect(discoverClaudeDirs(env, h.dir)).not.toContain(mounted);
-    expect(detectAccounts([join(h.dir, '.codex-claude')], { home: h.dir, env: { HABBLAUD_ACCOUNTS: JSON.stringify([{ id: '.codex-claude', provider: 'codex', name: 'Codex' }]) } })[0].name).toBe('Conta A');
+    expect(detectAccounts([join(h.dir, '.codex-claude')], { home: h.dir, env: { HABBLAUD_ACCOUNTS: JSON.stringify([{ id: '.codex-claude', provider: 'codex', name: 'Codex' }]) } })[0].name).toBe('Account A');
   });
 
   it('plano do rate_limits para exibir', () => {

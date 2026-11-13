@@ -114,14 +114,14 @@ export class CodexHistory implements HistoryProvider {
    * resolvidos) dentro da pasta da conta. Um rollout só compactado (.jsonl.zst) ainda não dá para ler: 404.
    */
   resolve(account: string, sessionId: string): HistoryResolveResult {
-    if (!isThreadId(sessionId)) return { status: 400, error: tr('id de sessão inválido') };
+    if (!isThreadId(sessionId)) return { status: 400, error: tr('invalid session id') };
     const acc = this.opts.accounts().find((a) => a.id === account);
-    if (!acc) return { status: 404, error: tr('conta desconhecida') };
+    if (!acc) return { status: 404, error: tr('unknown account') };
     let root: string;
     try {
       root = realpathSync(acc.dir);
     } catch {
-      return { status: 404, error: tr('sessão não encontrada') };
+      return { status: 404, error: tr('session not found') };
     }
     const id = sessionId.toLowerCase();
     let best: { path: string; mtimeMs: number } | undefined;
@@ -153,7 +153,7 @@ export class CodexHistory implements HistoryProvider {
       }
     }
     if (best) return { path: best.path, createParser: createCodexTerminalParser };
-    return { status: 404, error: compressed ? tr('sessão compactada pelo Codex (.zst): ainda não dá para ler') : tr('sessão não encontrada') };
+    return { status: 404, error: compressed ? tr("session compressed by Codex (.zst): can't be read yet") : tr('session not found') };
   }
 
   /** Rollouts (um por thread: o mais recente) modificados dentro da janela. */
@@ -190,7 +190,7 @@ export class CodexHistory implements HistoryProvider {
     try {
       summary = await readRolloutSummary(c.path, c.size);
     } catch (err) {
-      log.warnOnce(`codex-history:${errMsg(err)}`, tr('Histórico do Codex: rollout ilegível ({0}).', [errMsg(err)]));
+      log.warnOnce(`codex-history:${errMsg(err)}`, tr('Codex history: unreadable rollout ({0}).', [errMsg(err)]));
       summary = {};
     }
     this.cache.set(c.path, { mtimeMs: c.mtimeMs, size: c.size, summary });

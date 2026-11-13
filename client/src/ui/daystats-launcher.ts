@@ -21,7 +21,7 @@ export class DayLauncher implements UiComponent {
     private readonly ctx: UiContext,
     private readonly mount: (el: HTMLElement) => void,
   ) {
-    this.button = iconButton(DAY_ICON, tr('Meu dia: para onde foi o tempo (M)'), () => this.toggle());
+    this.button = iconButton(DAY_ICON, tr('My day: where the time went (M)'), () => this.toggle());
     this.button.setAttribute('aria-haspopup', 'dialog');
     if (ctx.store.mock) void this.load();
   }
@@ -31,7 +31,7 @@ export class DayLauncher implements UiComponent {
     else
       void this.load()
         .then((p) => p.open())
-        .catch(() => this.ctx.announce(tr('Não foi possível abrir o painel Meu dia.')));
+        .catch(() => this.ctx.announce(tr("Couldn't open the My day panel.")));
   }
 
   render(): void {

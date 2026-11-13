@@ -34,39 +34,39 @@ const DEMO_QUESTIONS: readonly DemoQuestion[][] = [
   [
     {
       header: 'Cache',
-      question: tr('Onde guardo o cache das sessões de login?'),
+      question: tr('Where should I store the login session cache?'),
       options: [
-        { label: 'Redis', description: tr('Rápido, e já roda no docker-compose do projeto') },
-        { label: 'PostgreSQL', description: tr('Uma tabela a mais no banco que já existe') },
-        { label: tr('Memória'), description: tr('Mais simples, mas some quando o servidor reinicia') },
+        { label: 'Redis', description: tr("Fast, and already runs in the project's docker-compose") },
+        { label: 'PostgreSQL', description: tr('One more table in the existing database') },
+        { label: tr('Memory'), description: tr('Simpler, but lost when the server restarts') },
       ],
     },
     {
-      header: tr('Testes'),
-      question: tr('Quais testes eu rodo antes do commit?'),
+      header: tr('Tests'),
+      question: tr('Which tests should I run before committing?'),
       multiSelect: true,
       options: [
-        { label: tr('Unidade'), description: tr('npm test, cerca de 40 s') },
-        { label: tr('Integração'), description: tr('Sobe um banco de teste no Docker') },
-        { label: 'E2E', description: tr('Playwright no navegador, uns 5 min') },
+        { label: tr('Unit'), description: tr('npm test, about 40 s') },
+        { label: tr('Integration'), description: tr('Spins up a test database in Docker') },
+        { label: 'E2E', description: tr('Playwright in the browser, about 5 min') },
       ],
     },
   ],
   [
     {
-      header: tr('Erro de rede'),
-      question: tr('Como trato a falha de rede no checkout?'),
+      header: tr('Network error'),
+      question: tr('How should I handle network failures at checkout?'),
       options: [
-        { label: tr('Tentar de novo'), description: tr('Até 3 tentativas, com espera crescente') },
-        { label: tr('Avisar o cliente'), description: tr('Mensagem com um botão para tentar de novo') },
-        { label: tr('Guardar e enviar depois'), description: tr('Fila local até a conexão voltar') },
+        { label: tr('Try again'), description: tr('Up to 3 attempts, with increasing delays') },
+        { label: tr('Notify the customer'), description: tr('Message with a button to try again') },
+        { label: tr('Save and send later'), description: tr('Local queue until the connection is back') },
       ],
     },
     {
-      header: tr('Telas'),
-      question: tr('Em quais telas aplico a mudança?'),
+      header: tr('Screens'),
+      question: tr('Which screens should I apply the change to?'),
       multiSelect: true,
-      options: [{ label: tr('Carrinho') }, { label: tr('Pagamento') }, { label: tr('Confirmação do pedido') }],
+      options: [{ label: tr('Cart') }, { label: tr('Payment') }, { label: tr('Order confirmation') }],
     },
   ],
 ];
@@ -121,7 +121,7 @@ export function demoPermission(id: string, src: DemoPermissionSource, rng: () =>
     title: `WebFetch(${url})`,
     text: d.text,
     icon: d.icon,
-    input: tr('Resuma como tratar erros de rede com fetch'),
+    input: tr('Summarize how to handle network errors with fetch'),
     inputKind: 'text',
     suggestions: [{ index: 0, rules: ['WebFetch(domain:developer.mozilla.org)'], destination: 'localSettings' }],
   };
@@ -161,7 +161,7 @@ export function demoCodexPermission(id: string, src: DemoPermissionSource, rng: 
   }
   if (roll < 0.45) {
     const [host, command] = pick(DEMO_NETWORK);
-    return { ...base, tool: 'Bash', title: `Bash(${command})`, text: tr('Acesso à rede: {0}', [host]), icon: '🌐', input: command, inputKind: 'command' };
+    return { ...base, tool: 'Bash', title: `Bash(${command})`, text: tr('Network access: {0}', [host]), icon: '🌐', input: command, inputKind: 'command' };
   }
   const command = src.commands.length ? pick(src.commands) : 'npm test';
   const d = describeTool('Bash', { command });
