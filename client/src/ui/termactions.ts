@@ -1,6 +1,6 @@
-// Botões do topo da janela de terminal: "Assumir daqui" (sessão aberta noutro terminal: encerra lá e continua a
-// mesma conversa aqui, interativa) e "Encerrar". Os dois pedem um segundo clique.
-// Só para agentes principais reais (os do demo não têm processo) e com o terminal interativo ligado.
+// Buttons at the top of the terminal window: "Take over here" (session open in another terminal: ends it there and
+// continues the same conversation here, interactive) and "End". Both ask for a second click.
+// Only for real main agents (the demo ones have no process) and with the interactive terminal on.
 import type { AgentInfo } from '../../../shared/types';
 import type { UiContext } from './context';
 import { h, setHidden, setText, setTitle } from './dom';
@@ -25,20 +25,20 @@ export class TermActions {
   constructor(
     private ctx: UiContext,
     private pty: PtyControl,
-    /** Mostrar "Assumir daqui" (sessão aberta noutro terminal). */
+    /** Show "Take over here" (session open in another terminal). */
     public withTakeover: boolean,
-    /** Encerrar este agente (padrão: pela API; no interativo, fecha o pty). */
+    /** End this agent (default: through the API; in the interactive one, closes the pty). */
     private onStop?: (agent: AgentInfo) => Promise<void>,
   ) {
     this.takeBtn = h('button', { class: 'ui-btn ui-btn--sm ui-btn--accent', type: 'button', on: { click: () => this.run('takeover') } });
-    setTitle(this.takeBtn, tr('Encerra a sessão no terminal onde ela está e continua a mesma conversa aqui, podendo digitar'));
+    setTitle(this.takeBtn, tr("Ends the session in the terminal where it's running and continues the same conversation here, where you can type"));
     this.stopBtn = h('button', { class: 'ui-btn ui-btn--sm ui-btn--danger', type: 'button', on: { click: () => this.run('stop') } });
-    setTitle(this.stopBtn, tr('Encerra esta sessão do Claude Code (a conversa fica salva)'));
+    setTitle(this.stopBtn, tr('Ends this Claude Code session (the conversation is saved)'));
     this.msg = h('span', { class: 'ui-termact__msg', role: 'status', hidden: true });
     this.el = h('span', { class: 'ui-termact', hidden: true }, this.msg, this.takeBtn, this.stopBtn);
   }
 
-  /** `agent` = agente presente na janela (null = sessão do histórico, saiu ou nenhum). */
+  /** `agent` = agent present in the window (null = history session, left or none). */
   render(agent: AgentInfo | null): void {
     if (agent?.id !== this.agent?.id) {
       this.resetConfirm();
@@ -49,8 +49,8 @@ export class TermActions {
     setHidden(this.el, !usable);
     if (!usable) return;
     setHidden(this.takeBtn, !this.withTakeover);
-    setText(this.takeBtn, this.confirm === 'takeover' ? tr('Confirmar?') : tr('Assumir daqui'));
-    setText(this.stopBtn, this.confirm === 'stop' ? tr('Confirmar?') : tr('Encerrar'));
+    setText(this.takeBtn, this.confirm === 'takeover' ? tr('Confirm?') : tr('Take over here'));
+    setText(this.stopBtn, this.confirm === 'stop' ? tr('Confirm?') : tr('End'));
     this.takeBtn.classList.toggle('is-confirm', this.confirm === 'takeover');
     this.stopBtn.classList.toggle('is-confirm', this.confirm === 'stop');
     this.takeBtn.disabled = this.busy;
@@ -72,12 +72,12 @@ export class TermActions {
     }
     this.resetConfirm();
     this.busy = true;
-    this.showMsg(kind === 'stop' ? tr('Encerrando…') : tr('Assumindo…'));
+    this.showMsg(kind === 'stop' ? tr('Ending…') : tr('Taking over…'));
     this.ctx.invalidate();
     const job = kind === 'stop' ? (this.onStop ? this.onStop(a) : this.pty.stop(a.id)) : this.pty.takeover(a.id);
     job
       .then(() => this.showMsg(''))
-      .catch((err: Error) => this.showMsg(tr('Não deu: {0}', [err.message]), true))
+      .catch((err: Error) => this.showMsg(tr("Didn't work: {0}", [err.message]), true))
       .finally(() => {
         this.busy = false;
         this.ctx.invalidate();

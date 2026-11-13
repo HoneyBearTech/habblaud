@@ -1,10 +1,11 @@
-// Ditado: transforma o áudio gravado no navegador em texto com o Whisper LOCAL (whisper.cpp: `whisper-cli`), sem mandar
-// a voz para nenhum serviço. O idioma é detectado sozinho (`-l auto`); como o ditado é em português ou inglês, um
-// resultado em outra língua (o Whisper às vezes confunde português com espanhol ou galego) é refeito em português.
-// Precisa do whisper-cli, do ffmpeg (o áudio do celular vem em mp4/webm) e de um modelo multilíngue ggml-*.bin (os
-// ".en" só entendem inglês e ficam de fora). Roda onde está o Whisper: o servidor no modo Node, o auxiliar do host
-// (scripts/codex-bridge.ts) no Docker. Sem shell (execFile), com prazo, numa pasta temporária apagada no fim.
-// Node puro e sem dependências: também é importado pelo auxiliar do host (via tsx).
+// Dictation: turns the audio recorded in the browser into text with the LOCAL Whisper (whisper.cpp: `whisper-cli`),
+// without sending the voice to any service. The language is detected on its own (`-l auto`); since dictation is in
+// Portuguese or English, a result in another language (Whisper sometimes confuses Portuguese with Spanish or
+// Galician) is redone in Portuguese.
+// It needs whisper-cli, ffmpeg (the phone audio comes in mp4/webm) and a multilingual ggml-*.bin model (the ".en"
+// ones only understand English and are left out). It runs where Whisper is: the server in Node mode, the host helper
+// (scripts/codex-bridge.ts) in Docker. No shell (execFile), with a deadline, in a temp folder deleted at the end.
+// Pure Node with no dependencies: it is also imported by the host helper (via tsx).
 import { execFile } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
@@ -12,9 +13,9 @@ import { delimiter, join } from 'node:path';
 import { tr } from '../../shared/i18n';
 
 export const TRANSCRIBE_TIMEOUT_MS = 120_000;
-/** Idiomas do ditado: o primeiro é o de reserva quando o detectado não está na lista. */
+/** Dictation languages: the first is the fallback when the detected one is not in the list. */
 export const DEFAULT_LANGS = ['pt', 'en'] as const;
-/** Do melhor para o mais leve: usa o primeiro que existir. */
+/** From the best to the lightest: uses the first one that exists. */
 const MODELS = ['ggml-large-v3-turbo.bin', 'ggml-large-v3.bin', 'ggml-medium.bin', 'ggml-small.bin', 'ggml-base.bin', 'ggml-tiny.bin'];
 
 export interface WhisperSetup {
@@ -26,7 +27,7 @@ export interface WhisperSetup {
 
 export interface Transcript {
   text: string;
-  /** Código ISO do idioma reconhecido (ex.: "pt", "en"). */
+  /** ISO code of the recognized language (e.g. "pt", "en"). */
   lang: string;
 }
 
@@ -41,7 +42,7 @@ function onPath(name: string, env: NodeJS.ProcessEnv): string | undefined {
   return undefined;
 }
 
-/** Acha o whisper-cli, o ffmpeg e o melhor modelo multilíngue; undefined (com o motivo) se faltar algum. */
+/** Finds whisper-cli, ffmpeg and the best multilingual model; undefined (with the reason) if any is missing. */
 export function findWhisper(env: NodeJS.ProcessEnv = process.env, exists: (p: string) => boolean = existsSync): WhisperSetup | { missing: string } {
   const home = env.HOME || homedir();
   const bin = env.HABBLAUD_WHISPER_BIN?.trim() || ['/opt/homebrew/bin/whisper-cli', '/usr/local/bin/whisper-cli'].find(exists) || onPath('whisper-cli', env);
@@ -52,7 +53,7 @@ export function findWhisper(env: NodeJS.ProcessEnv = process.env, exists: (p: st
   const model =
     env.HABBLAUD_WHISPER_MODEL?.trim() ||
     MODELS.flatMap((m) => dirs.map((d) => join(d, m))).find(exists);
-  if (!model || !exists(model)) return { missing: tr('um modelo multilíngue do Whisper (ggml-small.bin ou ggml-base.bin em ~/.local/share/whisper)') };
+  if (!model || !exists(model)) return { missing: tr('a multilingual Whisper model (ggml-small.bin or ggml-base.bin in ~/.local/share/whisper)') };
   const langs = (env.HABBLAUD_DICTATION_LANGS ?? '')
     .split(',')
     .map((l) => l.trim().toLowerCase())
@@ -64,13 +65,13 @@ function run(bin: string, args: string[], timeoutMs: number): Promise<{ ok: true
   return new Promise((ok) => {
     execFile(bin, args, { timeout: timeoutMs, encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 }, (err, _out, stderr) => {
       if (!err) return ok({ ok: true });
-      const line = (stderr || err.message || '').split('\n').filter((l) => l.trim()).pop() ?? tr('falhou');
+      const line = (stderr || err.message || '').split('\n').filter((l) => l.trim()).pop() ?? tr('failed');
       ok({ ok: false, error: line.trim().slice(0, 300) });
     });
   });
 }
 
-/** Texto e idioma do JSON do whisper-cli (-oj). */
+/** Text and language from the whisper-cli JSON (-oj). */
 export function parseWhisperJson(raw: string): Transcript {
   const d = JSON.parse(raw) as { result?: { language?: unknown }; transcription?: Array<{ text?: unknown }> };
   const text = (d.transcription ?? [])
@@ -82,7 +83,7 @@ export function parseWhisperJson(raw: string): Transcript {
   return { text, lang: typeof d.result?.language === 'string' ? d.result.language : '' };
 }
 
-/** Transcritor com o whisper-cli; a pasta temporária some no fim, com ou sem erro. */
+/** Transcriber with whisper-cli; the temporary folder is gone at the end, with or without an error. */
 export function createWhisperTranscriber(setup: WhisperSetup, timeoutMs = TRANSCRIBE_TIMEOUT_MS): Transcriber {
   return async (audio) => {
     const dir = mkdtempSync(join(tmpdir(), 'habblaud-dictation-'));
@@ -91,16 +92,16 @@ export function createWhisperTranscriber(setup: WhisperSetup, timeoutMs = TRANSC
       const wav = join(dir, 'audio.wav');
       writeFileSync(input, audio, { mode: 0o600 });
       const conv = await run(setup.ffmpeg, ['-nostdin', '-loglevel', 'error', '-y', '-i', input, '-ar', '16000', '-ac', '1', '-c:a', 'pcm_s16le', wav], timeoutMs);
-      if (!conv.ok) throw new Error(tr('não deu para ler o áudio ({0})', [conv.error]));
+      if (!conv.ok) throw new Error(tr("couldn't read the audio ({0})", [conv.error]));
       const pass = async (lang: string): Promise<Transcript> => {
         const out = join(dir, `out-${lang}`);
         const r = await run(setup.bin, ['-m', setup.model, '-l', lang, '-f', wav, '-nt', '-np', '-oj', '-of', out], timeoutMs);
-        if (!r.ok) throw new Error(tr('o Whisper falhou ({0})', [r.error]));
+        if (!r.ok) throw new Error(tr('Whisper failed ({0})', [r.error]));
         return parseWhisperJson(readFileSync(`${out}.json`, 'utf8'));
       };
       const first = await pass('auto');
       if (!first.lang || setup.langs.includes(first.lang) || !first.text) return first;
-      // Detectou uma língua fora da lista (ex.: "es" para português): refaz no idioma principal.
+      // It detected a language outside the list (e.g. "es" for Portuguese): redoes it in the main language.
       const again = await pass(setup.langs[0]);
       return { text: again.text, lang: setup.langs[0] };
     } finally {

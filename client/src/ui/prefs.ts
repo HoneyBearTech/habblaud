@@ -1,5 +1,5 @@
-// Preferências da interface, persistidas em localStorage ('habblaud:prefs').
-// Puro: o armazenamento é injetado (testável em node).
+// Interface preferences, persisted in localStorage ('habblaud:prefs').
+// Pure: the storage is injected (testable in node).
 import { DEFAULT_SOUND_SETTINGS, sanitizeSoundSettings, type SoundSettings } from '../audio/scheduler';
 import type { DaylightMode, WorldOptions } from '../world/api';
 import { DEFAULT_WORLD_OPTIONS } from '../world/api';
@@ -10,20 +10,20 @@ export interface UiPrefs {
   showNames: boolean;
   bubbles: WorldOptions['bubbles'];
   liveliness: WorldOptions['liveliness'];
-  /** Ciclo dia/noite: automático (hora local), sempre dia ou sempre noite. */
+  /** Day/night cycle: automatic (local time), always day or always night. */
   daylight: DaylightMode;
   theme: NonNullable<WorldOptions['theme']>;
-  /** Sons sintetizados (interruptor geral; desligado por padrão). */
+  /** Synthesized sounds (master switch; off by default). */
   sound: boolean;
-  /** Volume mestre e categorias dos sons. */
+  /** Master volume and sound categories. */
   sounds: SoundSettings;
-  /** Notification do navegador para alertas com a aba oculta. */
+  /** Browser Notification for alerts with the tab hidden. */
   browserNotifications: boolean;
   sidebarOpen: boolean;
   feedOpen: boolean;
-  /** Contas ocultas na barra lateral (AccountInfo.id). */
+  /** Accounts hidden in the sidebar (AccountInfo.id). */
   hiddenAccounts: string[];
-  /** Habblaud World: aviso quando o primeiro visitante entra no seu prédio (a cada conexão). Ligado por padrão. */
+  /** Habblaud World: notice when the first visitor enters your building (on each connection). On by default. */
   worldVisitNotify: boolean;
 }
 
@@ -48,7 +48,7 @@ const oneOf = <T extends string>(v: unknown, allowed: readonly T[], fallback: T)
   typeof v === 'string' && (allowed as readonly string[]).includes(v) ? (v as T) : fallback;
 const bool = (v: unknown, fallback: boolean): boolean => (typeof v === 'boolean' ? v : fallback);
 
-/** Valida campo a campo: valores desconhecidos ou corrompidos caem no padrão. */
+/** Validates field by field: unknown or corrupted values fall back to the default. */
 export function sanitizePrefs(raw: unknown): UiPrefs {
   const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
   const d = DEFAULT_PREFS;
@@ -56,7 +56,7 @@ export function sanitizePrefs(raw: unknown): UiPrefs {
     showNames: bool(o.showNames, d.showNames),
     bubbles: oneOf(o.bubbles, ['all', 'important', 'none'] as const, d.bubbles),
     liveliness: oneOf(o.liveliness, ['calm', 'normal', 'lively'] as const, d.liveliness),
-    // preferências antigas: o interruptor "dia e noite" desligado vira "sempre dia"
+    // old preferences: the "day and night" switch turned off becomes "always day"
     daylight: oneOf(o.daylight, ['auto', 'day', 'night'] as const, o.dayNight === false ? 'day' : d.daylight),
     theme: oneOf(o.theme, ['auto', 'none', 'christmas', 'halloween'] as const, d.theme),
     sound: bool(o.sound, d.sound),
@@ -84,16 +84,16 @@ export function savePrefs(storage: StorageLike | null, prefs: UiPrefs): void {
   try {
     storage.setItem(PREFS_KEY, JSON.stringify(prefs));
   } catch {
-    // Armazenamento cheio ou bloqueado (aba anônima): as preferências valem só nesta sessão.
+    // Storage full or blocked (private tab): the preferences last only for this session.
   }
 }
 
-/** Parte das preferências que o mundo (canvas) consome. */
+/** Part of the preferences that the world (canvas) consumes. */
 export function worldOptionsFrom(p: UiPrefs): Partial<WorldOptions> {
   return { showNames: p.showNames, bubbles: p.bubbles, liveliness: p.liveliness, dayNight: p.daylight !== 'day', daylight: p.daylight, theme: p.theme };
 }
 
-/** localStorage com proteção contra navegadores que lançam exceção ao acessá-lo. */
+/** localStorage with protection against browsers that throw an exception when accessing it. */
 export function safeLocalStorage(): Storage | null {
   try {
     return typeof localStorage === 'undefined' ? null : localStorage;
@@ -103,8 +103,8 @@ export function safeLocalStorage(): Storage | null {
 }
 
 /**
- * Migração do nome antigo (CodeTown, até a 0.3.2): as chaves eram `codetown:prefs`,
- * `codetown:update-seen`, `codetown.wallets.v1`... e passaram a começar com `habblaud`.
+ * Migration from the old name (CodeTown, until 0.3.2): the keys were `codetown:prefs`,
+ * `codetown:update-seen`, `codetown.wallets.v1`... and now start with `habblaud`.
  */
 const LEGACY_NAME = 'codetown';
 const LEGACY_PREFIXES = [`${LEGACY_NAME}:`, `${LEGACY_NAME}.`];
@@ -113,15 +113,15 @@ const NAME = 'habblaud';
 type ListableStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem' | 'key' | 'length'>;
 
 /**
- * Renomeia as chaves do nome antigo para quem atualiza não perder as preferências nem as moedinhas.
- * Roda no boot, antes de qualquer leitura. Se a chave nova já existe, ela vale e a antiga só é apagada.
- * Retorna quantas chaves copiou.
+ * Renames the keys from the old name so whoever updates doesn't lose the preferences or the coins.
+ * Runs at boot, before any read. If the new key already exists, it wins and the old one is only deleted.
+ * Returns how many keys it copied.
  */
 export function migrateLegacyKeys(storage: ListableStorage | null): number {
   if (!storage) return 0;
   const legacy: string[] = [];
   try {
-    // Lista antes de mexer: apagar durante a varredura muda os índices de key(i).
+    // Lists before touching: deleting during the scan changes the indexes of key(i).
     for (let i = 0; i < storage.length; i++) {
       const key = storage.key(i);
       if (key && LEGACY_PREFIXES.some((p) => key.startsWith(p))) legacy.push(key);
@@ -138,10 +138,10 @@ export function migrateLegacyKeys(storage: ListableStorage | null): number {
         storage.setItem(key, value);
         copied++;
       }
-      // Só apaga depois de copiar: se a gravação falhar (cota cheia), a antiga fica para a próxima vez.
+      // Only deletes after copying: if the write fails (quota full), the old one stays for next time.
       storage.removeItem(old);
     } catch {
-      // segue com as outras chaves
+      // goes on with the other keys
     }
   }
   return copied;

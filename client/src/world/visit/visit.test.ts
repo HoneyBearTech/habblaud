@@ -1,6 +1,6 @@
-// A cena Visita sem DOM: o que a faixa e o painel mostram (model.ts), o miolo que aplica o interior e os patches
-// (controller.ts), as rotas chamadas durante uma visita inteira (só /api/world/*) e o bloqueio por construção (nada
-// que age da interface do escritório entra no módulo da visita).
+// The Visit scene without DOM: what the banner and the panel show (model.ts), the core that applies the interior and
+// the patches (controller.ts), the routes called during a whole visit (only /api/world/*) and the block by
+// construction (nothing that acts from the office interface gets into the visit module).
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { WorldSceneCommand, WorldSceneSnapshot } from '../../../../shared/world/api';
 import type { WorldBuildingDetail } from '../../../../shared/world/protocol';
@@ -17,48 +17,48 @@ import { agentRow, findAgent, statusText, visitBanner, visitLightOf, visitPanel 
 const ID = 'o_7a8b9c0d1e2f';
 const inside = (detail: WorldBuildingDetail = sampleBuildingDetail(), rev = 1) => ({ id: detail.building.id, rev, detail });
 
-describe('model da visita', () => {
-  it('faixa: de quem é, andares, agentes; discreto e apagado no lugar dos agentes; o próprio prédio', () => {
-    expect(visitBanner(sampleBuildingDetail(), false)).toEqual({ title: 'Prédio de Helena', details: ['3 andares', '6 agentes'], mode: null });
-    expect(visitBanner(sampleBuildingDetail('discreet'), false)).toEqual({ title: 'Prédio de Helena', details: ['3 andares', 'modo discreto'], mode: 'discreet' });
-    expect(visitBanner(sampleBuildingDetail('away'), false)).toMatchObject({ details: ['3 andares', 'apagado'], mode: 'away' });
-    expect(visitBanner(sampleBuildingDetail(), true).title).toBe('Seu prédio, como os outros veem');
-    // um agente que venha por engano num prédio discreto não conta
+describe('visit model', () => {
+  it('banner: whose it is, floors, agents; discreet and off in place of the agents; your own building', () => {
+    expect(visitBanner(sampleBuildingDetail(), false)).toEqual({ title: "Helena's building", details: ['3 floors', '6 agents'], mode: null });
+    expect(visitBanner(sampleBuildingDetail('discreet'), false)).toEqual({ title: "Helena's building", details: ['3 floors', 'discreet mode'], mode: 'discreet' });
+    expect(visitBanner(sampleBuildingDetail('away'), false)).toMatchObject({ details: ['3 floors', 'lights off'], mode: 'away' });
+    expect(visitBanner(sampleBuildingDetail(), true).title).toBe('Your building, as others see it');
+    // an agent that comes by mistake in a discreet building does not count
     const d = sampleBuildingDetail('discreet');
     d.floors[0]!.agents = sampleBuildingDetail().floors[0]!.agents;
-    expect(visitBanner(d, false).details).toEqual(['3 andares', 'modo discreto']);
+    expect(visitBanner(d, false).details).toEqual(['3 floors', 'discreet mode']);
   });
 
-  it('luzes: apagado, discreto ou ao vivo', () => {
+  it('lights: off, discreet or live', () => {
     expect(visitLightOf(sampleBuildingDetail().building)).toBe('live');
     expect(visitLightOf(sampleBuildingDetail('discreet').building)).toBe('discreet');
     expect(visitLightOf(sampleBuildingDetail('away').building)).toBe('away');
   });
 
-  it('painel: salas com o nome fictício traduzido e agentes com nome, papel, ferramenta e status (nada de tempo)', () => {
+  it('panel: rooms with the fictional name translated and agents with name, role, tool and status (no time at all)', () => {
     const p = visitPanel(sampleBuildingDetail());
     expect(p.empty).toBeNull();
     expect(p.rooms.map((r) => [r.name, r.agents.length])).toEqual([
-      ['Projeto Ipê', 2],
-      ['Projeto Jade', 2],
-      ['Projeto Aurora', 2],
+      ['Project Ipê', 2],
+      ['Project Jade', 2],
+      ['Project Aurora', 2],
     ]);
-    expect(p.rooms[0]!.agents[1]).toEqual({ id: 'world:a_2a3b4c5d', name: 'Rafael', role: 'Subagente', tool: 'Claude Code', status: 'working', statusText: 'trabalhando' });
+    expect(p.rooms[0]!.agents[1]).toEqual({ id: 'world:a_2a3b4c5d', name: 'Rafael', role: 'Subagent', tool: 'Claude Code', status: 'working', statusText: 'working' });
     expect(p.rooms[1]!.agents.map((a) => [a.tool, a.statusText])).toEqual([
-      ['Codex', 'esperando o dono'],
-      ['Codex', 'de olho no terminal'],
+      ['Codex', 'waiting for the owner'],
+      ['Codex', 'watching the terminal'],
     ]);
     for (const a of p.rooms.flatMap((r) => r.agents)) expect(Object.keys(a).sort()).toEqual(['id', 'name', 'role', 'status', 'statusText', 'tool']);
-    expect(visitPanel(sampleBuildingDetail('discreet'))).toMatchObject({ empty: expect.stringContaining('Modo discreto') });
+    expect(visitPanel(sampleBuildingDetail('discreet'))).toMatchObject({ empty: expect.stringContaining('Discreet mode') });
     expect(visitPanel(sampleBuildingDetail('away')).rooms.every((r) => r.agents.length === 0)).toBe(true);
-    // status de uma versão mais nova do servidor: à toa
-    expect(agentRow({ ...sampleBuildingDetail().floors[0]!.agents[0]!, status: 'dormindo' as never }).status).toBe('idle');
-    expect(statusText('idle')).toBe('à toa');
+    // status from a newer server version: idle
+    expect(agentRow({ ...sampleBuildingDetail().floors[0]!.agents[0]!, status: 'sleeping' as never }).status).toBe('idle');
+    expect(statusText('idle')).toBe('idle');
   });
 
-  it('cartão: o agente pelo id do escritório da visita, com a sala; discreto, nenhum', () => {
-    expect(findAgent(sampleBuildingDetail(), 'world:a_3c4d5e6f')).toMatchObject({ name: 'Beatriz', room: 'Projeto Jade', tool: 'Codex' });
-    expect(findAgent(sampleBuildingDetail(), 'world:nao_existe')).toBeNull();
+  it('card: the agent by the id of the visit office, with the room; discreet, none', () => {
+    expect(findAgent(sampleBuildingDetail(), 'world:a_3c4d5e6f')).toMatchObject({ name: 'Beatriz', room: 'Project Jade', tool: 'Codex' });
+    expect(findAgent(sampleBuildingDetail(), 'world:does_not_exist')).toBeNull();
     expect(findAgent(sampleBuildingDetail('discreet'), 'world:a_3c4d5e6f')).toBeNull();
   });
 });
@@ -72,7 +72,7 @@ function controller(detail = sampleBuildingDetail(), rev = 1) {
 }
 
 describe('VisitController', () => {
-  it('publica o escritório do interior ao entrar; o patch seguinte aplica, o repetido e o velho não', () => {
+  it('publishes the office of the interior on entering; the next patch applies, the repeated one and the old one do not', () => {
     const { c, pushed } = controller();
     expect(pushed).toHaveLength(1);
     expect(c.snapshot.agents).toHaveLength(6);
@@ -85,26 +85,26 @@ describe('VisitController', () => {
     expect(c.patch({ rev: 2, visitors: 9 })).toBe('stale');
     expect(c.patch({ rev: 1, visitors: 9 })).toBe('stale');
     expect(c.detail.visitors).toBe(1);
-    // só visitantes: não muda o escritório (nada publicado), mas a contagem sim
+    // only visitors: does not change the office (nothing published), but the count does
     expect(c.patch({ rev: 3, visitors: 4 })).toBe('apply');
     expect(c.detail.visitors).toBe(4);
     expect(pushed).toHaveLength(2);
   });
 
-  it('o prédio ficou discreto (só `building` no patch): salas vazias; as luzes seguem o prédio', () => {
+  it('the building went discreet (only `building` in the patch): empty rooms; the lights follow the building', () => {
     const { c } = controller();
     expect(c.light).toBe('live');
     expect(c.patch({ rev: 2, building: sampleBuildingDetail('discreet').building })).toBe('apply');
     expect(c.snapshot.agents).toHaveLength(0);
     expect(c.light).toBe('discreet');
-    // os andares chegam depois, ainda discreto: o `building` atual (o 4º argumento) esconde os agentes
+    // the floors arrive later, still discreet: the current `building` (the 4th argument) hides the agents
     expect(c.patch({ rev: 3, floors: sampleBuildingDetail().floors })).toBe('apply');
     expect(c.snapshot.agents).toHaveLength(0);
     expect(c.patch({ rev: 4, building: sampleBuildingDetail('away').building })).toBe('apply');
     expect(c.light).toBe('away');
   });
 
-  it('salto no rev: pede resync {building} (no máximo um a cada 5 s); o interior inteiro substitui tudo, como patch', () => {
+  it('jump in rev: asks for resync {building} (at most one every 5 s); the whole interior replaces everything, as a patch', () => {
     const { c, clock, sent } = controller();
     const marina = () => c.snapshot.agents.find((a) => a.name === 'Marina')!;
     const since = marina().statusSince;
@@ -119,13 +119,13 @@ describe('VisitController', () => {
     d.floors[1]!.agents[0]!.status = 'working';
     c.replace({ rev: 7, detail: d });
     expect(c.rev).toBe(7);
-    // quem continua no mesmo status não se mexe (o statusSince fica); quem mudou recomeça
+    // whoever stays in the same status does not move (the statusSince stays); whoever changed starts over
     expect(marina().statusSince).toBe(since);
     expect(c.snapshot.agents.find((a) => a.name === 'Beatriz')).toMatchObject({ status: 'working', statusSince: clock.t });
     expect(c.patch({ rev: 8, visitors: 1 })).toBe('apply');
   });
 
-  it('sair: um leave só, e nada de move nem view', () => {
+  it('leaving: a single leave, and no move or view at all', () => {
     const { c, sent } = controller();
     expect(c.leave()).toBe(true);
     expect(c.leave()).toBe(false);
@@ -133,7 +133,7 @@ describe('VisitController', () => {
   });
 });
 
-// ------------------------------------------------------------------------------------------------ rotas
+// ------------------------------------------------------------------------------------------------ routes
 
 class FakeES implements EventSourceLike {
   readyState = 1;
@@ -158,12 +158,12 @@ const appearance: Appearance = {
 const theme: RoomTheme = { carpet: '#4f6d8f', carpet2: '#486685', wall: { base: '#e6e2da', trim: '#9a8f80', pattern: 'plain' }, accent: '#3f7fd8', deskVariant: 'wood', chairVariant: 'black' };
 const art = { appearanceFromSeed: () => appearance, roomTheme: () => theme } as unknown as ArtModule;
 
-describe('rotas durante a visita', () => {
+describe('routes during the visit', () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  it('uma visita inteira (entrar, patches, andar, sair) só fala com /api/world/* (nada de terminal, mensagens, permissões...)', async () => {
+  it('a whole visit (enter, patches, walk, leave) only talks to /api/world/* (no terminal, messages, permissions...)', async () => {
     const urls: string[] = [];
-    // qualquer fetch fora do stream (store, mundo, interface) também é registrado
+    // any fetch outside the stream (store, world, interface) is also recorded
     vi.stubGlobal('fetch', (input: unknown) => {
       urls.push(`global:${String(input)}`);
       return Promise.resolve(new Response('{}', { status: 200 }));
@@ -225,7 +225,7 @@ describe('rotas durante a visita', () => {
     es!.emit('world', { t: 'pos', x: 40, y: 13 });
     expect(visit).toBeNull();
     expect(store.snapshot?.agents.find((a) => a.name === 'Marina')?.status).toBe('waiting');
-    // nenhuma rota fora de /api/world/*, nenhum move lá dentro e nenhum view
+    // no route outside /api/world/*, no move in there and no view
     expect(urls.length).toBeGreaterThan(0);
     for (const u of urls) expect(u, u).toMatch(/^(GET |POST )?\/api\/world\/(stream|cmd)\b/);
     const sentCmds = urls.filter((u) => u.startsWith('POST')).flatMap((u) => (JSON.parse(u.slice(u.indexOf('{'))) as { cmds: WorldSceneCommand[] }).cmds);
@@ -235,9 +235,9 @@ describe('rotas durante a visita', () => {
   });
 });
 
-// ------------------------------------------------------------------------------------------------ por construção
+// ------------------------------------------------------------------------------------------------ by construction
 
-/** Junta um caminho relativo a uma pasta (posix, sem node:path). */
+/** Joins a relative path to a folder (posix, without node:path). */
 function join(dir: string, rel: string): string {
   const parts = dir ? dir.split('/') : [];
   for (const seg of rel.split('/')) {
@@ -247,12 +247,12 @@ function join(dir: string, rel: string): string {
   return parts.join('/');
 }
 
-/** O código de todos os arquivos do cliente (chave: o caminho a partir de client/src; o Vite dá relativo a esta pasta). */
+/** The code of all the client files (key: the path from client/src; Vite gives it relative to this folder). */
 const SOURCES: Record<string, string> = Object.fromEntries(
   Object.entries(import.meta.glob('../../**/*.ts', { query: '?raw', import: 'default', eager: true }) as Record<string, string>).map(([k, v]) => [join('world/visit', k), v]),
 );
 
-/** Os arquivos do cliente que um módulo importa, recursivamente (pelos caminhos relativos; o resto fica de fora). */
+/** The client files a module imports, recursively (by the relative paths; the rest is left out). */
 function importGraph(entry: string): Set<string> {
   const seen = new Set<string>();
   const visit = (file: string) => {
@@ -269,14 +269,14 @@ function importGraph(entry: string): Set<string> {
   return seen;
 }
 
-describe('bloqueio por construção', () => {
-  it('a cena Visita não importa nada da interface do escritório além do DOM básico (nem terminal, gaveta, feed, permissões, mensagens...)', () => {
+describe('blocked by construction', () => {
+  it('the Visit scene imports nothing from the office interface beyond the basic DOM (no terminal, drawer, feed, permissions, messages...)', () => {
     expect(Object.keys(SOURCES)).toContain('world/visit/index.ts');
     const files = importGraph('world/visit/index.ts');
     expect(files.has('world/index.ts')).toBe(true);
     const ui = [...files].filter((f) => f.startsWith('ui/'));
     expect(ui).toEqual(['ui/dom.ts']);
-    // e, da rede, só o store (que nunca conecta): nem o cliente das rotas do World (net/world.ts) nem o stream
+    // and, from the network, only the store (which never connects): neither the World routes client (net/world.ts) nor the stream
     expect([...files].filter((f) => f.startsWith('net/')).sort()).toEqual(['net/store.ts']);
   });
 });

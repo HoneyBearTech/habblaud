@@ -1,4 +1,4 @@
-// Gerador do timelapse fictício (scripts/demo-timeline.ts): importar o módulo não roda nada.
+// Generator of the fictional timelapse (scripts/demo-timeline.ts): importing the module runs nothing.
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -16,7 +16,7 @@ describe('demo-timeline', () => {
   });
   afterEach(() => tmp.cleanup());
 
-  it('argumentos', () => {
+  it('arguments', () => {
     const now = new Date(2026, 9, 8, 15).getTime();
     const o = parseArgs([], now);
     expect(o).toMatchObject({ date: '2026-10-07', startMin: 540, hours: 10, sessions: 6, pace: 0.25, seed: 1, force: false });
@@ -27,14 +27,14 @@ describe('demo-timeline', () => {
       sessions: 3,
       force: true,
     });
-    expect(() => parseArgs(['--date', '2026-02-30'])).toThrow(/AAAA-MM-DD/);
+    expect(() => parseArgs(['--date', '2026-02-30'])).toThrow(/YYYY-MM-DD/);
     expect(() => parseArgs(['--start', '25'])).toThrow(/--start/);
     expect(() => parseArgs(['--hours', '0'])).toThrow(/--hours/);
-    expect(() => parseArgs(['--xyz'])).toThrow(/opção desconhecida/);
+    expect(() => parseArgs(['--xyz'])).toThrow(/unknown option/);
     expect(parseArgs(['-h']).help).toBe(true);
   });
 
-  it('formato do dia: começa e termina vazio, com pico de manhã e à tarde', () => {
+  it('shape of the day: starts and ends empty, with a peak in the morning and in the afternoon', () => {
     expect(sessionsAt(0, 6)).toBe(1);
     expect(sessionsAt(1, 6)).toBe(0);
     expect(sessionsAt(0.2, 6)).toBe(6);
@@ -42,7 +42,7 @@ describe('demo-timeline', () => {
     expect(sessionsAt(-1, 6)).toBe(sessionsAt(0, 6));
   });
 
-  it('grava um dia fictício só com agentes marcados como demonstração', () => {
+  it('writes a fictional day only with agents marked as demo', () => {
     const opts = { date: '2026-10-07', startMin: 9 * 60, hours: 3, sessions: 4, pace: 0.5, seed: 7, dataDir: tmp.dir, force: false };
     const r = generateDemoTimeline(opts);
     const file = join(tmp.dir, 'timeline', '2026-10-07.jsonl');
@@ -51,8 +51,8 @@ describe('demo-timeline', () => {
     const recs = parseTimeline(readFileSync(file, 'utf8'));
     expect(recs[0]).toMatchObject({ t: 'k', at: r.from, boot: true });
     expect(recs.at(-1)).toEqual({ t: 'end', at: r.to });
-    expect(recs.filter((x) => x.t === 'k').length).toBeGreaterThanOrEqual(3 * 12); // keyframe a cada 5 min
-    // Reconstrói o dia inteiro: houve gente, sub-agentes e todos marcados como demonstração.
+    expect(recs.filter((x) => x.t === 'k').length).toBeGreaterThanOrEqual(3 * 12); // keyframe every 5 min
+    // Rebuilds the whole day: there were people, subagents, and all marked as demo.
     const frame = frameOf(recs[0] as TimelineKeyframe);
     let maxAgents = 0;
     let subs = 0;
@@ -72,10 +72,10 @@ describe('demo-timeline', () => {
     }
     expect(maxAgents).toBeGreaterThanOrEqual(3);
     expect(subs).toBeGreaterThan(0);
-    // Mesma semente, mesmo dia; sem --force não sobrescreve.
-    expect(() => generateDemoTimeline(opts)).toThrow(/já existe/);
+    // Same seed, same day; without --force it doesn't overwrite.
+    expect(() => generateDemoTimeline(opts)).toThrow(/already exists/);
     const again = generateDemoTimeline({ ...opts, force: true });
     expect(readFileSync(again.files[0], 'utf8')).toBe(readFileSync(file, 'utf8'));
-    // Duas gravações de 3 h simuladas, uma linha por vez: no Windows passa dos 5 s padrão.
+    // Two simulated 3 h recordings, one line at a time: on Windows it goes past the default 5 s.
   }, 30_000);
 });

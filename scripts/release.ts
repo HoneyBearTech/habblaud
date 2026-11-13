@@ -1,9 +1,9 @@
-// Publica a versão do package.json no GitHub: confere se o CHANGELOG.md tem a seção dela, cria a tag vX.Y.Z e a
-// release com o texto dessa seção como notas (é o que o Habblaud abre em Configurações › Sobre › Ver o que mudou).
-//   npm run release                -> publica (precisa do gh autenticado)
-//   npm run release -- --dry-run   -> só confere e mostra as notas
-// Antes: suba a versão no package.json (npm version minor --no-git-tag-version), escreva a seção no CHANGELOG.md e
-// faça o merge na main.
+// Publishes the package.json version on GitHub: checks that CHANGELOG.md has its section, creates the vX.Y.Z tag
+// and the release with that section's text as notes (it is what Habblaud opens in Settings › About › See what changed).
+//   npm run release                -> publishes (needs gh authenticated)
+//   npm run release -- --dry-run   -> only checks and shows the notes
+// Before: bump the version in package.json (npm version minor --no-git-tag-version), write the section in
+// CHANGELOG.md and merge into main.
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -22,14 +22,14 @@ export function parseReleaseArgs(argv: string[]): ReleaseArgs {
   for (const a of argv) {
     if (a === '--dry-run') args.dryRun = true;
     else if (a === '--help' || a === '-h') args.help = true;
-    else throw new Error(`opção desconhecida: ${a}`);
+    else throw new Error(`unknown option: ${a}`);
   }
   return args;
 }
 
 /**
- * Texto da seção `## [versão]` do CHANGELOG (sem o título e sem os links do fim), ou undefined se não houver
- * seção ou se ela estiver vazia.
+ * Text of the `## [version]` section of the CHANGELOG (without the title and without the links at the end), or
+ * undefined if there is no section or if it is empty.
  */
 export function changelogSection(changelog: string, version: string): string | undefined {
   const lines = changelog.split(/\r?\n/);
@@ -47,8 +47,9 @@ export function changelogSection(changelog: string, version: string): string | u
 }
 
 /**
- * Junta as linhas quebradas só para caber em 120 colunas: nas notas da release o GitHub mostra cada quebra de linha,
- * e as frases apareceriam cortadas no meio. Títulos, itens novos, citações, tabelas e blocos de código ficam como estão.
+ * Joins the lines that were broken only to fit in 120 columns: in the release notes GitHub shows every line break,
+ * and the sentences would show up cut in the middle. Titles, new items, quotes, tables and code blocks stay as
+ * they are.
  */
 export function unwrapMarkdown(text: string): string {
   const out: string[] = [];
@@ -87,32 +88,32 @@ function main(argv: string[]): void {
     fail((err as Error).message);
   }
   if (args.help) {
-    console.log('Uso: npm run release [-- --dry-run]\nPublica a versão do package.json no GitHub com as notas do CHANGELOG.md.');
+    console.log('Usage: npm run release [-- --dry-run]\nPublishes the package.json version to GitHub with the notes from CHANGELOG.md.');
     return;
   }
 
   const version = (JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')) as { version: string }).version;
   const tag = `v${version}`;
   const section = changelogSection(readFileSync(join(ROOT, 'CHANGELOG.md'), 'utf8'), version);
-  if (!section) fail(`o CHANGELOG.md não tem a seção "## [${version}]" (ou ela está vazia): escreva o que entrou nesta versão.`);
+  if (!section) fail(`CHANGELOG.md has no "## [${version}]" section (or it is empty): write what went into this version.`);
 
   const branch = run('git', ['rev-parse', '--abbrev-ref', 'HEAD']);
-  if (branch !== 'main') fail(`publique a partir da main (você está em ${branch}).`);
-  if (run('git', ['status', '--porcelain'])) fail('há mudanças não commitadas.');
+  if (branch !== 'main') fail(`publish from main (you are on ${branch}).`);
+  if (run('git', ['status', '--porcelain'])) fail('there are uncommitted changes.');
   run('git', ['fetch', '--quiet', '--tags', 'origin']);
-  if (run('git', ['rev-parse', 'HEAD']) !== run('git', ['rev-parse', 'origin/main'])) fail('a main local não está igual à origin/main (faça git pull ou git push).');
+  if (run('git', ['rev-parse', 'HEAD']) !== run('git', ['rev-parse', 'origin/main'])) fail('local main is not the same as origin/main (run git pull or git push).');
   let tagExists = true;
   try {
     run('git', ['rev-parse', '--quiet', '--verify', `refs/tags/${tag}`], { quiet: true });
   } catch {
     tagExists = false;
   }
-  if (tagExists) fail(`a tag ${tag} já existe: suba a versão no package.json antes.`);
+  if (tagExists) fail(`the tag ${tag} already exists: bump the version in package.json first.`);
   const notes = unwrapMarkdown(section);
 
   console.log(`Habblaud ${tag}\n\n${notes}\n`);
   if (args.dryRun) {
-    console.log('(--dry-run: nada foi publicado)');
+    console.log('(--dry-run: nothing was published)');
     return;
   }
 
@@ -123,7 +124,7 @@ function main(argv: string[]): void {
     run('git', ['tag', '-a', tag, '-m', `Habblaud ${tag}`]);
     run('git', ['push', 'origin', tag]);
     const url = run('gh', ['release', 'create', tag, '--verify-tag', '--title', `Habblaud ${tag}`, '--notes-file', file]);
-    console.log(`✓ Release publicada: ${url}`);
+    console.log(`✓ Release published: ${url}`);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

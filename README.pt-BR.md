@@ -418,12 +418,12 @@ as atividades e as animações dos agentes. O ciclo dia/noite continua sendo uma
 
 ### Idiomas
 
-A interface está em **português, inglês, espanhol e francês**. Ela segue o idioma do navegador; em
+A interface está em **inglês, português, espanhol e francês**. Ela segue o idioma do navegador; em
 **Configurações › Idioma** dá para fixar um (a escolha fica salva neste navegador). Os textos que o servidor monta
 (atividades, avisos, terminal, logs e os scripts de instalação) seguem `HABBLAUD_LANG` e, sem ele, o idioma do
-sistema, menos o inglês: muita máquina e todo container vêm em inglês por padrão, mesmo para quem usa outra língua.
-Para o servidor em inglês, defina `HABBLAUD_LANG=en` (no Docker, no `.env`). Um texto sem tradução aparece em
-português.
+sistema quando é um dos quatro; senão ficam em inglês.
+Para o servidor em português, defina `HABBLAUD_LANG=pt-BR` (no Docker, no `.env`). Um texto sem tradução aparece em
+inglês.
 
 ### Dia, noite e sons
 
@@ -499,7 +499,7 @@ feed continua mostrando o que acontece agora.
 O servidor grava a linha do tempo **a partir do momento em que está ligado** (não dá para reconstruir o passado):
 resumos do que o escritório mostra, sem conversas, em `~/.habblaud/timeline/` (no Docker, no volume de dados), com
 limite de tamanho por dia e os últimos **7 dias** guardados. Para não gravar: `HABBLAUD_TIMELINE=0`. Detalhes em
-[`server/README.md`](server/README.md#linha-do-tempo-timelapse).
+[`server/README.md`](server/README.md#timeline-timelapse).
 
 Os personagens andam mais rápido no replay, mas nas velocidades altas quem fica pouco tempo no escritório quase não
 chega à mesa; pular para outro ponto mostra todos já no lugar.
@@ -728,7 +728,7 @@ Tudo funciona sem configurar nada. Se precisar ajustar, use variáveis de ambien
 | `HABBLAUD_CODEX_DIRS` | detecção automática | Pastas do Codex, separadas por vírgula (no lugar de `~/.codex*` e `CODEX_HOME`). |
 | `HABBLAUD_CODEX_BIN` | `codex` do PATH (no Windows, `codex.exe`) | O binário do Codex que entrega as mensagens (`codex queue`), no modo Node ou no `npm run codex:bridge`. |
 | `HABBLAUD_UPDATE_CHECK` | ligado | `0` desliga a verificação de versão nova (uma consulta às releases do repositório no GitHub a cada 6 h). |
-| `HABBLAUD_LANG` | idioma do sistema (menos inglês), senão `pt-BR` | Idioma dos textos montados pelo servidor (atividades, avisos, logs): `pt-BR`, `en`, `es` ou `fr`. A interface segue o navegador ou a escolha em Configurações › Idioma. Ver [Idiomas](#idiomas). |
+| `HABBLAUD_LANG` | idioma do sistema, senão `en` | Idioma dos textos montados pelo servidor (atividades, avisos, logs): `pt-BR`, `en`, `es` ou `fr`. A interface segue o navegador ou a escolha em Configurações › Idioma. Ver [Idiomas](#idiomas). |
 | `HABBLAUD_ACCOUNTS` | — | JSON para personalizar nome, letra ou cor, casado pelo nome da pasta da conta. Ex.: `[{"id":".claude-conta2","name":"Trabalho","short":"T","color":"#5cc97b"}]`. |
 
 **No Docker**, valem `HABBLAUD_PORT`, `HABBLAUD_BIND`, `HABBLAUD_ALLOWED_HOSTS`, `HABBLAUD_DEMO`, `HABBLAUD_TERMINAL`,

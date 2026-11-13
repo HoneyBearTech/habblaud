@@ -1,49 +1,49 @@
-// Eventos do GitHub lidos dos transcripts — sem token e sem rede (funciona no Docker, que só monta os
-// transcripts): PR aberto ou mergeado, push, CI (falhou/passou) e release. Saem das chamadas de
-// ferramenta (Bash com gh/git, MCP do GitHub) e dos resultados delas:
-// - o próprio Claude Code grava em `toolUseResult.gitOperation` o que um Bash fez no git/GitHub
-//   ({pr: {number, url, action: 'created'|'merged'}, push: {branch}}): é a fonte preferida;
-// - sem isso (versões antigas, CI, release), a saída dos comandos (`gh pr create` imprime a URL do PR,
-//   `git push` as linhas "abc..def  main -> main", `gh run watch` o cabeçalho "✓ main CI · 123"...);
-// - CI em segundo plano: o código de saída da notificação de término, quando ele é o do próprio gh.
-// Só sucesso conta (nada de festa por um comando que falhou); na dúvida, nenhum evento.
-// Puro: o parser (transcript.ts) guarda as chamadas e emite o sinal 'github'.
+// GitHub events read from the transcripts — no token and no network (works in Docker, which only mounts the
+// transcripts): PR opened or merged, push, CI (failed/passed) and release. They come from the tool
+// calls (Bash with gh/git, GitHub MCP) and from their results:
+// - Claude Code itself records in `toolUseResult.gitOperation` what a Bash did in git/GitHub
+//   ({pr: {number, url, action: 'created'|'merged'}, push: {branch}}): it is the preferred source;
+// - without that (old versions, CI, release), the output of the commands (`gh pr create` prints the PR URL,
+//   `git push` the lines "abc..def  main -> main", `gh run watch` the header "✓ main CI · 123"...);
+// - CI in the background: the exit code of the completion notification, when it is gh's own.
+// Only success counts (no party for a command that failed); when in doubt, no event.
+// Pure: the parser (transcript.ts) keeps the calls and emits the 'github' signal.
 import { basename, shellWords } from '../../shared/activity';
 import type { GitHubEvent } from '../../shared/github';
 import { notificationOutcome } from './shells';
 
-/** Operações do git/gh que podem virar evento. */
+/** git/gh operations that can become an event. */
 type Op = 'push' | 'pr_create' | 'pr_merge' | 'pr_checks' | 'run_watch' | 'run_view' | 'release_create';
 
-/** Chamada guardada até o resultado chegar. */
+/** Call kept until the result arrives. */
 export interface GitHubCall {
-  /** Nome da ferramenta (Bash ou mcp__…). */
+  /** Tool name (Bash or mcp__…). */
   tool: string;
-  /** Operações: as do comando (Bash) ou a da ferramenta (MCP). */
+  /** Operations: those of the command (Bash) or that of the tool (MCP). */
   ops: Op[];
-  /** PR dos argumentos (gh pr merge 12, gh pr checks 12) ou do MCP. */
+  /** PR from the arguments (gh pr merge 12, gh pr checks 12) or from MCP. */
   number?: number;
-  /** "dono/repo" de -R/--repo ou do MCP. */
+  /** "owner/repo" from -R/--repo or from MCP. */
   repo?: string;
-  /** Branch dos argumentos do MCP (push_files). */
+  /** Branch from the MCP arguments (push_files). */
   branch?: string;
-  /** git push --dry-run / --delete: não envia commits. */
+  /** git push --dry-run / --delete: does not send commits. */
   noPush?: boolean;
-  /** gh pr merge --auto: só agenda o merge. */
+  /** gh pr merge --auto: only schedules the merge. */
   auto?: boolean;
-  /** gh release create --draft: rascunho, não publica. */
+  /** gh release create --draft: a draft, does not publish. */
   draft?: boolean;
-  /** gh run watch --exit-status: o código de saída diz se o CI passou. */
+  /** gh run watch --exit-status: the exit code says whether CI passed. */
   exitStatus?: boolean;
-  /** O código de saída do comando é o do gh de CI (último comando, sem pipe depois). */
+  /** The command's exit code is that of the CI gh (last command, no pipe after it). */
   ciExit?: boolean;
-  /** Lançado em segundo plano: o desfecho chega na notificação de término. */
+  /** Launched in the background: the outcome arrives in the completion notification. */
   background?: boolean;
 }
 
-// ------------------------------------------------------------------ comando
+// ------------------------------------------------------------------ command
 
-/** Um comando simples do script e o operador que vem depois dele ('' no fim). */
+/** A simple command of the script and the operator that comes after it ('' at the end). */
 interface Segment {
   words: string[];
   next: string;
@@ -51,7 +51,7 @@ interface Segment {
 
 const HEREDOC = /(?<!<)<<-?\s*(['"]?)([A-Za-z_][\w-]*)\1/g;
 
-/** Tira o corpo dos heredocs (texto de commit/PR não é comando). */
+/** Strips the body of heredocs (commit/PR text is not a command). */
 function withoutHeredocs(command: string): string {
   const out: string[] = [];
   let ends: string[] = [];
@@ -67,8 +67,8 @@ function withoutHeredocs(command: string): string {
 }
 
 /**
- * Divide um script de shell em comandos simples: separa em `;`, `&&`, `||`, `|`, `&`, quebras de linha e
- * parênteses de agrupamento, fora de aspas e de `$(...)`/crases (que ficam inteiros dentro da palavra).
+ * Splits a shell script into simple commands: separates at `;`, `&&`, `||`, `|`, `&`, line breaks and
+ * grouping parentheses, outside quotes and `$(...)`/backticks (which stay whole inside the word).
  */
 export function scriptSegments(command: string): Segment[] {
   const src = withoutHeredocs(command.slice(0, 20_000));
@@ -123,7 +123,7 @@ export function scriptSegments(command: string): Segment[] {
 const ASSIGN = /^[A-Za-z_][A-Za-z0-9_]*=/;
 const WRAPPERS = new Set(['sudo', 'nohup', 'time', 'command', 'builtin', 'exec', 'env', 'caffeinate', 'then', 'do', 'else', 'elif', 'if', 'while', 'until', '!']);
 
-/** Tira atribuições (`X=1`), palavras-chave (`then`, `do`) e prefixos (`timeout 600`, `nohup`). */
+/** Strips assignments (`X=1`), keywords (`then`, `do`) and prefixes (`timeout 600`, `nohup`). */
 function stripWrappers(words: string[]): string[] {
   let i = 0;
   for (let guard = 0; guard < 12 && i < words.length; guard++) {
@@ -132,13 +132,13 @@ function stripWrappers(words: string[]): string[] {
     else if (w === 'timeout' || w === 'gtimeout') {
       i++;
       while (i < words.length && words[i].startsWith('-')) i++;
-      i++; // duração
+      i++; // duration
     } else break;
   }
   return words.slice(i);
 }
 
-/** Primeiro número de PR nos argumentos: "12", "#12" ou a URL do PR. */
+/** First PR number in the arguments: "12", "#12" or the PR URL. */
 function prNumberIn(args: string[]): number | undefined {
   for (const a of args) {
     const m = /^#?(\d{1,7})$/.exec(a) ?? /\/pull\/(\d{1,7})\b/.exec(a);
@@ -147,7 +147,7 @@ function prNumberIn(args: string[]): number | undefined {
   return undefined;
 }
 
-/** Valor de uma flag (`-R x`, `--repo x`, `--repo=x`). */
+/** Value of a flag (`-R x`, `--repo x`, `--repo=x`). */
 function flagValue(args: string[], names: string[]): string | undefined {
   for (let i = 0; i < args.length; i++) {
     for (const n of names) {
@@ -161,7 +161,7 @@ function flagValue(args: string[], names: string[]): string | undefined {
 const GIT_VALUED = new Set(['-C', '-c', '--git-dir', '--work-tree', '--namespace', '--exec-path']);
 const GH_VALUED = new Set(['-R', '--repo', '--hostname']);
 
-/** Lê um Bash: que operações do git/gh ele faz (vazio = nada que interesse). */
+/** Reads a Bash: which git/gh operations it does (empty = nothing of interest). */
 export function bashCall(command: string): GitHubCall | undefined {
   if (!/\b(?:git|gh)\b/.test(command)) return undefined;
   const call: GitHubCall = { tool: 'Bash', ops: [] };
@@ -209,14 +209,14 @@ export function bashCall(command: string): GitHubCall | undefined {
       if (!op) return;
       call.ops.push(op);
       if (op === 'pr_merge' || op === 'pr_checks') call.number ??= prNumberIn(rest);
-      // o código de saída do script é o deste gh: último comando, sem nada encadeado depois
+      // the script's exit code is this gh's: last command, with nothing chained after it
       if ((op === 'pr_checks' || (op === 'run_watch' && call.exitStatus)) && last && !seg.next) call.ciExit = true;
     }
   });
   return call.ops.length ? call : undefined;
 }
 
-/** Servidor MCP do GitHub (mcp__github__…, mcp__claude_ai_GitHub__…). */
+/** GitHub MCP server (mcp__github__…, mcp__claude_ai_GitHub__…). */
 function mcpGitHub(name: string): string | undefined {
   const m = /^mcp__([^_].*?)__(.+)$/.exec(name);
   return m && /github/i.test(m[1]) ? m[2] : undefined;
@@ -229,8 +229,8 @@ function num(v: unknown): number | undefined {
 }
 
 /**
- * Guarda a chamada se ela pode gerar um evento do GitHub: Bash com `git push`/`gh pr|run|release`
- * ou ferramenta de um servidor MCP do GitHub. Undefined = não interessa.
+ * Keeps the call if it can generate a GitHub event: Bash with `git push`/`gh pr|run|release`
+ * or a tool from a GitHub MCP server. Undefined = not of interest.
  */
 export function githubCallOf(name: string, input: Record<string, unknown>): GitHubCall | undefined {
   if (name === 'Bash') return typeof input.command === 'string' ? bashCall(input.command) : undefined;
@@ -249,7 +249,7 @@ export function githubCallOf(name: string, input: Record<string, unknown>): GitH
   return call.ops.length ? call : undefined;
 }
 
-// ------------------------------------------------------------------ resultado
+// ------------------------------------------------------------------ result
 
 function textOf(content: unknown): string {
   if (typeof content === 'string') return content;
@@ -264,8 +264,8 @@ function textOf(content: unknown): string {
 const PR_URL = /https:\/\/github\.com\/([\w.-]+\/[\w.-]+)\/pull\/(\d{1,7})\b/g;
 const RELEASE_URL = /https:\/\/github\.com\/([\w.-]+\/[\w.-]+)\/releases\/tag\/([^\s'"<>]+)/;
 /**
- * Depois da linha "To <remoto>" (a do `git fetch` é "From"): "   7917867..32a2814  main -> main",
- * " * [new branch]      x -> x" ou " + a...b main -> main (forced update)".
+ * After the "To <remote>" line (the one from `git fetch` is "From"): "   7917867..32a2814  main -> main",
+ * " * [new branch]      x -> x" or " + a...b main -> main (forced update)".
  */
 const PUSH_TO = /^To \S+/m;
 const PUSH_OK = /^\s*[+* ]?\s*(?:[0-9a-f]{4,40}\.{2,3}[0-9a-f]{4,40}|\[new branch\])\s+\S+\s+->\s+(\S+)/m;
@@ -273,13 +273,13 @@ const PUSH_FAIL = /\[(?:remote )?rejected\]|failed to push|! \[/;
 const PR_EXISTS = /\balready exists\b/i;
 const MERGE_FAIL =
   /\b(?:not mergeable|merge conflicts?|failed to|could not|cannot be merged|permission denied|required status checks?|already merged|will be automatically merged|auto-merge)\b|GraphQL:|HTTP [45]\d\d|^\s*X\s/im;
-/** Cabeçalho de `gh run watch`/`gh run view`: "✓ main CI · 123" (X = falhou, * = rodando). */
+/** Header of `gh run watch`/`gh run view`: "✓ main CI · 123" (X = failed, * = running). */
 const RUN_HEADER = /^\s*([✓✔X✗*])\s+(\S+)\s+(.+?)\s+·\s+\d+\s*$/m;
 const RUN_DONE = /\bRun (.+?) \(\d+\) completed with '(\w+)'/;
 const FAILED_CONCLUSIONS = new Set(['failure', 'timed_out', 'startup_failure']);
 
 type CiResult = { result: 'passed' | 'failed'; branch?: string; workflow?: string };
-/** Leitura do CI: resultado, 'pending' (ainda rodando: nada a concluir) ou undefined (não diz). */
+/** CI reading: result, 'pending' (still running: nothing to conclude) or undefined (does not say). */
 type CiRead = CiResult | 'pending' | undefined;
 const PENDING = /^(pending|queued|in_progress|waiting|requested|expected)$/i;
 
@@ -290,13 +290,13 @@ function conclusion(c: unknown): 'passed' | 'failed' | undefined {
   return FAILED_CONCLUSIONS.has(v) ? 'failed' : undefined;
 }
 
-/** Nome do workflow sem o sufixo "dono/repo#N" do cabeçalho. */
+/** Workflow name without the "owner/repo#N" suffix from the header. */
 function workflowName(s: string): string | undefined {
   const w = s.replace(/\s+[\w.-]+\/[\w.-]+#\d+$/, '').trim();
   return w ? w.slice(0, 40) : undefined;
 }
 
-/** Checagens de PR (gh pr checks): falhou se alguma falhou; passou se todas passaram e nada pendente. */
+/** PR checks (gh pr checks): failed if any failed; passed if all passed and nothing is pending. */
 function aggregateChecks(states: Array<{ name?: string; state: string }>): CiRead {
   if (!states.length) return undefined;
   const failed = states.find((s) => /^(fail|failure|error|timed_out|startup_failure)$/i.test(s.state));
@@ -305,7 +305,7 @@ function aggregateChecks(states: Array<{ name?: string; state: string }>): CiRea
   return states.some((s) => /^(pass|success)$/i.test(s.state)) ? { result: 'passed' } : undefined;
 }
 
-/** JSON de `gh run view --json`, `gh pr checks --json` ou das ferramentas MCP de CI. */
+/** JSON from `gh run view --json`, `gh pr checks --json` or from the MCP CI tools. */
 function ciFromJson(j: unknown): CiRead {
   if (Array.isArray(j)) {
     const states = j
@@ -326,7 +326,7 @@ function ciFromJson(j: unknown): CiRead {
     return r;
   }
   if (typeof o.status === 'string' && PENDING.test(o.status)) return 'pending';
-  // status combinado de um commit/PR: {state, statuses: [...]}
+  // combined status of a commit/PR: {state, statuses: [...]}
   if (typeof o.state === 'string' && Array.isArray(o.statuses)) {
     if (o.state === 'success') return { result: 'passed' };
     if (o.state === 'failure' || o.state === 'error') return { result: 'failed' };
@@ -348,7 +348,7 @@ function parseJson(text: string): unknown {
   }
 }
 
-/** Resultado do CI na saída de gh run watch/view, gh pr checks ou de uma ferramenta MCP. */
+/** CI result in the output of gh run watch/view, gh pr checks or an MCP tool. */
 function ciFromText(text: string, ops: readonly Op[]): CiRead {
   const run = ops.includes('run_watch') || ops.includes('run_view');
   if (run) {
@@ -364,7 +364,7 @@ function ciFromText(text: string, ops: readonly Op[]): CiRead {
     const c = d ? conclusion(d[2]) : undefined;
     if (d && c) return { result: c, workflow: d[1].slice(0, 40) };
   }
-  // JSON inteiro (MCP, --json) ou uma linha de JSON (gh ... --json com --jq de objeto)
+  // whole JSON (MCP, --json) or one line of JSON (gh ... --json with an object --jq)
   const whole = parseJson(text);
   const fromWhole = whole === undefined ? undefined : ciFromJson(whole);
   if (fromWhole) return fromWhole;
@@ -385,7 +385,7 @@ function ciFromText(text: string, ops: readonly Op[]): CiRead {
     if (/\bAll checks were successful\b/.test(text)) return { result: 'passed' };
     if (/\bSome checks were not successful\b/.test(text) || /\b[1-9]\d* failing\b/.test(text)) return { result: 'failed' };
     if (/\bSome checks are still pending\b/.test(text)) return 'pending';
-    // saída sem TTY: "nome<TAB>pass|fail|pending|skipping<TAB>duração<TAB>url"
+    // output without a TTY: "name<TAB>pass|fail|pending|skipping<TAB>duration<TAB>url"
     const states = lines
       .map((l) => /^(.+?)\t(pass|fail|pending|skipping|cancel)\t/.exec(l))
       .filter((m): m is RegExpExecArray => !!m)
@@ -395,22 +395,22 @@ function ciFromText(text: string, ops: readonly Op[]): CiRead {
   return undefined;
 }
 
-/** Código de saída do comando em primeiro plano ("Exit code 1" no começo do resultado com erro). */
+/** Exit code of the foreground command ("Exit code 1" at the start of the result with an error). */
 function exitCodeOf(text: string): number | undefined {
   const m = /^Exit code (\d+)/.exec(text.trimStart());
   return m ? Number(m[1]) : undefined;
 }
 
-/** CI pelo código de saída do próprio gh (gh run watch --exit-status, gh pr checks). */
+/** CI by gh's own exit code (gh run watch --exit-status, gh pr checks). */
 function ciFromExit(call: GitHubCall, code: number): CiResult | undefined {
-  if (!call.ciExit || code >= 128) return undefined; // morto por sinal: nada se sabe
+  if (!call.ciExit || code >= 128) return undefined; // killed by a signal: nothing is known
   if (call.ops.includes('run_watch')) return { result: code === 0 ? 'passed' : 'failed' };
-  // gh pr checks: 1 = alguma falhou, 8 = pendente
+  // gh pr checks: 1 = some check failed, 8 = pending
   if (code === 8) return undefined;
   return { result: code === 0 ? 'passed' : 'failed' };
 }
 
-/** Evento de CI: a branch da saída, senão o PR das checagens, senão a branch do transcript. */
+/** CI event: the branch from the output, else the PR from the checks, else the transcript's branch. */
 function ciEvent(call: GitHubCall, ci: CiResult, fallbackBranch?: string): GitHubEvent {
   const ev: GitHubEvent = { kind: ci.result === 'passed' ? 'ci_passed' : 'ci_failed' };
   if (ci.workflow) ev.workflow = ci.workflow;
@@ -448,8 +448,8 @@ function gitOperationEvent(call: GitHubCall, tur: Record<string, unknown>): GitH
 }
 
 /**
- * Evento do GitHub no resultado de uma chamada guardada (undefined = nada aconteceu, falhou ou não
- * dá para ter certeza). `branch` = branch do transcript, para o CI sem branch na saída.
+ * GitHub event in the result of a kept call (undefined = nothing happened, it failed or there is no
+ * way to be sure). `branch` = the transcript's branch, for CI with no branch in the output.
  */
 export function detectGitHubResult(
   call: GitHubCall,
@@ -482,7 +482,7 @@ export function detectGitHubResult(
     if (m && !m[2].startsWith('untagged-')) return { kind: 'release', tag: safeDecode(m[2]).slice(0, 60), repo: m[1], url: m[0] };
   }
   if (ops.some((o) => o === 'run_watch' || o === 'run_view' || o === 'pr_checks')) {
-    // erro sem "Exit code N" (bloqueado, recusado, interrompido): o gh nem rodou
+    // error without "Exit code N" (blocked, refused, interrupted): gh did not even run
     const read = ciFromText(text, ops);
     const code = r.isError ? exitCodeOf(text) : 0;
     const ci = read === 'pending' ? undefined : (read ?? (code !== undefined ? ciFromExit(call, code) : undefined));
@@ -504,7 +504,7 @@ function safeDecode(s: string): string {
   }
 }
 
-/** Resultado de uma ferramenta MCP do GitHub (JSON em texto). */
+/** Result of a GitHub MCP tool (JSON as text). */
 function mcpEvent(call: GitHubCall, text: string, isError: boolean, branch?: string): GitHubEvent | undefined {
   if (isError) return undefined;
   const op = call.ops[0];
@@ -521,7 +521,7 @@ function mcpEvent(call: GitHubCall, text: string, isError: boolean, branch?: str
     return ev;
   }
   if (op === 'pr_merge') {
-    // JSON {"merged": true, ...}; em texto, "merged" sem sinal de falha
+    // JSON {"merged": true, ...}; as text, "merged" with no sign of failure
     const merged = o ? o.merged === true : /\bmerged\b/i.test(text) && !MERGE_FAIL.test(text);
     if (!merged) return undefined;
     const ev: GitHubEvent = { kind: 'pr_merged' };
@@ -542,8 +542,8 @@ function mcpEvent(call: GitHubCall, text: string, isError: boolean, branch?: str
 }
 
 /**
- * CI lançado em segundo plano (gh run watch --exit-status, gh pr checks): o desfecho é o código de
- * saída da notificação de término — só quando ele é o do próprio gh (`ciExit`).
+ * CI launched in the background (gh run watch --exit-status, gh pr checks): the outcome is the exit
+ * code of the completion notification — only when it is gh's own (`ciExit`).
  */
 export function detectGitHubNotification(call: GitHubCall, status: string | undefined, summary: string | undefined, branch?: string): GitHubEvent | undefined {
   if (!call.ciExit) return undefined;

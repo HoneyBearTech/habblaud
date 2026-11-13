@@ -1,29 +1,33 @@
-// Fonte de agentes do Codex (AgentSource 'codex', ver sources/source.ts): CLI `codex` e o app desktop, que gravam
-// no mesmo CODEX_HOME. Observa as sessões ABERTAS de cada conta do Codex e alimenta o Office; os eventos dos hooks
-// (CodexLive, via POST /api/codex/events) chegam por applyHookEvent e adiantam o que os arquivos ainda não contam.
+// Codex agent source (AgentSource 'codex', see sources/source.ts): the `codex` CLI and the desktop app, which write
+// to the same CODEX_HOME. Watches the OPEN sessions of each Codex account and feeds the Office; the hook events
+// (CodexLive, via POST /api/codex/events) arrive through applyHookEvent and bring forward what the files don't tell
+// yet.
 //
-// Presença (o Codex não grava um registro de sessões como o do Claude Code):
-// - um thread carregado tem o arquivo `thread-writer-locks/<thread>.lock`, conferido só pela EXISTÊNCIA (polling;
-//   nunca flock). O lock precisa ter alguns segundos de vida (LOCK_SETTLE_MS, pela idade do arquivo): operações de
-//   manutenção (arquivar, renomear, migrar, compactar) criam locks rápidos que não são sessões;
-// - o rollout do thread (achado pelo id no nome do arquivo) dá o projeto (cwd do session_meta), o título e o que o
-//   agente faz. Lock sem rollout = sessão aberta e ainda vazia: o Codex só cria o arquivo (e o hook SessionStart só
-//   dispara) no primeiro prompt, e o lock não diz a pasta. Sem o projeto não há sala: o principal só entra quando o
-//   rollout ou um hook disser o cwd (uma CLI recém-aberta aparece com a primeira mensagem);
-// - sem lock = fechada (com a mesma folga de 1,5 s do Claude Code). Lock velho de crash (o Codex só o limpa na
-//   próxima vez que abre): lock criado há mais de STALE_LOCK_MS, rollout parado há mais de STALE_LOCK_MS (ou sem
-//   rollout) e nenhum evento de hook = fechada. Uma escrita nova no rollout (ou um hook) reabre. Limite conhecido:
-//   uma sessão aberta e esquecida por mais de 12 h sem nada novo também sai (volta ao primeiro sinal de vida);
-// - versão sem `thread-writer-locks/` (ou Docker sem a pasta montada): rollout modificado nos últimos 30 min;
-// - um evento de hook segura o agente presente por HOOK_PRESENCE_MS mesmo sem lock visível; SessionEnd fecha (se o
-//   lock também sumiu, ou depois de SESSION_END_GRACE_MS).
-// Subagentes (spawn_agent) são threads próprios, com lock e rollout: o session_meta aponta o pai. Entram como
-// subagentes do pai enquanto trabalham e entregam ao concluir o turno (ou ao sumir); threads internos (guardian,
-// revisão, compactação, memória) ficam de fora.
+// Presence (Codex doesn't write a session record like the Claude Code one):
+// - a loaded thread has the file `thread-writer-locks/<thread>.lock`, checked only for EXISTENCE (polling;
+//   never flock). The lock needs to be a few seconds old (LOCK_SETTLE_MS, by the age of the file): maintenance
+//   operations (archive, rename, migrate, compress) create quick locks that are not sessions;
+// - the thread's rollout (found by the id in the file name) gives the project (cwd of the session_meta), the title
+//   and what the agent does. Lock without rollout = session open and still empty: Codex only creates the file (and
+//   the SessionStart hook only fires) on the first prompt, and the lock doesn't tell the folder. Without the project
+//   there is no room: the main agent only comes in when the rollout or a hook tells the cwd (a newly opened CLI
+//   shows up with the first message);
+// - no lock = closed (with the same 1.5 s margin as Claude Code). Old lock from a crash (Codex only cleans it up the
+//   next time it opens): lock created more than STALE_LOCK_MS ago, rollout idle for more than STALE_LOCK_MS (or no
+//   rollout) and no hook event = closed. A new write to the rollout (or a hook) reopens it. Known limit:
+//   a session open and forgotten for more than 12 h with nothing new also leaves (it comes back at the first sign
+//   of life);
+// - version without `thread-writer-locks/` (or Docker without the folder mounted): rollout modified in the last
+//   30 min;
+// - a hook event keeps the agent present for HOOK_PRESENCE_MS even with no visible lock; SessionEnd closes (if the
+//   lock is gone too, or after SESSION_END_GRACE_MS).
+// Subagents (spawn_agent) are threads of their own, with lock and rollout: the session_meta points to the parent.
+// They come in as subagents of the parent while they work and deliver when the turn completes (or when they
+// disappear); internal threads (guardian, review, compaction, memory) are left out.
 //
-// Status: aplicado por bordas (início/fim de turno no rollout, eventos de hook), a informação mais nova vence; um
-// rollout relido nunca sobrescreve o 'waiting' de um PermissionRequest mais novo. Boot curto e síncrono (só a janela
-// final de rollouts grandes; o começo é lido depois, em segundo plano), com endBoot num `finally`.
+// Status: applied by edges (turn start/end in the rollout, hook events), the newest information wins; a
+// reread rollout never overwrites the 'waiting' of a newer PermissionRequest. Short and synchronous boot (only the
+// end window of large rollouts; the start is read later, in the background), with endBoot in a `finally`.
 import { createReadStream, readdirSync, realpathSync, statSync, watch, type FSWatcher } from 'node:fs';
 import { basename, join, resolve, sep } from 'node:path';
 import type { AccountUsage, Activity, AgentStatus, SourceInfo } from '../../../shared/types';
@@ -49,30 +53,30 @@ import {
 import { createCodexTerminalParser } from './terminal';
 import { tr } from '../../../shared/i18n';
 
-/** Idade mínima do lock para valer como sessão aberta (os locks de manutenção duram menos). */
+/** Minimum age of the lock to count as an open session (the maintenance locks last less). */
 export const LOCK_SETTLE_MS = 3_000;
-/** Lock presente com rollout parado há mais que isto e nenhum evento de hook: lock velho de um crash. */
+/** Lock present with the rollout idle for longer than this and no hook event: old lock from a crash. */
 export const STALE_LOCK_MS = 12 * 3600_000;
-/** Sem `thread-writer-locks/`: presença = rollout modificado nos últimos 30 min. */
+/** No `thread-writer-locks/`: presence = rollout modified in the last 30 min. */
 export const FALLBACK_RECENT_MS = 30 * 60_000;
-/** Um evento de hook segura o agente presente por este tempo (sem lock visível). */
+/** A hook event keeps the agent present for this long (with no visible lock). */
 export const HOOK_PRESENCE_MS = 60_000;
-/** SessionEnd com o lock ainda presente: fecha mesmo assim depois disto. */
+/** SessionEnd with the lock still present: closes anyway after this. */
 export const SESSION_END_GRACE_MS = 5_000;
-/** Tempo que o thread precisa ficar ausente para ser dado como encerrado. */
+/** Time the thread needs to stay absent to be taken as ended. */
 const CLOSE_AFTER_MISSING_MS = 1_500;
-/** 'working' sem nenhuma escrita no rollout nem evento de hook por este tempo: o turno morreu (crash). */
+/** 'working' with no write to the rollout and no hook event for this long: the turn died (crash). */
 export const WORKING_QUIET_MS = 30 * 60_000;
-/** Sem eventos de turno (legacy antigo): escreveu há pouco = trabalhando. */
+/** No turn events (old legacy): wrote a moment ago = working. */
 const LEGACY_WORKING_MS = 90_000;
-/** Atividades recuperadas do começo de um rollout grande para a linha do tempo longa. */
+/** Activities recovered from the start of a large rollout for the long timeline. */
 const PREFIX_HISTORY = 120;
-/** Resultados guardados ao ler um rollout antes de o agente entrar no escritório. */
+/** Results kept when reading a rollout before the agent enters the office. */
 const BACKLOG_MAX = 400;
-/** Conta sem sessão aberta ao subir: quantos rollouts recentes tentar até achar um com o uso do plano. */
+/** Account with no open session at startup: how many recent rollouts to try until finding one with the plan usage. */
 const SEED_USAGE_FILES = 8;
-const MAIN_ROLE = tr('Agente principal (Codex)');
-const SUB_ROLE = tr('Subagente (Codex)');
+const MAIN_ROLE = tr('Main agent (Codex)');
+const SUB_ROLE = tr('Subagent (Codex)');
 
 const HOOK_EVENTS = new Set([
   'SessionStart',
@@ -92,28 +96,28 @@ const HOOK_EVENTS = new Set([
 export interface CodexSourceOptions {
   accounts: AccountsService;
   office: Office;
-  /** Pastas do Codex lidas por este processo (no Docker, as montadas), uma por conta. */
+  /** Codex folders read by this process (in Docker, the mounted ones), one per account. */
   dirs: string[];
   env?: NodeJS.ProcessEnv;
   home?: string;
   now?: () => number;
   pollMs?: number;
-  /** Quanto do fim de cada rollout é lido ao abrir a sessão (padrão 1 MB). */
+  /** How much of the end of each rollout is read when the session opens (default 1 MB). */
   tailBytes?: number;
-  /** Desliga o fs.watch (testes). */
+  /** Turns off fs.watch (tests). */
   watch?: boolean;
 }
 
 interface CodexAccount {
   id: string;
-  /** Pasta lida por este processo. */
+  /** Folder read by this process. */
   dir: string;
-  /** Pasta para exibir (no Docker, a do host). */
+  /** Folder to display (in Docker, the host's). */
   configDir: string;
   index: RolloutIndex;
-  /** Locks vistos no último ciclo (null = sem a pasta de locks). */
+  /** Locks seen in the last cycle (null = no locks folder). */
   locks: Map<string, LockInfo> | null;
-  /** Modo sem locks: rollouts modificados há pouco (thread → mtime), revistos a cada 10 s. */
+  /** Mode without locks: rollouts modified recently (thread → mtime), rechecked every 10 s. */
   recent: Map<string, number>;
   recentAt: number;
   usage?: AccountUsage;
@@ -125,7 +129,7 @@ interface ThreadTracker {
   key: string;
   acc: CodexAccount;
   threadId: string;
-  /** main/sub pelo session_meta (ou pelo hook); internal = fica fora do escritório. */
+  /** main/sub from session_meta (or from the hook); internal = stays out of the office. */
   kind: 'main' | 'sub' | 'internal';
   parentThreadId?: string;
   meta?: RolloutMeta;
@@ -133,23 +137,23 @@ interface ThreadTracker {
   nextResolveAt: number;
   tail?: FileTail;
   state: CodexState;
-  /** Resultados lidos antes de o agente entrar no escritório (vão como histórico, sem feed). */
+  /** Results read before the agent enters the office (they go as history, without feed). */
   backlog: CodexLineResult[];
   inOffice: boolean;
   hookCwd?: string;
   hookRole?: string;
   status: AgentStatus;
-  /** Quando o status foi decidido (linha do rollout ou evento de hook): informação mais velha não o muda. */
+  /** When the status was decided (rollout line or hook event): older information does not change it. */
   statusAt: number;
   waitingFor?: string;
   lastHookAt?: number;
-  /** mtime do rollout na última leitura. */
+  /** mtime of the rollout at the last read. */
   lastWriteAt?: number;
   endedAt?: number;
   missingSince?: number;
-  /** Subagente que já entregou (turno concluído). */
+  /** Subagent that has already delivered (turn completed). */
   subDone: boolean;
-  /** Criado agora por um hook (SubagentStart): entra mesmo sem turno visto. */
+  /** Created just now by a hook (SubagentStart): enters even with no turn seen. */
   hookSpawned?: boolean;
   watcher?: FSWatcher;
 }
@@ -198,7 +202,7 @@ export class CodexSource implements AgentSource, CodexLive {
     this.register();
   }
 
-  /** Registra (de novo) as contas no AccountsService, sempre na mesma ordem: os ids não mudam. */
+  /** Registers (again) the accounts in the AccountsService, always in the same order: the ids do not change. */
   private register(): void {
     const entries = this.opts.accounts.setProviderAccounts(
       'codex',
@@ -217,7 +221,7 @@ export class CodexSource implements AgentSource, CodexLive {
     });
   }
 
-  /** Contas do Codex (ids finais, no AccountsService). */
+  /** Codex accounts (final ids, in the AccountsService). */
   accountEntries(): readonly AccountEntry[] {
     return this.entries;
   }
@@ -228,7 +232,7 @@ export class CodexSource implements AgentSource, CodexLive {
     this.timer.unref?.();
   }
 
-  /** Reconstrói as sessões abertas sem gerar avisos. Síncrono e curto. */
+  /** Rebuilds the open sessions without generating notices. Synchronous and short. */
   boot(): void {
     this.opts.office.beginBoot();
     try {
@@ -270,7 +274,7 @@ export class CodexSource implements AgentSource, CodexLive {
     return this.threads.has(agentId) ? createCodexTerminalParser() : undefined;
   }
 
-  /** Espera as leituras do começo dos rollouts (testes). */
+  /** Waits for the reads of the start of the rollouts (tests). */
   idle(): Promise<void> {
     return this.prefixChain;
   }
@@ -281,7 +285,7 @@ export class CodexSource implements AgentSource, CodexLive {
     try {
       this.poll(false);
     } catch (err) {
-      log.warnOnce(`codex-poll:${errMsg(err)}`, tr('Codex: falha no ciclo de leitura: {0}', [errMsg(err)]));
+      log.warnOnce(`codex-poll:${errMsg(err)}`, tr('Codex: read cycle failed: {0}', [errMsg(err)]));
     }
   }
 
@@ -323,13 +327,13 @@ export class CodexSource implements AgentSource, CodexLive {
       this.unwatch(t);
       this.threads.delete(key);
     }
-    // Subagentes que ficaram para depois (o pai entrou neste ciclo).
+    // Subagents left for later (the parent entered in this cycle).
     for (const t of this.threads.values()) if (t.kind === 'sub' && !t.inOffice && seen.has(t.key)) this.reconcile(t, now);
   }
 
   /**
-   * Threads presentes de uma conta e por quê: 'lock' (lock com idade suficiente), 'recent' (sem pasta de locks:
-   * rollout modificado há pouco) ou 'hook' (evento de hook recente).
+   * Threads present for an account and why: 'lock' (lock old enough), 'recent' (no locks folder:
+   * rollout modified recently) or 'hook' (recent hook event).
    */
   private presentThreads(acc: CodexAccount, now: number): Map<string, 'lock' | 'recent' | 'hook'> {
     const out = new Map<string, 'lock' | 'recent' | 'hook'>();
@@ -338,8 +342,8 @@ export class CodexSource implements AgentSource, CodexLive {
       this.watchDir(`${acc.dir}${sep}${LOCKS_DIR}`);
       for (const lock of acc.locks.values()) {
         const known = this.threads.get(`${acc.id}:${lock.threadId}`);
-        // Lock novo demais (manutenção?): espera (o polling de ~1 s confere de novo). O que já está no escritório
-        // não precisa esperar de novo.
+        // Lock too new (maintenance?): waits (the ~1 s polling checks again). What is already in the office
+        // does not need to wait again.
         if (now - lock.createdAt < LOCK_SETTLE_MS && !known?.inOffice) continue;
         out.set(lock.threadId, 'lock');
       }
@@ -377,10 +381,10 @@ export class CodexSource implements AgentSource, CodexLive {
     };
   }
 
-  /** Um ciclo de um thread presente: acha/lê o rollout e decide se ele está (ou continua) no escritório. */
+  /** One cycle of a present thread: finds/reads the rollout and decides whether it is (or stays) in the office. */
   private syncThread(t: ThreadTracker, via: 'lock' | 'recent' | 'hook', now: number, boot: boolean): void {
     delete t.missingSince;
-    if (t.inOffice && !this.opts.office.has(t.key)) t.inOffice = false; // saiu do escritório (graça encerrada)
+    if (t.inOffice && !this.opts.office.has(t.key)) t.inOffice = false; // left the office (grace ended)
     this.pump(t, boot);
     this.reconcile(t, now, via);
     if (t.inOffice && t.kind === 'main') {
@@ -389,7 +393,7 @@ export class CodexSource implements AgentSource, CodexLive {
     }
   }
 
-  /** O thread deve estar no escritório agora? Entra, sai ou muda de sala conforme o caso. */
+  /** Should the thread be in the office now? Enters, leaves or changes rooms as the case may be. */
   private reconcile(t: ThreadTracker, now: number, via?: 'lock' | 'recent' | 'hook'): void {
     const want = this.wanted(t, now, via);
     if (!want) {
@@ -402,7 +406,7 @@ export class CodexSource implements AgentSource, CodexLive {
   private wanted(t: ThreadTracker, now: number, via?: 'lock' | 'recent' | 'hook'): boolean {
     if (t.kind === 'internal') return false;
     const hookRecent = t.lastHookAt !== undefined && now - t.lastHookAt < HOOK_PRESENCE_MS;
-    // SessionEnd: fecha, a não ser que algo novo tenha acontecido depois.
+    // SessionEnd: closes, unless something new happened afterward.
     if (t.endedAt !== undefined) {
       const lock = t.acc.locks?.get(t.threadId);
       const newer = (t.lastHookAt ?? 0) > t.endedAt || (t.lastWriteAt ?? 0) > t.endedAt + 1_000 || (lock?.createdAt ?? 0) > t.endedAt;
@@ -411,18 +415,18 @@ export class CodexSource implements AgentSource, CodexLive {
     }
     if (!hookRecent && via === 'lock') {
       const lock = t.acc.locks?.get(t.threadId);
-      // Lock velho de um crash: o lock é antigo e o rollout está parado há muito tempo (ou nem existe). Um thread
-      // antigo retomado agora tem lock novo (o Codex cria o arquivo ao carregar e o apaga ao descarregar).
+      // Old lock from a crash: the lock is old and the rollout has been still for a long time (or does not even exist).
+      // An old thread resumed now has a new lock (Codex creates the file on load and deletes it on unload).
       const rolloutIdle = !t.rolloutPath || (t.lastWriteAt !== undefined && now - t.lastWriteAt > STALE_LOCK_MS);
       if (lock && now - lock.createdAt > STALE_LOCK_MS && rolloutIdle) return false;
     }
-    // Sem o projeto (sessão aberta ainda sem prompt, só com o lock) não há sala para o principal: espera o rollout ou um
-    // hook dizer o cwd. Isso também segura um lock de subagente até o rollout dele dizer de quem ele é.
+    // Without the project (open session with no prompt yet, only the lock) there is no room for the main one: waits for
+    // the rollout or a hook to tell the cwd. This also holds a subagent's lock until its rollout says whose it is.
     if (t.kind === 'main' && !this.cwdOf(t)) return false;
     if (t.kind === 'sub') {
       const parent = this.parentKey(t);
       if (!parent || !this.opts.office.has(parent) || this.opts.office.isSubDone(parent) || this.opts.office.get(parent)?.status === 'offline') return false;
-      // Subagente só aparece trabalhando (ou recém-criado pelo hook); depois de entregar, sai.
+      // A subagent only shows up while working (or just created by the hook); after delivering, it leaves.
       if (!t.inOffice && t.status !== 'working' && t.status !== 'waiting' && !t.hookSpawned) return false;
     }
     return true;
@@ -434,7 +438,7 @@ export class CodexSource implements AgentSource, CodexLive {
     return direct;
   }
 
-  /** Projeto conhecido do thread (session_meta ou hook). */
+  /** Known project of the thread (session_meta or hook). */
   private cwdOf(t: ThreadTracker): string | undefined {
     return t.meta?.cwd ?? t.hookCwd;
   }
@@ -456,7 +460,7 @@ export class CodexSource implements AgentSource, CodexLive {
       });
       t.inOffice = office.has(t.key);
       if (!t.inOffice) return;
-      // Reaberta dentro do período de graça: o status pode ter mudado enquanto esteve fora.
+      // Reopened within the grace period: the status may have changed while it was away.
       office.setStatus(t.key, t.status, t.waitingFor);
     } else {
       const parent = this.parentKey(t)!;
@@ -473,14 +477,14 @@ export class CodexSource implements AgentSource, CodexLive {
       t.inOffice = true;
       t.subDone = false;
       delete t.hookSpawned;
-      // addSub começa em 'working': um pedido de aprovação visto antes de ele entrar vale já.
+      // addSub starts as 'working': an approval request seen before it entered counts right away.
       if (t.status === 'waiting') office.setStatus(t.key, 'waiting', t.waitingFor);
     }
     this.flushBacklog(t);
     this.applySummary(t);
   }
 
-  /** Sai do escritório: principal encerra; subagente entrega (se ainda não tinha entregado). */
+  /** Leaves the office: the main one ends; a subagent delivers (if it had not delivered yet). */
   private leave(t: ThreadTracker): void {
     if (!t.inOffice) return;
     const office = this.opts.office;
@@ -491,7 +495,7 @@ export class CodexSource implements AgentSource, CodexLive {
     t.inOffice = false;
   }
 
-  /** Leva o status do tracker ao escritório (o subagente entrega ao ficar ocioso e volta ao trabalhar). */
+  /** Takes the tracker's status to the office (the subagent delivers when it goes idle and returns when working). */
   private statusToOffice(t: ThreadTracker): void {
     if (!t.inOffice) return;
     const office = this.opts.office;
@@ -514,7 +518,7 @@ export class CodexSource implements AgentSource, CodexLive {
 
   // ---------------------------------------------------------------- rollout
 
-  /** Acha o rollout (sem pressa: no máximo a cada 3 s por thread) e lê o que for novo. */
+  /** Finds the rollout (no rush: at most every 3 s per thread) and reads whatever is new. */
   private pump(t: ThreadTracker, boot: boolean): void {
     const now = this.now();
     if (now >= t.nextResolveAt) {
@@ -525,7 +529,7 @@ export class CodexSource implements AgentSource, CodexLive {
         return;
       }
       if (!path && !t.tail && t.acc.index.isCompressedOnly(t.threadId)) {
-        log.warnOnce('codex-zst', tr('Codex: há conversas compactadas (.jsonl.zst) que o Habblaud ainda não lê; elas ficam sem detalhes.'));
+        log.warnOnce('codex-zst', tr("Codex: there are compressed conversations (.jsonl.zst) that Habblaud can't read yet; they show no details."));
       }
     }
     if (!t.tail) return;
@@ -534,11 +538,11 @@ export class CodexSource implements AgentSource, CodexLive {
       try {
         r = t.tail.read();
       } catch (err) {
-        log.warnOnce(`codex-read:${t.key}`, tr('Codex: rollout de {0} ilegível ({1}).', [t.key, errMsg(err)]));
+        log.warnOnce(`codex-read:${t.key}`, tr('Codex: unreadable rollout for {0} ({1}).', [t.key, errMsg(err)]));
         return;
       }
       if (r.missing) {
-        // Apagado ou trocado de lugar (arquivado, compactado): procura de novo.
+        // Deleted or moved (archived, compressed): looks again.
         this.unwatch(t);
         delete t.tail;
         delete t.rolloutPath;
@@ -547,7 +551,7 @@ export class CodexSource implements AgentSource, CodexLive {
       }
       t.lastWriteAt = t.tail.mtimeMs;
       if (r.reset) {
-        // Reescrito no mesmo caminho (ex.: codex migrate-rollouts): relê como histórico.
+        // Rewritten at the same path (e.g., codex migrate-rollouts): rereads it as history.
         this.load(t, t.tail.path);
         return;
       }
@@ -557,7 +561,7 @@ export class CodexSource implements AgentSource, CodexLive {
     }
   }
 
-  /** Lê o começo (session_meta, título) e a janela do fim do rollout; o resto do começo vai em segundo plano. */
+  /** Reads the start (session_meta, title) and the rollout's end window; the rest of the start goes in background. */
   private load(t: ThreadTracker, path: string): void {
     this.unwatch(t);
     const head = readRolloutHead(path);
@@ -590,7 +594,7 @@ export class CodexSource implements AgentSource, CodexLive {
     if (meta.internal) t.kind = 'internal';
     else if (meta.parentThreadId) {
       if (t.kind === 'main' && t.inOffice) {
-        // Aparecia como sessão aberta (sem rollout ainda) e é um subagente: sai e volta como subagente.
+        // It showed up as an open session (no rollout yet) and is a subagent: leaves and comes back as a subagent.
         this.opts.office.closeMain(t.key);
         t.inOffice = false;
       }
@@ -600,8 +604,8 @@ export class CodexSource implements AgentSource, CodexLive {
   }
 
   /**
-   * Status depois de ler a janela do rollout: o turno aberto (ou, no legacy antigo sem eventos de turno, uma escrita
-   * recente) é 'working'. Um status mais novo vindo de hook vence.
+   * Status after reading the rollout window: the open turn (or, in old legacy without turn events, a recent
+   * write) is 'working'. A newer status coming from a hook wins.
    */
   private settleStatus(t: ThreadTracker): void {
     const s = t.state;
@@ -616,7 +620,7 @@ export class CodexSource implements AgentSource, CodexLive {
     delete t.waitingFor;
   }
 
-  /** Aplica um resultado de linha: ao vivo vai direto ao escritório; na carga inicial, fica no backlog. */
+  /** Applies a line result: live, it goes straight to the office; in the initial load, it stays in the backlog. */
   private apply(t: ThreadTracker, r: CodexLineResult, live: boolean): void {
     for (const sig of r.signals) {
       switch (sig.type) {
@@ -653,7 +657,7 @@ export class CodexSource implements AgentSource, CodexLive {
     const office = this.opts.office;
     for (const a of r.activities) office.addActivity(t.key, a.activity, a.current, { feed: live });
     for (const sig of r.signals) {
-      // Só o que chega ao vivo anima a sala; a carga inicial vai para o histórico.
+      // Only what arrives live animates the room; the initial load goes to the history.
       if (sig.type === 'github') office.githubEvent(t.key, sig.event, { key: sig.key, at: r.at, live });
     }
   }
@@ -665,8 +669,8 @@ export class CodexSource implements AgentSource, CodexLive {
   }
 
   /**
-   * Muda o status por uma borda (início/fim de turno, hook): informação mais velha que a última decisão não vale.
-   * `live` = aplica no escritório agora (a carga inicial só guarda; o status entra junto com o agente).
+   * Changes the status on an edge (turn start/end, hook): information older than the last decision does not count.
+   * `live` = applies to the office now (the initial load only stores; the status enters along with the agent).
    */
   private decide(t: ThreadTracker, status: AgentStatus, at: number, waitingFor: string | undefined, live: boolean): void {
     if (at < t.statusAt) return;
@@ -677,7 +681,7 @@ export class CodexSource implements AgentSource, CodexLive {
     if (live) this.statusToOffice(t);
   }
 
-  /** 'working' sem nenhuma notícia por muito tempo (turno morto num crash): vira 'idle'. */
+  /** 'working' with no news at all for a long time (turn dead in a crash): becomes 'idle'. */
   private quietCheck(t: ThreadTracker, now: number): void {
     if (t.status !== 'working') return;
     const last = Math.max(t.lastWriteAt ?? 0, t.lastHookAt ?? 0, t.statusAt);
@@ -697,7 +701,7 @@ export class CodexSource implements AgentSource, CodexLive {
     this.opts.office.applyTranscript(t.key, summary);
   }
 
-  /** Começo de um rollout grande (antes da janela lida): números, título e a linha do tempo longa. */
+  /** Start of a large rollout (before the window read): numbers, title and the long timeline. */
   private queuePrefix(t: ThreadTracker, path: string, end: number): void {
     const state = t.state;
     this.prefixChain = this.prefixChain
@@ -714,12 +718,12 @@ export class CodexSource implements AgentSource, CodexLive {
         this.applySummary(t);
         if (t.inOffice) this.opts.office.mergeHistory(t.key, prefix.activities);
       })
-      .catch((err) => log.warnOnce(`codex-prefix:${path}`, tr('Codex: não foi possível ler o início de um rollout ({0}).', [errMsg(err)])));
+      .catch((err) => log.warnOnce(`codex-prefix:${path}`, tr("Codex: couldn't read the start of a rollout ({0}).", [errMsg(err)])));
   }
 
-  // ---------------------------------------------------------------- uso do plano
+  // ---------------------------------------------------------------- plan usage
 
-  /** Uso da conta (e o plano junto): vale o mais recente entre as sessões dela. */
+  /** Account usage (and the plan with it): the most recent among its sessions counts. */
   private pushUsage(acc: CodexAccount, usage: AccountUsage, plan: string | undefined): void {
     if (acc.usage && usage.fetchedAt < acc.usage.fetchedAt) return;
     acc.usage = usage;
@@ -727,7 +731,7 @@ export class CodexSource implements AgentSource, CodexLive {
     this.pushPlan(acc, plan);
   }
 
-  /** O plano (rate_limits.plan_type) entra na conta. */
+  /** The plan (rate_limits.plan_type) goes into the account. */
   private pushPlan(acc: CodexAccount, plan: string | undefined): void {
     const label = codexPlanLabel(plan);
     if (label && label !== acc.plan) {
@@ -741,10 +745,10 @@ export class CodexSource implements AgentSource, CodexLive {
   }
 
   /**
-   * Conta sem sessão aberta ao subir: o uso do rollout mais recente que tenha números (fica "desatualizado" com a
-   * idade: os números do Codex só se renovam com alguma sessão rodando). Por mtime em TODAS as pastas de data (uma
-   * sessão retomada continua no arquivo da pasta antiga), tentando os SEED_USAGE_FILES mais recentes: o último pode não
-   * ter `token_count` nenhum (sessão sem resposta, ou arquivada logo).
+   * Account with no open session at startup: the usage from the most recent rollout that has numbers (it becomes
+   * "outdated" with age: Codex's numbers only refresh with some session running). By mtime across ALL date folders (a
+   * resumed session stays in the file in the old folder), trying the most recent SEED_USAGE_FILES: the last one may
+   * have no `token_count` at all (session with no response, or archived right away).
    */
   private seedUsage(acc: CodexAccount): void {
     const files: Array<{ path: string; mtimeMs: number }> = [];
@@ -761,7 +765,7 @@ export class CodexSource implements AgentSource, CodexLive {
         try {
           files.push({ path: join(dir, name), mtimeMs: statSync(join(dir, name)).mtimeMs });
         } catch {
-          // sumiu
+          // gone
         }
       }
     }
@@ -780,7 +784,7 @@ export class CodexSource implements AgentSource, CodexLive {
         plan ??= state.planType;
         if (state.usage) return this.pushUsage(acc, state.usage, state.planType ?? plan);
       } catch {
-        // ilegível agora: tenta o seguinte
+        // unreadable now: tries the next one
       }
     }
     if (!acc.plan) this.pushPlan(acc, plan);
@@ -792,7 +796,7 @@ export class CodexSource implements AgentSource, CodexLive {
     try {
       return this.hookEvent(account, input);
     } catch (err) {
-      log.warnOnce(`codex-hook:${errMsg(err)}`, tr('Codex: evento de hook ignorado ({0}).', [errMsg(err)]));
+      log.warnOnce(`codex-hook:${errMsg(err)}`, tr('Codex: hook event ignored ({0}).', [errMsg(err)]));
       return false;
     }
   }
@@ -822,7 +826,7 @@ export class CodexSource implements AgentSource, CodexLive {
       return true;
     }
 
-    // Subagente: o thread filho vem em agent_id (o pai, até sabermos pelo session_meta, é a raiz).
+    // Subagent: the child thread comes in agent_id (the parent, until we know from session_meta, is the root).
     const isSubEvent = target !== root || event === 'SubagentStart' || event === 'SubagentStop';
     const subId = event === 'SubagentStart' || event === 'SubagentStop' ? (agent && isThreadId(agent) ? agent : undefined) : target !== root ? target : undefined;
     if (isSubEvent && !subId) return false;
@@ -848,7 +852,7 @@ export class CodexSource implements AgentSource, CodexLive {
       case 'PreToolUse': {
         this.decide(t, 'working', now, undefined, true);
         if (t !== rootT) this.reconcile(t, now, 'hook');
-        const toolName = str(input.tool_name) ?? 'ferramenta';
+        const toolName = str(input.tool_name) ?? 'tool';
         const toolInput = rec(input.tool_input) ?? {};
         const { desc, tool } = describeCodexTool(toolName, toolInput);
         const id = str(input.tool_use_id);
@@ -857,7 +861,7 @@ export class CodexSource implements AgentSource, CodexLive {
         break;
       }
       case 'PermissionRequest':
-        this.decide(t, 'waiting', now, tr('aprovar um comando'), true);
+        this.decide(t, 'waiting', now, tr('approve a command'), true);
         break;
       case 'Stop':
       case 'Interrupt':
@@ -870,7 +874,7 @@ export class CodexSource implements AgentSource, CodexLive {
     return true;
   }
 
-  /** Tracker do thread (criado se preciso), com a presença dada pelo hook. */
+  /** Tracker of the thread (created if needed), with the presence given by the hook. */
   private touch(acc: CodexAccount, threadId: string, now: number, cwd: string | undefined, parent?: string, agentType?: string): ThreadTracker {
     const key = `${acc.id}:${threadId}`;
     let t = this.threads.get(key);
@@ -892,7 +896,7 @@ export class CodexSource implements AgentSource, CodexLive {
     return t;
   }
 
-  /** `transcript_path` do hook, se for um rollout dentro da pasta da conta (no Docker é do host: não serve). */
+  /** The hook's `transcript_path`, if it is a rollout inside the account folder (in Docker it is the host's: no use). */
   private hintTranscript(acc: CodexAccount, threadId: string, path: string | undefined): void {
     if (!path) return;
     const t = this.threads.get(`${acc.id}:${threadId}`);
@@ -905,13 +909,13 @@ export class CodexSource implements AgentSource, CodexLive {
       if (t?.tail) this.load(t, real);
       else if (t) t.nextResolveAt = 0;
     } catch {
-      // não existe aqui (Docker) ou ainda não foi criado
+      // does not exist here (Docker) or has not been created yet
     }
   }
 
   /**
-   * Conta de um evento: `account` (id ou pasta), senão a do `transcript_path`, senão a que já conhece o thread;
-   * com uma conta só, ela.
+   * Account of an event: `account` (id or folder), else the one from `transcript_path`, else the one that already
+   * knows the thread; with only one account, that one.
    */
   private accountFor(account: string | undefined, input: Record<string, unknown>, threadId: string): CodexAccount | undefined {
     const norm = (p: string) => {
@@ -943,7 +947,7 @@ export class CodexSource implements AgentSource, CodexLive {
     return this.accs.length === 1 ? this.accs[0] : undefined;
   }
 
-  // ---------------------------------------------------------------- fs.watch (acelerador)
+  // ---------------------------------------------------------------- fs.watch (accelerator)
 
   private watchDir(dir: string): void {
     if (!this.useWatch || this.dirWatchers.has(dir)) return;
@@ -955,7 +959,7 @@ export class CodexSource implements AgentSource, CodexLive {
       });
       this.dirWatchers.set(dir, w);
     } catch {
-      // sem suporte: o polling cobre
+      // not supported: polling covers it
     }
   }
 
@@ -967,7 +971,7 @@ export class CodexSource implements AgentSource, CodexLive {
       w.on('error', () => w.close());
       t.watcher = w;
     } catch {
-      // sem suporte: o polling cobre
+      // not supported: polling covers it
     }
   }
 
@@ -977,7 +981,7 @@ export class CodexSource implements AgentSource, CodexLive {
   }
 }
 
-/** O mesmo arquivo, mesmo que um caminho passe por symlink (o índice guarda o da pasta; o hook manda o realpath). */
+/** The same file, even if a path goes through a symlink (the index keeps the folder's; the hook sends realpath). */
 function samePath(a: string, b: string | undefined): boolean {
   if (b === undefined) return false;
   if (a === b) return true;
@@ -989,8 +993,8 @@ function samePath(a: string, b: string | undefined): boolean {
 }
 
 /**
- * Lê em stream (sem travar o event loop) os bytes [0, end) de um rollout: os números, o título e as últimas
- * `keep` atividades anteriores à janela lida ao abrir a sessão.
+ * Reads as a stream (without blocking the event loop) the bytes [0, end) of a rollout: the numbers, the title and
+ * the last `keep` activities before the window read when the session opens.
  */
 export async function scanPrefix(path: string, end: number, idPrefix: string, keep: number): Promise<{ state: CodexState; activities: Activity[] }> {
   const state = createCodexState();

@@ -21,17 +21,17 @@ setQuiet(true);
 const HAS_OPENSSL = spawnSync('openssl', ['version']).status === 0;
 const quiet = { info: () => {}, warn: () => {}, error: () => {} };
 
-describe('senha (scrypt)', () => {
-  it('gera hash sem "$" (o Compose interpola), confere a certa e recusa a errada', async () => {
-    const text = await hashPassword('uma senha boa', 10);
+describe('password (scrypt)', () => {
+  it('generates a hash without "$" (Compose interpolates), checks the right one and refuses the wrong one', async () => {
+    const text = await hashPassword('a good password', 10);
     expect(text).toMatch(/^scrypt:10:8:1:/);
     expect(text).not.toContain('$');
     const parsed = parsePasswordHash(text)!;
-    expect(await verifyPassword('uma senha boa', parsed)).toBe(true);
-    expect(await verifyPassword('uma senha boA', parsed)).toBe(false);
+    expect(await verifyPassword('a good password', parsed)).toBe(true);
+    expect(await verifyPassword('a good passworD', parsed)).toBe(false);
     expect(await verifyPassword('', parsed)).toBe(false);
   });
-  it('sal diferente a cada hash; formato ou parâmetros fora do razoável são recusados', async () => {
+  it('different salt for each hash; a format or parameters outside what is reasonable are refused', async () => {
     expect(await hashPassword('x'.repeat(12), 10)).not.toBe(await hashPassword('x'.repeat(12), 10));
     expect(parsePasswordHash('scrypt:30:8:1:AAAAAAAAAAAAAAAAAAAAAA:' + 'A'.repeat(43))).toBeUndefined();
     expect(parsePasswordHash('plaintext')).toBeUndefined();
@@ -40,32 +40,32 @@ describe('senha (scrypt)', () => {
 });
 
 describe('.env', () => {
-  it('troca só as chaves pedidas, remove com null e mantém comentários', () => {
-    const before = '# meu .env\nHABBLAUD_PORT=4848\nHABBLAUD_REMOTE_PASSWORD=texto\nHABBLAUD_REMOTE_USER=a\nHABBLAUD_REMOTE_USER=b\n';
-    const after = updateEnv(before, { HABBLAUD_REMOTE_USER: 'ana', HABBLAUD_REMOTE_PASSWORD: null, HABBLAUD_REMOTE_NAME: 'meuclaude' });
-    expect(after).toBe('# meu .env\nHABBLAUD_PORT=4848\nHABBLAUD_REMOTE_USER=ana\nHABBLAUD_REMOTE_NAME=meuclaude\n');
-    expect(readEnvValue(after, 'HABBLAUD_REMOTE_NAME')).toBe('meuclaude');
+  it('replaces only the requested keys, removes with null and keeps comments', () => {
+    const before = '# my .env\nHABBLAUD_PORT=4848\nHABBLAUD_REMOTE_PASSWORD=text\nHABBLAUD_REMOTE_USER=a\nHABBLAUD_REMOTE_USER=b\n';
+    const after = updateEnv(before, { HABBLAUD_REMOTE_USER: 'ana', HABBLAUD_REMOTE_PASSWORD: null, HABBLAUD_REMOTE_NAME: 'myclaude' });
+    expect(after).toBe('# my .env\nHABBLAUD_PORT=4848\nHABBLAUD_REMOTE_USER=ana\nHABBLAUD_REMOTE_NAME=myclaude\n');
+    expect(readEnvValue(after, 'HABBLAUD_REMOTE_NAME')).toBe('myclaude');
     expect(readEnvValue('X="a b"\n', 'X')).toBe('a b');
     expect(addToList('a.lan, b', 'b', 'c.local')).toBe('a.lan,b,c.local');
   });
-  it('remoteEnv do setup: hash no lugar da senha, nomes liberados no Host, bind aberto', () => {
-    const env = remoteEnv('HABBLAUD_REMOTE_PASSWORD=velha\nHABBLAUD_ALLOWED_HOSTS=casa.lan\n', {
+  it('remoteEnv from the setup: hash in place of the password, names allowed in the Host, open bind', () => {
+    const env = remoteEnv('HABBLAUD_REMOTE_PASSWORD=old\nHABBLAUD_ALLOWED_HOSTS=home.lan\n', {
       user: 'ana',
-      hash: 'scrypt:15:8:1:sal:hash',
+      hash: 'scrypt:15:8:1:salt:hash',
       name: 'myclaude',
       domain: 'myclaude.home',
       port: 443,
     });
     expect(env).not.toContain('HABBLAUD_REMOTE_PASSWORD=');
-    expect(readEnvValue(env, 'HABBLAUD_REMOTE_PASSWORD_HASH')).toBe('scrypt:15:8:1:sal:hash');
-    expect(readEnvValue(env, 'HABBLAUD_ALLOWED_HOSTS')).toBe('casa.lan,myclaude.local,myclaude.home');
+    expect(readEnvValue(env, 'HABBLAUD_REMOTE_PASSWORD_HASH')).toBe('scrypt:15:8:1:salt:hash');
+    expect(readEnvValue(env, 'HABBLAUD_ALLOWED_HOSTS')).toBe('home.lan,myclaude.local,myclaude.home');
     expect(readEnvValue(env, 'HABBLAUD_REMOTE_BIND')).toBe('0.0.0.0');
     expect(readEnvValue(env, 'HABBLAUD_REMOTE_PORT')).toBe('443');
   });
 });
 
-describe('setup e anúncio', () => {
-  it('opções e regras da senha', () => {
+describe('setup and announcement', () => {
+  it('options and password rules', () => {
     expect(parseArgs(['--name', 'MyClaude', '--domain', 'MyClaude.Home', '--port', '443', '--password-stdin', '--no-service'])).toMatchObject({
       name: 'myclaude',
       domain: 'myclaude.home',
@@ -73,16 +73,16 @@ describe('setup e anúncio', () => {
       passwordStdin: true,
       service: false,
     });
-    expect(() => parseArgs(['--port', '99999'])).toThrow(/porta/);
-    expect(() => parseArgs(['--bogus'])).toThrow(/desconhecida/);
-    expect(passwordProblem('curta', 'ana')).toMatch(/10/);
-    expect(passwordProblem(' com espaço no fim ', 'ana')).toMatch(/espaços/);
-    expect(passwordProblem('ana1234567', 'ana1234567')).toMatch(/usuário/);
-    expect(passwordProblem('uma senha boa', 'ana')).toBeUndefined();
+    expect(() => parseArgs(['--port', '99999'])).toThrow(/port/);
+    expect(() => parseArgs(['--bogus'])).toThrow(/unknown/);
+    expect(passwordProblem('short', 'ana')).toMatch(/10/);
+    expect(passwordProblem(' with a space at the end ', 'ana')).toMatch(/spaces/);
+    expect(passwordProblem('ana1234567', 'ana1234567')).toMatch(/username/);
+    expect(passwordProblem('a good password', 'ana')).toBeUndefined();
     expect(urlFor('myclaude.local', 443)).toBe('https://myclaude.local');
     expect(urlFor('myclaude.local', 4748)).toBe('https://myclaude.local:4748');
   });
-  it('nomes válidos e o comando do anúncio por sistema', () => {
+  it('valid names and the announcement command per system', () => {
     expect(isValidName('myclaude')).toBe(true);
     expect(isValidName('my_claude')).toBe(false);
     expect(isValidDomain('myclaude.home')).toBe(true);
@@ -95,13 +95,13 @@ describe('setup e anúncio', () => {
     expect(mdnsCommand('linux', 'myclaude', '192.168.1.10', 443)).toEqual({ cmd: 'avahi-publish', args: ['-a', '-R', 'myclaude.local', '192.168.1.10'] });
     expect(mdnsCommand('win32', 'myclaude', '192.168.1.10', 443)).toBeUndefined();
   });
-  it('docker-up monta SÓ a pasta do certificado do servidor, somente leitura', () => {
+  it('docker-up mounts ONLY the folder of the server certificate, read-only', () => {
     const yaml = renderOverride([], new Date(0), undefined, undefined, [], '/h/.habblaud/remote-tls/server');
     expect(yaml).toContain('source: "/h/.habblaud/remote-tls/server"');
     expect(yaml).toContain('target: "/remote-tls"');
     expect(yaml).not.toContain('remote-tls/ca');
   });
-  it('só publica a porta remota (e a do redirecionamento http:// -> https://) com o acesso configurado', () => {
+  it('only publishes the remote port (and the one for the http:// -> https:// redirect) with the access configured', () => {
     expect(remotePortsFrom('')).toEqual([]);
     expect(remotePortsFrom('HABBLAUD_REMOTE_PORT=443\nHABBLAUD_REMOTE_HTTP_PORT=80\n')).toEqual([]);
     expect(remotePortsFrom('HABBLAUD_REMOTE_USER=ana\nHABBLAUD_REMOTE_PORT=443\nHABBLAUD_REMOTE_HTTP_PORT=80\nHABBLAUD_REMOTE_BIND=0.0.0.0\n')).toEqual([
@@ -119,10 +119,10 @@ afterEach(() => {
   while (closers.length) closers.pop()!();
 });
 
-describe.skipIf(!HAS_OPENSSL)('certificados (openssl)', () => {
+describe.skipIf(!HAS_OPENSSL)('certificates (openssl)', () => {
   const targets = remoteTargets({ name: 'myclaude', domain: 'myclaude.home' }, { dns: ['localhost'], ips: ['127.0.0.1', '192.168.1.10'] });
 
-  it('cria a CA (chave 600) e um certificado de servidor assinado por ela com todos os nomes', () => {
+  it('creates the CA (key 600) and a server certificate signed by it with all the names', () => {
     const tmp = tempDir();
     closers.push(tmp.cleanup);
     const paths = tlsPaths(join(tmp.dir, 'remote-tls'));
@@ -142,14 +142,14 @@ describe.skipIf(!HAS_OPENSSL)('certificados (openssl)', () => {
     expect(readFileSync(paths.publicCa, 'utf8')).toBe(readFileSync(paths.caCert, 'utf8'));
   });
 
-  it('a CA só assina localhost, .local, o endereço próprio e IPs privados (um certificado para outro site falha)', () => {
+  it('the CA only signs localhost, .local, its own address and private IPs (a certificate for another site fails)', () => {
     const tmp = tempDir();
     closers.push(tmp.cleanup);
     const paths = tlsPaths(join(tmp.dir, 'remote-tls'));
     ensureServerCert(paths, targets);
     const ok = spawnSync('openssl', ['verify', '-CAfile', paths.caCert, paths.serverCert], { encoding: 'utf8' });
     expect(ok.status, ok.stderr).toBe(0);
-    // Um certificado para example.com assinado com a chave da CA (como faria quem a roubasse) não vale.
+    // A certificate for example.com signed with the CA's key (as someone who stole it would do) is not valid.
     const key = join(tmp.dir, 'evil.key');
     const csr = join(tmp.dir, 'evil.csr');
     const crt = join(tmp.dir, 'evil.crt');
@@ -160,8 +160,8 @@ describe.skipIf(!HAS_OPENSSL)('certificados (openssl)', () => {
     const evil = spawnSync('openssl', ['verify', '-CAfile', paths.caCert, crt], { encoding: 'utf8' });
     expect(evil.status).not.toBe(0);
     expect(`${evil.stdout}${evil.stderr}`).toMatch(/subtree/i);
-    // Endereço próprio novo não cabe nesta CA: o docker:up pede o setup; o setup (newCa) cria outra.
-    const other = remoteTargets({ name: 'myclaude', domain: 'outro.lan' }, { dns: ['localhost'], ips: ['127.0.0.1'] });
+    // A new own address doesn't fit in this CA: docker:up asks for the setup; the setup (newCa) creates another.
+    const other = remoteTargets({ name: 'myclaude', domain: 'other.lan' }, { dns: ['localhost'], ips: ['127.0.0.1'] });
     expect(caCovers(paths, other)).toBe(false);
     expect(() => ensureServerCert(paths, other)).toThrow(/remote:setup/);
     const fp = caFingerprint(paths);
@@ -170,14 +170,14 @@ describe.skipIf(!HAS_OPENSSL)('certificados (openssl)', () => {
     expect(caCovers(paths, other)).toBe(true);
   });
 
-  it('IPs: só redes privadas (e a 100.64/10 do Tailscale) entram no certificado', () => {
+  it('IPs: only private networks (and the 100.64/10 of Tailscale) go into the certificate', () => {
     expect(['127.0.0.1', '10.1.2.3', '172.16.0.9', '172.31.255.1', '192.168.0.10', '100.100.1.2'].every(isPrivateIpv4)).toBe(true);
     expect(['8.8.8.8', '172.32.0.1', '100.128.0.1', '169.254.1.1', '1.2.3', 'x'].some(isPrivateIpv4)).toBe(false);
     const ifaces = { en0: [{ family: 'IPv4', address: '192.168.1.5', internal: false }, { family: 'IPv4', address: '203.0.113.9', internal: false }] };
     expect(lanAddresses(ifaces as unknown as ReturnType<typeof import('node:os').networkInterfaces>)).toEqual(['192.168.1.5']);
   });
 
-  it('não refaz à toa; refaz quando o IP muda, mantendo a mesma CA', () => {
+  it('does not redo it for nothing; redoes it when the IP changes, keeping the same CA', () => {
     const tmp = tempDir();
     closers.push(tmp.cleanup);
     const paths = tlsPaths(join(tmp.dir, 'remote-tls'));
@@ -191,7 +191,7 @@ describe.skipIf(!HAS_OPENSSL)('certificados (openssl)', () => {
     expect(serverCertStatus(paths, moved).ok).toBe(true);
   });
 
-  it('a porta remota fala HTTPS com o certificado, manda http:// para https:// e recarrega o certificado novo', async () => {
+  it('the remote port speaks HTTPS with the certificate, sends http:// to https:// and reloads the new certificate', async () => {
     const tmp = tempDir();
     closers.push(tmp.cleanup);
     const paths = tlsPaths(join(tmp.dir, 'remote-tls'));
@@ -222,7 +222,7 @@ describe.skipIf(!HAS_OPENSSL)('certificados (openssl)', () => {
       });
     const first = await get('myclaude.local');
     expect(first).toMatchObject({ status: 200, body: 'ok-https' });
-    // HTTP sem "s": 308 para https://
+    // HTTP without "s": 308 to https://
     const redirect = await new Promise<{ status: number; location?: string }>((ok, fail) => {
       const req = http.request({ host: '127.0.0.1', port, path: '/x?y=1', headers: { Host: `myclaude.local:${port}` } }, (res) => {
         res.resume();
@@ -232,7 +232,7 @@ describe.skipIf(!HAS_OPENSSL)('certificados (openssl)', () => {
       req.end();
     });
     expect(redirect).toEqual({ status: 308, location: `https://myclaude.local:${port}/x?y=1` });
-    // Nome que o Habblaud não conhece não vira redirecionamento (nada de mandar o navegador para outro lugar).
+    // A name Habblaud doesn't know doesn't become a redirect (no sending the browser somewhere else).
     const foreign = await new Promise<number>((ok, fail) => {
       const req = http.request({ host: '127.0.0.1', port, path: '/', headers: { Host: 'evil.example' } }, (res) => {
         res.resume();
@@ -242,7 +242,7 @@ describe.skipIf(!HAS_OPENSSL)('certificados (openssl)', () => {
       req.end();
     });
     expect(foreign).toBe(400);
-    // Certificado novo (renovação): o servidor troca sem reiniciar.
+    // New certificate (renewal): the server swaps it without restarting.
     ensureServerCert(paths, targets, { force: true });
     const future = new Date(Date.now() + 60_000);
     utimesSync(paths.serverCert, future, future);
@@ -254,16 +254,16 @@ describe.skipIf(!HAS_OPENSSL)('certificados (openssl)', () => {
 });
 
 describe('docker-compose.yml', () => {
-  it('repassa ao container toda variável do acesso remoto que o servidor lê', () => {
+  it('passes on to the container every remote access variable that the server reads', () => {
     const compose = readFileSync(join(__dirname, '..', '..', 'docker-compose.yml'), 'utf8');
     const server = readFileSync(join(__dirname, '..', 'http', 'remote.ts'), 'utf8');
-    // No Docker, porta, host e pasta do certificado são fixos (4748, 0.0.0.0, /remote-tls): o resto precisa vir do .env.
+    // In Docker, port, host and certificate folder are fixed (4748, 0.0.0.0, /remote-tls): the rest must come from .env.
     const fixedInDocker = new Set(['HABBLAUD_REMOTE_PORT', 'HABBLAUD_REMOTE_HOST', 'HABBLAUD_REMOTE_TLS_DIR', 'HABBLAUD_REMOTE_PASSWORD']);
     const read = [...new Set([...server.matchAll(/env\.(HABBLAUD_REMOTE_[A-Z_]+)/g)].map((m) => m[1]))].filter((k) => !fixedInDocker.has(k));
     expect(read.sort()).toEqual(['HABBLAUD_REMOTE_ALLOW', 'HABBLAUD_REMOTE_INSECURE_HTTP', 'HABBLAUD_REMOTE_PASSWORD_HASH', 'HABBLAUD_REMOTE_USER']);
     for (const key of read) expect(compose, key).toMatch(new RegExp(`^\\s+${key}: \\$\\{${key}:-\\}$`, 'm'));
     expect(compose).not.toMatch(/HABBLAUD_REMOTE_PASSWORD: /);
-    // A porta remota só é publicada pelo override do docker:up, depois do setup.
+    // The remote port is only published by the docker:up override, after the setup.
     expect(compose).not.toMatch(/4748/);
   });
 });

@@ -1,4 +1,4 @@
-// Ícones pixel art de estado (acima da cabeça), puros. Templates ASCII com contorno automático.
+// Pixel-art status icons (above the head), pure. ASCII templates with automatic outline.
 import type { IconName } from './api';
 import { PixelBuf, type Palette } from './core/pixbuf';
 import type { BufSprite } from './core/sprite';
@@ -7,27 +7,27 @@ interface IconDef {
   rows: readonly string[];
   pal: Palette;
   /**
-   * Opacidade do contorno (0–1). Padrão 1. Fios finos (teia) ficam com contorno translúcido para
-   * não virarem traços grossos e escuros — continuam legíveis tanto no piso claro quanto na cadeira.
+   * Outline opacity (0–1). Default 1. Thin threads (web) get a translucent outline so they
+   * do not turn into thick dark strokes — they stay readable both on the light floor and on the chair.
    */
   outlineAlpha?: number;
   /**
-   * Opacidade do contorno nos "buracos" (áreas transparentes cercadas pelo desenho, como as células
-   * da teia). Sem isso o halo enche cada célula e a teia vira um borrão cinza. Padrão = outlineAlpha.
+   * Outline opacity in the "holes" (transparent areas enclosed by the drawing, like the cells of the
+   * web). Without this the halo fills each cell and the web turns into a gray smudge. Default = outlineAlpha.
    */
   holeOutlineAlpha?: number;
 }
 
-// Ampulheta: tampas de madeira, vidro azulado com brilho à esquerda e areia dourada.
+// Hourglass: wooden caps, bluish glass with a highlight on the left and golden sand.
 const HOURGLASS_PAL: Palette = {
-  t: '#e6b37a', // madeira (brilho)
-  c: '#c48a52', // madeira
-  C: '#8f5d36', // madeira (sombra)
-  g: '#e4f3fc', // vidro
-  w: '#ffffff', // reflexo
-  G: '#a6c9e3', // vidro na sombra (direita)
-  s: '#f5c451', // areia
-  S: '#d6952a', // areia na sombra
+  t: '#e6b37a', // wood (highlight)
+  c: '#c48a52', // wood
+  C: '#8f5d36', // wood (shadow)
+  g: '#e4f3fc', // glass
+  w: '#ffffff', // reflection
+  G: '#a6c9e3', // glass in shadow (right)
+  s: '#f5c451', // sand
+  S: '#d6952a', // sand in shadow
 };
 
 const ICONS: Readonly<Record<IconName, IconDef>> = {
@@ -206,7 +206,7 @@ const ICONS: Readonly<Record<IconName, IconDef>> = {
     pal: { h: '#e2b47a', c: '#c99a5e', t: '#f1dfb6', l: '#8b6a43', d: '#a87b45' },
   },
   hourglass: {
-    // Em pé: quase toda a areia em cima, um fio caindo e um montinho embaixo.
+    // Upright: almost all the sand on top, a thread falling and a small pile at the bottom.
     rows: [
       'tcccccccC',
       'CCCCCCCCC',
@@ -223,8 +223,8 @@ const ICONS: Readonly<Record<IconName, IconDef>> = {
     pal: HOURGLASS_PAL,
   },
   hourglass_flip: {
-    // A mesma ampulheta deitada (meio giro): a areia escorre para o lado de baixo dos dois bulbos.
-    // Alternada com 'hourglass' (mesma âncora no centro inferior) parece girar sobre a cabeça.
+    // The same hourglass lying down (half a turn): the sand runs to the lower side of both bulbs.
+    // Alternated with 'hourglass' (same anchor at the bottom center) it seems to spin above the head.
     rows: [
       'tc.......tc',
       'tcw.....Gtc',
@@ -239,10 +239,10 @@ const ICONS: Readonly<Record<IconName, IconDef>> = {
     pal: { ...HOURGLASS_PAL, t: '#d9a46c', c: '#a8723f' },
   },
   cobweb: {
-    // Teia de canto, triangular (o canto fica em cima à esquerda; espelhe para outros cantos):
-    // fios das bordas, o raio diagonal e dois arcos de quarto de círculo; uma aranhinha de olhos
-    // claros na borda de fora. Fios brancos com contorno translúcido só na silhueta (as células
-    // ficam quase limpas), legível tanto no piso claro quanto no estofado escuro.
+    // Corner web, triangular (the corner is at the top left; mirror it for other corners):
+    // edge threads, the diagonal spoke and two quarter-circle arcs; a little spider with light
+    // eyes on the outer edge. White threads with a translucent outline only on the silhouette (the
+    // cells stay almost clean), readable both on the light floor and on the dark upholstery.
     rows: [
       'wwwwwwwwwwww',
       'wf...w....w.',
@@ -262,7 +262,7 @@ const ICONS: Readonly<Record<IconName, IconDef>> = {
     holeOutlineAlpha: 0.14,
   },
   storm: {
-    // Nuvem carregada com chuva e um raio amarelo (algo falhou).
+    // Storm cloud with rain and a yellow lightning bolt (something failed).
     rows: [
       '...hHHh....',
       '.hhHHHHhhh.',
@@ -292,8 +292,8 @@ const ICONS: Readonly<Record<IconName, IconDef>> = {
     pal: { s: '#ffd2a8', d: '#e0a87a' },
   },
   coin: {
-    // Moeda dourada de frente: aro claro em cima à esquerda, sombra embaixo à direita, um "C"
-    // gravado no meio e um brilho.
+    // Gold coin seen from the front: light rim at the top left, shadow at the bottom right, a "C"
+    // engraved in the middle and a glint.
     rows: [
       '..yyyy..',
       '.yhwyyy.',
@@ -307,7 +307,7 @@ const ICONS: Readonly<Record<IconName, IconDef>> = {
     pal: { y: '#ffcf3f', h: '#fff2a8', w: '#ffffff', K: '#d4931c', d: '#c98a1c' },
   },
   sparkle: {
-    // Brilho de 4 pontas: centro branco e braços finos e longos.
+    // 4-point sparkle: white center and long, thin arms.
     rows: [
       '....y....',
       '....y....',
@@ -322,7 +322,7 @@ const ICONS: Readonly<Record<IconName, IconDef>> = {
     pal: { y: '#ffe07a', h: '#fff6c8', w: '#ffffff' },
   },
   trophy: {
-    // Taça dourada com alças e pedestal de madeira.
+    // Gold cup with handles and a wooden pedestal.
     rows: [
       'yhhhyyyyd',
       'yhwhyyydy',
@@ -337,8 +337,8 @@ const ICONS: Readonly<Record<IconName, IconDef>> = {
     pal: { y: '#ffcf3f', h: '#fff2a8', w: '#ffffff', d: '#d99e1f', b: '#a8723f', B: '#7a4f2a' },
   },
   hand_rock: {
-    // Punho fechado de frente: três nós dos dedos em cima, vincos entre os dedos e o polegar
-    // atravessado embaixo (tom mais quente).
+    // Closed fist seen from the front: three knuckles on top, creases between the fingers and the
+    // thumb across the bottom (warmer tone).
     rows: [
       '.LL.LL.LL.',
       'LsskssksSS',
@@ -351,7 +351,7 @@ const ICONS: Readonly<Record<IconName, IconDef>> = {
     pal: { L: '#ffe0c4', s: '#f6c9a2', S: '#d99d72', k: '#c48660', T: '#ecb68b' },
   },
   hand_paper: {
-    // Mão aberta: quatro dedos esticados e separados, polegar aberto para o lado.
+    // Open hand: four fingers stretched out and apart, thumb open to the side.
     rows: [
       '..L.L....',
       '.LsLsL...',
@@ -366,7 +366,7 @@ const ICONS: Readonly<Record<IconName, IconDef>> = {
     pal: { L: '#ffe0c4', s: '#f6c9a2', S: '#d99d72' },
   },
   hand_scissors: {
-    // Indicador e médio abertos em V; os outros dedos dobrados no punho.
+    // Index and middle fingers open in a V; the other fingers folded into the fist.
     rows: [
       '.L...L...',
       '.Ls..Ls..',
@@ -383,7 +383,7 @@ const ICONS: Readonly<Record<IconName, IconDef>> = {
 
 export const ICON_NAMES = Object.keys(ICONS) as IconName[];
 
-/** Ícone com contorno; âncora no centro inferior. */
+/** Icon with outline; anchor at the bottom center. */
 export function renderIcon(name: IconName): BufSprite {
   const def = ICONS[name];
   const w = Math.max(...def.rows.map((r) => r.length));
@@ -394,7 +394,7 @@ export function renderIcon(name: IconName): BufSprite {
   const before = soft ? b.data.slice() : null;
   b.outline();
   if (before) {
-    // Só os pixels criados pelo contorno ganham a opacidade reduzida (menor ainda nos buracos).
+    // Only the pixels created by the outline get the reduced opacity (lower still in the holes).
     const outer = alpha255(def.outlineAlpha ?? 1);
     const hole = alpha255(def.holeOutlineAlpha ?? def.outlineAlpha ?? 1);
     const outside = reachableFromBorder(before, b.w, b.h);
@@ -411,9 +411,9 @@ function alpha255(a: number): number {
 }
 
 /**
- * Pixels transparentes alcançáveis a partir da borda andando só por transparentes (vizinhança 4).
- * Os demais transparentes são "buracos" cercados pelo desenho (linhas diagonais também fecham,
- * porque a vizinhança 4 não atravessa um degrau diagonal).
+ * Transparent pixels reachable from the edge by walking only through transparent ones (4-neighborhood).
+ * The other transparent ones are "holes" enclosed by the drawing (diagonal lines also close them,
+ * because the 4-neighborhood does not cross a diagonal step).
  */
 function reachableFromBorder(data: Uint8ClampedArray, w: number, h: number): Uint8Array {
   const seen = new Uint8Array(w * h);

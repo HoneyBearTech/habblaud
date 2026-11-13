@@ -1,6 +1,6 @@
-// Modelo do escritório: agentes (reais e de demonstração), salas, feed e avisos.
-// Os observadores de fontes (sources/watcher.ts) chamam os métodos de mutação; o hub SSE
-// chama commit() (com throttle) para obter o snapshot novo, o feed e os avisos pendentes.
+// Office model: agents (real and demo), rooms, feed and notices.
+// The source watchers (sources/watcher.ts) call the mutation methods; the SSE hub
+// calls commit() (throttled) to get the new snapshot, the feed and the pending notices.
 import type {
   AccountInfo,
   Activity,
@@ -38,15 +38,15 @@ export const OFFLINE_GRACE_MS = 20_000;
 export const DONE_GRACE_MS = 25_000;
 export const SLOT_COOLDOWN_MS = 30_000;
 export const NOTICE_DEDUPE_MS = 10_000;
-/** Aviso "está esperando o shell": no máximo um a cada 10 min por agente. */
+/** Notice "is waiting on the shell": at most one every 10 min per agent. */
 export const SHELL_NOTICE_DEDUPE_MS = 600_000;
-/** Evento do GitHub mais velho que isto (linha antiga relida) não anima a sala nem gera aviso. */
+/** A GitHub event older than this (old line reread) doesn't animate the room or generate a notice. */
 export const GITHUB_LIVE_MS = 120_000;
 const RECENT_LIMIT = 30;
 /**
- * Atividades de cada agente que vão no snapshot (SSE). O snapshot inteiro sai a cada mudança, e o
- * `recent` completo era ~87% dele; a linha do tempo longa vem de GET /api/agents/:id e o feed já
- * transmite cada atividade à parte.
+ * Each agent's activities that go in the snapshot (SSE). The whole snapshot goes out on every change, and the
+ * full `recent` was ~87% of it; the long timeline comes from GET /api/agents/:id and the feed already
+ * broadcasts each activity separately.
  */
 export const SNAPSHOT_RECENT = 8;
 const HISTORY_LIMIT = 200;
@@ -54,36 +54,36 @@ const FEED_LIMIT = 200;
 
 export interface OfficeDeps {
   names: NameStore;
-  /** Nome escolhido pelo usuário para a sala da pasta (model/room-aliases.ts), se houver. */
+  /** Name chosen by the user for the folder's room (model/room-aliases.ts), if any. */
   roomAlias?: (path: string) => string | undefined;
   version: string;
-  /** Build do cliente servido (ver OfficeSnapshot.meta.build); ausente no modo dev e nos testes. */
+  /** Build of the client being served (see OfficeSnapshot.meta.build); absent in dev mode and in the tests. */
   build?: () => string | undefined;
   startedAt: number;
-  /** Contas reais, com o nº de sessões abertas de cada uma. */
+  /** Real accounts, with the number of open sessions of each one. */
   accounts: (sessions: ReadonlyMap<string, number>) => AccountInfo[];
   sources: () => SourceInfo[];
-  /** Nome amigável da conta (ex.: "Conta D") para os avisos. */
+  /** Friendly name of the account (e.g. "Account D") for the notices. */
   accountName: (id: string) => string | undefined;
-  /** Terminal ligado (ver OfficeSnapshot.meta.terminal e ServerConfig.terminal). */
+  /** Terminal on (see OfficeSnapshot.meta.terminal and ServerConfig.terminal). */
   terminal?: boolean;
-  /** Pedidos de permissão pendentes por agente (PermissionRegistry.snapshot), postos no snapshot. */
+  /** Pending permission requests per agent (PermissionRegistry.snapshot), put in the snapshot. */
   permissions?: () => ReadonlyMap<string, PermissionRequestInfo>;
   /**
-   * Agentes cuja sessão o registro de mensagens vê conectada (MessageRegistry.reachable): viram AgentInfo.canMessage.
-   * Ausente = mensagens pelo escritório desligadas (OfficeSnapshot.meta.messages).
+   * Agents whose session the message registry sees as connected (MessageRegistry.reachable): they become
+   * AgentInfo.canMessage. Absent = messages from the office off (OfficeSnapshot.meta.messages).
    */
   messages?: () => ReadonlySet<string>;
-  /** Verificação de versão nova no GitHub (ver OfficeSnapshot.meta.updates). */
+  /** Check for a new version on GitHub (see OfficeSnapshot.meta.updates). */
   updates?: () => UpdateStatus;
-  /** Terminais interativos (PtyManager): estado do recurso e os abertos. */
+  /** Interactive terminals (PtyManager): state of the feature and the open ones. */
   ptys?: () => { status: PtyStatus; list: PtyInfo[] };
-  /** Habblaud World (WorldService.meta; ver OfficeSnapshot.meta.world). */
+  /** Habblaud World (WorldService.meta; see OfficeSnapshot.meta.world). */
   world?: () => WorldMeta;
   now?: () => number;
 }
 
-/** O que o transcript sabe sobre o agente (aplicado de uma vez). */
+/** What the transcript knows about the agent (applied all at once). */
 export interface TranscriptSummary {
   title?: string;
   tasks: TaskItem[];
@@ -91,14 +91,14 @@ export interface TranscriptSummary {
   model?: string;
   gitBranch?: string;
   permissionMode?: string;
-  /** Primeiro evento conhecido (subagentes: o início real, depois de ler o começo do arquivo). */
+  /** First known event (subagents: the real start, after reading the beginning of the file). */
   firstAt?: number;
   lastAt?: number;
 }
 
 export interface MainInput {
   id: string;
-  /** Ferramenta do agente (AgentInfo.provider); ausente = 'claude'. Os subagentes herdam a do principal. */
+  /** The agent's tool (AgentInfo.provider); absent = 'claude'. Subagents inherit the main agent's. */
   provider?: Provider;
   account: string;
   sessionId: string;
@@ -123,26 +123,26 @@ interface AgentRecord {
   info: AgentInfo;
   history: Activity[];
   removeAt?: number;
-  /** Início do turno atual (para "Concluiu em X"). */
+  /** Start of the current turn (for "Done in X"). */
   turnStart?: number;
-  /** Atividade "Concluiu" sintetizada pela mudança de status (substituída pela do transcript, se vier). */
+  /** "Done" activity synthesized from the status change (replaced by the transcript's, if it comes). */
   synthDone?: { id: string; at: number };
-  /** Atividade "Precisa de você" sintetizada; ao sair da espera, a atividade anterior volta a ser a atual. */
+  /** "Needs you" activity synthesized; on leaving the wait, the previous activity becomes the current one again. */
   synthWait?: { id: string; prev?: Activity };
-  /** Balão "Esperando o shell" sintetizado neste episódio do status 'shell' (e a atividade que ele cobriu). */
+  /** "Waiting on shell" speech bubble synthesized in this episode of 'shell' status (and the activity it covered). */
   shellWait?: { id: string; prev?: Activity };
 }
 
-/** O que terminou (para a atividade 'ShellDone' e o aviso). */
+/** What finished (for the 'ShellDone' activity and the notice). */
 export interface ShellDoneInput {
-  /** Id do job (tarefa em segundo plano ou tool_use): torna a atividade idempotente numa releitura. */
+  /** Id of the job (background task or tool_use): makes the activity idempotent on a reread. */
   id: string;
   label: string;
   startedAt: number;
   command?: string;
 }
 
-/** Personagem escolhido no editor (já validado: ver shared/appearance.ts). */
+/** Character chosen in the editor (already validated: see shared/appearance.ts). */
 export interface CharacterInput {
   name: string;
   seed: number;
@@ -160,7 +160,7 @@ export interface CommitResult {
 
 type NoticeKind = 'arrive' | 'room' | 'wait' | 'deliver' | 'done' | 'leave' | 'shell' | 'shellDone' | 'github' | 'character';
 
-/** Pergunta ainda sem resposta (o balão dela já diz que o agente espera você). */
+/** Question still unanswered (its speech bubble already says the agent is waiting for you). */
 function isOpenQuestion(a: Activity | undefined): boolean {
   return a?.kind === 'ask' && a.text !== SPECIAL.answered().text;
 }
@@ -177,13 +177,13 @@ function cloneAgent(a: AgentInfo): AgentInfo {
 }
 
 /**
- * Nomes em uso, comparados sem diferenciar caixa nem forma Unicode: pickName e NameStore.assign só chamam `has`, então
- * "Ana" (guardado ou do pool) conta como ocupado quando "ana" foi escolhido para uma sala.
+ * Names in use, compared ignoring case and Unicode form: pickName and NameStore.assign only call `has`, so
+ * "Ana" (stored or from the pool) counts as taken when "ana" was chosen for a room.
  */
 class NameSet extends Set<string> {
   private folded = new Set<string>();
   override add(name: string): this {
-    // O construtor de Set chama add antes dos campos existirem: só use `new NameSet()` sem argumentos.
+    // The Set constructor calls add before the fields exist: only use `new NameSet()` with no arguments.
     this.folded?.add(nameKey(name));
     return super.add(name);
   }
@@ -210,10 +210,10 @@ export class Office {
   private demo: DemoSimulator | null = null;
   private demoSnap: OfficeSnapshot | null = null;
   private booting = false;
-  /** Fontes bootando agora (beginBoot/endBoot contados): o boot só termina quando todas terminaram. */
+  /** Sources booting now (beginBoot/endBoot counted): the boot only ends when all of them have finished. */
   private bootDepth = 0;
   private bootFeed: FeedItem[] = [];
-  /** Festa/alarme das salas (eventos do GitHub). */
+  /** Party/alarm of the rooms (GitHub events). */
   private effects = new RoomEffects();
   private seq = 0;
   private readonly now: () => number;
@@ -222,7 +222,7 @@ export class Office {
     this.now = deps.now ?? Date.now;
   }
 
-  /** Avisado (síncrono) sempre que algo muda; o hub decide quando fazer commit(). */
+  /** Notified (synchronously) whenever something changes; the hub decides when to commit(). */
   onChange(cb: () => void): () => void {
     this.listeners.add(cb);
     return () => void this.listeners.delete(cb);
@@ -236,10 +236,10 @@ export class Office {
   // ---------------------------------------------------------------- boot
 
   /**
-   * Durante o boot: sem avisos; o feed é montado em ordem cronológica no final. Contado: cada fonte de agentes
-   * (sources/source.ts) chama beginBoot ao começar a reconstruir as sessões abertas e endBoot ao terminar (num
-   * `finally`, inclusive se o boot for assíncrono); o escritório só fica "pronto" (feed ordenado, balões de
-   * espera, sem avisos atrasados) quando a última termina.
+   * During the boot: no notices; the feed is built in chronological order at the end. Counted: each agent source
+   * (sources/source.ts) calls beginBoot when it starts rebuilding the open sessions and endBoot when it finishes (in
+   * a `finally`, even if the boot is asynchronous); the office only becomes "ready" (sorted feed, waiting speech
+   * bubbles, no late notices) when the last one finishes.
    */
   beginBoot(): void {
     if (this.bootDepth++ > 0) return;
@@ -248,14 +248,14 @@ export class Office {
   }
 
   endBoot(): void {
-    if (this.bootDepth === 0) return; // endBoot sem beginBoot: ignorado
+    if (this.bootDepth === 0) return; // endBoot without beginBoot: ignored
     if (--this.bootDepth > 0) return;
     this.booting = false;
     const sorted = this.bootFeed.sort((a, b) => a.activity.at - b.activity.at).slice(-FEED_LIMIT);
     this.bootFeed = [];
     this.feed = [...this.feed, ...sorted].slice(-FEED_LIMIT);
-    // Quem já estava esperando por você quando o servidor subiu ganha o balão "Precisa de você"
-    // (durante o boot nada é sintetizado; sem aviso, porque não é novidade).
+    // Whoever was already waiting for you when the server came up gets the "Needs you" speech bubble
+    // (during the boot nothing is synthesized; no notice, because it is not news).
     for (const rec of this.agents.values()) {
       const info = rec.info;
       if (info.status !== 'waiting' || rec.synthWait || isOpenQuestion(info.activity)) continue;
@@ -267,12 +267,12 @@ export class Office {
     this.markDirty();
   }
 
-  /** Alguma fonte ainda está bootando. */
+  /** Some source is still booting. */
   isBooting(): boolean {
     return this.booting;
   }
 
-  // ---------------------------------------------------------------- consultas
+  // ---------------------------------------------------------------- queries
 
   has(id: string): boolean {
     return this.agents.has(id);
@@ -282,12 +282,12 @@ export class Office {
     return this.agents.get(id)?.info;
   }
 
-  /** Agentes reais presentes (inclusive em período de graça). */
+  /** Real agents present (including those in the grace period). */
   list(): AgentInfo[] {
     return [...this.agents.values()].map((r) => r.info);
   }
 
-  /** Pasta do projeto da sala (cwd original, sem normalizar). */
+  /** Project folder of the room (original cwd, not normalized). */
   roomPath(roomId: string): string | undefined {
     return this.rooms.get(roomId)?.path;
   }
@@ -311,13 +311,13 @@ export class Office {
     return this.demo !== null;
   }
 
-  // ---------------------------------------------------------------- agentes principais
+  // ---------------------------------------------------------------- main agents
 
   addMain(p: MainInput): void {
     const now = this.now();
     const existing = this.agents.get(p.id);
     if (existing) {
-      // Sessão que voltou durante o período de graça.
+      // Session that came back during the grace period.
       delete existing.removeAt;
       this.setStatus(p.id, p.status, p.waitingFor);
       return;
@@ -325,8 +325,8 @@ export class Office {
     const roomId = normalizeCwd(p.cwd);
     this.ensureRoom(roomId, now);
     const chosen = this.roomCharacter(roomId, p.id, p.sessionId);
-    // A mesma sessão retomada noutro processo (ex.: "Assumir aqui") mantém o nome, mesmo com o processo antigo
-    // ainda saindo do escritório.
+    // The same session resumed in another process (e.g. "Take over here") keeps the name, even with the old process
+    // still leaving the office.
     const person = chosen ?? this.deps.names.assign(p.sessionId, this.takenNames(undefined, p.sessionId));
     const info: AgentInfo = {
       id: p.id,
@@ -351,22 +351,22 @@ export class Office {
       info.custom = true;
       if (chosen.parts) info.parts = { ...chosen.parts };
     }
-    if (p.status === 'waiting') info.waitingFor = p.waitingFor ?? tr('responder no terminal');
+    if (p.status === 'waiting') info.waitingFor = p.waitingFor ?? tr('answer in the terminal');
     const rec: AgentRecord = { info, history: [] };
     if (p.status === 'working') rec.turnStart = now;
     this.agents.set(p.id, rec);
     const acc = this.deps.accountName(p.account);
-    this.notice('arrive', p.id, 'info', tr('👋 {0} chegou em {1}{2}', [info.name, this.roomName(roomId), acc ? ` (${acc})` : '']), roomId);
+    this.notice('arrive', p.id, 'info', tr('👋 {0} arrived in {1}{2}', [info.name, this.roomName(roomId), acc ? ` (${acc})` : '']), roomId);
     this.markDirty();
   }
 
-  /** Mesmo processo, sessão nova (/clear, /resume): o personagem continua, tarefas e números zeram. */
+  /** Same process, new session (/clear, /resume): the character stays, tasks and numbers reset. */
   switchSession(id: string, sessionId: string): void {
     const rec = this.agents.get(id);
     if (!rec || rec.info.sessionId === sessionId) return;
     const info = rec.info;
-    // Personagem do projeto: o nome escolhido não vira o nome sorteado da sessão nova, e a sessão nova vira a dona dele
-    // (se outro agente da sala salvou por último, o dono é ele e fica como está).
+    // Project character: the chosen name does not become the new session's randomly picked name, and the new session
+    // becomes its owner (if another agent in the room saved last, that one is the owner and it stays as it is).
     if (info.custom) {
       const owner = this.deps.names.character(info.roomId)?.owner;
       if (owner === undefined || owner === info.sessionId) this.deps.names.claimCharacter(info.roomId, sessionId);
@@ -386,7 +386,7 @@ export class Office {
     if (!rec) return;
     const info = rec.info;
     const prev = info.status;
-    const reason = status === 'waiting' ? (waitingFor ?? tr('responder no terminal')) : undefined;
+    const reason = status === 'waiting' ? (waitingFor ?? tr('answer in the terminal')) : undefined;
     if (prev === status && info.waitingFor === reason) return;
     const now = this.now();
     if (prev !== status) {
@@ -399,14 +399,15 @@ export class Office {
 
     if (status === 'working' && (prev === 'idle' || prev === 'shell' || rec.turnStart === undefined)) rec.turnStart = now;
     if (status === 'shell' && prev !== 'shell') {
-      // Terminou o turno com shell(s) rodando: o balão (fillShellActivity) e o aviso falam da espera, não de "concluiu".
+      // Ended the turn with shell(s) running: the speech bubble (fillShellActivity) and the notice talk about the wait,
+      // not about "done".
       const { label } = this.shellSummary(rec);
-      this.notice('shell', id, 'info', tr('⏳ {0} está esperando o shell em {1}{2}', [info.name, room, label ? `: ${label}` : '']), info.roomId, {
+      this.notice('shell', id, 'info', tr('⏳ {0} is waiting on the shell in {1}{2}', [info.name, room, label ? `: ${label}` : '']), info.roomId, {
         dedupeMs: SHELL_NOTICE_DEDUPE_MS,
       });
     }
     if (prev === 'shell' && status !== 'shell' && rec.shellWait) {
-      // Saiu da espera sem nada novo no transcript: volta a mostrar o que estava antes do balão sintetizado.
+      // Left the wait with nothing new in the transcript: shows again what was there before the synthesized speech bubble.
       if (info.activity?.id === rec.shellWait.id && rec.shellWait.prev) info.activity = rec.shellWait.prev;
       delete rec.shellWait;
     }
@@ -417,10 +418,10 @@ export class Office {
         this.addActivity(id, act, true);
         rec.synthWait = prevActivity ? { id: act.id, prev: prevActivity } : { id: act.id };
       }
-      this.notice('wait', id, 'alert', tr('✋ {0} precisa de você em {1}: {2}', [info.name, room, reason]), info.roomId);
+      this.notice('wait', id, 'alert', tr('✋ {0} needs you in {1}: {2}', [info.name, room, reason]), info.roomId);
     }
     if (prev === 'waiting' && status !== 'waiting' && rec.synthWait) {
-      // Saiu da espera sem nada novo no transcript: volta a mostrar o que estava fazendo.
+      // Left the wait with nothing new in the transcript: shows again what it was doing.
       if (info.activity?.id === rec.synthWait.id && rec.synthWait.prev) info.activity = rec.synthWait.prev;
       delete rec.synthWait;
     }
@@ -433,14 +434,14 @@ export class Office {
         this.addActivity(id, act, true);
         rec.synthDone = { id: act.id, at: now };
       }
-      this.notice('done', id, 'success', tr('✅ {0} concluiu em {1}', [info.name, room]), info.roomId);
+      this.notice('done', id, 'success', tr('✅ {0} finished in {1}', [info.name, room]), info.roomId);
     }
     this.markDirty();
   }
 
   /**
-   * Ocupado, mas o transcript não diz nada novo há um tempo (a última atividade é o fim do turno
-   * anterior — ex.: esperando subagentes em segundo plano): mostra algo coerente com "trabalhando".
+   * Busy, but the transcript has said nothing new for a while (the last activity is the end of the previous
+   * turn — e.g. waiting on background subagents): shows something consistent with "working".
    */
   fillWorkingActivity(id: string): void {
     const rec = this.agents.get(id);
@@ -448,7 +449,7 @@ export class Office {
     const cur = rec.info.activity;
     const now = this.now();
     if (cur && (cur.kind !== 'done' || now - cur.at < 15_000)) return;
-    // Parado num comando em primeiro plano (sem resultado ainda): não está "pensando", está esperando o comando.
+    // Stopped on a foreground command (no result yet): it is not "thinking", it is waiting for the command.
     if (rec.info.shells?.some((j) => !j.background)) return;
     const busySubs = [...this.agents.values()].some((r) => r.info.parentId === id && r.info.status === 'working');
     const desc = busySubs ? SPECIAL.supervising() : SPECIAL.think();
@@ -457,7 +458,7 @@ export class Office {
 
   // ---------------------------------------------------------------- shells
 
-  /** Shells que o agente está esperando (lista vazia = nenhum; o campo some do snapshot). */
+  /** Shells the agent is waiting on (empty list = none; the field disappears from the snapshot). */
   setShells(id: string, jobs: readonly ShellJob[]): void {
     const rec = this.agents.get(id);
     if (!rec) return;
@@ -471,10 +472,10 @@ export class Office {
   }
 
   /**
-   * Status 'shell': o balão mostra "Esperando o shell: <rótulo>" — nunca o "Concluiu em …" do fim do turno.
-   * Só cobre o que ficou para trás (fim de turno, atividades anteriores à espera, o próprio balão com outro
-   * rótulo); o que acontece durante a espera (ex.: o fim de um dos shells) continua aparecendo.
-   * O primeiro balão de cada espera vai para o feed; as atualizações, não.
+   * 'shell' status: the speech bubble shows "Waiting on shell: <label>" — never the "Done in …" of the end of the
+   * turn. It only covers what was left behind (end of turn, activities from before the wait, the bubble itself with
+   * another label); what happens during the wait (e.g. the end of one of the shells) keeps showing up.
+   * The first speech bubble of each wait goes to the feed; the updates do not.
    */
   fillShellActivity(id: string): void {
     const rec = this.agents.get(id);
@@ -495,8 +496,8 @@ export class Office {
   }
 
   /**
-   * Um shell em segundo plano terminou: atividade 'ShellDone' (o mundo comemora; `error` = falhou/morto)
-   * e aviso de sucesso/falha. `live: false` = releitura do passado (só histórico, sem aviso).
+   * A background shell finished: 'ShellDone' activity (the world celebrates; `error` = failed/killed)
+   * and success/failure notice. `live: false` = reread of the past (history only, no notice).
    */
   shellDone(id: string, job: ShellDoneInput, outcome: ShellOutcome, at: number, opts: { live?: boolean; summary?: string } = {}): void {
     const rec = this.agents.get(id);
@@ -510,14 +511,14 @@ export class Office {
     if (!live || outcome === 'killed') return;
     const room = this.roomName(info.roomId);
     const text =
-      outcome === 'ok' ? tr('✅ {0}: shell terminou em {1} — {2}', [info.name, room, job.label]) : tr('❌ {0}: shell falhou em {1} — {2}', [info.name, room, job.label]);
+      outcome === 'ok' ? tr('✅ {0}: shell finished in {1} — {2}', [info.name, room, job.label]) : tr('❌ {0}: shell failed in {1} — {2}', [info.name, room, job.label]);
     this.notice('shellDone', id, outcome === 'ok' ? 'success' : 'warn', text, info.roomId, { dedupeKey: `${id}|shellDone|${job.id}` });
   }
 
   /**
-   * Evento do GitHub visto no transcript (PR aberto/mergeado, push, CI, release; ver shared/github.ts):
-   * atividade no histórico e, ao vivo, aviso e efeito na sala (festa ou alarme). `key` (o tool_use)
-   * torna a atividade idempotente numa releitura; `live: false` ou linha antiga = só histórico.
+   * GitHub event seen in the transcript (PR opened/merged, push, CI, release; see shared/github.ts):
+   * activity in the history and, live, a notice and an effect in the room (party or alarm). `key` (the tool_use)
+   * makes the activity idempotent on a reread; `live: false` or an old line = history only.
    */
   githubEvent(id: string, ev: GitHubEvent, opts: { key: string; at: number; live?: boolean }): void {
     const rec = this.agents.get(id);
@@ -528,17 +529,17 @@ export class Office {
     const d = describeGitHubEvent(ev, info.name, this.roomName(info.roomId));
     this.addActivity(id, { id: `${id}#gh:${opts.key}:${ev.kind}`, at: opts.at, ...d.activity }, true, { feed: live });
     if (!live) return;
-    // o mesmo CI visto de novo (gh run view depois do watch) não repete o aviso por 2 min
+    // the same CI seen again (gh run view after the watch) does not repeat the notice for 2 min
     const ci = ev.kind === 'ci_failed' || ev.kind === 'ci_passed';
     this.notice('github', id, d.level, d.notice, info.roomId, { dedupeKey: `${info.roomId}|gh|${githubEventKey(ev)}`, dedupeMs: ci ? 120_000 : NOTICE_DEDUPE_MS });
     if (this.effects.apply(info.roomId, ev, now, id)) this.markDirty();
   }
 
-  /** Rótulo do shell mais antigo (Bash antes de Monitor), quantos são e o detalhe (comando). */
+  /** Label of the oldest shell (Bash before Monitor), how many there are and the detail (command). */
   private shellSummary(rec: AgentRecord): { label?: string; count: number; detail?: string } {
     let jobs = rec.info.shells ?? [];
     if (!jobs.length) {
-      // Sem shells próprios conhecidos: algum subagente pode ter disparado o comando.
+      // No known shells of its own: some subagent may have started the command.
       jobs = this.descendants(rec.info.id)
         .flatMap((r) => r.info.shells ?? [])
         .filter((j) => j.background)
@@ -547,7 +548,7 @@ export class Office {
     const shells = jobs.filter((j) => j.kind === 'shell' && j.background);
     const main = shells[0] ?? jobs.find((j) => j.kind === 'shell') ?? jobs[0];
     if (!main) return { count: 0 };
-    // "Esperando 2 shells": conta os Bash em segundo plano (monitores só se não houver nenhum).
+    // "Waiting on 2 shells": counts the background Bash ones (monitors only if there are none).
     const out: { label?: string; count: number; detail?: string } = { label: main.label, count: shells.length || jobs.length };
     if (main.command) out.detail = main.command;
     return out;
@@ -561,11 +562,11 @@ export class Office {
     info.status = 'offline';
     info.statusSince = now;
     delete info.waitingFor;
-    // Os shells morrem com a sessão.
+    // The shells die with the session.
     delete info.shells;
     delete rec.shellWait;
     rec.removeAt = now + OFFLINE_GRACE_MS;
-    // Subagentes ainda presentes saem junto.
+    // Subagents still present leave along with it.
     for (const sub of this.descendants(id)) {
       delete sub.info.shells;
       if (sub.info.status !== 'done') {
@@ -574,11 +575,11 @@ export class Office {
       }
       sub.removeAt = Math.min(sub.removeAt ?? Infinity, rec.removeAt);
     }
-    this.notice('leave', id, 'info', tr('🚪 {0} encerrou a sessão', [info.name]), info.roomId);
+    this.notice('leave', id, 'info', tr('🚪 {0} ended the session', [info.name]), info.roomId);
     this.markDirty();
   }
 
-  // ---------------------------------------------------------------- subagentes
+  // ---------------------------------------------------------------- subagents
 
   addSub(p: SubInput): boolean {
     const parent = this.agents.get(p.parentId);
@@ -632,13 +633,13 @@ export class Office {
     }
     if (opts.notify !== false) {
       const parent = info.parentId ? this.agents.get(info.parentId)?.info : undefined;
-      const what = info.title ? `“${info.title}”` : tr('o trabalho');
-      this.notice('deliver', id, 'success', tr('📦 {0} entregou {1} para {2}', [info.name, what, parent?.name ?? tr('o agente principal')]), info.roomId);
+      const what = info.title ? `“${info.title}”` : tr('the work');
+      this.notice('deliver', id, 'success', tr('📦 {0} delivered {1} to {2}', [info.name, what, parent?.name ?? tr('the main agent')]), info.roomId);
     }
     this.markDirty();
   }
 
-  /** Subagente concluído voltou a escrever (ex.: recebeu nova mensagem): volta ao trabalho. */
+  /** A finished subagent wrote again (e.g. it received a new message): it goes back to work. */
   reactivateSub(id: string): void {
     const rec = this.agents.get(id);
     if (!rec || rec.info.kind !== 'sub' || rec.info.status !== 'done') return;
@@ -655,7 +656,7 @@ export class Office {
     return s === 'done' || s === 'offline';
   }
 
-  // ---------------------------------------------------------------- dados do transcript
+  // ---------------------------------------------------------------- transcript data
 
   applyTranscript(id: string, t: TranscriptSummary): void {
     const rec = this.agents.get(id);
@@ -686,14 +687,14 @@ export class Office {
   }
 
   /**
-   * Registra uma atividade. `feed: false` = só histórico (ex.: releitura do fim de um transcript
-   * antigo ao abrir uma sessão retomada — não é novidade para o feed ao vivo).
+   * Records an activity. `feed: false` = history only (e.g. reread of the end of an old
+   * transcript when opening a resumed session — it is not news for the live feed).
    */
   addActivity(id: string, activity: Activity, current: boolean, opts: { feed?: boolean; filler?: boolean } = {}): void {
     const rec = this.agents.get(id);
     if (!rec) return;
     const info = rec.info;
-    // "Concluiu" vindo do transcript substitui o que sintetizamos pela mudança de status.
+    // "Done" coming from the transcript replaces what we synthesized from the status change.
     if (activity.kind === 'done' && rec.synthDone && activity.at - rec.synthDone.at < 60_000) {
       const synthId = rec.synthDone.id;
       const replaced: Activity = { ...activity, id: synthId };
@@ -705,7 +706,7 @@ export class Office {
       this.markDirty();
       return;
     }
-    // Releitura de um transcript regravado: não duplica o que já está no histórico.
+    // Reread of a rewritten transcript: does not duplicate what is already in the history.
     if (info.recent.some((a) => a.id === activity.id)) return;
     if (activity.kind !== 'done') delete rec.synthDone;
     info.recent = [...info.recent, activity].slice(-RECENT_LIMIT);
@@ -713,9 +714,9 @@ export class Office {
     if (rec.history.length > HISTORY_LIMIT) rec.history.splice(0, rec.history.length - HISTORY_LIMIT);
     if (current || !info.activity) info.activity = activity;
     if (activity.at > info.lastEventAt) info.lastEventAt = activity.at;
-    // Uma instrução nova começa um turno (base do "Concluiu em X").
+    // A new instruction starts a turn (the basis of "Done in X").
     if (activity.kind === 'prompt') rec.turnStart = activity.at;
-    // `filler` (só preenche o balão do personagem) nunca vai para o feed.
+    // `filler` (only fills the character's speech bubble) never goes to the feed.
     if (!opts.filler) {
       const item: FeedItem = {
         id: activity.id,
@@ -733,8 +734,8 @@ export class Office {
   }
 
   /**
-   * Atividades anteriores à janela lida no boot (do começo do transcript, lido em segundo plano):
-   * entram só no histórico longo (GET /api/agents/:id), sem feed, sem mudar a atividade atual.
+   * Activities from before the window read at boot (from the start of the transcript, read in the background):
+   * they go only into the long history (GET /api/agents/:id), with no feed, without changing the current activity.
    */
   mergeHistory(id: string, older: readonly Activity[]): void {
     const rec = this.agents.get(id);
@@ -745,22 +746,22 @@ export class Office {
     rec.history = [...add, ...rec.history].sort((a, b) => a.at - b.at).slice(-HISTORY_LIMIT);
   }
 
-  // ---------------------------------------------------------------- pedidos de permissão (server/permissions)
+  // ---------------------------------------------------------------- permission requests (server/permissions)
 
   /**
-   * Aviso de pedido de permissão (ou de pergunta do AskUserQuestion) vindo do hook; usa o dedupe do "precisa de
-   * você" (o mesmo pedido, outro caminho).
+   * Notice of a permission request (or of an AskUserQuestion question) coming from the hook; uses the dedupe of
+   * "needs you" (the same request, another path).
    */
   noticePermission(id: string, what: string, kind: 'permission' | 'question' = 'permission'): void {
     const info = this.agents.get(id)?.info;
     if (!info) return;
     const room = this.roomName(info.roomId);
-    const text = kind === 'question' ? tr('❓ {0} tem uma pergunta em {1}: {2}', [info.name, room, what]) : tr('🔐 {0} pede permissão em {1}: {2}', [info.name, room, what]);
+    const text = kind === 'question' ? tr('❓ {0} has a question in {1}: {2}', [info.name, room, what]) : tr('🔐 {0} asks for permission in {1}: {2}', [info.name, room, what]);
     this.notice('wait', id, 'alert', text, info.roomId);
     this.markDirty();
   }
 
-  /** Decisão para um pedido fictício do demo. true = o pedido era do demo (e foi respondido). */
+  /** Decision for a fake demo request. true = the request was from the demo (and was answered). */
   decideDemoPermission(requestId: string, d: PermissionDecision): boolean {
     if (!this.demo) return false;
     const now = this.now();
@@ -770,19 +771,19 @@ export class Office {
     return true;
   }
 
-  /** Pedido fictício do demo (já vem completo no snapshot). */
+  /** Fake demo request (it already comes complete in the snapshot). */
   demoPermission(requestId: string): PermissionRequestInfo | undefined {
     return this.demoSnap?.agents.find((a) => a.permission?.id === requestId)?.permission;
   }
 
-  // ---------------------------------------------------------------- mensagens pelo escritório (server/messages)
+  // ---------------------------------------------------------------- messages from the office (server/messages)
 
-  /** Agente fictício do demo (só existe no snapshot), para o registro de mensagens. */
+  /** Fake demo agent (exists only in the snapshot), for the message registry. */
   demoAgent(id: string): AgentInfo | undefined {
     return this.demoSnap?.agents.find((a) => a.id === id);
   }
 
-  /** Entrega fictícia de uma mensagem a um agente do demo. false = ele já saiu (ou o demo foi desligado). */
+  /** Fake delivery of a message to a demo agent. false = it has already left (or the demo was turned off). */
   deliverDemoMessage(agentId: string, text: string): boolean {
     if (!this.demo) return false;
     const now = this.now();
@@ -792,7 +793,7 @@ export class Office {
     return true;
   }
 
-  // ---------------------------------------------------------------- demonstração
+  // ---------------------------------------------------------------- demo
 
   setDemo(enabled: boolean): void {
     if (enabled === this.isDemo()) return;
@@ -808,20 +809,20 @@ export class Office {
     this.markDirty();
   }
 
-  // ---------------------------------------------------------------- personagem do projeto (editor)
+  // ---------------------------------------------------------------- project character (editor)
 
-  /** Escolhe nome e aparência do agente principal `id` e grava como o personagem da sala dele. */
+  /** Chooses the name and appearance of main agent `id` and saves them as the character of its room. */
   setCharacter(id: string, input: CharacterInput): CharacterResult {
     const rec = this.editable(id);
     if (!rec) return { result: 'not-found' };
     const info = rec.info;
-    // Quem está saindo conta aqui: ao reabrir dentro do período de graça, ele volta com o nome dele.
+    // Whoever is leaving counts here: on reopening within the grace period, it comes back with its name.
     const conflict = this.nameConflict(input.name, id, info.roomId, true);
     if (conflict) return { result: 'conflict', message: conflict };
     const before = info.name;
     const parts = Object.keys(input.parts).length ? { ...input.parts } : undefined;
-    // Outro principal da sala que estava com o personagem continua com o nome atual, agora guardado como o da sessão
-    // dele: depois de um reinício, cada sessão volta quem era, e não com o personagem que esta salvou.
+    // Another main agent in the room that had the character keeps its current name, now stored as its session's
+    // name: after a restart, each session comes back as who it was, and not with the character this one saved.
     for (const r of this.agents.values()) {
       const o = r.info;
       if (o.id === id || o.kind !== 'main' || o.roomId !== info.roomId || !o.custom) continue;
@@ -835,15 +836,15 @@ export class Office {
     else delete info.parts;
     info.custom = true;
     const room = this.roomName(info.roomId);
-    const text = before === input.name ? tr('✏️ {0} mudou de visual em {1}', [input.name, room]) : tr('✏️ {0} agora é {1} em {2}', [before, input.name, room]);
+    const text = before === input.name ? tr('✏️ {0} got a new look in {1}', [input.name, room]) : tr('✏️ {0} is now {1} in {2}', [before, input.name, room]);
     this.notice('character', id, 'info', text, info.roomId, { dedupeMs: 0 });
     this.markDirty();
     return { result: 'ok' };
   }
 
   /**
-   * "Voltar ao sorteio": o agente volta ao nome da sessão e à seed do id; a sala só perde o personagem se ele for desta
-   * sessão (o que outra sessão da sala salvou depois continua dela).
+   * "Back to random": the agent goes back to the session's name and to the id's seed; the room only loses the
+   * character if it belongs to this session (what another session in the room saved later stays that session's).
    */
   resetCharacter(id: string): 'ok' | 'not-found' {
     const rec = this.editable(id);
@@ -863,17 +864,17 @@ export class Office {
     return 'ok';
   }
 
-  /** Agente principal real e presente (nem subagente, nem demo, nem saindo). */
+  /** Real, present main agent (not a subagent, not demo, not leaving). */
   private editable(id: string): AgentRecord | undefined {
     const rec = this.agents.get(id);
     return rec && rec.info.kind === 'main' && rec.removeAt === undefined ? rec : undefined;
   }
 
   /**
-   * Personagem escolhido para a sala, se o nome dele estiver livre; quem o recebe vira a dona. Quem está saindo não
-   * conta: costuma ser a mesma sessão reaberta (pid novo) dentro do período de graça. Uma sessão que não é a dona e já
-   * tem nome guardado mantém o dela: depois de um reinício, a ordem de chegada não troca identidades nem muda o
-   * personagem de uma sessão no meio dela.
+   * Character chosen for the room, if its name is free; whoever receives it becomes the owner. Whoever is leaving
+   * does not count: it is usually the same session reopened (new pid) within the grace period. A session that is not
+   * the owner and already has a stored name keeps its own: after a restart, the order of arrival does not swap
+   * identities or change a session's character in the middle of it.
    */
   private roomCharacter(roomId: string, id: string, sessionId: string): StoredCharacter | undefined {
     const c = this.deps.names.character(roomId);
@@ -885,27 +886,28 @@ export class Office {
   }
 
   /**
-   * Por que `name` não pode ser o personagem de `id` na sala `roomId` (undefined = pode). Quem está saindo só conta com
-   * `leaving`: na chegada costuma ser a mesma sessão reaberta; no editor, é alguém que pode voltar com esse nome.
+   * Why `name` cannot be the character of `id` in room `roomId` (undefined = it can). Whoever is leaving only counts
+   * with `leaving`: on arrival it is usually the same session reopened; in the editor, it is someone who may come
+   * back with that name.
    */
   private nameConflict(name: string, id: string, roomId: string, leaving = false): string | undefined {
     const key = nameKey(name);
     for (const r of this.agents.values()) {
       if (r.info.id === id || (r.removeAt !== undefined && !leaving) || nameKey(r.info.name) !== key) continue;
-      return tr('{0} já está no escritório em {1}', [r.info.name, this.roomName(r.info.roomId)]);
+      return tr('{0} is already in the office, in {1}', [r.info.name, this.roomName(r.info.roomId)]);
     }
     for (const a of this.demoSnap?.agents ?? []) {
-      if (nameKey(a.name) === key) return tr('{0} já está no escritório em {1}', [a.name, this.roomName(a.roomId)]);
+      if (nameKey(a.name) === key) return tr('{0} is already in the office, in {1}', [a.name, this.roomName(a.roomId)]);
     }
     for (const [n, room] of this.deps.names.reservedNames(roomId)) {
-      if (nameKey(n) === key) return tr('{0} já é o personagem de {1}', [n, this.roomName(room)]);
+      if (nameKey(n) === key) return tr("{0} is already {1}'s character", [n, this.roomName(room)]);
     }
     return undefined;
   }
 
-  // ---------------------------------------------------------------- relógio
+  // ---------------------------------------------------------------- clock
 
-  /** Avança o demo e remove quem já cumpriu o período de graça. Chamar a cada ~250 ms. */
+  /** Advances the demo and removes whoever has completed the grace period. Call every ~250 ms. */
   tick(): void {
     const now = this.now();
     if (this.demo) {
@@ -926,7 +928,7 @@ export class Office {
         removed = true;
       }
     }
-    // festa acabou / alarme expirou: o snapshot sai sem o efeito
+    // party is over / alarm expired: the snapshot goes out without the effect
     if (this.effects.prune(now)) this.markDirty();
     if (removed) {
       const occupied = new Set([...this.agents.values()].map((r) => r.info.roomId));
@@ -936,7 +938,7 @@ export class Office {
     }
   }
 
-  /** Fecha uma revisão: devolve o snapshot (novo, se algo mudou), o feed e os avisos pendentes. */
+  /** Closes a revision: returns the snapshot (new, if something changed), the feed and the pending notices. */
   commit(): CommitResult {
     const feed = this.pendingFeed;
     const notices = this.pendingNotices;
@@ -949,7 +951,7 @@ export class Office {
     return { snapshot: this.last, changed: true, feed, notices };
   }
 
-  // ---------------------------------------------------------------- internos
+  // ---------------------------------------------------------------- internals
 
   private build(): OfficeSnapshot {
     const now = this.now();
@@ -966,7 +968,7 @@ export class Office {
         createdAt: r.createdAt,
       }))
       .sort((a, b) => a.slot - b.slot);
-    // festa/alarme (eventos do GitHub): das salas reais ou do demo
+    // party/alarm (GitHub events): of the real rooms or of the demo
     for (const room of rooms) {
       const effect = this.effects.get(room.id, now) ?? this.demoSnap?.rooms.find((r) => r.id === room.id)?.effect;
       if (effect) room.effect = { ...effect };
@@ -974,8 +976,8 @@ export class Office {
     const perms = this.deps.permissions?.();
     const real = [...this.agents.values()].map((r) => applyPermission(cloneAgent(r.info), perms?.get(r.info.id)));
     const reach = this.deps.messages?.();
-    // Mensagens pelo escritório: principais presentes cuja sessão está com o plugin conectado. No demo quem decide é
-    // o simulador; com o recurso desligado, ninguém recebe.
+    // Messages from the office: present main agents whose session has the plugin connected. In the demo the simulator
+    // decides; with the feature off, nobody receives.
     for (const a of real) if (reach?.has(a.id) && a.kind === 'main' && a.status !== 'offline' && a.status !== 'done') a.canMessage = true;
     const demoAgents = (this.demoSnap?.agents ?? []).map((a) => {
       if (reach || !a.canMessage) return a;
@@ -1009,8 +1011,8 @@ export class Office {
   }
 
   /**
-   * Nomes que o sorteio não pode dar: os de quem está no escritório (menos `exceptId` e os agentes principais da sessão
-   * `exceptSession`) e os escolhidos para as salas.
+   * Names the random pick cannot give: those of whoever is in the office (except `exceptId` and the main agents of
+   * session `exceptSession`) and those chosen for the rooms.
    */
   private takenNames(exceptId?: string, exceptSession?: string): Set<string> {
     const used = new NameSet();
@@ -1042,7 +1044,7 @@ export class Office {
     if (this.rooms.has(roomId)) return;
     this.rooms.set(roomId, { path: roomId, createdAt: now });
     this.recomputeRoomNames();
-    this.notice('room', roomId, 'info', tr('🏗️ Nova sala: {0}', [this.roomName(roomId)]), roomId);
+    this.notice('room', roomId, 'info', tr('🏗️ New room: {0}', [this.roomName(roomId)]), roomId);
   }
 
   private recomputeRoomNames(): void {
@@ -1055,7 +1057,7 @@ export class Office {
     }
   }
 
-  /** Um nome de sala mudou (renomear): recalcula e transmite. */
+  /** A room name changed (rename): recalculates and broadcasts. */
   refreshRoomNames(): void {
     this.recomputeRoomNames();
     this.markDirty();
@@ -1083,7 +1085,7 @@ export class Office {
     if (last !== undefined && now - last < window) return;
     this.noticeAt.set(k, now);
     if (this.noticeAt.size > 2_000) {
-      // Só esquece o que já passou da janela mais longa (a do aviso de shell).
+      // Only forgets what is already past the longest window (the one of the shell notice).
       for (const [nk, t] of this.noticeAt) if (now - t > Math.max(NOTICE_DEDUPE_MS, SHELL_NOTICE_DEDUPE_MS)) this.noticeAt.delete(nk);
     }
     const n: Notice = { id: `n-${now.toString(36)}-${++this.seq}`, level, text, at: now };

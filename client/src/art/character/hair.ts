@@ -1,22 +1,22 @@
-// Templates ASCII de cabeça e cabelo (puros). Grade de 14 colunas: a coluna c vira x = c + 5 no
-// sprite do personagem e a linha r vira y = r + 3 (em pé). A cabeça ocupa as colunas 1..12 e as
-// linhas 4..14; orelhas nas colunas 0 e 13 (linhas 10–11) de frente/costas e na coluna 8 de perfil.
+// ASCII templates of head and hair (pure). Grid of 14 columns: column c becomes x = c + 5 in the
+// character sprite and row r becomes y = r + 3 (standing). The head takes up columns 1..12 and
+// rows 4..14; ears in columns 0 and 13 (rows 10–11) from the front/back and in column 8 in profile.
 //
-// Legenda do cabelo: o = base, h = claro, H = brilho, d = sombra, D = sombra profunda,
-// z = raspado (cabelo misturado à pele), k = brilho da pele (careca), a = acessório (elástico).
-// Legenda da cabeça: s = pele, S = pele em sombra, L = pele clara, e/E = olho (topo/base),
-// b = blush, m = boca, r = interior da orelha.
+// Hair legend: o = base, h = light, H = shine, d = shadow, D = deep shadow,
+// z = shaved (hair blended into the skin), k = skin shine (bald), a = accessory (hair tie).
+// Head legend: s = skin, S = skin in shadow, L = light skin, e/E = eye (top/bottom),
+// b = blush, m = mouth, r = inside of the ear.
 import type { HairStyle } from '../api';
 
 export interface Tpl {
-  /** Deslocamento em colunas da grade (pode ser negativo para volumes largos). */
+  /** Offset in grid columns (can be negative for wide volumes). */
   x: number;
-  /** Linha inicial na grade. */
+  /** Starting row in the grid. */
   y: number;
   rows: readonly string[];
 }
 
-/** Camadas de um penteado numa direção: `back` vai atrás do corpo; `front` por cima da cabeça. */
+/** Layers of a hairstyle in one direction: `back` goes behind the body; `front` on top of the head. */
 export interface HairLayers {
   front?: Tpl;
   back?: Tpl;
@@ -68,7 +68,7 @@ export const HEAD_BASE: Readonly<Record<HeadView, Tpl>> = {
   ]),
 };
 
-/** Penteados por direção. 'side' é desenhado virado para a esquerda (direita = espelho). */
+/** Hairstyles per direction. 'side' is drawn facing left (right = mirror). */
 export const HAIR: Readonly<Record<HairStyle, Readonly<Record<HeadView, HairLayers>>>> = {
   short: {
     down: {
@@ -799,5 +799,5 @@ export const HAIR: Readonly<Record<HairStyle, Readonly<Record<HeadView, HairLaye
   },
 };
 
-/** Estilos cuja textura recebe pontilhado de cachos. */
+/** Styles whose texture gets curl dithering. */
 export const TEXTURED: ReadonlySet<HairStyle> = new Set<HairStyle>(['curly', 'afro']);

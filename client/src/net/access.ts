@@ -1,13 +1,13 @@
-// O que esta página pode fazer, segundo o servidor (GET /api/access, ver AccessInfo). Lido antes de conectar e de novo a
-// cada reconexão (app.ts): HABBLAUD_REMOTE_ALLOW pode mudar com o servidor reiniciado e a página do celular continua aberta.
-// Sem resposta (servidor antigo, rede), cai na regra de antes: só a página aberta pelo próprio computador age, e nunca
-// o Novo agente (opt-in no servidor). Login vencido na porta remota (401): volta à tela de entrada.
+// What this page can do, according to the server (GET /api/access, see AccessInfo). Read before connecting and again on
+// each reconnection (app.ts): HABBLAUD_REMOTE_ALLOW can change with the server restarted while the phone's page stays open.
+// With no response (old server, network), it falls back to the earlier rule: only the page opened by the computer itself
+// acts, and never New agent (opt-in on the server). Expired login on the remote port (401): back to the sign-in screen.
 import type { AccessInfo } from '../../../shared/types';
 
 let current: AccessInfo | null = null;
 const listeners = new Set<() => void>();
 
-/** Avisa quando o acesso muda (a UI redesenha os botões). Devolve a função que cancela. */
+/** Notifies when the access changes (the UI redraws the buttons). Returns the function that cancels. */
 export function onAccessChange(cb: () => void): () => void {
   listeners.add(cb);
   return () => void listeners.delete(cb);
@@ -17,7 +17,7 @@ function sameAccess(a: AccessInfo | null, b: AccessInfo | null): boolean {
   return !!a && !!b && (Object.keys(a) as (keyof AccessInfo)[]).every((k) => a[k] === b[k]) && Object.keys(a).length === Object.keys(b).length;
 }
 
-/** Hostname do próprio computador (localhost, *.localhost, 127.x, ::1). */
+/** Hostname of the computer itself (localhost, *.localhost, 127.x, ::1). */
 export function isLoopbackHostname(hostname: string): boolean {
   const name = hostname.toLowerCase().replace(/^\[|\]$/g, '');
   return name === 'localhost' || name.endsWith('.localhost') || name === '::1' || /^127(?:\.\d{1,3}){3}$/.test(name);
@@ -28,7 +28,7 @@ export function fallbackAccess(hostname: string): AccessInfo {
   return { remote: false, local, permissions: local, messages: local, terminal: local, spawn: false };
 }
 
-/** Prazo do GET /api/access (a página não fica esperando para conectar). */
+/** Timeout of GET /api/access (the page does not sit waiting to connect). */
 export const ACCESS_TIMEOUT_MS = 5_000;
 
 function isAccessInfo(v: unknown): v is AccessInfo {
@@ -36,7 +36,7 @@ function isAccessInfo(v: unknown): v is AccessInfo {
   return !!a && ['remote', 'local', 'permissions', 'messages', 'terminal'].every((k) => typeof a[k as keyof AccessInfo] === 'boolean');
 }
 
-/** Acesso desta página (o do servidor, quando já chegou). */
+/** This page's access (the server's, once it has arrived). */
 export function access(): AccessInfo {
   return current ?? fallbackAccess(typeof location === 'undefined' ? '' : location.hostname);
 }
@@ -58,12 +58,12 @@ export async function loadAccess(fetchImpl: typeof fetch = fetch, go: (url: stri
       }
     }
   } catch {
-    // fica a regra antiga (fallbackAccess)
+    // the old rule stays (fallbackAccess)
   }
   return access();
 }
 
-/** Encerra o login deste aparelho (porta remota) e volta à tela de entrada. Devolve false se o servidor não respondeu. */
+/** Ends this device's login (remote port) and goes back to the sign-in screen. Returns false if the server did not respond. */
 export async function remoteLogout(fetchImpl: typeof fetch = fetch, go: (url: string) => void = (u) => location.assign(u)): Promise<boolean> {
   try {
     const res = await fetchImpl('/api/remote/logout', {
@@ -81,7 +81,7 @@ export async function remoteLogout(fetchImpl: typeof fetch = fetch, go: (url: st
   return true;
 }
 
-/** Só para testes. */
+/** For tests only. */
 export function setAccess(a: AccessInfo | null): void {
   current = a;
 }

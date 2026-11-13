@@ -1,6 +1,6 @@
-// FileTail com um stat que não ajuda: o Linux sem statx (WSL1, seccomp antigo), em que o Node devolve o ctime como
-// birthtime, e um sistema de arquivos que reaproveita o inode de um arquivo apagado (ext4). O node:fs é trocado só
-// neste arquivo, para simular os dois em qualquer sistema.
+// FileTail with a stat that does not help: Linux without statx (WSL1, old seccomp), where Node returns the ctime as
+// birthtime, and a file system that reuses the inode of a deleted file (ext4). node:fs is replaced only
+// in this file, to simulate both on any system.
 import { appendFileSync, rmSync, writeFileSync, type Stats } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -19,10 +19,10 @@ vi.mock('node:fs', async (importOriginal) => {
   return { ...fs, fstatSync: (fd: number) => fake(fs.fstatSync(fd)), statSync: (path: string) => fake(fs.statSync(path)) };
 });
 
-/** Espera o relógio do sistema de arquivos andar (o ext4 grava os tempos em ticks de alguns ms). */
+/** Waits for the file system clock to move (ext4 records the times in ticks of a few ms). */
 const tick = () => new Promise((ok) => setTimeout(ok, 15));
 
-describe('FileTail com stat que não ajuda', () => {
+describe('FileTail with a stat that does not help', () => {
   let tmp: ReturnType<typeof tempDir>;
   let file: string;
   beforeEach(() => {
@@ -35,7 +35,7 @@ describe('FileTail com stat que não ajuda', () => {
     tmp.cleanup();
   });
 
-  it('Linux sem statx (birthtime = ctime): linhas acrescentadas não contam como troca', async () => {
+  it('Linux without statx (birthtime = ctime): appended lines do not count as a swap', async () => {
     sim.birthIsCtime = true;
     writeFileSync(file, '{"a":1}\n');
     const t = new FileTail(file);
@@ -48,20 +48,20 @@ describe('FileTail com stat que não ajuda', () => {
     }
   });
 
-  it('inode reaproveitado: a troca aparece pelo começo do arquivo, com ou sem birthtime de verdade', async () => {
+  it('reused inode: the swap shows up through the beginning of the file, with or without a real birthtime', async () => {
     sim.sameIno = true;
-    // No NTFS, o arquivo recriado com o mesmo nome em menos de 15 s herda o birthtime do apagado ("tunneling"): com o
-    // inode simulado igual, o FileTail não tem por onde notar a troca. Lá o inode não se repete (o id do arquivo muda),
-    // então só a variante com birthtime = ctime vale.
+    // On NTFS, a file recreated with the same name in less than 15 s inherits the birthtime of the deleted one
+    // ("tunneling"): with the simulated inode the same, FileTail has no way to notice the swap. There the inode does
+    // not repeat (the file id changes), so only the variant with birthtime = ctime applies.
     for (const birthIsCtime of process.platform === 'win32' ? [true] : [false, true]) {
       sim.birthIsCtime = birthIsCtime;
-      writeFileSync(file, 'velho-1\n');
+      writeFileSync(file, 'old-1\n');
       const t = new FileTail(file);
       t.read();
       await tick();
       rmSync(file);
-      writeFileSync(file, 'novo-1\nnovo-2\n');
-      expect(t.read()).toMatchObject({ reset: true, lines: ['novo-1', 'novo-2'] });
+      writeFileSync(file, 'new-1\nnew-2\n');
+      expect(t.read()).toMatchObject({ reset: true, lines: ['new-1', 'new-2'] });
     }
   });
 });

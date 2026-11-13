@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { HostWait, pollWithWait } from './host-wait';
 
-describe('espera longa do auxiliar do host', () => {
-  it('sem trabalho, espera; o wake solta na hora e a rodada leva o que chegou', async () => {
+describe('long wait of the host helper', () => {
+  it('with no work, it waits; the wake releases it right away and the round takes what arrived', async () => {
     const wait = new HostWait(10_000);
     const queue: string[] = [];
     const take = () => queue.splice(0);
@@ -13,13 +13,13 @@ describe('espera longa do auxiliar do host', () => {
     await expect(round).resolves.toEqual(['a']);
   });
 
-  it('com trabalho na fila, responde na hora; sem espera pedida (ms 0), também', async () => {
+  it('with work in the queue, it answers right away; with no wait requested (ms 0), too', async () => {
     const wait = new HostWait(10_000);
     await expect(pollWithWait(wait, () => ['x'], 60_000)).resolves.toEqual(['x']);
     await expect(pollWithWait(wait, () => [], 0)).resolves.toEqual([]);
   });
 
-  it('conexão que cai no meio: devolve vazio sem tirar nada da fila', async () => {
+  it('connection that drops midway: returns empty without taking anything from the queue', async () => {
     const wait = new HostWait(10_000);
     const ac = new AbortController();
     let taken = 0;
@@ -29,7 +29,7 @@ describe('espera longa do auxiliar do host', () => {
     expect(taken).toBe(1);
   });
 
-  it('presença: quem espera conta; depois, só até presenceMs da última rodada', async () => {
+  it('presence: whoever is waiting counts; after that, only up to presenceMs from the last round', async () => {
     let now = 0;
     const wait = new HostWait(1_000, () => now);
     expect(wait.present()).toBe(false);

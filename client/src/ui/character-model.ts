@@ -1,5 +1,5 @@
-// Editor do personagem, parte pura (sem DOM): quando a gaveta oferece a edição, como as peças se agrupam, os rótulos
-// em português e o que vai para o servidor em `parts`. A interface fica em character-editor.ts.
+// Character editor, pure part (no DOM): when the drawer offers editing, how the pieces are grouped, the labels
+// and what goes to the server in `parts`. The interface is in character-editor.ts.
 import { PART_KEYS, type AppearanceParts, type PartKey } from '../../../shared/appearance';
 import { isDemoId } from '../../../shared/timeline';
 import type { AgentInfo } from '../../../shared/types';
@@ -7,25 +7,25 @@ import type { Appearance } from '../art/api';
 import { tr } from '../../../shared/i18n';
 
 export interface EditGate {
-  /** O agente ainda está no escritório. */
+  /** The agent is still in the office. */
   live: boolean;
-  /** meta.terminal: o Habblaud só é acessível pelo próprio computador (bind local). */
+  /** meta.terminal: Habblaud is reachable only from the computer itself (local bind). */
   terminal: boolean;
-  /** A página foi aberta por localhost/127.x (o servidor recusa o resto). */
+  /** The page was opened through localhost/127.x (the server refuses the rest). */
   local: boolean;
   replaying: boolean;
   mock: boolean;
 }
 
 /**
- * O lápis "Editar personagem" aparece? Só para o principal real, ao vivo, que não está saindo (offline: o servidor
- * responderia 404) e com acesso local (a trava do terminal).
+ * Does the "Edit character" pencil show? Only for the real main agent, live, that is not leaving (offline: the
+ * server would answer 404) and with local access (the terminal lock).
  */
 export function canEditCharacter(a: Pick<AgentInfo, 'id' | 'kind' | 'status'>, g: EditGate): boolean {
   return a.kind === 'main' && a.status !== 'offline' && g.live && g.terminal && g.local && !g.replaying && !g.mock && !isDemoId(a.id);
 }
 
-/** Peças que diferem da aparência sorteada pela seed (o que vai em `parts`), na ordem de PART_KEYS. */
+/** Pieces that differ from the appearance drawn by the seed (what goes in `parts`), in the order of PART_KEYS. */
 export function changedParts(base: Appearance, edited: Appearance): AppearanceParts {
   const out: Record<string, string> = {};
   for (const k of PART_KEYS) {
@@ -42,65 +42,65 @@ export interface EditorRow {
 }
 
 export const EDITOR_GROUPS: readonly { title: string; rows: readonly EditorRow[] }[] = [
-  { title: tr('Pele'), rows: [{ key: 'skin', label: tr('Tom'), kind: 'color' }] },
+  { title: tr('Skin'), rows: [{ key: 'skin', label: tr('Tone'), kind: 'color' }] },
   {
-    title: tr('Cabelo'),
+    title: tr('Hair'),
     rows: [
-      { key: 'hairStyle', label: tr('Estilo'), kind: 'style' },
-      { key: 'hair', label: tr('Cor'), kind: 'color' },
+      { key: 'hairStyle', label: tr('Style'), kind: 'style' },
+      { key: 'hair', label: tr('Color'), kind: 'color' },
     ],
   },
-  { title: tr('Barba'), rows: [{ key: 'facialHair', label: tr('Estilo'), kind: 'style' }] },
-  { title: tr('Olhos'), rows: [{ key: 'eyes', label: tr('Cor'), kind: 'color' }] },
+  { title: tr('Beard'), rows: [{ key: 'facialHair', label: tr('Style'), kind: 'style' }] },
+  { title: tr('Eyes'), rows: [{ key: 'eyes', label: tr('Color'), kind: 'color' }] },
   {
-    title: tr('Parte de cima'),
+    title: tr('Top'),
     rows: [
-      { key: 'topStyle', label: tr('Estilo'), kind: 'style' },
-      { key: 'top', label: tr('Cor'), kind: 'color' },
-      { key: 'topAccent', label: tr('Detalhe'), kind: 'color' },
+      { key: 'topStyle', label: tr('Style'), kind: 'style' },
+      { key: 'top', label: tr('Color'), kind: 'color' },
+      { key: 'topAccent', label: tr('Detail'), kind: 'color' },
     ],
   },
   {
-    title: tr('Parte de baixo'),
+    title: tr('Bottom'),
     rows: [
-      { key: 'bottomStyle', label: tr('Estilo'), kind: 'style' },
-      { key: 'bottom', label: tr('Cor'), kind: 'color' },
+      { key: 'bottomStyle', label: tr('Style'), kind: 'style' },
+      { key: 'bottom', label: tr('Color'), kind: 'color' },
     ],
   },
-  { title: tr('Sapatos'), rows: [{ key: 'shoes', label: tr('Cor'), kind: 'color' }] },
+  { title: tr('Shoes'), rows: [{ key: 'shoes', label: tr('Color'), kind: 'color' }] },
   {
-    title: tr('Acessório'),
+    title: tr('Accessory'),
     rows: [
-      { key: 'accessory', label: tr('Tipo'), kind: 'style' },
-      { key: 'accessoryColor', label: tr('Cor'), kind: 'color' },
+      { key: 'accessory', label: tr('Type'), kind: 'style' },
+      { key: 'accessoryColor', label: tr('Color'), kind: 'color' },
     ],
   },
 ];
 
 const STYLE_LABELS: Partial<Record<PartKey, Readonly<Record<string, string>>>> = {
   hairStyle: {
-    short: tr('Curto'), buzz: tr('Raspado'), spiky: tr('Espetado'), side_part: tr('Repartido'), curly: tr('Cacheado'), afro: tr('Black power'),
-    bob: tr('Chanel'), long: tr('Longo'), ponytail: tr('Rabo de cavalo'), bun: tr('Coque'), pigtails: 'Maria-chiquinha', mohawk: tr('Moicano'),
-    bald: tr('Careca'), wavy: tr('Ondulado'),
+    short: tr('Short'), buzz: tr('Buzz cut'), spiky: tr('Spiky'), side_part: tr('Side part'), curly: tr('Curly'), afro: tr('Afro'),
+    bob: tr('Bob'), long: tr('Long'), ponytail: tr('Ponytail'), bun: tr('Bun'), pigtails: 'Maria-chiquinha', mohawk: tr('Mohawk'),
+    bald: tr('Bald'), wavy: tr('Wavy'),
   },
   topStyle: {
-    tshirt: tr('Camiseta'), hoodie: tr('Moletom'), shirt_tie: tr('Camisa e gravata'), sweater: tr('Suéter'), jacket: tr('Jaqueta'),
-    blouse: tr('Blusa'), polo: 'Polo',
+    tshirt: tr('T-shirt'), hoodie: tr('Hoodie'), shirt_tie: tr('Shirt and tie'), sweater: tr('Sweater'), jacket: tr('Jacket'),
+    blouse: tr('Blouse'), polo: 'Polo',
   },
-  bottomStyle: { pants: tr('Calça'), shorts: tr('Bermuda'), skirt: tr('Saia') },
+  bottomStyle: { pants: tr('Pants'), shorts: tr('Shorts'), skirt: tr('Skirt') },
   accessory: {
-    none: tr('Nenhum'), glasses: tr('Óculos'), sunglasses: tr('Óculos escuros'), headphones: tr('Fone'), cap: tr('Boné'), beanie: tr('Gorro'),
-    earrings: tr('Brincos'), bow: tr('Laço'),
+    none: tr('None'), glasses: tr('Glasses'), sunglasses: tr('Sunglasses'), headphones: tr('Headphones'), cap: tr('Cap'), beanie: tr('Beanie'),
+    earrings: tr('Earrings'), bow: tr('Bow'),
   },
-  facialHair: { none: tr('Sem barba'), stubble: tr('Por fazer'), beard: tr('Barba'), mustache: tr('Bigode'), goatee: tr('Cavanhaque') },
+  facialHair: { none: tr('No beard'), stubble: tr('Stubble'), beard: tr('Beard'), mustache: tr('Mustache'), goatee: tr('Goatee') },
 };
 
-/** Rótulo em português de um estilo (cabelo, roupa, acessório...). */
+/** Label of a style (hair, clothes, accessory...). */
 export function styleLabel(key: PartKey, value: string): string {
   return STYLE_LABELS[key]?.[value] ?? value;
 }
 
-/** A linha aparece com esta aparência? (sem acessório, não há cor de acessório para escolher) */
+/** Does the row show with this appearance? (with no accessory, there is no accessory color to choose) */
 export function rowVisible(r: EditorRow, a: Pick<Appearance, 'accessory'>): boolean {
   return !(r.key === 'accessoryColor' && a.accessory === 'none');
 }

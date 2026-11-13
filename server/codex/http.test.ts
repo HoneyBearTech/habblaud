@@ -1,6 +1,6 @@
-// Rota dos eventos dos hooks do Codex (POST /api/codex/events) pelas rotas de verdade (guard e app): repassa à fonte
-// do Codex ao vivo (um falso) com a conta certa (pela pasta CODEX_HOME), só com Host local, só POST com JSON, corpo até
-// 256 KB; sem a fonte, {ok: false}. Dados sintéticos.
+// Route of the Codex hook events (POST /api/codex/events) through the real routes (guard and app): passes them on
+// to the live Codex source (a fake one) with the right account (by the CODEX_HOME folder), only with a local Host,
+// only POST with JSON, body up to 256 KB; without the source, {ok: false}. Synthetic data.
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -18,7 +18,7 @@ import { codexAccountOf, parseCodexEvent } from './http';
 
 setQuiet(true);
 
-const EVENT = { session_id: '0199b0c0-1234-7abc-8def-0123456789ab', hook_event_name: 'UserPromptSubmit', cwd: '/p/loja', prompt: 'oi' };
+const EVENT = { session_id: '0199b0c0-1234-7abc-8def-0123456789ab', hook_event_name: 'UserPromptSubmit', cwd: '/p/store', prompt: 'hi' };
 
 let close: (() => Promise<void>) | undefined;
 afterEach(async () => {
@@ -31,10 +31,10 @@ async function serve(live?: CodexLive): Promise<{ base: string; accounts: Accoun
   const office = new Office({ names: new NameStore(null), version: 't', startedAt: 0, accounts: () => [], sources: () => [], accountName: () => undefined });
   const hub = new Hub(office, { throttleMs: 10 });
   const accounts = new AccountsService({ dirs: [], home: tmp.dir, env: {}, onChange: () => {} });
-  // Conta do Codex desambiguada (".codex~2"): o caminho do host é o que vale.
+  // Disambiguated Codex account (".codex~2"): the host path is the one that counts.
   accounts.setProviderAccounts('codex', [
-    { dir: '/montada/a', detected: { id: '.codex', configDir: '/Users/x/.codex', short: 'X', name: 'Codex X', color: '#000' } },
-    { dir: '/montada/b', detected: { id: '.codex', configDir: '/Volumes/y/.codex', short: 'Y', name: 'Codex Y', color: '#111' } },
+    { dir: '/mounted/a', detected: { id: '.codex', configDir: '/Users/x/.codex', short: 'X', name: 'Codex X', color: '#000' } },
+    { dir: '/mounted/b', detected: { id: '.codex', configDir: '/Volumes/y/.codex', short: 'Y', name: 'Codex Y', color: '#111' } },
   ]);
   const api = createApiHandler({ office, hub, accounts, sources: () => [], version: 't', inDocker: false, codexLive: live });
   const guard = createRequestGuard({ allowedHosts: new Set(['habblaud.lan']) });
@@ -56,35 +56,35 @@ async function serve(live?: CodexLive): Promise<{ base: string; accounts: Accoun
 }
 
 describe('POST /api/codex/events', () => {
-  it('repassa o evento à fonte do Codex com a conta da pasta CODEX_HOME (ou a do hook) e devolve {ok}', async () => {
+  it('forwards the event to the Codex source with the account of the CODEX_HOME folder (or the one from the hook) and returns {ok}', async () => {
     const calls: Array<[string | undefined, Record<string, unknown>]> = [];
     const { base } = await serve({ applyHookEvent: (a, e) => (calls.push([a, e]), true) });
     let r = await request(base, '/api/codex/events', { method: 'POST', body: { account: '.codex', codexHome: '/Volumes/y/.codex', event: EVENT } });
     expect(r).toMatchObject({ status: 200, json: { ok: true } });
-    r = await request(base, '/api/codex/events', { method: 'POST', body: { account: '.codex', codexHome: '/montada/a/', event: EVENT } });
-    r = await request(base, '/api/codex/events', { method: 'POST', body: { account: '.codex-nova', codexHome: '/outra/.codex-nova', event: EVENT } });
+    r = await request(base, '/api/codex/events', { method: 'POST', body: { account: '.codex', codexHome: '/mounted/a/', event: EVENT } });
+    r = await request(base, '/api/codex/events', { method: 'POST', body: { account: '.codex-new', codexHome: '/other/.codex-new', event: EVENT } });
     r = await request(base, '/api/codex/events', { method: 'POST', body: { event: EVENT } });
     expect(calls).toEqual([
       ['.codex~2', EVENT],
       ['.codex', EVENT],
-      ['.codex-nova', EVENT],
+      ['.codex-new', EVENT],
       [undefined, EVENT],
     ]);
   });
 
-  it('sem a fonte do Codex (ou se ela falha): 200 {ok: false}', async () => {
+  it('without the Codex source (or if it fails): 200 {ok: false}', async () => {
     let s = await serve();
     expect(await request(s.base, '/api/codex/events', { method: 'POST', body: { event: EVENT } })).toMatchObject({ status: 200, json: { ok: false } });
     await close!();
     s = await serve({
       applyHookEvent: () => {
-        throw new Error('quebrou');
+        throw new Error('broke');
       },
     });
     expect(await request(s.base, '/api/codex/events', { method: 'POST', body: { event: EVENT } })).toMatchObject({ status: 200, json: { ok: false } });
   });
 
-  it('Host que não é local: 403; GET: 405; sem JSON: 415; corpo inválido: 400; acima de 256 KB: 413', async () => {
+  it('Host that is not local: 403; GET: 405; no JSON: 415; invalid body: 400; above 256 KB: 413', async () => {
     const calls: unknown[] = [];
     const { base } = await serve({ applyHookEvent: (_a, e) => (calls.push(e), true) });
     for (const host of ['habblaud.lan:4747', '192.168.0.10:4747']) {
@@ -101,9 +101,9 @@ describe('POST /api/codex/events', () => {
     expect(calls).toHaveLength(0);
   });
 
-  it('peças puras: parseCodexEvent e codexAccountOf', () => {
+  it('pure pieces: parseCodexEvent and codexAccountOf', () => {
     expect(parseCodexEvent({ account: ' .codex ', codexHome: '/u/.codex', event: EVENT })).toEqual({ account: '.codex', codexHome: '/u/.codex', event: EVENT });
     expect(() => parseCodexEvent({ event: {} })).toThrow();
-    expect(codexAccountOf([], '.codex', 'relativo/.codex')).toBe('.codex');
+    expect(codexAccountOf([], '.codex', 'relative/.codex')).toBe('.codex');
   });
 });

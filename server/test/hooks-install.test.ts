@@ -1,5 +1,5 @@
-// Instalador do hook de permissão (scripts/hooks-install.ts): planos puros e o comando de verdade sobre
-// settings.json em pastas temporárias (HOME e contas FALSOS: nunca toca em ~/.claude*).
+// Permission hook installer (scripts/hooks-install.ts): pure plans and the real command over
+// settings.json in temporary folders (FAKE HOME and accounts: never touches ~/.claude*).
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -25,13 +25,13 @@ import { HAS_POSIX_MODES, posixShell, tempDir } from './fixtures';
 const OPTS = { port: 4747, timeoutS: DEFAULT_TIMEOUT_S };
 const SH = posixShell();
 
-describe('hooks-install.ts (funções puras)', () => {
+describe('hooks-install.ts (pure functions)', () => {
   const entry = hookEntry(hookCommand('node', '/repo/habblaud/mod/habblaud-permissoes/hooks/permission-hook.mjs', OPTS), OPTS);
 
-  it('comando e entrada do hook: opções só quando diferentes do padrão; tempo limite com folga', () => {
+  it('hook command and entry: options only when different from the default; timeout with slack', () => {
     expect(hookCommand('node', '/r/mod/habblaud-permissoes/hooks/permission-hook.mjs', OPTS)).toBe('node "/r/mod/habblaud-permissoes/hooks/permission-hook.mjs"');
     expect(hookCommand('/opt/homebrew/bin/node', '/r/x/permission-hook.mjs', { port: 4851, timeoutS: 120 })).toBe('/opt/homebrew/bin/node "/r/x/permission-hook.mjs" --port 4851 --timeout 120');
-    expect(hookCommand('/caminho com espaço/node', "/r/$x/permission-hook.mjs", OPTS)).toBe(`"/caminho com espaço/node" '/r/$x/permission-hook.mjs'`);
+    expect(hookCommand('/path with space/node', "/r/$x/permission-hook.mjs", OPTS)).toBe(`"/path with space/node" '/r/$x/permission-hook.mjs'`);
     expect(entry).toEqual({
       type: 'command',
       command: 'node "/repo/habblaud/mod/habblaud-permissoes/hooks/permission-hook.mjs"',
@@ -41,77 +41,77 @@ describe('hooks-install.ts (funções puras)', () => {
     expect(scriptPathOf('node "/a b/permission-hook.mjs" --port 1')).toBe('/a b/permission-hook.mjs');
     expect(scriptPathOf("node '/a/it'\\''s/permission-hook.mjs'")).toBe("/a/it's/permission-hook.mjs");
     expect(scriptPathOf('node /a/permission-hook.mjs')).toBe('/a/permission-hook.mjs');
-    expect(scriptPathOf('echo oi')).toBeUndefined();
+    expect(scriptPathOf('echo hi')).toBeUndefined();
   });
 
-  it('install: acrescenta um grupo matcher "*" sem tocar nos outros hooks; idempotente; atualiza no lugar', () => {
+  it('install: appends a matcher "*" group without touching the other hooks; idempotent; updates in place', () => {
     const other = { matcher: 'ExitPlanMode', hooks: [{ type: 'command', command: 'echo ok' }] };
     const settings = { model: 'opus', hooks: { PreToolUse: [{ matcher: 'Bash', hooks: [{ type: 'command', command: 'lint' }] }], PermissionRequest: [other] } };
     const p = planInstall(settings, entry);
     expect(p.action).toBe('install');
     const next = p.action === 'install' ? p.settings : {};
     expect(next).toEqual({ model: 'opus', hooks: { PreToolUse: settings.hooks.PreToolUse, PermissionRequest: [other, { matcher: '*', hooks: [entry] }] } });
-    expect(planInstall(next, entry)).toEqual({ action: 'none', message: 'já instalado' });
-    // Outro caminho (pasta movida) ou outras opções: atualiza sem duplicar.
-    const moved = hookEntry(hookCommand('node', '/novo/scripts/permission-hook.mjs', OPTS), OPTS);
+    expect(planInstall(next, entry)).toEqual({ action: 'none', message: 'already installed' });
+    // Another path (folder moved) or other options: updates without duplicating.
+    const moved = hookEntry(hookCommand('node', '/new/scripts/permission-hook.mjs', OPTS), OPTS);
     const upd = planInstall(next, moved);
     expect(upd.action).toBe('install');
     const list = upd.action === 'install' ? (upd.settings.hooks as { PermissionRequest: unknown[] }).PermissionRequest : [];
     expect(list).toEqual([other, { matcher: '*', hooks: [moved] }]);
   });
 
-  it('o script mora no plugin habblaud-permissoes; o caminho antigo (scripts/, até a 0.2) e o novo são "nossos"', () => {
+  it('the script lives in the habblaud-permissoes plugin; the old path (scripts/, up to 0.2) and the new one are "ours"', () => {
     expect(HOOK_SCRIPT.endsWith(join('mod', 'habblaud-permissoes', 'hooks', 'permission-hook.mjs'))).toBe(true);
     expect(existsSync(HOOK_SCRIPT)).toBe(true);
-    // O caminho antigo virou um atalho para o novo (instalações de antes da 0.3 seguem funcionando).
+    // The old path became a shortcut to the new one (installs from before 0.3 keep working).
     expect(existsSync(LEGACY_HOOK_SCRIPT)).toBe(true);
     const legacy = hookEntry(hookCommand('node', '/repo/habblaud/scripts/permission-hook.mjs', OPTS), OPTS);
     expect(isOurHook(legacy)).toBe(true);
     expect(isOurHook(entry)).toBe(true);
     expect(isOurHook({ type: 'command', command: 'node "${CLAUDE_PLUGIN_ROOT}/hooks/permission-hook.mjs"' })).toBe(true);
-    expect(isOurHook({ type: 'command', command: 'meu-hook' })).toBe(false);
+    expect(isOurHook({ type: 'command', command: 'my-hook' })).toBe(false);
     expect(scriptPathOf(String(legacy.command))).toBe('/repo/habblaud/scripts/permission-hook.mjs');
     expect(scriptPathOf(String(entry.command))).toBe('/repo/habblaud/mod/habblaud-permissoes/hooks/permission-hook.mjs');
-    // Instalação antiga: install troca pelo caminho novo (sem duplicar) e uninstall tira.
+    // Old install: install swaps in the new path (without duplicating) and uninstall removes it.
     const old = { hooks: { PermissionRequest: [{ matcher: '*', hooks: [legacy] }] } };
     const upd = planInstall(old, entry);
     expect(upd.action === 'install' && upd.settings).toEqual({ hooks: { PermissionRequest: [{ matcher: '*', hooks: [entry] }] } });
-    expect(upd.message).toMatch(/atualizado/);
-    expect(planUninstall(old)).toEqual({ action: 'uninstall', settings: {}, message: 'hook do Habblaud removido' });
+    expect(upd.message).toMatch(/updated/);
+    expect(planUninstall(old)).toEqual({ action: 'uninstall', settings: {}, message: 'Habblaud hook removed' });
   });
 
-  it('o caminho do nome antigo (mod/codetown-permissoes/, até a 0.3.2) também é "nosso": install troca, uninstall tira', () => {
+  it('the path of the old name (mod/codetown-permissoes/, up to 0.3.2) is also "ours": install replaces, uninstall removes', () => {
     const renamed = hookEntry(hookCommand('node', '/repo/codetown/mod/codetown-permissoes/hooks/permission-hook.mjs', OPTS), OPTS);
     expect(isOurHook(renamed)).toBe(true);
     expect(scriptPathOf(String(renamed.command))).toBe('/repo/codetown/mod/codetown-permissoes/hooks/permission-hook.mjs');
-    const old = { model: 'opus', hooks: { PermissionRequest: [{ matcher: '*', hooks: [{ type: 'command', command: 'meu-hook' }, renamed] }] } };
+    const old = { model: 'opus', hooks: { PermissionRequest: [{ matcher: '*', hooks: [{ type: 'command', command: 'my-hook' }, renamed] }] } };
     expect(installedHook(old)).toEqual(renamed);
     const upd = planInstall(old, entry);
     expect(upd.action === 'install' && upd.settings).toEqual({
       model: 'opus',
-      hooks: { PermissionRequest: [{ matcher: '*', hooks: [{ type: 'command', command: 'meu-hook' }] }, { matcher: '*', hooks: [entry] }] },
+      hooks: { PermissionRequest: [{ matcher: '*', hooks: [{ type: 'command', command: 'my-hook' }] }, { matcher: '*', hooks: [entry] }] },
     });
     expect(planUninstall(old)).toEqual({
       action: 'uninstall',
-      settings: { model: 'opus', hooks: { PermissionRequest: [{ matcher: '*', hooks: [{ type: 'command', command: 'meu-hook' }] }] } },
-      message: 'hook do Habblaud removido',
+      settings: { model: 'opus', hooks: { PermissionRequest: [{ matcher: '*', hooks: [{ type: 'command', command: 'my-hook' }] }] } },
+      message: 'Habblaud hook removed',
     });
   });
 
-  it('install sem hooks antes; formatos desconhecidos não são tocados', () => {
+  it('install with no hooks before; unknown formats are not touched', () => {
     const p = planInstall({}, entry);
     expect(p.action === 'install' && p.settings).toEqual({ hooks: { PermissionRequest: [{ matcher: '*', hooks: [entry] }] } });
     expect(planInstall({ hooks: [] }, entry).action).toBe('skip');
     expect(planInstall({ hooks: { PermissionRequest: {} } }, entry).action).toBe('skip');
   });
 
-  it('uninstall: tira só o hook do Habblaud; o que ficar vazio sai', () => {
-    const mixed = { matcher: '*', hooks: [{ type: 'command', command: 'meu-hook' }, entry] };
+  it('uninstall: removes only the Habblaud hook; what ends up empty is removed', () => {
+    const mixed = { matcher: '*', hooks: [{ type: 'command', command: 'my-hook' }, entry] };
     const p = planUninstall({ hooks: { PermissionRequest: [mixed], Stop: [] } });
-    expect(p.action === 'uninstall' && p.settings).toEqual({ hooks: { PermissionRequest: [{ matcher: '*', hooks: [{ type: 'command', command: 'meu-hook' }] }], Stop: [] } });
+    expect(p.action === 'uninstall' && p.settings).toEqual({ hooks: { PermissionRequest: [{ matcher: '*', hooks: [{ type: 'command', command: 'my-hook' }] }], Stop: [] } });
     const only = planUninstall({ theme: 'dark', hooks: { PermissionRequest: [{ matcher: '*', hooks: [entry] }] } });
     expect(only.action === 'uninstall' && only.settings).toEqual({ theme: 'dark' });
-    expect(planUninstall({ theme: 'dark' })).toEqual({ action: 'none', message: 'não estava instalado' });
+    expect(planUninstall({ theme: 'dark' })).toEqual({ action: 'none', message: "wasn't installed" });
     expect(installedHook({ hooks: { PermissionRequest: [mixed] } })).toEqual(entry);
     expect(installedHook({})).toBeUndefined();
   });
@@ -121,17 +121,17 @@ describe('hooks-install.ts (funções puras)', () => {
     expect(parseArgs(['status', '--port', '4851', '--timeout', '60', '--dry-run'], {})).toMatchObject({ command: 'status', port: 4851, timeoutS: 60, dryRun: true });
     expect(parseArgs(['install'], { HABBLAUD_PORT: '4848' })).toMatchObject({ port: 4848 });
     expect(parseArgs(['--help'], {})).toBe('help');
-    expect(() => parseArgs([], {})).toThrow(/install, uninstall ou status/);
+    expect(() => parseArgs([], {})).toThrow(/install, uninstall or status/);
     expect(() => parseArgs(['install', '--timeout', '2'], {})).toThrow(/--timeout/);
     expect(() => parseArgs(['install', '--port', 'x'], {})).toThrow(/--port/);
   });
 });
 
-describe('hooks-install.ts (arquivos, HOME falso)', () => {
+describe('hooks-install.ts (files, fake HOME)', () => {
   let tmp: ReturnType<typeof tempDir>;
   let home: string;
   let out: string[];
-  const original = { model: 'opus', hooks: { Stop: [{ hooks: [{ type: 'command', command: 'say pronto' }] }] }, env: { FOO: '1' } };
+  const original = { model: 'opus', hooks: { Stop: [{ hooks: [{ type: 'command', command: 'say done' }] }] }, env: { FOO: '1' } };
 
   beforeEach(() => {
     tmp = tempDir();
@@ -151,85 +151,85 @@ describe('hooks-install.ts (arquivos, HOME falso)', () => {
   const read = (acc: string) => JSON.parse(readFileSync(join(home, acc, 'settings.json'), 'utf8'));
   const expected = hookEntry(hookCommand(process.execPath, HOOK_SCRIPT, OPTS), OPTS);
 
-  it('install: backup, só hooks.PermissionRequest muda, permissão do arquivo preservada; de novo = nada a fazer', async () => {
+  it('install: backup, only hooks.PermissionRequest changes, file permission preserved; again = nothing to do', async () => {
     expect(await exec('install')).toBe(0);
     const c = read('.claude');
     expect(c).toEqual({ ...original, hooks: { ...original.hooks, PermissionRequest: [{ matcher: '*', hooks: [expected] }] } });
     if (HAS_POSIX_MODES) expect(statSync(join(home, '.claude', 'settings.json')).mode & 0o777).toBe(0o644);
     expect(JSON.parse(readFileSync(join(home, '.claude', 'settings.json.habblaud-backup-20261008-093000'), 'utf8'))).toEqual(original);
-    // Conta sem settings.json: cria um só com o hook (sem backup, não havia nada).
+    // Account without settings.json: creates one with only the hook (no backup, there was nothing).
     expect(read('.claude-conta2')).toEqual({ hooks: { PermissionRequest: [{ matcher: '*', hooks: [expected] }] } });
     expect(readdirSync(join(home, '.claude-conta2')).some((f) => f.includes('backup'))).toBe(false);
-    expect(out.join('\n')).toContain('Pronto.');
+    expect(out.join('\n')).toContain('Done.');
 
     out = [];
     expect(await exec('install')).toBe(0);
-    expect(out.join('\n')).toContain('já instalado');
+    expect(out.join('\n')).toContain('already installed');
     expect(readdirSync(join(home, '.claude')).filter((f) => f.includes('backup'))).toHaveLength(1);
   });
 
-  it('status (com o Habblaud no ar ou não) e uninstall devolvem tudo como era', async () => {
+  it('status (with Habblaud up or not) and uninstall return everything as it was', async () => {
     await exec('install', { port: 4851 });
     out = [];
     await exec('status', { port: 4851 }, { permissions: true });
     const text = out.join('\n');
-    // Caminho entre aspas simples quando tem `\` (Windows): ver quotePath.
-    expect(text).toMatch(/\.claude \(.*\): instalado \(.*permission-hook\.mjs["'] --port 4851; tempo limite 330 s\)/);
-    expect(text).toContain('Habblaud em http://127.0.0.1:4851: respondendo pedidos de permissão');
+    // Path in single quotes when it has `\` (Windows): see quotePath.
+    expect(text).toMatch(/\.claude \(.*\): installed \(.*permission-hook\.mjs["'] --port 4851; timeout 330 s\)/);
+    expect(text).toContain('Habblaud at http://127.0.0.1:4851: handling permission requests');
     out = [];
     await exec('status', { port: 4851 });
-    expect(out.join('\n')).toContain('fora do ar');
+    expect(out.join('\n')).toContain(': down');
     out = [];
     await exec('status', { port: 4851 }, { permissions: false });
-    expect(out.join('\n')).toContain('desligado');
+    expect(out.join('\n')).toContain('is off');
     expect(await exec('uninstall')).toBe(0);
     expect(read('.claude')).toEqual(original);
     expect(read('.claude-conta2')).toEqual({});
     out = [];
     await exec('uninstall');
-    expect(out.join('\n')).toContain('não estava instalado');
+    expect(out.join('\n')).toContain("wasn't installed");
   });
 
-  it('status de uma instalação antiga (scripts/permission-hook.mjs, hoje um atalho): avisa e manda reinstalar', async () => {
+  it('status of an old installation (scripts/permission-hook.mjs, today a shortcut): warns and says to reinstall', async () => {
     const legacy = hookEntry(hookCommand(process.execPath, LEGACY_HOOK_SCRIPT, OPTS), OPTS);
     writeFileSync(join(home, '.claude', 'settings.json'), JSON.stringify({ hooks: { PermissionRequest: [{ matcher: '*', hooks: [legacy] }] } }));
     await exec('status');
-    expect(out.join('\n')).toContain(`o hook aponta para ${LEGACY_HOOK_SCRIPT}; rode npm run hooks:install para atualizar`);
+    expect(out.join('\n')).toContain(`the hook points to ${LEGACY_HOOK_SCRIPT}; run npm run hooks:install to update`);
     out = [];
     expect(await exec('install')).toBe(0);
     expect(read('.claude').hooks.PermissionRequest).toEqual([{ matcher: '*', hooks: [expected] }]);
-    expect(out.join('\n')).toContain('atualizado');
+    expect(out.join('\n')).toContain('updated');
   });
 
-  it('status de um hook do nome antigo (mod/codetown-permissoes/, que sumiu): explica que o arquivo não existe mais', async () => {
+  it('status of a hook of the old name (mod/codetown-permissoes/, which is gone): explains that the file no longer exists', async () => {
     const gone = join(tmp.dir, 'codetown', 'mod', 'codetown-permissoes', 'hooks', 'permission-hook.mjs');
     const old = hookEntry(hookCommand(process.execPath, gone, OPTS), OPTS);
     const settings = { ...original, hooks: { ...original.hooks, PermissionRequest: [{ matcher: '*', hooks: [old] }] } };
     writeFileSync(join(home, '.claude', 'settings.json'), JSON.stringify(settings));
     await exec('status');
-    expect(out.join('\n')).toContain(`o hook aponta para ${gone} (esse arquivo não existe mais: o hook falha e vale só o terminal); rode npm run hooks:install para atualizar`);
+    expect(out.join('\n')).toContain(`the hook points to ${gone} (that file no longer exists: the hook fails and only the terminal counts); run npm run hooks:install to update`);
     out = [];
     expect(await exec('install')).toBe(0);
     expect(read('.claude').hooks.PermissionRequest).toEqual([{ matcher: '*', hooks: [expected] }]);
-    expect(out.join('\n')).toContain('atualizado');
+    expect(out.join('\n')).toContain('updated');
     writeFileSync(join(home, '.claude', 'settings.json'), JSON.stringify(settings));
     expect(await exec('uninstall')).toBe(0);
     expect(read('.claude')).toEqual(original);
   });
 
-  it('--dry-run não grava; JSON inválido nunca é sobrescrito', async () => {
+  it('--dry-run does not write; invalid JSON is never overwritten', async () => {
     const before = readFileSync(join(home, '.claude', 'settings.json'), 'utf8');
     await exec('install', { dryRun: true });
     expect(readFileSync(join(home, '.claude', 'settings.json'), 'utf8')).toBe(before);
     expect(existsSync(join(home, '.claude-conta2', 'settings.json'))).toBe(false);
-    expect(out.join('\n')).toContain('simulação');
-    writeFileSync(join(home, '.claude-conta2', 'settings.json'), '{ quebrado');
+    expect(out.join('\n')).toContain('dry run');
+    writeFileSync(join(home, '.claude-conta2', 'settings.json'), '{ broken');
     expect(await exec('install')).toBe(1);
-    expect(readFileSync(join(home, '.claude-conta2', 'settings.json'), 'utf8')).toBe('{ quebrado');
-    expect(out.join('\n')).toContain('JSON inválido');
+    expect(readFileSync(join(home, '.claude-conta2', 'settings.json'), 'utf8')).toBe('{ broken');
+    expect(out.join('\n')).toContain('invalid JSON');
   });
 
-  it.skipIf(!SH)('o comando instalado roda de verdade: com o Habblaud fora do ar, sai rápido e sem decisão', async () => {
+  it.skipIf(!SH)('the installed command really runs: with Habblaud down, exits fast and without a decision', async () => {
     await exec('install', { port: 1 });
     const cmd: string = read('.claude').hooks.PermissionRequest[0].hooks[0].command;
     const input = JSON.stringify({ session_id: 's', hook_event_name: 'PermissionRequest', tool_name: 'Bash', tool_input: { command: 'ls' } });

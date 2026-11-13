@@ -1,32 +1,32 @@
 #!/usr/bin/env node
-// Hook PermissionRequest do Habblaud: deixa aprovar ou recusar pelo escritório os pedidos de permissão
-// do Claude Code ("Do you want to…") e responder as perguntas do AskUserQuestion. Chega à sessão de um
-// destes jeitos (este arquivo é a fonte única dos dois):
+// Habblaud PermissionRequest hook: lets you approve or deny from the office the permission requests
+// of Claude Code ("Do you want to…") and answer the AskUserQuestion questions. It reaches the session in one
+// of these ways (this file is the single source for both):
 //
-// - plugin `habblaud-permissoes` do marketplace do repositório (Claude Code 2.1.287+): o hooks.json ao
-//   lado roda `node "${CLAUDE_PLUGIN_ROOT}/hooks/permission-hook.mjs"`, com a porta vinda de HABBLAUD_PORT.
-//   O Claude Code copia SÓ a pasta do plugin para o cache de plugins: por isso nada de imports fora de
-//   `node:*` aqui;
-// - `npm run hooks:install` (versões anteriores), que grava em cada <conta>/settings.json:
+// - the `habblaud-permissoes` plugin from the repository's marketplace (Claude Code 2.1.287+): the hooks.json
+//   next to it runs `node "${CLAUDE_PLUGIN_ROOT}/hooks/permission-hook.mjs"`, with the port coming from
+//   HABBLAUD_PORT. Claude Code copies ONLY the plugin's folder to the plugin cache: that is why there are no
+//   imports outside `node:*` here;
+// - `npm run hooks:install` (earlier versions), which writes in each <account>/settings.json:
 //
-//   node /caminho/do/habblaud/mod/habblaud-permissoes/hooks/permission-hook.mjs [--port 4747] [--timeout 300]
+//   node /path/to/habblaud/mod/habblaud-permissoes/hooks/permission-hook.mjs [--port 4747] [--timeout 300]
 //
-// O Claude Code mostra o diálogo no terminal e roda este hook AO MESMO TEMPO (vale o que responder
-// primeiro); em subagentes em segundo plano o diálogo só aparece depois que o hook termina. O hook:
-// 1. lê do stdin o JSON do pedido (session_id, tool_name, tool_input, permission_suggestions...);
-// 2. manda para POST http://127.0.0.1:<porta>/api/permissions. Se o Habblaud não responder, recusar
-//    (recurso desligado) ou disser que não há página aberta ou que não conhece a sessão, sai na hora,
-//    sem decidir: o terminal segue normal;
-// 3. senão, espera a decisão em GET /api/permissions/:id/wait (respostas de até 25 s, em laço) até o
-//    tempo limite (padrão 5 min: --timeout <s> ou HABBLAUD_PERMISSION_TIMEOUT);
-// 4. aprovado/recusado: imprime a decisão (hookSpecificOutput.decision). Pergunta respondida: aprova
-//    a chamada com a entrada ORIGINAL mais `answers` ({texto da pergunta: rótulos escolhidos}, como a
-//    documentação dos hooks manda responder o AskUserQuestion); a página escolhe por posição e os textos
-//    vêm do stdin. "Responder no terminal", tempo esgotado ou qualquer erro: sai sem imprimir nada, e
-//    vale o que você responder no terminal.
+// Claude Code shows the dialog in the terminal and runs this hook AT THE SAME TIME (whichever answer comes
+// first wins); in background subagents the dialog only appears after the hook ends. The hook:
+// 1. reads the request's JSON from stdin (session_id, tool_name, tool_input, permission_suggestions...);
+// 2. sends it to POST http://127.0.0.1:<port>/api/permissions. If Habblaud doesn't answer, refuses
+//    (feature turned off) or says there is no page open or that it doesn't know the session, it exits right
+//    away, without deciding: the terminal goes on as normal;
+// 3. otherwise, waits for the decision in GET /api/permissions/:id/wait (responses of up to 25 s, in a loop)
+//    until the timeout (default 5 min: --timeout <s> or HABBLAUD_PERMISSION_TIMEOUT);
+// 4. approved/denied: prints the decision (hookSpecificOutput.decision). Question answered: approves
+//    the call with the ORIGINAL input plus `answers` ({question text: chosen labels}, as the
+//    hooks documentation says to answer AskUserQuestion); the page chooses by position and the texts
+//    come from stdin. "Answer in terminal", timed out or any error: exits without printing anything, and
+//    what you answer in the terminal is what counts.
 //
-// Regras: Node puro (22+), sem dependências; nunca trava nem quebra a sessão (todo erro = sair sem
-// decidir). Só fala com 127.0.0.1. HABBLAUD_HOOK_DEBUG=1 escreve o que acontece no stderr.
+// Rules: plain Node (22+), no dependencies; never hangs or breaks the session (every error = exit without
+// deciding). Only talks to 127.0.0.1. HABBLAUD_HOOK_DEBUG=1 writes what happens to stderr.
 import { realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
@@ -34,22 +34,22 @@ export const DEFAULT_PORT = 4747;
 export const DEFAULT_TIMEOUT_S = 300;
 const MIN_TIMEOUT_S = 5;
 const MAX_TIMEOUT_S = 86_400;
-/** Espera máxima de cada long-poll (o servidor responde "pending" e o hook pergunta de novo). */
+/** Maximum wait of each long-poll (the server answers "pending" and the hook asks again). */
 const WAIT_S = 25;
-/** Registrar o pedido: se o Habblaud não responder nisso, ele está fora do ar (ou travado). */
+/** Registering the request: if Habblaud doesn't answer within this, it is down (or hung). */
 const REGISTER_TIMEOUT_MS = 2_000;
 const STDIN_TIMEOUT_MS = 5_000;
 const MAX_STDIN = 8 * 1024 * 1024;
-/** Textos dos argumentos mandados ao Habblaud (o servidor só mostra uma prévia). */
+/** Texts of the arguments sent to Habblaud (the server only shows a preview). */
 const MAX_STRING = 8_000;
-/** Corpo do pedido (o servidor recusa acima de 256 KB). */
+/** Request body (the server refuses above 256 KB). */
 const MAX_BODY = 200_000;
-/** Ferramenta das perguntas ao usuário: a resposta é uma escolha (decisão `answer`), não aprovar/recusar. */
+/** Tool for the questions to the user: the answer is a choice (`answer` decision), not approve/deny. */
 const ASK_TOOL = 'AskUserQuestion';
 
 const debug = process.env.HABBLAUD_HOOK_DEBUG === '1' ? (msg) => process.stderr.write(`[habblaud-hook] ${msg}\n`) : () => {};
 
-/** Porta e tempo limite: argumentos (--port, --timeout) ou ambiente (HABBLAUD_PORT, HABBLAUD_PERMISSION_TIMEOUT). */
+/** Port and timeout: arguments (--port, --timeout) or environment (HABBLAUD_PORT, HABBLAUD_PERMISSION_TIMEOUT). */
 export function parseOptions(argv, env = process.env) {
   const arg = (name) => {
     const i = argv.indexOf(`--${name}`);
@@ -63,7 +63,7 @@ export function parseOptions(argv, env = process.env) {
   };
 }
 
-/** Corta textos longos dos argumentos (conteúdo de um Write enorme, por exemplo). */
+/** Cuts long texts in the arguments (the content of a huge Write, for example). */
 export function trimInput(v, max = MAX_STRING, depth = 0) {
   if (typeof v === 'string') return v.length > max ? v.slice(0, max) : v;
   if (depth > 8 || v === null || typeof v !== 'object') return v;
@@ -74,8 +74,8 @@ export function trimInput(v, max = MAX_STRING, depth = 0) {
 }
 
 /**
- * Corpo mandado ao Habblaud: só o que ele usa (nada de transcript_path nem do resto do stdin). Se ainda
- * ficar grande (muitas edições de uma vez), os textos são cortados mais curtos.
+ * Body sent to Habblaud: only what it uses (no transcript_path or the rest of stdin). If it is still
+ * big (many edits at once), the texts are cut shorter.
  */
 export function requestBody(input, timeoutMs) {
   const body = { session_id: input.session_id, tool_name: input.tool_name, tool_input: {}, timeout_ms: timeoutMs };
@@ -88,15 +88,15 @@ export function requestBody(input, timeoutMs) {
   return body;
 }
 
-/** Texto não vazio (as respostas usam os textos do stdin como vieram, sem aparar). */
+/** Non-empty text (the answers use the texts from stdin as they came, without trimming). */
 const text = (v) => typeof v === 'string' && v.trim() !== '';
 
 /**
- * `answers` do AskUserQuestion ({texto ORIGINAL da pergunta: rótulos ORIGINAIS das opções escolhidas, na ordem
- * delas, e o texto livre no fim, juntos com ", "}) a partir das respostas por posição vindas do Habblaud.
- * undefined = não dá para responder (sai sem decidir e vale o terminal): entrada sem `questions`, pergunta
- * sem resposta ou respondida duas vezes, posição inválida, sem multiSelect mais de uma escolha, perguntas
- * com o mesmo texto.
+ * `answers` of AskUserQuestion ({ORIGINAL question text: ORIGINAL labels of the chosen options, in their
+ * order, and the free text at the end, joined with ", "}) from the answers by position coming from Habblaud.
+ * undefined = it can't be answered (exits without deciding and the terminal counts): input without `questions`,
+ * question with no answer or answered twice, invalid position, more than one choice without multiSelect,
+ * questions with the same text.
  */
 export function answersFor(answers, toolInput) {
   const questions = Array.isArray(toolInput?.questions) ? toolInput.questions : undefined;
@@ -118,15 +118,15 @@ export function answersFor(answers, toolInput) {
     if (!parts.length || (q.multiSelect !== true && parts.length > 1)) return undefined;
     out[q.question] = parts.join(', ');
   }
-  // Toda pergunta de verdade precisa de resposta (as inválidas o Habblaud nem mostrou).
+  // Every real question needs an answer (Habblaud didn't even show the invalid ones).
   if (questions.some((q, i) => q && typeof q === 'object' && text(q.question) && !done.has(i))) return undefined;
   return out;
 }
 
 /**
- * Saída do hook para uma decisão do Habblaud (undefined = sair sem decidir). Uma regra "sempre permitir"
- * escolhida na página volta só como a POSIÇÃO: aplica-se a sugestão original que o Claude Code mandou.
- * Pergunta (AskUserQuestion): só `answer` aprova (sem `answers` a chamada não teria resposta); recusar vale.
+ * Hook output for a Habblaud decision (undefined = exit without deciding). An "always allow" rule
+ * chosen on the page comes back only as the POSITION: the original suggestion that Claude Code sent is applied.
+ * Question (AskUserQuestion): only `answer` approves (without `answers` the call would have no answer); deny works.
  */
 export function decisionOutput(result, input) {
   if (!result || result.status !== 'decided') return undefined;
@@ -147,7 +147,7 @@ export function decisionOutput(result, input) {
   }
   if (result.behavior === 'deny') {
     const reason = typeof result.message === 'string' && result.message.trim() ? result.message.trim().slice(0, 1_000) : '';
-    const decision = { behavior: 'deny', message: reason ? `Recusado pelo usuário no Habblaud: ${reason}` : 'Recusado pelo usuário no Habblaud.' };
+    const decision = { behavior: 'deny', message: reason ? `Denied by the user in Habblaud: ${reason}` : 'Denied by the user in Habblaud.' };
     if (result.interrupt === true) decision.interrupt = true;
     return { hookSpecificOutput: { hookEventName: 'PermissionRequest', decision } };
   }
@@ -173,7 +173,7 @@ function readStdin() {
   });
 }
 
-/** Requisição ao Habblaud local; null = fora do ar, tempo esgotado ou resposta ilegível. */
+/** Request to the local Habblaud; null = down, timed out or unreadable response. */
 async function call(base, method, path, body, timeoutMs) {
   try {
     const res = await fetch(`${base}${path}`, {
@@ -191,12 +191,12 @@ async function call(base, method, path, body, timeoutMs) {
     }
     return { status: res.status, json };
   } catch (err) {
-    debug(`${method} ${path}: ${err?.name ?? 'erro'} ${err?.message ?? ''}`);
+    debug(`${method} ${path}: ${err?.name ?? 'error'} ${err?.message ?? ''}`);
     return null;
   }
 }
 
-/** Decide o pedido (ou não). Devolve a saída a imprimir, ou undefined. Nunca lança. */
+/** Decides the request (or not). Returns the output to print, or undefined. Never throws. */
 export async function run(argv = process.argv.slice(2), env = process.env, stdinText) {
   try {
     const opts = parseOptions(argv, env);
@@ -215,14 +215,14 @@ export async function run(argv = process.argv.slice(2), env = process.env, stdin
     const deadline = Date.now() + opts.timeoutMs;
     const reg = await call(base, 'POST', '/api/permissions', requestBody(input, opts.timeoutMs), REGISTER_TIMEOUT_MS);
     if (!reg || reg.status !== 201 || typeof reg.json?.id !== 'string') {
-      debug(`sem desvio (${reg ? `${reg.status} ${JSON.stringify(reg.json ?? null)}` : 'Habblaud fora do ar'})`);
+      debug(`not diverted (${reg ? `${reg.status} ${JSON.stringify(reg.json ?? null)}` : 'Habblaud down'})`);
       return undefined;
     }
     const id = encodeURIComponent(reg.json.id);
     for (;;) {
       const left = deadline - Date.now();
       if (left <= 0) {
-        debug('tempo esgotado: vale o terminal');
+        debug('timed out: the terminal counts');
         return undefined;
       }
       const waitS = Math.max(0.05, Math.min(WAIT_S, left / 1_000));
@@ -230,25 +230,26 @@ export async function run(argv = process.argv.slice(2), env = process.env, stdin
       if (!r || r.status !== 200) return undefined;
       const status = r.json?.status;
       if (status === 'pending') continue;
-      debug(`resposta: ${JSON.stringify(r.json)}`);
+      debug(`answer: ${JSON.stringify(r.json)}`);
       return decisionOutput(r.json, input);
     }
   } catch (err) {
-    debug(`erro: ${err?.message ?? err}`);
+    debug(`error: ${err?.message ?? err}`);
     return undefined;
   }
 }
 
-/** Ponto de entrada (exportado para o atalho do caminho antigo, scripts/permission-hook.mjs). */
+/** Entry point (exported for the shortcut at the old path, scripts/permission-hook.mjs). */
 export async function main() {
   const { timeoutMs } = parseOptions(process.argv.slice(2));
-  // Rede de segurança: nada mantém o processo vivo além do tempo limite.
+  // Safety net: nothing keeps the process alive beyond the timeout.
   setTimeout(() => process.exit(0), timeoutMs + 15_000).unref();
   const out = await run();
-  // Sem process.exit() logo depois do fetch: no Windows (Node 23 até 24.19) ele derruba o processo com
-  // 0xC0000409 enquanto o V8 ainda compila em segundo plano o parser do fetch (assert do libuv,
-  // nodejs/node#56645). O processo sai sozinho quando o loop esvazia, o que também espera a escrita da
-  // decisão no pipe (assíncrona no macOS); se algo ainda segurar o loop, o process.exit vem 1 s depois.
+  // No process.exit() right after the fetch: on Windows (Node 23 through 24.19) it kills the process with
+  // 0xC0000409 while V8 is still compiling the fetch parser in the background (libuv assert,
+  // nodejs/node#56645). The process exits by itself when the loop empties, which also waits for the decision
+  // to be written to the pipe (asynchronous on macOS); if something still holds the loop, the process.exit
+  // comes 1 s later.
   const finish = () => setTimeout(() => process.exit(0), 1_000).unref();
   if (out) process.stdout.write(`${JSON.stringify(out)}\n`, finish);
   else finish();

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { usageRowFits, type UsageRowInput } from './usage-row';
 
-// Medidas reais da barra no demo (5 contas, cartões com no mínimo 128 px): marca 265, contadores 179, botões 249.
+// Real measurements of the bar in the demo (5 accounts, cards of at least 128 px): brand 265, counters 179, buttons 249.
 const bar = (over: Partial<UsageRowInput> = {}): UsageRowInput => ({
   barWidth: 1182,
   others: [265, 179, 249],
@@ -12,31 +12,31 @@ const bar = (over: Partial<UsageRowInput> = {}): UsageRowInput => ({
 });
 
 describe('usageRowFits', () => {
-  it('sem cartões sempre cabe', () => {
+  it('with no cards it always fits', () => {
     expect(usageRowFits(bar({ cards: [] }))).toBe(true);
   });
 
-  it('cabe quando sobra espaço depois dos outros itens', () => {
+  it('fits when there is room left after the other items', () => {
     expect(usageRowFits(bar({ barWidth: 1420 }))).toBe(true);
   });
 
-  it('5 contas numa janela de 1200 px não cabem: sobram 453 px para 672 px de cartões', () => {
+  it('5 accounts in a 1200 px window do not fit: 453 px are left for 672 px of cards', () => {
     expect(usageRowFits(bar())).toBe(false);
   });
 
-  it('o limite é exato: cabendo justo ainda cabe', () => {
-    // usado = 265 + 179 + 249 + 3 x 12 = 729; cartões = 5 x 128 + 4 x 8 = 672 -> largura mínima 1401.
+  it('the limit is exact: a tight fit still fits', () => {
+    // used = 265 + 179 + 249 + 3 x 12 = 729; cards = 5 x 128 + 4 x 8 = 672 -> minimum width 1401.
     expect(usageRowFits(bar({ barWidth: 1401 }))).toBe(true);
     expect(usageRowFits(bar({ barWidth: 1400 }))).toBe(false);
   });
 
-  it('quanto menor o cartão, mais contas cabem', () => {
+  it('the smaller the card, the more accounts fit', () => {
     expect(usageRowFits(bar({ barWidth: 1182, cards: [128, 128] }))).toBe(true);
     expect(usageRowFits(bar({ barWidth: 1182, cards: [188, 188, 188, 188, 188] }))).toBe(false);
   });
 
-  it('um único cartão não paga espaço entre cartões', () => {
-    // 249 + 265 + 179 + 36 = 729 usados; 453 livres: um cartão de 453 cabe, de 454 não.
+  it('a single card does not pay for space between cards', () => {
+    // 249 + 265 + 179 + 36 = 729 used; 453 free: a card of 453 fits, one of 454 doesn't.
     expect(usageRowFits(bar({ barWidth: 1182, cards: [453] }))).toBe(true);
     expect(usageRowFits(bar({ barWidth: 1182, cards: [454] }))).toBe(false);
   });

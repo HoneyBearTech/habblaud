@@ -1,4 +1,4 @@
-// Barra lateral: busca, filtro por conta e a lista de salas -> agentes -> subagentes.
+// Sidebar: search, filter by account and the list of rooms -> agents -> subagents.
 import type { AccountInfo, AgentInfo } from '../../../shared/types';
 import { roomTheme } from '../art';
 import type { UiComponent, UiContext } from './context';
@@ -27,9 +27,9 @@ interface RoomRefs {
 
 interface NodeRefs {
   row: HTMLButtonElement;
-  /** Atalho para a janela de terminal do agente. */
+  /** Shortcut to the agent's terminal window. */
   term: HTMLButtonElement;
-  /** Linha + atalho: arrastável para reordenar os agentes da sala. */
+  /** Row + shortcut: draggable to reorder the room's agents. */
   head: HTMLElement;
   subsWrap: HTMLElement;
   subsCaption: HTMLElement;
@@ -46,10 +46,10 @@ export class Sidebar implements UiComponent {
   private rooms: KeyedList<RoomGroup>;
   private roomRefs = new WeakMap<HTMLElement, RoomRefs>();
   private nodeRefs = new WeakMap<HTMLElement, NodeRefs>();
-  /** Agentes de cada sala na ordem mostrada (para arrastar e soltar). */
+  /** Agents of each room in the order shown (for drag and drop). */
   private shown = new Map<string, AgentNode[]>();
   private dragging: { id: string; room: string } | null = null;
-  /** Sala sendo arrastada (reordenar as salas) e a ordem mostrada agora. */
+  /** Room being dragged (reordering the rooms) and the order shown now. */
   private draggingRoom: string | null = null;
   private shownRooms: string[] = [];
   private empty: HTMLElement;
@@ -61,7 +61,7 @@ export class Sidebar implements UiComponent {
     this.input = h('input', {
       class: 'ui-search__input',
       type: 'search',
-      attrs: { placeholder: tr('Buscar agente, projeto ou conta'), 'aria-label': tr('Buscar agente, projeto ou conta'), autocomplete: 'off', spellcheck: 'false' },
+      attrs: { placeholder: tr('Search for an agent, project or account'), 'aria-label': tr('Search for an agent, project or account'), autocomplete: 'off', spellcheck: 'false' },
     });
     this.input.addEventListener('input', () => {
       this.query = this.input.value;
@@ -81,9 +81,9 @@ export class Sidebar implements UiComponent {
     });
     const searchIcon = h('span', { class: 'ui-search__icon', attrs: { 'aria-hidden': 'true' } });
     searchIcon.innerHTML = ICONS.search;
-    const search = h('label', { class: 'ui-search' }, searchIcon, this.input, h('kbd', { class: 'ui-kbd', text: '/', title: tr('Atalho: /') }));
+    const search = h('label', { class: 'ui-search' }, searchIcon, this.input, h('kbd', { class: 'ui-kbd', text: '/', title: tr('Shortcut: /') }));
 
-    this.filters = h('div', { class: 'ui-acc-filters', role: 'group', attrs: { 'aria-label': tr('Filtrar por conta') } });
+    this.filters = h('div', { class: 'ui-acc-filters', role: 'group', attrs: { 'aria-label': tr('Filter by account') } });
     this.filterList = new KeyedList<AccountInfo, HTMLButtonElement>(this.filters, {
       animate: false,
       key: (a) => a.id,
@@ -98,13 +98,13 @@ export class Sidebar implements UiComponent {
         updateAccountChip(b.firstElementChild as HTMLElement, a);
         setText(b.lastElementChild!, a.name);
         setAttr(b, 'aria-pressed', String(!hidden));
-        setTitle(b, hidden ? tr('Mostrar a {0} na lista, no feed e nos avisos', [a.name]) : tr('Ocultar a {0} na lista, no feed e nos avisos (o escritório continua mostrando todos)', [a.name]));
+        setTitle(b, hidden ? tr('Show {0} in the list, feed and alerts', [a.name]) : tr('Hide {0} in the list, feed and alerts (the office still shows everyone)', [a.name]));
         b.classList.toggle('is-off', hidden);
       },
     });
 
     this.scroller = h('div', { class: 'ui-side__scroll' });
-    const list = h('div', { class: 'ui-rooms', role: 'list', attrs: { 'aria-label': tr('Salas') } });
+    const list = h('div', { class: 'ui-rooms', role: 'list', attrs: { 'aria-label': tr('Rooms') } });
     this.scroller.append(list);
     this.rooms = new KeyedList<RoomGroup>(list, {
       key: (g) => g.room.id,
@@ -116,7 +116,7 @@ export class Sidebar implements UiComponent {
     this.clearBtn = h('button', {
       class: 'ui-link-btn',
       type: 'button',
-      text: tr('Limpar filtros'),
+      text: tr('Clear filters'),
       on: {
         click: () => {
           this.input.value = '';
@@ -128,11 +128,11 @@ export class Sidebar implements UiComponent {
     this.empty = h('div', { class: 'ui-side__empty', hidden: true }, this.emptyText, this.clearBtn);
     this.scroller.append(this.empty);
 
-    const close = iconButton(ICONS.close, tr('Fechar painel lateral'), () => ctx.togglePanel('sidebar', false), 'ui-side__close');
+    const close = iconButton(ICONS.close, tr('Close sidebar'), () => ctx.togglePanel('sidebar', false), 'ui-side__close');
     this.el = h(
       'aside',
-      { class: 'ui-panel ui-sidebar', attrs: { 'aria-label': tr('Salas e agentes'), id: 'ui-sidebar' } },
-      h('div', { class: 'ui-side__head' }, h('div', { class: 'ui-side__title' }, h('h2', { text: tr('Escritório') }), close), search, this.filters),
+      { class: 'ui-panel ui-sidebar', attrs: { 'aria-label': tr('Rooms and agents'), id: 'ui-sidebar' } },
+      h('div', { class: 'ui-side__head' }, h('div', { class: 'ui-side__title' }, h('h2', { text: tr('Office') }), close), search, this.filters),
       this.scroller,
     );
   }
@@ -149,14 +149,14 @@ export class Sidebar implements UiComponent {
     this.filterList.sync(accounts.length > 1 ? accounts : []);
     setHidden(this.filters, accounts.length <= 1);
 
-    // Ordem das salas escolhida pelo usuário (arrastando o cabeçalho da sala).
+    // Order of the rooms chosen by the user (by dragging the room header).
     const groups = orderRooms(groupRooms(snap, { query: this.query, hiddenAccounts: hidden }), (g) => g.room.id);
     this.shownRooms = groups.map((g) => g.room.id);
     this.rooms.sync(groups);
 
     const filtering = this.query.trim().length > 0 || hidden.size > 0;
     const total = snap?.agents.length ?? 0;
-    // Escritório vazio sem filtro: o cartão central já explica; a lista não repete o aviso.
+    // Empty office with no filter: the center card already explains; the list doesn't repeat the notice.
     const showEmpty = groups.length === 0 && (filtering || !officeIsEmpty(this.ctx));
     setHidden(this.empty, !showEmpty);
     if (showEmpty) {
@@ -164,14 +164,14 @@ export class Sidebar implements UiComponent {
         this.emptyText,
         filtering && total > 0
           ? this.query.trim()
-            ? tr('Nenhum agente encontrado para “{0}”.', [this.query.trim()])
-            : tr('Nenhum agente nas contas selecionadas.')
-          : tr('Nenhuma sessão aberta no momento.'),
+            ? tr('No agents found for “{0}”.', [this.query.trim()])
+            : tr('No agents in the selected accounts.')
+          : tr('No open sessions right now.'),
       );
       setHidden(this.clearBtn, !(filtering && total > 0));
     }
 
-    // Ao mudar a seleção (ex.: clique no canvas), traz o item para a área visível.
+    // When the selection changes (e.g. click on the canvas), brings the item into the visible area.
     const sel = this.ctx.selection();
     const selKey = sel ? `${sel.type}:${sel.id}` : '';
     if (selKey !== this.lastSelKey) {
@@ -193,14 +193,14 @@ export class Sidebar implements UiComponent {
     this.ctx.updatePrefs({ hiddenAccounts: [...set] });
   }
 
-  // ---------------------------------------------------------------- salas
+  // ---------------------------------------------------------------- rooms
 
   private createRoom(g: RoomGroup): HTMLElement {
     const name = h('span', { class: 'ui-room__name' });
     const count = h('span', { class: 'ui-room__count' });
     const accsEl = h('span', { class: 'ui-room__accs' });
     const path = h('span', { class: 'ui-room__path' });
-    const tasksBar = createProgress(tr('Progresso das tarefas da sala'));
+    const tasksBar = createProgress(tr('Room task progress'));
     const tasksText = h('span', { class: 'ui-room__tasks-text' });
     const tasks = h('span', { class: 'ui-room__tasks' }, tasksBar, tasksText);
     const swatch = h('span', { class: 'ui-room__swatch', attrs: { 'aria-hidden': 'true' } });
@@ -214,7 +214,7 @@ export class Sidebar implements UiComponent {
     );
     head.addEventListener('click', () => this.ctx.select({ type: 'room', id: g.room.id }, { focus: true }));
     this.wireRoomDrag(head, g.room.id);
-    // Botão direito: renomear a sala (ui/roomrename.ts).
+    // Right-click: rename the room (ui/roomrename.ts).
     head.addEventListener('contextmenu', (e) => {
       if (!this.ctx.renameRoom) return;
       e.preventDefault();
@@ -224,7 +224,7 @@ export class Sidebar implements UiComponent {
     try {
       setStyleVar(head, '--room', roomTheme(g.room.seed).accent);
     } catch {
-      // Sem tema: mantém a cor padrão do CSS.
+      // No theme: keeps the default CSS color.
     }
     const agentsEl = h('ul', { class: 'ui-nodes' });
     const section = h('section', { class: 'ui-room', role: 'listitem' }, head, agentsEl);
@@ -249,10 +249,10 @@ export class Sidebar implements UiComponent {
     setText(r.name, g.room.name);
     const present = g.agents.filter((a) => a.status !== 'offline').length;
     setText(r.count, String(present));
-    setTitle(r.count, plural(present, tr('agente'), tr('agentes')));
+    setTitle(r.count, plural(present, tr('agent'), tr('agents')));
     setText(r.path, shortPath(g.room.path));
-    setTitle(r.head, tr('{0}\nClique para ver a sala', [g.room.path]));
-    setAttr(r.head, 'aria-label', tr('Sala {0}, {1}', [g.room.name, plural(present, tr('agente'), tr('agentes'))]));
+    setTitle(r.head, tr('{0}\nClick to view the room', [g.room.path]));
+    setAttr(r.head, 'aria-label', tr('Room {0}, {1}', [g.room.name, plural(present, tr('agent'), tr('agents'))]));
     r.accs.sync(g.accounts.map((id) => this.ctx.account(id) ?? id));
     const selected = sel?.type === 'room' && sel.id === g.room.id;
     r.head.classList.toggle('is-selected', selected);
@@ -263,15 +263,15 @@ export class Sidebar implements UiComponent {
     setHidden(r.tasks, t.total === 0);
     if (t.total > 0) {
       updateProgress(r.tasksBar, t.completed, t.total, t.inProgress);
-      setText(r.tasksText, tr('{0}/{1} tarefas', [t.completed, t.total]));
+      setText(r.tasksText, tr('{0}/{1} tasks', [t.completed, t.total]));
     }
-    // Ordem escolhida pelo usuário (arrastando as linhas), guardada no navegador.
+    // Order chosen by the user (by dragging the rows), stored in the browser.
     const ordered = orderAgents(g.room.id, g.nodes, (n) => n.agent.sessionId);
     this.shown.set(g.room.id, ordered);
     r.nodes.sync(ordered);
   }
 
-  /** Arrastar o cabeçalho de uma sala reordena as salas da lista. */
+  /** Dragging a room's header reorders the rooms in the list. */
   private wireRoomDrag(head: HTMLElement, roomId: string): void {
     head.draggable = true;
     const after = (e: DragEvent) => {
@@ -312,7 +312,7 @@ export class Sidebar implements UiComponent {
     });
   }
 
-  /** Arrastar a linha de um agente principal reordena os agentes da mesma sala. */
+  /** Dragging a main agent's row reorders the agents of the same room. */
   private wireDrag(head: HTMLElement): void {
     head.draggable = true;
     const id = () => head.dataset.id ?? '';
@@ -356,15 +356,15 @@ export class Sidebar implements UiComponent {
     });
   }
 
-  // ---------------------------------------------------------------- agentes
+  // ---------------------------------------------------------------- agents
 
   private createNode(n: AgentNode): HTMLElement {
     const row = createAgentRow(n.agent, (id) => this.pick(id));
     const subsCaption = h('span', { class: 'ui-subs__caption' });
     const subsList = h('ul', { class: 'ui-subs__list' });
     const subsWrap = h('div', { class: 'ui-subs', hidden: true }, subsCaption, subsList);
-    // Botão irmão da linha (não dentro dela: botão dentro de botão não vale), sobre o status à direita: aparece com
-    // o mouse em cima (ou foco) e fica aceso enquanto o terminal do agente estiver aberto.
+    // Sibling button of the row (not inside it: a button inside a button isn't valid), over the status on the right:
+    // shows with the mouse over it (or focus) and stays lit while the agent's terminal is open.
     const term = h('button', { class: 'ui-node__term', type: 'button' });
     term.innerHTML = ICONS.terminal;
     term.addEventListener('click', (e) => {
@@ -398,15 +398,15 @@ export class Sidebar implements UiComponent {
       const live = router.interactive(a.id);
       r.term.classList.toggle('is-on', open);
       r.term.classList.toggle('is-live', live);
-      const what = live ? tr('interativo') : tr('ao vivo');
-      setTitle(r.term, open ? tr('Fechar o terminal') : tr('Abrir o terminal de {0} ({1})', [a.name, what]));
-      setAttr(r.term, 'aria-label', open ? tr('Fechar o terminal de {0}', [a.name]) : tr('Abrir o terminal de {0}', [a.name]));
+      const what = live ? tr('interactive') : tr('live');
+      setTitle(r.term, open ? tr('Close the terminal') : tr("Open {0}'s terminal ({1})", [a.name, what]));
+      setAttr(r.term, 'aria-label', open ? tr("Close {0}'s terminal", [a.name]) : tr("Open {0}'s terminal", [a.name]));
     }
     const has = n.subTotal > 0;
     setHidden(r.subsWrap, !has);
     if (has) {
       const shown = n.subs.length;
-      setText(r.subsCaption, shown === n.subTotal ? plural(n.subTotal, tr('subagente'), tr('subagentes')) : `${shown} de ${plural(n.subTotal, tr('subagente'), tr('subagentes'))}`);
+      setText(r.subsCaption, shown === n.subTotal ? plural(n.subTotal, tr('subagent'), tr('subagents')) : `${shown} de ${plural(n.subTotal, tr('subagent'), tr('subagents'))}`);
     }
     r.subs.sync(n.subs);
   }
@@ -418,7 +418,7 @@ export class Sidebar implements UiComponent {
 
   private pick(id: string): void {
     this.ctx.select({ type: 'agent', id }, { focus: true });
-    // Com um terminal aberto, clicar noutro agente troca o terminal para o dele.
+    // With a terminal open, clicking another agent switches the terminal to that agent's.
     const t = this.ctx.terminals;
     if (t && t.openAgentId !== null && t.openAgentId !== id && this.ctx.agent(id)) t.open(id);
     if (this.ctx.isNarrow()) this.ctx.togglePanel('sidebar', false);

@@ -1,14 +1,14 @@
-// Desenho da cidade por quadro: chão das células visíveis (uma imagem por quarteirão) -> jardins dos lotes vazios
-// -> prédios, decoração e personagens ordenados pela profundidade -> noite (multiplica a cena pelo tom do céu e
-// redesenha o que brilha: janelas acesas, letreiros, postes) -> passada em espaço de tela (placas com o nome do
-// dono, a bandeira e os likes; nomes sobre as cabeças; destaques).
+// Drawing of the city per frame: ground of the visible cells (one image per block) -> gardens of the empty lots
+// -> buildings, decoration and characters sorted by depth -> night (multiplies the scene by the sky tone and
+// redraws what glows: lit windows, signboards, lampposts) -> screen-space pass (signs with the owner's
+// name, the flag and the likes; names over the heads; highlights).
 //
-// Quem estende a cena (o social leve da Fase 5, city/social.ts) desenha pelos ganchos de `fx` (CityFx): depois de cada
-// fachada, peças com profundidade, por cima da noite e em espaço de tela.
+// Whoever extends the scene (the light social features of Phase 5, city/social.ts) draws through the `fx` hooks
+// (CityFx): after each facade, pieces with depth, on top of the night and in screen space.
 //
-// Custo: só o que cruza a vista (quarteirões pela conta da grade, nunca a lista inteira de prédios); sprites em
-// cache (célula, jardins, fachadas por chave, árvores e postes do escritório); sem alocação por quadro no caminho
-// quente (entidades reaproveitadas). Abaixo de zoom 0,6 os detalhes pequenos somem; abaixo de 1,1, as placas.
+// Cost: only what crosses the view (blocks by the grid math, never the whole list of buildings); cached
+// sprites (cell, gardens, facades by key, the office's trees and lampposts); no allocation per frame on the hot
+// path (reused entities). Below zoom 0.6 the small details go away; below 1.1, the signs.
 import { TILE, type Appearance, type ArtModule, type CharacterFrameRequest, type Dir, type Pose, type Sprite } from '../../art/api';
 import { hash32 } from '../../../../shared/hash';
 import { tr } from '../../../../shared/i18n';
@@ -29,22 +29,22 @@ import type { WorldSceneMe } from '../../../../shared/world/api';
 
 const UI_FONT = 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif';
 const EMOJI_FONT = '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
-/** Abaixo deste zoom, a decoração pequena (arbustos, flores, cercas) some. */
+/** Below this zoom, the small decoration (bushes, flowers, fences) goes away. */
 const SMALL_DECOR_ZOOM = 0.6;
-/** Placas com o nome do dono só a partir deste zoom (antes viram ilegíveis). */
+/** Signs with the owner's name only from this zoom up (before that they become unreadable). */
 const SIGN_ZOOM = 1.05;
-/** Nomes sobre as cabeças a partir deste zoom. */
+/** Names over the heads from this zoom up. */
 const NAME_ZOOM = 0.85;
 const FADE_MS = 1_200;
-/** Fachadas novas geradas por quadro (as outras esperam o próximo, desenhadas como um bloco liso). */
+/** New facades generated per frame (the others wait for the next one, drawn as a plain block). */
 const SPRITES_PER_FRAME = 8;
-/** Quanto (px) o personagem sentado sobe para ficar no assento do banco. */
+/** How much (px) the seated character rises to be on the bench seat. */
 const SEAT_LIFT = 6;
-/** Pixels de tela por pixel do mapa de luz da noite (meia resolução: as bordas suaves viram brilho). */
+/** Screen pixels per pixel of the night light map (half resolution: the soft edges become glow). */
 const LIGHT_MAP_SCALE = 2;
 
 let halo: HTMLCanvasElement | null = null;
-/** Poça de luz de poste no mapa de luz: quente no meio, some na borda. */
+/** Pool of lamppost light in the light map: warm in the middle, fades out at the edge. */
 function haloSprite(): HTMLCanvasElement {
   if (halo) return halo;
   halo = document.createElement('canvas');
@@ -73,7 +73,7 @@ interface Ent {
   ref: Decor | BuildingVis | CharVis | CityFxProp | null;
 }
 
-/** Retângulo visível (px de mundo). */
+/** Visible rectangle (world px). */
 export interface CityView {
   x0: number;
   y0: number;
@@ -81,46 +81,46 @@ export interface CityView {
   y1: number;
 }
 
-/** Peça com profundidade de quem estende a cena: `y` é a base (px de mundo), que ordena com prédios e personagens. */
+/** Piece with depth of whoever extends the scene: `y` is the base (world px), sorted with buildings and characters. */
 export interface CityFxProp {
   y: number;
   draw(ctx: CanvasRenderingContext2D, now: number): void;
 }
 
-/** De px de mundo para px CSS da tela (o espaço das placas e dos nomes). */
+/** From world px to CSS px of the screen (the space of the signs and the names). */
 export interface CityScreenMap {
   sx(wx: number): number;
   sy(wy: number): number;
-  /** px CSS por px de mundo. */
+  /** CSS px per world px. */
   k: number;
   zoom: number;
 }
 
-/** Ganchos de desenho de quem estende a cena (o social leve, Fase 5: city/social.ts). */
+/** Drawing hooks of whoever extends the scene (the light social features, Phase 5: city/social.ts). */
 export interface CityFx {
-  /** Logo depois de cada fachada, na profundidade dela (px de mundo). */
+  /** Right after each facade, at its depth (world px). */
   building?(ctx: CanvasRenderingContext2D, v: BuildingVis, now: number): void;
-  /** Peças com profundidade (placas, enfeites) que cruzam a vista. */
+  /** Pieces with depth (signs, decorations) that cross the view. */
   props?(view: CityView, push: (p: CityFxProp) => void): void;
-  /** Por cima de tudo em px de mundo, depois da noite (fogos, corações, confete, brilhos). */
+  /** On top of everything in world px, after the night (fireworks, hearts, confetti, sparkles). */
   world?(ctx: CanvasRenderingContext2D, now: number, view: CityView): void;
-  /** Espaço de tela, depois das placas e dos nomes (balões, textos das placas da praça). */
+  /** Screen space, after the signs and the names (speech bubbles, texts of the square's signs). */
   screen?(ctx: CanvasRenderingContext2D, now: number, map: CityScreenMap): void;
 }
 
-/** Prédio visível neste quadro. */
+/** Building visible in this frame. */
 export interface BuildingVis {
   b: WorldBuildingPublic;
   m: FacadeModel;
-  /** null = o sprite ainda não foi gerado (sai num dos próximos quadros; até lá, um bloco na cor da fachada). */
+  /** null = sprite not generated yet (it comes in one of the next frames; until then, a block in the facade color). */
   s: FacadeSprites | null;
-  /** Canto superior esquerdo do sprite (px de mundo). */
+  /** Top left corner of the sprite (world px). */
   x: number;
   y: number;
   depth: number;
 }
 
-/** Personagem visível neste quadro (eu ou outro). */
+/** Character visible in this frame (me or someone else). */
 export interface CharVis {
   id: string;
   name: string;
@@ -131,7 +131,7 @@ export interface CharVis {
   pose: Pose;
   animT: number;
   appearance: Appearance;
-  /** Retângulo do sprite para o clique (px de mundo). */
+  /** Rectangle of the sprite for the click (world px). */
   bx: number;
   by: number;
   bw: number;
@@ -148,7 +148,7 @@ interface BuildingCache {
 interface BlockInfo {
   bx: number;
   by: number;
-  /** Retângulo da célula (px). */
+  /** Rectangle of the cell (px). */
   cell: { x: number; y: number; w: number; h: number };
   lots: CityPoint[];
   keys: string[];
@@ -159,12 +159,12 @@ interface BlockInfo {
 export interface CityHighlight {
   building: string | null;
   player: string | null;
-  /** Porta perto de mim (mostra a dica do E ao lado da minha cabeça). */
+  /** Door near me (shows the E hint next to my head). */
   door: { x: number; y: number } | null;
   me?: { x: number; y: number } | null;
 }
 
-/** Quanto tempo cada personagem está na pose (para os quadros da animação). */
+/** How long each character has been in the pose (for the animation frames). */
 interface AnimState {
   pose: Pose;
   t: number;
@@ -172,7 +172,7 @@ interface AnimState {
 
 export class CityRenderer {
   readonly ctx: CanvasRenderingContext2D;
-  /** Prédios e personagens desenhados no último quadro (hit-test). */
+  /** Buildings and characters drawn in the last frame (hit-test). */
   readonly buildingsDrawn: BuildingVis[] = [];
   readonly charsDrawn: CharVis[] = [];
   private nb = 0;
@@ -198,17 +198,17 @@ export class CityRenderer {
   private ambientAt = -1e9;
   private lastNow = 0;
   private mode = '';
-  /** Hora forçada (?hora=21:30) ou null. */
+  /** Forced time (?hora=21:30) or null. */
   hourOverride: number | null = parseHourParam(typeof location === 'undefined' ? '' : location.search);
-  /** Fator noturno do último quadro. */
+  /** Night factor of the last frame. */
   night = 0;
   private readonly widths = new Map<string, number>();
-  /** Retângulos (px de tela) das placas desenhadas neste quadro: [x, y, w, h, ...]. */
+  /** Rectangles (screen px) of the signs drawn in this frame: [x, y, w, h, ...]. */
   private readonly signBoxes: number[] = [];
   private readonly labelBoxes: number[] = [];
-  /** Tempo do último quadro (ms) só do desenho, para a medição de desempenho. */
+  /** Time of the last frame (ms) for the drawing only, for the performance measurement. */
   lastFrameMs = 0;
-  /** Ganchos de desenho de quem estende a cena (CityFx). */
+  /** Drawing hooks of whoever extends the scene (CityFx). */
   fx: CityFx | null = null;
 
   constructor(
@@ -255,7 +255,7 @@ export class CityRenderer {
     return c;
   }
 
-  /** Modelo da fachada de um prédio (refeito só quando o que aparece nela muda). */
+  /** Model of a building's facade (rebuilt only when what appears on it changes). */
   facadeOf(b: WorldBuildingPublic): FacadeModel {
     const a = b.agents;
     const sig = `${b.floors}|${b.state}|${b.theme}|${a ? `${a.total},${a.working},${a.waiting}` : '-'}|${b.lot.x},${b.lot.y}`;
@@ -279,7 +279,7 @@ export class CityRenderer {
     return e.a;
   }
 
-  /** Pose e tempo nela (reinicia a animação ao trocar de pose). */
+  /** Pose and time in it (restarts the animation on changing pose). */
   private animOf(id: string, pose: Pose, dt: number): number {
     let a = this.anims.get(id);
     if (!a) this.anims.set(id, (a = { pose, t: 0 }));
@@ -294,7 +294,7 @@ export class CityRenderer {
     this.anims.delete(id);
   }
 
-  // ------------------------------------------------------------------ ambiente (dia e noite)
+  // ------------------------------------------------------------------ environment (day and night)
 
   private updateAmbient(now: number, opts: WorldOptions): void {
     const mode = daylightModeOf(opts);
@@ -317,7 +317,7 @@ export class CityRenderer {
 
   private map: HTMLCanvasElement | null = null;
 
-  /** Mapa de luz da noite (meia resolução da tela). */
+  /** Night light map (half the screen resolution). */
   private lightMap(W: number, H: number): HTMLCanvasElement | null {
     const w = Math.max(1, Math.ceil(W / LIGHT_MAP_SCALE));
     const h = Math.max(1, Math.ceil(H / LIGHT_MAP_SCALE));
@@ -333,7 +333,7 @@ export class CityRenderer {
     }
   }
 
-  // ------------------------------------------------------------------ quadro
+  // ------------------------------------------------------------------ frame
 
   frame(now: number, dt: number, opts: WorldOptions, me: { player: LocalPlayer; self: WorldSceneMe } | null, hl: CityHighlight): void {
     const t0 = performance.now();
@@ -359,7 +359,7 @@ export class CityRenderer {
     const small = camera.zoom >= SMALL_DECOR_ZOOM;
     const range = blockRange({ x0: vx0, y0: vy0, x1: vx1, y1: vy1 });
 
-    // ---- chão: uma imagem por célula e o jardim de cada lote vazio
+    // ---- ground: one image per cell and the garden of each empty lot
     const ents = this.ents;
     ents.length = 0;
     let used = 0;
@@ -408,7 +408,7 @@ export class CityRenderer {
             const x = lx + TILE;
             const y = north ? ly : ly + 12 * TILE - m.height;
             if (!visible(x, y, FACADE.w + FACADE.shadow, m.height)) continue;
-            // gerar um sprite custa ~1 ms: no máximo alguns por quadro (afastar o zoom de uma vez não engasga)
+            // generating a sprite costs ~1 ms: at most a few per frame (zooming out all at once doesn't stutter)
             let s: FacadeSprites | null = null;
             if (facadeReady(m)) s = facadeSprites(m);
             else if (made < SPRITES_PER_FRAME) {
@@ -432,7 +432,7 @@ export class CityRenderer {
     }
     this.buildingsDrawn.length = this.nb;
 
-    // ---- personagens: eu e os outros (um pouco atrás, interpolados; o atraso acompanha a cadência de cada um)
+    // ---- characters: me and the others (a little behind, interpolated; the delay follows each one's cadence)
     this.nc = 0;
     for (const [id, rp] of this.state.players) {
       const target = interpDelay(rp.samples);
@@ -442,7 +442,7 @@ export class CityRenderer {
     }
     if (me) {
       const p = me.player;
-      // parado em cima de um banco = sentado (só o desenho: a direção que vai no `move` não muda)
+      // stopped on top of a bench = seated (only the drawing: the direction that goes in the `move` doesn't change)
       const seated = !p.moving && this.onBench(p.x, p.y);
       const pose: Pose = seated ? 'sit' : p.moving ? (p.running ? 'run' : 'walk') : 'stand';
       const v = this.takeChar(me.self.id, me.self.name, true, p.x * TILE, p.y * TILE, seated ? 'down' : p.dir, pose, this.animOf(me.self.id, pose, dt), this.appearanceOf(me.self.id, me.self.look, me.self.parts));
@@ -453,7 +453,7 @@ export class CityRenderer {
     this.fx?.props?.({ x0: vx0, y0: vy0, x1: vx1, y1: vy1 }, (p) => push(K.Fx, p.y, p));
     ents.sort((a, b) => a.y - b.y || a.k - b.k);
 
-    // ---- entidades
+    // ---- entities
     for (const e of ents) {
       if (e.k === K.Decor) this.drawDecor(e.ref as Decor, now);
       else if (e.k === K.Building) this.drawBuilding(e.ref as BuildingVis, now, hl.building === (e.ref as BuildingVis).b.id);
@@ -461,8 +461,8 @@ export class CityRenderer {
       else this.drawChar(e.ref as CharVis, hl.player === (e.ref as CharVis).id);
     }
 
-    // ---- noite: mapa de luz (o tom do céu, com as janelas acesas, letreiros e a luz dos postes clareando) multiplicado
-    // sobre a cena; depois, só o brilho das lâmpadas por cima
+    // ---- night: light map (the sky tone, with the lit windows, signboards and the lamppost light brightening it)
+    // multiplied over the scene; then, only the glow of the lamps on top
     const amb = this.ambient;
     if (!isNeutral(amb)) {
       const map = this.lightMap(W, H);
@@ -494,7 +494,7 @@ export class CityRenderer {
         ctx.drawImage(map, 0, 0, map.width, map.height, 0, 0, map.width * ms, map.height * ms);
         ctx.restore();
         if (n > 0.02) {
-          // lâmpadas acesas (o brilho que vaza por cima)
+          // lit lamps (the glow that spills over the top)
           ctx.save();
           ctx.globalCompositeOperation = 'lighter';
           const head = glowSprite('#fff1c8', 24);
@@ -504,11 +504,11 @@ export class CityRenderer {
         }
       }
     }
-    // janelas de quem espera piscam por cima de tudo (também de dia)
+    // windows of whoever is waiting blink on top of everything (also by day)
     this.drawWaiting(now);
     this.fx?.world?.(ctx, now, { x0: vx0, y0: vy0, x1: vx1, y1: vy1 });
 
-    // ---- espaço de tela: placas, nomes e dicas
+    // ---- screen space: signs, names and hints
     this.overlay(now, opts, hl);
     this.lastFrameMs = performance.now() - t0;
   }
@@ -537,14 +537,14 @@ export class CityRenderer {
     const x = s.x * TILE;
     const y = s.y * TILE;
     if (!visible(x - 24, y - 48, 48, 56)) return null;
-    // parado em cima de um banco = sentado (quem parou num banco, ausente ou não)
+    // stopped on top of a bench = seated (whoever stopped on a bench, away or not)
     const seated = !s.moving && this.onBench(s.x, s.y);
     const pose: Pose = seated ? 'sit' : s.moving ? (s.speed > 4.6 ? 'run' : 'walk') : 'stand';
     const dir = seated ? 'down' : PROTO_TO_DIR[s.dir] ?? 'down';
     return this.takeChar(id, rp.info.name, false, x, y, dir, pose, this.animOf(id, pose, dt), this.appearanceOf(id, rp.info.look, rp.info.parts));
   }
 
-  /** Decorações com assento (bancos) nos quarteirões em volta de (x, y) tiles: calçadas, praça e jardins. */
+  /** Decorations with a seat (benches) in the blocks around (x, y) tiles: sidewalks, square and gardens. */
   seatsNear(x: number, y: number, out: Decor[] = []): Decor[] {
     out.length = 0;
     const home = blockAt(x, y);
@@ -564,13 +564,13 @@ export class CityRenderer {
 
   private readonly seatScratch: Decor[] = [];
 
-  /** Há um assento de banco a menos de meio tile de (x, y) tiles? */
+  /** Is there a bench seat less than half a tile from (x, y) tiles? */
   onBench(x: number, y: number): boolean {
     for (const d of this.seatsNear(x, y, this.seatScratch)) if (d.seat && Math.abs(d.seat.x - x) < 0.5 && Math.abs(d.seat.y - y) < 0.5) return true;
     return false;
   }
 
-  // ------------------------------------------------------------------ peças
+  // ------------------------------------------------------------------ pieces
 
   private drawDecor(d: Decor, now: number): void {
     const { ctx } = this;
@@ -592,13 +592,13 @@ export class CityRenderer {
     ctx.drawImage(s.canvas, Math.round(d.x - s.ax), Math.round(d.y - s.ay));
   }
 
-  /** Água da fonte: o jato no topo, a cortina que cai das taças, ondinhas na bacia e brilhos. */
+  /** Fountain water: the jet at the top, the curtain that falls from the bowls, ripples in the basin and sparkles. */
   private drawFountainWater(ox: number, oy: number, f: ReturnType<typeof fountainCanvas>, now: number): void {
     const { ctx } = this;
     const t = now / 1000;
     const jx = ox + f.jet.x;
     const jy = oy + f.jet.y;
-    // jato: gotas subindo e caindo em arco para os dois lados
+    // jet: drops rising and falling in an arc to both sides
     ctx.fillStyle = 'rgba(220,240,255,0.95)';
     ctx.fillRect(Math.round(jx), Math.round(jy - 8), 1, 8);
     for (let i = 0; i < 14; i++) {
@@ -608,7 +608,7 @@ export class CityRenderer {
       const y = jy - 8 - Math.sin(ph * Math.PI) * 6 + ph * ph * 12;
       ctx.fillRect(Math.round(x), Math.round(y), 1, 1 + (i % 2));
     }
-    // cortinas caindo das bordas das taças
+    // curtains falling from the rims of the bowls
     ctx.fillStyle = 'rgba(200,232,252,0.7)';
     for (const [r, top, len] of [
       [8, f.jet.y + 7, 12],
@@ -622,7 +622,7 @@ export class CityRenderer {
         }
       }
     }
-    // ondinhas na bacia
+    // ripples in the basin
     const w = f.water;
     ctx.strokeStyle = 'rgba(214,238,255,0.55)';
     ctx.lineWidth = 1;
@@ -663,7 +663,7 @@ export class CityRenderer {
     this.fx?.building?.(ctx, v, now);
   }
 
-  /** Janelas `waiting` piscando devagar em âmbar. */
+  /** `waiting` windows blinking slowly in amber. */
   private drawWaiting(now: number): void {
     const { ctx } = this;
     const pulse = 0.5 + 0.5 * Math.sin(now / 420);
@@ -688,7 +688,7 @@ export class CityRenderer {
   private drawChar(v: CharVis, hovered: boolean): void {
     const { ctx } = this;
     const x = Math.round(v.x);
-    // sentado no banco: o corpo sobe até o assento (a profundidade continua a do pé, na frente do banco)
+    // seated on the bench: the body rises to the seat (the depth stays that of the foot, in front of the bench)
     const y = Math.round(v.y) - (v.pose === 'sit' ? SEAT_LIFT : 0);
     if (v.pose !== 'sit') {
       const sh = shadowSprite();
@@ -735,7 +735,7 @@ export class CityRenderer {
     }
   }
 
-  // ------------------------------------------------------------------ espaço de tela
+  // ------------------------------------------------------------------ screen space
 
   private measure(font: string, text: string): number {
     const key = `${font}|${text}`;
@@ -774,7 +774,7 @@ export class CityRenderer {
     const zoom = camera.zoom;
     const night = this.night;
 
-    // placas dos prédios: bandeira, nome do dono e ❤️ likes, no letreiro
+    // building signs: flag, owner's name and ❤️ likes, on the signboard
     const signs = this.signBoxes;
     signs.length = 0;
     if (zoom >= SIGN_ZOOM) {
@@ -814,7 +814,7 @@ export class CityRenderer {
       }
     }
 
-    // nomes sobre as cabeças (o meu sempre; os outros com "mostrar nomes"); uma etiqueta não cobre a outra
+    // names over the heads (mine always; the others with "show names"); one label doesn't cover another
     if (zoom >= NAME_ZOOM) {
       const font = `600 10.5px ${UI_FONT}`;
       ctx.font = font;
@@ -828,7 +828,7 @@ export class CityRenderer {
         const w = this.measure(font, name) + 10;
         const cx = sx(v.x);
         let top = sy(v.headY) - 17;
-        // a etiqueta não cobre a placa de um prédio: sobe para cima dela
+        // the label doesn't cover a building's sign: it moves up above it
         for (let j = 0; j < signs.length; j += 4) {
           const bx = signs[j]!;
           const by = signs[j + 1]!;
@@ -863,13 +863,13 @@ export class CityRenderer {
       }
     }
 
-    // dica da porta: "Entrar (E)" perto da porta de um prédio (a até 2 tiles da frente dela)
+    // door hint: "Enter (E)" near a building's door (up to 2 tiles from the front of it)
     if (hl.door && hl.me && zoom >= 0.7) {
-      // ao lado da cabeça do meu personagem
+      // next to my character's head
       const x = sx(hl.me.x * TILE) + 12 + 7 * Math.min(2, zoom);
       const y = sy(hl.me.y * TILE) - 20 * Math.min(2.2, Math.max(0.8, zoom));
       const bounce = Math.round(Math.sin(now / 240) * 2);
-      const label = tr('Entrar (E)');
+      const label = tr('Enter (E)');
       ctx.font = `700 11px ${UI_FONT}`;
       const w = Math.ceil(ctx.measureText(label).width) + 16;
       const left = Math.round(x - 10);
@@ -888,7 +888,7 @@ export class CityRenderer {
     void night;
   }
 
-  /** Porta (ponto da calçada) de um lote, em tiles. */
+  /** Door (sidewalk point) of a lot, in tiles. */
   static doorFront(lot: CityPoint): CityPoint {
     return lotDoor(lot).front;
   }

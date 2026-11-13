@@ -1,6 +1,6 @@
-// "Meu dia": funções puras do painel (sem DOM), testadas em ui/daystats-model.test.ts. Recebem o DayStats da
-// API (shared/daystats.ts) e devolvem o que a tela desenha: destaques, barras empilhadas por status com escala
-// comum, colunas por hora com eixo "redondo", participação das contas, ranking de esperas e rótulos.
+// "My day": pure functions of the panel (no DOM), tested in ui/daystats-model.test.ts. They receive the DayStats
+// from the API (shared/daystats.ts) and return what the screen draws: highlights, bars stacked by status with a
+// common scale, columns per hour with a "round" axis, the share of the accounts, ranking of waits and labels.
 import {
   TIMED_STATUSES,
   totalMs,
@@ -16,17 +16,17 @@ import {
 import { formatInt, formatTokens, formatUSD } from './format';
 import { intlLocale, tr } from '../../../shared/i18n';
 
-/** Rótulos dos status no painel (o mesmo vocabulário do escritório, do ponto de vista de quem espera). */
+/** Labels of the statuses in the panel (the same vocabulary as the office, from the point of view of who waits). */
 export const STATUS_TEXT: Record<TimedStatus, string> = {
-  waiting: tr('Esperando você'),
-  working: tr('Trabalhando'),
-  idle: tr('Ocioso'),
-  shell: tr('Esperando o shell'),
+  waiting: tr('Waiting on you'),
+  working: tr('Working'),
+  idle: tr('Idle'),
+  shell: tr('Waiting on shell'),
 };
 
 /**
- * Tempo de agente: "12 s", "3 min", "2 h 10 min" e, passando de um dia, "27 h 5 min" (a soma de vários agentes
- * passa de 24 h sem virar "dias").
+ * Agent time: "12 s", "3 min", "2 h 10 min" and, past one day, "27 h 5 min" (the sum of several agents
+ * goes past 24 h without becoming "days").
  */
 export function formatAgentTime(ms: number): string {
   const v = Number.isFinite(ms) ? Math.max(0, ms) : 0;
@@ -37,7 +37,7 @@ export function formatAgentTime(ms: number): string {
   return m ? `${h} h ${m} min` : `${h} h`;
 }
 
-/** Statuses visíveis (a legenda liga e desliga cada um), sempre na ordem de empilhamento. */
+/** Visible statuses (the legend turns each one on and off), always in stacking order. */
 export type Visible = ReadonlySet<TimedStatus>;
 
 export const ALL_VISIBLE: Visible = new Set(TIMED_STATUSES);
@@ -49,30 +49,30 @@ export function visibleTotal(ms: StatusMs, visible: Visible): number {
 export interface Segment {
   status: TimedStatus;
   ms: number;
-  /** Largura (ou altura) em % da escala. */
+  /** Width (or height) in % of the scale. */
   pct: number;
 }
 
-/** Pedaços de uma barra empilhada (só os status visíveis e não vazios), em % de `scale`. */
+/** Pieces of a stacked bar (only the visible, non-empty statuses), in % of `scale`. */
 export function segments(ms: StatusMs, visible: Visible, scale: number): Segment[] {
   if (!(scale > 0)) return [];
   return TIMED_STATUSES.filter((s) => visible.has(s) && ms[s] > 0).map((s) => ({ status: s, ms: ms[s], pct: (ms[s] / scale) * 100 }));
 }
 
-/** Frase com cada status (para leitores de tela e tabelas): "esperando você 12 min, trabalhando 1 h 5 min". */
+/** Sentence with each status (for screen readers and tables): "waiting on you 12 min, working 1 h 5 min". */
 export function statusSummary(ms: StatusMs, visible: Visible = ALL_VISIBLE): string {
   const parts = TIMED_STATUSES.filter((s) => visible.has(s) && ms[s] > 0).map((s) => `${STATUS_TEXT[s].toLowerCase()} ${formatAgentTime(ms[s])}`);
-  return parts.length ? parts.join(', ') : tr('sem tempo registrado');
+  return parts.length ? parts.join(', ') : tr('no time recorded');
 }
 
-// ---------------------------------------------------------------- destaques
+// ---------------------------------------------------------------- highlights
 
 export interface Highlights {
   waiting: string;
   waitingMs: number;
-  /** "12 min · Marina em loja, às 14:32" (ou vazio, sem esperas). */
+  /** "12 min · Marina in loja, at 14:32" (or empty, with no waits). */
   longest: string;
-  /** "Alguém esperou por você durante 35 min" (tempo de relógio). */
+  /** "Someone waited on you for 35 min" (clock time). */
   wall: string;
   waits: string;
   working: string;
@@ -80,17 +80,17 @@ export interface Highlights {
   subagents: string;
   tokens: string;
   tokensDetail: string;
-  /** "—" quando os transcripts não trouxeram custo. */
+  /** "—" when the transcripts brought no cost. */
   cost: string;
   costHint: string;
   prompts: string;
-  /** "84 ferramentas · 6 tarefas concluídas" */
+  /** "84 tools · 6 tasks completed" */
   activity: string;
 }
 
 /**
- * `codex` = alguma conta do Codex trabalhou no dia: o custo é só o do Claude Code (o Codex não grava custo, só
- * tokens), e a dica diz isso.
+ * `codex` = some Codex account worked during the day: the cost is only that of Claude Code (Codex doesn't record
+ * cost, only tokens), and the hint says so.
  */
 export function highlights(stats: DayStats, clock: (t: number) => string, codex = false): Highlights {
   const t = stats.totals;
@@ -100,31 +100,31 @@ export function highlights(stats: DayStats, clock: (t: number) => string, codex 
   return {
     waiting: formatAgentTime(t.ms.waiting),
     waitingMs: t.ms.waiting,
-    longest: top ? tr('{0} · {1} em {2}, às {3}{4}', [formatAgentTime(top.ms), top.agentName, top.roomName, clock(top.start), top.ongoing ? tr(' (ainda esperando)') : '']) : '',
-    wall: t.waitWallMs > 0 ? tr('Alguém esperou por você durante {0} do dia', [formatAgentTime(t.waitWallMs)]) : '',
-    waits: t.waits ? plural(t.waits, tr('espera'), tr('esperas')) : t.ms.waiting > 0 ? tr('só esperas de poucos segundos') : tr('nenhuma espera'),
+    longest: top ? tr('{0} · {1} in {2}, at {3}{4}', [formatAgentTime(top.ms), top.agentName, top.roomName, clock(top.start), top.ongoing ? tr(' (still waiting)') : '']) : '',
+    wall: t.waitWallMs > 0 ? tr('Someone waited on you for {0} of the day', [formatAgentTime(t.waitWallMs)]) : '',
+    waits: t.waits ? plural(t.waits, tr('wait'), tr('waits')) : t.ms.waiting > 0 ? tr('only waits of a few seconds') : tr('no waits'),
     working: formatAgentTime(t.ms.working),
     sessions: formatInt(t.sessions),
-    subagents: plural(t.subagents, tr('subagente'), tr('subagentes')),
+    subagents: plural(t.subagents, tr('subagent'), tr('subagents')),
     tokens: formatTokens(c.tokensIn + c.tokensOut),
-    tokensDetail: tr('{0} entrada · {1} saída', [formatTokens(c.tokensIn), formatTokens(c.tokensOut)]),
+    tokensDetail: tr('{0} in · {1} out', [formatTokens(c.tokensIn), formatTokens(c.tokensOut)]),
     cost: c.costUSD > 0 ? formatUSD(c.costUSD) : '—',
     costHint:
       c.costUSD > 0
         ? codex
-          ? tr('Só do Claude Code: o Codex não grava custo, só tokens')
-          : tr('Custo calculado pelo próprio Claude Code')
+          ? tr("Claude Code only: Codex doesn't record cost, only tokens")
+          : tr('Cost calculated by Claude Code itself')
         : c.tokensIn + c.tokensOut > 0
           ? codex
-            ? tr('O Codex não grava custo, só tokens')
-            : tr('Os transcripts não trouxeram o custo')
-          : tr('Nenhum gasto registrado'),
+            ? tr("Codex doesn't record cost, only tokens")
+            : tr("The transcripts didn't include the cost")
+          : tr('No spending recorded'),
     prompts: formatInt(c.prompts),
-    activity: `${plural(c.toolCalls, tr('ferramenta'), tr('ferramentas'))} · ${plural(c.tasksDone, tr('tarefa concluída'), tr('tarefas concluídas'))}`,
+    activity: `${plural(c.toolCalls, tr('tool'), tr('tools'))} · ${plural(c.tasksDone, tr('task completed'), tr('tasks completed'))}`,
   };
 }
 
-// ---------------------------------------------------------------- por projeto
+// ---------------------------------------------------------------- by project
 
 export interface RoomRow {
   id: string;
@@ -132,14 +132,14 @@ export interface RoomRow {
   ms: StatusMs;
   total: number;
   segments: Segment[];
-  /** "12 min esperando você" */
+  /** "12 min waiting on you" */
   waiting: string;
-  /** "3 h 10 min no total" */
+  /** "3 h 10 min total" */
   totalText: string;
   label: string;
 }
 
-/** Barras por projeto: escala comum (o maior total visível), na ordem da API (quem mais esperou você primeiro). */
+/** Bars by project: common scale (the largest visible total), in the API's order (who waited on you most first). */
 export function roomRows(rooms: readonly RoomDayStats[], visible: Visible): RoomRow[] {
   const scale = Math.max(0, ...rooms.map((r) => visibleTotal(r.ms, visible)));
   return rooms
@@ -152,29 +152,29 @@ export function roomRows(rooms: readonly RoomDayStats[], visible: Visible): Room
         ms: r.ms,
         total,
         segments: segments(r.ms, visible, scale),
-        waiting: tr('{0} esperando você', [formatAgentTime(r.ms.waiting)]),
-        totalText: tr('{0} no total', [formatAgentTime(total)]),
+        waiting: tr('{0} waiting on you', [formatAgentTime(r.ms.waiting)]),
+        totalText: tr('{0} total', [formatAgentTime(total)]),
         label: `${r.name}: ${statusSummary(r.ms, visible)}`,
       };
     });
 }
 
-// ---------------------------------------------------------------- por hora
+// ---------------------------------------------------------------- by hour
 
 export interface AxisScale {
-  /** Topo do eixo (ms). */
+  /** Top of the axis (ms). */
   max: number;
-  /** Marcas (ms), de baixo para cima, sem o zero. */
+  /** Ticks (ms), from bottom to top, without the zero. */
   ticks: number[];
 }
 
 const NICE_MINUTES = [5, 10, 15, 20, 30, 45, 60, 90, 120, 180, 240, 300, 360, 480, 600, 720, 960, 1200, 1440];
 
-/** Eixo vertical "redondo" para `value` (ms de agente numa hora; passa de 60 min com vários agentes). */
+/** "Round" vertical axis for `value` (agent ms in one hour; goes past 60 min with several agents). */
 export function niceAxis(value: number): AxisScale {
   const minutes = Math.max(1, value / 60_000);
   const top = NICE_MINUTES.find((m) => m >= minutes) ?? Math.ceil(minutes / 1440) * 1440;
-  // 2 a 4 marcas em partes iguais e redondas: múltiplos de 1 h (ou de 30 min) a partir de 2 h; de 5 min abaixo disso.
+  // 2 to 4 ticks in equal, round parts: multiples of 1 h (or of 30 min) from 2 h up; of 5 min below that.
   const steps = top >= 120 ? [60, 30] : [5];
   let parts = 1;
   for (const unit of steps) {
@@ -188,7 +188,7 @@ export function niceAxis(value: number): AxisScale {
   return { max: top * 60_000, ticks: Array.from({ length: parts }, (_, i) => (i + 1) * step * 60_000) };
 }
 
-/** Rótulo curto de uma marca do eixo: "30 min", "1 h", "1 h 30", "2 h". */
+/** Short label of an axis tick: "30 min", "1 h", "1 h 30", "2 h". */
 export function axisLabel(ms: number): string {
   const min = Math.round(ms / 60_000);
   if (min < 60) return `${min} min`;
@@ -206,11 +206,11 @@ export interface HourColumn {
   /** "14h–15h" */
   range: string;
   label: string;
-  /** Hora em curso (só no dia de hoje). */
+  /** Hour in progress (only on today). */
   now: boolean;
-  /** Hora que ainda não chegou (hoje, depois de agora). */
+  /** Hour that hasn't come yet (today, after now). */
   future: boolean;
-  /** Rótulo do eixo X nesta coluna (a cada `every` horas). */
+  /** X axis label on this column (every `every` hours). */
   tick: boolean;
 }
 
@@ -236,27 +236,30 @@ export function hourColumns(hours: readonly HourDayStats[], visible: Visible, no
   return { columns, axis };
 }
 
-// ---------------------------------------------------------------- por conta
+// ---------------------------------------------------------------- by account
 
 export interface AccountCard {
   id: string;
   name: string;
   short: string;
   color: string;
-  /** Participação no tempo de trabalho do dia (0–100). */
+  /** Share of the day's work time (0–100). */
   share: number;
   shareText: string;
   working: string;
   waiting: string;
   sessions: string;
   tokens: string;
-  /** null = conta do Codex (ele não grava custo: o cartão mostra só os tokens). */
+  /** null = Codex account (it doesn't record cost: the card shows only the tokens). */
   cost: string | null;
-  /** Conta do Codex (chip vazado). */
+  /** Codex account (hollow chip). */
   codex: boolean;
 }
 
-/** `isCodex` diz quais contas são do Codex (o protocolo do dia não traz a ferramenta: vem do snapshot ou do id). */
+/**
+* `isCodex` says which accounts are Codex's (the day's protocol doesn't carry the tool: it comes from the snapshot
+* or from the id).
+*/
 export function accountCards(accounts: readonly AccountDayStats[], isCodex: (id: string) => boolean = () => false): AccountCard[] {
   const work = accounts.reduce((n, a) => n + a.ms.working, 0);
   return accounts
@@ -270,10 +273,10 @@ export function accountCards(accounts: readonly AccountDayStats[], isCodex: (id:
         short: a.short,
         color: a.color,
         share,
-        shareText: tr('{0}% do trabalho do dia', [share]),
+        shareText: tr("{0}% of the day's work", [share]),
         working: formatAgentTime(a.ms.working),
         waiting: formatAgentTime(a.ms.waiting),
-        sessions: `${formatInt(a.sessions)} ${a.sessions === 1 ? tr('sessão') : tr('sessões')}${a.subagents ? ` · ${formatInt(a.subagents)} sub` : ''}`,
+        sessions: `${formatInt(a.sessions)} ${a.sessions === 1 ? tr('session') : tr('sessions')}${a.subagents ? ` · ${formatInt(a.subagents)} sub` : ''}`,
         tokens: formatTokens(a.counts.tokensIn + a.counts.tokensOut),
         cost: codex ? null : a.counts.costUSD > 0 ? formatUSD(a.counts.costUSD) : '—',
         codex,
@@ -281,13 +284,13 @@ export function accountCards(accounts: readonly AccountDayStats[], isCodex: (id:
     });
 }
 
-// ---------------------------------------------------------------- maiores esperas
+// ---------------------------------------------------------------- longest waits
 
 export interface WaitRow {
   key: string;
   rank: number;
   duration: string;
-  /** Largura da barrinha (% da maior espera). */
+  /** Width of the small bar (% of the longest wait). */
   pct: number;
   agentName: string;
   roomName: string;
@@ -302,7 +305,7 @@ export interface WaitRow {
 export function waitRows(waits: readonly WaitDayStats[], clock: (t: number) => string): WaitRow[] {
   const longest = Math.max(1, ...waits.map((w) => w.ms));
   return waits.map((w, i) => {
-    const when = w.ongoing ? tr('desde {0}', [clock(w.start)]) : `${clock(w.start)}–${clock(w.end)}`;
+    const when = w.ongoing ? tr('since {0}', [clock(w.start)]) : `${clock(w.start)}–${clock(w.end)}`;
     const row: WaitRow = {
       key: `${w.agentId}|${w.start}`,
       rank: i + 1,
@@ -313,16 +316,16 @@ export function waitRows(waits: readonly WaitDayStats[], clock: (t: number) => s
       account: w.account,
       when,
       ongoing: !!w.ongoing,
-      label: `${i + 1}º: ${formatAgentTime(w.ms)}, ${w.agentName} em ${w.roomName}, ${when}${w.reason ? tr(', para {0}', [w.reason]) : ''}${w.ongoing ? tr(', ainda esperando') : ''}`,
+      label: `${i + 1}. ${formatAgentTime(w.ms)}, ${w.agentName} in ${w.roomName}, ${when}${w.reason ? tr(', for {0}', [w.reason]) : ''}${w.ongoing ? tr(', still waiting') : ''}`,
     };
     if (w.reason) row.reason = w.reason;
     return row;
   });
 }
 
-// ---------------------------------------------------------------- tabelas (o gêmeo acessível de cada gráfico)
+// ---------------------------------------------------------------- tables (the accessible twin of each chart)
 
-/** Linhas de tabela de status: [nome, cada status visível..., total]. */
+/** Rows of a status table: [name, each visible status..., total]. */
 export function statusTable<T extends { ms: StatusMs }>(items: readonly T[], name: (item: T) => string, visible: Visible): { head: string[]; rows: string[][] } {
   const cols = TIMED_STATUSES.filter((s) => visible.has(s));
   return {
@@ -331,17 +334,17 @@ export function statusTable<T extends { ms: StatusMs }>(items: readonly T[], nam
   };
 }
 
-// ---------------------------------------------------------------- dias, URLs e atualização
+// ---------------------------------------------------------------- days, URLs and refresh
 
 const weekdayFmt = new Intl.DateTimeFormat(intlLocale(), { weekday: 'short', day: '2-digit', month: '2-digit', timeZone: 'UTC' });
 
-/** "Hoje", "Ontem" ou "qui., 01/10" (a data de "AAAA-MM-DD", sem depender do fuso). */
+/** "Today", "Yesterday" or "Thu, 10/01" (the date from "YYYY-MM-DD", without depending on the time zone). */
 export function dayLabel(day: string, today: string): string {
-  if (day === today) return tr('Hoje');
+  if (day === today) return tr('Today');
   const [y, m, d] = day.split('-').map(Number);
   const t = Date.UTC(y, m - 1, d);
   const [ty, tm, td] = today.split('-').map(Number);
-  if (Date.UTC(ty, tm - 1, td) - t === 86_400_000) return tr('Ontem');
+  if (Date.UTC(ty, tm - 1, td) - t === 86_400_000) return tr('Yesterday');
   return weekdayFmt.format(t);
 }
 
@@ -355,12 +358,12 @@ export function daysUrl(tz: string): string {
   return `/api/stats/days?${new URLSearchParams({ tz })}`;
 }
 
-/** O painel se atualiza sozinho só aberto e no dia de hoje. */
+/** The panel refreshes by itself only when open and on today. */
 export function shouldRefresh(open: boolean, day: string, today: string): boolean {
   return open && day === today;
 }
 
-/** O dia não tem nada para mostrar? */
+/** Does the day have nothing to show? */
 export function isEmptyDay(stats: DayStats): boolean {
   return totalMs(stats.totals.ms) === 0 && stats.totals.counts.tokensIn === 0 && stats.waits.length === 0;
 }

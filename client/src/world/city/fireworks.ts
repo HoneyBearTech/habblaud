@@ -1,10 +1,10 @@
-// A praça da cidade (Fase 5): o termômetro da meta coletiva da semana ("10 mil horas de agentes trabalhando"), a placa
-// da prefeitura ("a cidade consumiu ≈ X esta semana" e os prédios acesos), os fogos quando a meta é batida (20 s) e o
-// enfeite da semana para todos depois disso (bandeirinhas entre os postes e, da segunda meta em diante, o enfeite da
-// estação: abóboras em outubro, árvore e presentes no fim do ano). Tudo cosmético e no navegador, a partir do `city` e
-// do `city.fireworks` (o servidor só soma, e só com 10 prédios acesos ou mais).
-// Modelos puros (testados); o desenho é em px de mundo (as placas e os enfeites com profundidade, os fogos por cima da
-// noite) e os textos das placas em espaço de tela (nítidos, como as placas dos prédios).
+// The city square (Phase 5): the thermometer of the week's collective goal ("10 thousand hours of agents working"),
+// the city hall sign ("the city used ≈ X this week" and the lit buildings), the fireworks when the goal is reached
+// (20 s) and the week's decoration for everyone after that (pennants between the lampposts and, from the second goal
+// on, the season's decoration: pumpkins in October, tree and presents at the end of the year). All cosmetic and in
+// the browser, from `city` and `city.fireworks` (the server only adds up, and only with 10 lit buildings or more).
+// Pure models (tested); the drawing is in world px (the signs and the decorations with depth, the fireworks on top
+// of the night) and the sign texts in screen space (sharp, like the building nameplates).
 import { tr } from '../../../../shared/i18n';
 import { blockOrigin, FOUNTAIN, PLAZA } from '../../../../shared/world/city';
 import { CITY_GOAL_IDS, type CityGoal } from '../../../../shared/world/protocol';
@@ -14,25 +14,25 @@ import { renderSeasonalProp, type SeasonalProp } from '../../art/seasonal';
 import { TILE } from '../../art/api';
 import { CONFETTI_COLORS, Particles } from '../render/particles';
 
-/** Duração dos fogos na praça. */
+/** Duration of the fireworks in the square. */
 export const FIREWORKS_MS = 20_000;
 
-// ------------------------------------------------------------------ modelos
+// ------------------------------------------------------------------ models
 
 export interface GoalView {
-  /** 0..1 da meta da semana. */
+  /** 0..1 of the week's goal. */
   pct: number;
   /** "80%". */
   pctText: string;
-  /** "10 mil horas de agentes trabalhando". */
+  /** "10 thousand hours of agents working". */
   label: string;
-  /** "8 mil de 10 mil h". */
+  /** "8 thousand of 10 thousand h". */
   progressText: string;
-  /** Metas batidas nesta semana (0 a 3): o enfeite da praça. */
+  /** Goals reached this week (0 to 3): the square's decoration. */
   reached: number;
 }
 
-/** Quantas metas da semana já foram batidas (a do `goal` é a primeira não batida, ou a última, já batida). */
+/** How many of the week's goals are reached (the `goal` one is the first not reached, or the last, already reached). */
 export function goalsReached(goal: CityGoal | undefined): number {
   if (!goal) return 0;
   const i = CITY_GOAL_IDS.indexOf(goal.label);
@@ -40,7 +40,7 @@ export function goalsReached(goal: CityGoal | undefined): number {
   return i + (goal.progress >= goal.target ? 1 : 0);
 }
 
-/** O termômetro: null sem meta (com menos de 10 prédios acesos o servidor não manda). */
+/** The thermometer: null with no goal (with fewer than 10 lit buildings the server does not send it). */
 export function goalView(city: WorldSceneCity | undefined | null): GoalView | null {
   const g = city?.goal;
   if (!g || !(g.target > 0)) return null;
@@ -49,29 +49,29 @@ export function goalView(city: WorldSceneCity | undefined | null): GoalView | nu
     pct,
     pctText: `${Math.floor(pct * 100)}%`,
     label: cityGoalLabel(g.label, g.target),
-    progressText: tr('{0} de {1} h', [compactNumber(Math.floor(g.progress)), compactNumber(g.target)]),
+    progressText: tr('{0} of {1} h', [compactNumber(Math.floor(g.progress)), compactNumber(g.target)]),
     reached: goalsReached(g),
   };
 }
 
-/** A meta que acabou de bater (`goalId` = "<segunda>:<CityGoalId>" do `city.fireworks`), cheia, durante os fogos. */
+/** The goal just reached (`goalId` = "<monday>:<CityGoalId>" from `city.fireworks`), full, during the fireworks. */
 export function reachedGoalView(goalId: string): GoalView | null {
   const label = goalId.slice(goalId.lastIndexOf(':') + 1) as CityGoal['label'];
   const i = CITY_GOAL_IDS.indexOf(label);
   if (i < 0) return null;
-  return { pct: 1, pctText: '100%', label: cityGoalLabel(label), progressText: tr('Meta batida!'), reached: i + 1 };
+  return { pct: 1, pctText: '100%', label: cityGoalLabel(label), progressText: tr('Goal reached!'), reached: i + 1 };
 }
 
-/** A placa da prefeitura: os tokens da semana da cidade (em faixa) e os prédios acesos. */
+/** The city hall sign: the city's tokens for the week (as a range) and the lit buildings. */
 export function cityHallView(city: WorldSceneCity | undefined | null): { tokens: string; lit: string } | null {
   if (!city) return null;
   return {
-    tokens: city.tokensBand === undefined ? tr('A soma aparece com 10 prédios ou mais.') : tr('A cidade consumiu ≈ {0} esta semana', [tokenBandText(city.tokensBand)]),
-    lit: city.lit === 1 ? tr('1 prédio aceso agora') : tr('{0} prédios acesos agora', [compactNumber(city.lit)]),
+    tokens: city.tokensBand === undefined ? tr('The total shows up with 10 buildings or more.') : tr('The city used ≈ {0} this week', [tokenBandText(city.tokensBand)]),
+    lit: city.lit === 1 ? tr('1 building lit now') : tr('{0} buildings lit now', [compactNumber(city.lit)]),
   };
 }
 
-/** O enfeite da estação (pela data de quem vê): abóboras em outubro, Natal de novembro a dezembro, festa no resto. */
+/** The season's decoration (by the viewer's date): pumpkins in October, Christmas November to December, party the rest. */
 export type Ornament = 'halloween' | 'christmas' | 'party';
 
 export function ornamentFor(date: Date): Ornament {
@@ -81,13 +81,13 @@ export function ornamentFor(date: Date): Ornament {
   return 'party';
 }
 
-// ------------------------------------------------------------------ onde as coisas ficam na praça (px de mundo)
+// ------------------------------------------------------------------ where things go in the square (world px)
 
 const O = blockOrigin(PLAZA);
 const PX = (t: number) => (O.x + t) * TILE;
 const PY = (t: number) => (O.y + t) * TILE;
 
-/** As duas placas (centro e base, px de mundo): o termômetro à esquerda do caminho norte, a prefeitura à direita. */
+/** The two signs (center and base, world px): the thermometer left of the north path, city hall on the right. */
 export const BOARDS = {
   goal: { x: PX(15.5), y: PY(7.6) },
   hall: { x: PX(26.5), y: PY(7.6) },
@@ -96,19 +96,19 @@ export const BOARDS = {
   posts: 12,
 } as const;
 
-/** O centro da fonte (px de mundo): de onde sobem os fogos. */
+/** The center of the fountain (world px): where the fireworks rise from. */
 export const FOUNTAIN_PX = { x: PX(FOUNTAIN.x + FOUNTAIN.w / 2), y: PY(FOUNTAIN.y + FOUNTAIN.h / 2) };
 
-/** Os postes da praça que seguram as bandeirinhas (px de mundo, a lâmpada). */
+/** The square's lampposts that hold the pennants (world px, the lamp). */
 export const BUNTING: ReadonlyArray<readonly [number, number, number, number]> = [
   [PX(12) + 8, PY(4) - 30, PX(30) + 8, PY(4) - 30],
   [PX(12) + 8, PY(19) - 30, PX(30) + 8, PY(19) - 30],
 ];
 
-// ------------------------------------------------------------------ fogos
+// ------------------------------------------------------------------ fireworks
 
 const SPARK_COLORS: readonly string[] = ['#ff5d73', '#ffd166', '#7cf3ff', '#b28dff', '#6dff9e', '#ff9f43', '#ffffff', '#ff7ad9'];
-/** Índice do branco (rastro dos foguetes). */
+/** Index of white (the rockets' trail). */
 const WHITE = 6;
 
 interface Rocket {
@@ -121,8 +121,8 @@ interface Rocket {
 }
 
 /**
- * Fogos de artifício: foguetes que sobem da praça e estouram em bolas de faíscas com um clarão (pool fixo em arrays
- * tipados, sem alocar por quadro), mais o confete do escritório (render/particles.ts) caindo na praça no começo.
+ * Fireworks: rockets that rise from the square and burst into balls of sparks with a flash (fixed pool in typed
+ * arrays, no allocation per frame), plus the office confetti (render/particles.ts) falling on the square at the start.
  */
 export class Fireworks {
   private readonly cap = 2400;
@@ -135,7 +135,7 @@ export class Fireworks {
   private readonly life = new Float32Array(this.cap);
   private readonly color = new Uint8Array(this.cap);
   private readonly rockets: Rocket[] = [];
-  /** Clarões dos estouros: x, y, cor e quando. */
+  /** Flashes of the bursts: x, y, color and when. */
   private readonly flashes: Array<{ x: number; y: number; color: number; at: number }> = [];
   readonly confetti = new Particles(500);
   private until = 0;
@@ -149,12 +149,12 @@ export class Fireworks {
     return this.n > 0 || this.rockets.length > 0 || this.confetti.count > 0 || this.flashes.length > 0;
   }
 
-  /** Os fogos estão no ar (até o fim dos 20 s). */
+  /** The fireworks are in the air (until the end of the 20 s). */
   showing(now: number): boolean {
     return now < this.until;
   }
 
-  /** Começa a festa: `ms` de foguetes, a primeira salva de quatro de uma vez e o confete. */
+  /** Starts the party: `ms` of rockets, the first volley of four at once and the confetti. */
   start(now: number, ms = FIREWORKS_MS): void {
     this.started = now;
     this.until = now + ms;
@@ -174,7 +174,7 @@ export class Fireworks {
   private launch(spread = this.random()): void {
     const x = FOUNTAIN_PX.x + (spread - 0.5) * 520;
     const burstY = FOUNTAIN_PX.y - 170 - this.random() * 120;
-    // sobe até o ponto do estouro em ~1 s, com um leve desvio de lado
+    // rises to the burst point in ~1 s, with a slight sideways drift
     this.rockets.push({ x, y: FOUNTAIN_PX.y - 6, vx: (this.random() - 0.5) * 30, vy: -(250 + this.random() * 60), burstY, color: Math.floor(this.random() * SPARK_COLORS.length) });
   }
 
@@ -197,7 +197,7 @@ export class Fireworks {
     const second = (r.color + 1 + Math.floor(this.random() * (SPARK_COLORS.length - 1))) % SPARK_COLORS.length;
     for (let i = 0; i < count; i++) {
       const a = (i / count) * Math.PI * 2 + this.random() * 0.15;
-      // anel (casca), bola cheia ou coração (o gesto da cidade)
+      // ring (shell), full ball or heart (the city's gesture)
       let s = kind < 0.3 ? speed : speed * Math.sqrt(0.15 + this.random() * 0.85);
       let dx = Math.cos(a);
       let dy = Math.sin(a);
@@ -218,7 +218,7 @@ export class Fireworks {
     if (now < this.until && now >= this.nextLaunch) {
       this.launch();
       if (this.random() < 0.45) this.launch();
-      // o "grand finale": nos últimos 15 %, uma salva atrás da outra
+      // the "grand finale": in the last 15 %, one volley after another
       const t = (now - this.started) / Math.max(1, this.until - this.started);
       this.nextLaunch = now + (t > 0.85 ? 120 : 300 + this.random() * 380);
     }
@@ -227,7 +227,7 @@ export class Fireworks {
       r.x += r.vx * d;
       r.y += r.vy * d;
       r.vy += 70 * d;
-      // rastro de faíscas do foguete
+      // the rocket's trail of sparks
       this.spark(r.x + (this.random() - 0.5) * 2, r.y + 3, (this.random() - 0.5) * 10, 14 + this.random() * 12, 0.45, WHITE);
       if (r.y <= r.burstY || r.vy >= -30) {
         this.burst(r);
@@ -258,12 +258,12 @@ export class Fireworks {
     this.confetti.update(d);
   }
 
-  /** Por cima de tudo (px de mundo): os clarões, os foguetes, as faíscas com brilho e o confete. */
+  /** On top of everything (world px): the flashes, the rockets, the sparks with glow and the confetti. */
   draw(ctx: CanvasRenderingContext2D, now: number, view: { x0: number; y0: number; x1: number; y1: number }, night: number): void {
     if (!this.active) return;
     ctx.save();
     const glow = 0.35 + night * 0.65;
-    // clarões dos estouros (somam luz: de noite, iluminam o céu em volta)
+    // flashes of the bursts (they add light: at night, they light up the sky around them)
     ctx.globalCompositeOperation = 'lighter';
     for (const f of this.flashes) {
       const t = (now - f.at) / 320;
@@ -276,7 +276,7 @@ export class Fireworks {
       ctx.fillStyle = g;
       ctx.fillRect(f.x - rad, f.y - rad, rad * 2, rad * 2);
     }
-    // brilho em volta de cada faísca
+    // glow around each spark
     for (let i = 0; i < this.n; i += 2) {
       const left = 1 - this.age[i] / this.life[i];
       ctx.globalAlpha = left * 0.22 * glow;
@@ -294,7 +294,7 @@ export class Fireworks {
       const y = Math.round(this.y[i]);
       if (x < view.x0 - 4 || x > view.x1 + 4 || y < view.y0 - 4 || y > view.y1 + 4) continue;
       const left = 1 - this.age[i] / this.life[i];
-      // piscam no fim da vida (o "crackle")
+      // they blink at the end of their life (the "crackle")
       if (left < 0.35 && Math.sin(now / 35 + i * 1.7) < 0) continue;
       ctx.globalAlpha = Math.min(1, left * 1.8);
       ctx.fillStyle = left > 0.75 ? '#fffbe8' : SPARK_COLORS[this.color[i] % SPARK_COLORS.length]!;
@@ -307,25 +307,25 @@ export class Fireworks {
   }
 }
 
-// ------------------------------------------------------------------ as placas da praça (px de mundo)
+// ------------------------------------------------------------------ the square's signs (world px)
 
-/** Uma placa de madeira em dois postes (centro em `cx`, base em `by`), com o painel escuro. */
+/** A wooden sign on two posts (center at `cx`, base at `by`), with the dark panel. */
 function drawBoardFrame(ctx: CanvasRenderingContext2D, cx: number, by: number, accent: string): { x: number; y: number; w: number; h: number } {
   const w = BOARDS.w;
   const h = BOARDS.h;
   const x = Math.round(cx - w / 2);
   const y = Math.round(by - BOARDS.posts - h);
-  // sombra no chão
+  // shadow on the ground
   ctx.fillStyle = 'rgba(30,36,48,0.22)';
   ctx.fillRect(x + 4, by - 2, w - 4, 3);
-  // postes
+  // posts
   for (const px of [x + 8, x + w - 11]) {
     ctx.fillStyle = '#3b2a1f';
     ctx.fillRect(px, y + h - 2, 3, BOARDS.posts + 2);
     ctx.fillStyle = '#6b4a33';
     ctx.fillRect(px, y + h - 2, 1, BOARDS.posts + 2);
   }
-  // moldura e painel
+  // frame and panel
   ctx.fillStyle = '#2a1d16';
   ctx.fillRect(x, y, w, h);
   ctx.fillStyle = '#8a5f3f';
@@ -334,7 +334,7 @@ function drawBoardFrame(ctx: CanvasRenderingContext2D, cx: number, by: number, a
   ctx.fillRect(x + 1, y + 1, w - 2, 1);
   ctx.fillStyle = '#1b2233';
   ctx.fillRect(x + 3, y + 3, w - 6, h - 6);
-  // faixa de cor do título
+  // color band of the title
   ctx.fillStyle = accent;
   ctx.fillRect(x + 3, y + 3, w - 6, 8);
   ctx.fillStyle = 'rgba(255,255,255,0.25)';
@@ -342,23 +342,23 @@ function drawBoardFrame(ctx: CanvasRenderingContext2D, cx: number, by: number, a
   return { x: x + 3, y: y + 3, w: w - 6, h: h - 6 };
 }
 
-/** O termômetro (painel da esquerda): tubo com a coluna da meta, bulbo e marcas de 25 %. */
+/** The thermometer (left panel): tube with the goal's column, bulb and 25 % marks. */
 export function drawGoalBoard(ctx: CanvasRenderingContext2D, goal: GoalView | null, now: number): void {
   const p = drawBoardFrame(ctx, BOARDS.goal.x, BOARDS.goal.y, '#c8443c');
   const tx = p.x + 6;
   const top = p.y + 13;
   const bottom = p.y + p.h - 7;
-  // tubo de vidro
+  // glass tube
   ctx.fillStyle = '#0d1018';
   ctx.fillRect(tx - 1, top - 1, 6, bottom - top + 2);
   ctx.fillStyle = '#d8e4f0';
   ctx.fillRect(tx, top, 4, bottom - top);
-  // bulbo
+  // bulb
   ctx.fillStyle = '#0d1018';
   ctx.fillRect(tx - 2, bottom - 1, 8, 6);
   ctx.fillStyle = '#e8473f';
   ctx.fillRect(tx - 1, bottom, 6, 4);
-  // coluna (sobe devagar até o valor e pulsa no topo)
+  // column (rises slowly to the value and pulses at the top)
   const pct = goal?.pct ?? 0;
   const hgt = Math.round((bottom - top) * pct);
   if (hgt > 0) {
@@ -371,20 +371,20 @@ export function drawGoalBoard(ctx: CanvasRenderingContext2D, goal: GoalView | nu
       ctx.fillRect(tx + 1, bottom - hgt, 2, 1);
     }
   }
-  // marcas de 25 %
+  // 25 % marks
   ctx.fillStyle = '#7d8aa3';
   for (let k = 1; k < 4; k++) ctx.fillRect(tx + 5, Math.round(bottom - ((bottom - top) * k) / 4), 2, 1);
-  // a bandeira da meta no topo
+  // the goal's flag at the top
   ctx.fillStyle = '#ffd166';
   ctx.fillRect(tx + 6, top - 1, 4, 3);
   ctx.fillStyle = '#c9a24a';
   ctx.fillRect(tx + 5, top - 1, 1, 6);
 }
 
-/** A placa da prefeitura (painel da direita): um prediozinho iluminado no canto. */
+/** The city hall sign (right panel): a little lit building in the corner. */
 export function drawHallBoard(ctx: CanvasRenderingContext2D, lit: boolean): void {
   const p = drawBoardFrame(ctx, BOARDS.hall.x, BOARDS.hall.y, '#2f6fa8');
-  // a prefeitura em miniatura: frontão, colunas e janelas acesas
+  // the miniature city hall: pediment, columns and lit windows
   const x = p.x + 4;
   const y = p.y + 15;
   ctx.fillStyle = '#c9c2b2';
@@ -399,7 +399,7 @@ export function drawHallBoard(ctx: CanvasRenderingContext2D, lit: boolean): void
   ctx.fillRect(x - 1, y + 16, 16, 1);
 }
 
-/** Os textos das duas placas, em espaço de tela (px CSS), a partir dos retângulos dos painéis. */
+/** The texts of the two signs, in screen space (CSS px), from the panels' rectangles. */
 export function boardTextRects(): { goal: { x: number; y: number; w: number }; hall: { x: number; y: number; w: number } } {
   const top = (by: number) => by - BOARDS.posts - BOARDS.h + 3;
   return {
@@ -408,14 +408,14 @@ export function boardTextRects(): { goal: { x: number; y: number; w: number }; h
   };
 }
 
-// ------------------------------------------------------------------ enfeites (depois de bater a meta)
+// ------------------------------------------------------------------ decorations (after the goal is reached)
 
-/** Onde fica o barbante das bandeirinhas em `t` (0..1) de um poste ao outro (px de mundo). */
+/** Where the pennant string is at `t` (0..1) from one lamppost to the other (world px). */
 function rope(x0: number, y0: number, x1: number, y1: number, t: number): { x: number; y: number } {
   return { x: x0 + (x1 - x0) * t, y: y0 + (y1 - y0) * t + Math.sin(t * Math.PI) * 14 };
 }
 
-/** Bandeirinhas de um poste a outro (px de mundo), balançando com o vento. */
+/** Pennants from one lamppost to another (world px), swaying in the wind. */
 export function drawBunting(ctx: CanvasRenderingContext2D, x0: number, y0: number, x1: number, y1: number, now: number): void {
   const n = 24;
   ctx.fillStyle = '#4a3b2e';
@@ -429,7 +429,7 @@ export function drawBunting(ctx: CanvasRenderingContext2D, x0: number, y0: numbe
     const y = Math.round(p.y);
     const sway = Math.sin(now / 380 + i * 0.9) > 0.4 ? 1 : 0;
     const c = CONFETTI_COLORS[i % CONFETTI_COLORS.length]!;
-    // bandeirinha de 7 × 7 apontando para baixo, com uma faixa clara em cima
+    // 7 × 7 pennant pointing down, with a light band on top
     ctx.fillStyle = 'rgba(20,24,33,0.35)';
     ctx.fillRect(x - 2, y + 2, 7, 1);
     ctx.fillStyle = c;
@@ -439,7 +439,7 @@ export function drawBunting(ctx: CanvasRenderingContext2D, x0: number, y0: numbe
   }
 }
 
-/** As lampadazinhas entre as bandeirinhas, por cima da noite (piscam devagar). */
+/** The little bulbs between the pennants, on top of the night (they blink slowly). */
 export function drawBuntingLights(ctx: CanvasRenderingContext2D, x0: number, y0: number, x1: number, y1: number, now: number, night: number): void {
   if (night < 0.15) return;
   const n = 24;
@@ -457,7 +457,7 @@ export function drawBuntingLights(ctx: CanvasRenderingContext2D, x0: number, y0:
 
 const seasonalCache = new Map<SeasonalProp, HTMLCanvasElement>();
 
-/** Um enfeite da estação (sprite do escritório, 40×64) com a base em (x, y) px de mundo. */
+/** A season decoration (office sprite, 40×64) with its base at (x, y) world px. */
 export function drawSeasonal(ctx: CanvasRenderingContext2D, kind: SeasonalProp, x: number, y: number): void {
   let c = seasonalCache.get(kind);
   if (!c) {
@@ -471,7 +471,7 @@ export function drawSeasonal(ctx: CanvasRenderingContext2D, kind: SeasonalProp, 
   ctx.drawImage(c, Math.round(x - 20), Math.round(y - 60));
 }
 
-/** Onde vão os enfeites da estação em volta da fonte (base em px de mundo) e qual. */
+/** Where the season decorations go around the fountain (base in world px) and which one. */
 export function seasonalSpots(o: Ornament): Array<{ kind: SeasonalProp; x: number; y: number }> {
   const f = FOUNTAIN;
   const spots: Array<[number, number]> = [

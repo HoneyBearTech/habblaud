@@ -1,14 +1,14 @@
-// Eventos do GitHub fictícios do modo demonstração: de tempos em tempos alguém abre ou mergeia um PR,
-// publica uma release ou vê o CI falhar (e depois passar), para a festa e o alarme das salas aparecerem
-// nos prints sem nenhum dado real.
+// Fictional GitHub events of demo mode: from time to time someone opens or merges a PR,
+// publishes a release or sees the CI fail (and then pass), so the rooms' party and alarm show up
+// in the screenshots with no real data.
 import type { GitHubEvent } from '../github';
 import { tr } from '../i18n';
 
-const WORKFLOWS = ['CI', 'build-test', tr('Testes'), tr('Lint e tipos'), 'Deploy'];
+const WORKFLOWS = ['CI', 'build-test', tr('Tests'), tr('Lint and types'), 'Deploy'];
 
 /**
- * Sorteia um evento. `alarm` = a sala já está com o CI vermelho: na maioria das vezes, o próximo
- * evento é o conserto (CI verde). `pr` = número do próximo PR fictício.
+ * Draws an event. `alarm` = the room already has the CI red: most of the time, the next
+ * event is the fix (CI green). `pr` = number of the next fictional PR.
  */
 export function demoGitHubEvent(rng: () => number, opts: { branch?: string; alarm: boolean; pr: number }): GitHubEvent {
   const branch = opts.branch ?? 'main';

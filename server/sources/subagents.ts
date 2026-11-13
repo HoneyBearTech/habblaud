@@ -1,6 +1,6 @@
-// Arquivos de subagentes de uma sessão:
-//   <projeto>/<sessionId>/subagents/agent-<agentId>.jsonl (+ .meta.json)
-//   <projeto>/<sessionId>/subagents/workflows/<runId>/agent-<agentId>.jsonl (+ .meta.json, journal.jsonl)
+// Subagent files of a session:
+//   <project>/<sessionId>/subagents/agent-<agentId>.jsonl (+ .meta.json)
+//   <project>/<sessionId>/subagents/workflows/<runId>/agent-<agentId>.jsonl (+ .meta.json, journal.jsonl)
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tr } from '../../shared/i18n';
@@ -9,7 +9,7 @@ export interface SubagentFile {
   agentId: string;
   path: string;
   metaPath: string;
-  /** Execução de workflow dona do subagente (pasta subagents/workflows/<runId>/). */
+  /** Workflow run that owns the subagent (folder subagents/workflows/<runId>/). */
   runId?: string;
 }
 
@@ -22,18 +22,18 @@ export interface SubagentMeta {
   workflowPhase?: string;
 }
 
-/** Sem escrita há 5 s depois de um end_turn: concluiu. */
+/** No write for 5 s after an end_turn: it finished. */
 export const END_TURN_QUIET_MS = 5_000;
-/** Sem escrita há 120 s: concluiu (ou travou). */
+/** No write for 120 s: it finished (or hung). */
 export const IDLE_TIMEOUT_MS = 120_000;
-/** Com uma ferramenta em andamento (ex.: comando longo), espera mais antes de desistir. */
+/** With a tool in progress (e.g., a long command), waits longer before giving up. */
 export const PENDING_TOOL_TIMEOUT_MS = 600_000;
-/** No boot, só entram subagentes escritos nos últimos 90 s. */
+/** At boot, only subagents written in the last 90 s get in. */
 export const BOOT_RECENT_MS = 90_000;
 
 const AGENT_FILE = /^agent-([\w-]+)\.jsonl$/;
 
-/** Pasta de dados da sessão (irmã do transcript <sessionId>.jsonl). */
+/** Session data folder (sibling of the transcript <sessionId>.jsonl). */
 export function sessionDirOf(transcriptPath: string): string {
   return transcriptPath.replace(/\.jsonl$/, '');
 }
@@ -104,7 +104,7 @@ export interface JournalAgent {
 
 const JOURNAL_DONE = /^(completed?|finished|done|failed|errored|error|killed|cancell?ed|stopped|succeeded|result)$/i;
 
-/** journal.jsonl de um workflow: rótulo de cada agente e quais já terminaram. */
+/** journal.jsonl of a workflow: the label of each agent and which ones have already finished. */
 export function parseJournal(text: string): Map<string, JournalAgent> {
   const out = new Map<string, JournalAgent>();
   for (const line of text.split('\n')) {
@@ -127,10 +127,10 @@ export function parseJournal(text: string): Map<string, JournalAgent> {
   return out;
 }
 
-/** Papel exibido para o subagente. */
+/** Role shown for the subagent. */
 export function subagentRole(meta: SubagentMeta | undefined, spawnType?: string): string {
   const t = meta?.agentType ?? spawnType;
-  if (!t) return tr('Subagente');
+  if (!t) return tr('Subagent');
   if (t === 'workflow-subagent') return 'Workflow';
   return t;
 }
@@ -138,13 +138,13 @@ export function subagentRole(meta: SubagentMeta | undefined, spawnType?: string)
 export interface IdleCheck {
   now: number;
   lastWriteAt: number;
-  /** A última mensagem do subagente terminou com end_turn. */
+  /** The subagent's last message ended with end_turn. */
   ended: boolean;
-  /** Há ferramenta chamada sem resultado ainda. */
+  /** There is a tool called with no result yet. */
   pendingTool: boolean;
 }
 
-/** Conclusão por inatividade: end_turn + 5 s de silêncio, ou silêncio prolongado. */
+/** Completion by inactivity: end_turn + 5 s of silence, or prolonged silence. */
 export function concludedByIdle(c: IdleCheck): boolean {
   const quiet = c.now - c.lastWriteAt;
   if (c.ended && !c.pendingTool && quiet >= END_TURN_QUIET_MS) return true;

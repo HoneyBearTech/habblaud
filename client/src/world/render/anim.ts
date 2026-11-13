@@ -1,4 +1,4 @@
-// Curvas e parâmetros das animações de construção/desmontagem das salas (puros).
+// Curves and parameters of the room build/teardown animations (pure).
 
 export const clamp01 = (v: number): number => (v < 0 ? 0 : v > 1 ? 1 : v);
 
@@ -18,13 +18,13 @@ export function easeOutCubic(t: number): number {
 }
 
 export interface BuildAnim {
-  /** 0..1: quanto do piso está visível. */
+  /** 0..1: how much of the floor is visible. */
   floor: number;
-  /** 0..1: paredes. */
+  /** 0..1: walls. */
   walls: number;
-  /** 0..1: placa com o nome. */
+  /** 0..1: sign with the name. */
   sign: number;
-  /** Fase (para calcular a escala de cada móvel). */
+  /** Phase (to compute the scale of each piece of furniture). */
   mode: 'none' | 'build' | 'dismantle';
   p: number;
 }
@@ -47,21 +47,21 @@ export function buildAnim(phase: string, p: number): BuildAnim {
   return NO_ANIM;
 }
 
-/** Escala de um móvel durante a animação (bounce escalonado pela ordem 0..1). */
+/** Scale of a piece of furniture during the animation (bounce staggered by the order 0..1). */
 export function furnitureScale(a: BuildAnim, order: number): number {
   if (a.mode === 'build') {
     const t = clamp01((a.p - (0.48 + order * 0.36)) / 0.13);
     return t <= 0 ? 0 : t >= 1 ? 1 : Math.max(0, easeOutBack(t));
   }
   if (a.mode === 'dismantle') {
-    // os últimos a chegar (ordem alta) são os primeiros a sair
+    // the last to arrive (high order) are the first to leave
     const t = clamp01((a.p - (1 - order) * 0.33) / 0.12);
     return t <= 0 ? 1 : t >= 1 ? 0 : Math.max(0, 1 - easeInBack(t));
   }
   return 1;
 }
 
-/** Atraso relativo (0..1) da varredura do piso para o tile (i, j) de uma área w×h. */
+/** Relative delay (0..1) of the floor sweep for tile (i, j) of a w×h area. */
 export function sweepDelay(i: number, j: number, w: number, h: number): number {
   return (i + j * 0.8) / (w + h * 0.8);
 }

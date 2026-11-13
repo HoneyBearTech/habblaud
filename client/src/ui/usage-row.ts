@@ -1,23 +1,23 @@
-// Os cartões de uso cabem na mesma linha dos outros itens da barra superior (marca, contadores, botões)?
-// Puro (sem DOM): testado em ui/usage-row.test.ts. Quem mede o DOM e aplica o resultado é o UsageCards (ui/usage.ts):
-// quando não cabem, a barra ganha uma segunda linha só para eles.
+// Do the usage cards fit on the same line as the other items of the top bar (brand, counters, buttons)?
+// Pure (no DOM): tested in ui/usage-row.test.ts. UsageCards (ui/usage.ts) is what measures the DOM and applies the
+// result: when they don't fit, the bar gets a second line just for them.
 
 export interface UsageRowInput {
-  /** Largura útil da barra (sem o padding). */
+  /** Usable width of the bar (without the padding). */
   barWidth: number;
-  /** Larguras dos outros itens visíveis da barra. */
+  /** Widths of the other visible items of the bar. */
   others: number[];
-  /** Espaço entre os itens da barra. */
+  /** Space between the items of the bar. */
   gap: number;
-  /** Espaço entre os cartões. */
+  /** Space between the cards. */
   cardGap: number;
-  /** Largura mínima de cada cartão (a menor que ele aceita antes de perder conteúdo). */
+  /** Minimum width of each card (the smallest it accepts before losing content). */
   cards: number[];
 }
 
 export function usageRowFits(i: UsageRowInput): boolean {
   if (i.cards.length === 0) return true;
-  // Um espaço entre cada item da barra: os outros itens mais a fila dos cartões.
+  // One space between each item of the bar: the other items plus the row of cards.
   const used = i.others.reduce((sum, w) => sum + w, 0) + i.gap * i.others.length;
   const need = i.cards.reduce((sum, w) => sum + w, 0) + i.cardGap * (i.cards.length - 1);
   return need <= i.barWidth - used;

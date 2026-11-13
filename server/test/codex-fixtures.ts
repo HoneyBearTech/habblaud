@@ -1,11 +1,11 @@
-// Construtores de linhas SINTÉTICAS de rollout do Codex (formatos paginated e legacy) e de um CODEX_HOME temporário
-// (sessions/AAAA/MM/DD/rollout-*.jsonl, archived_sessions/ e thread-writer-locks/), para testes. Os formatos seguem o
-// código do Codex 0.162 (codex-rs/protocol); nada aqui vem de conversas reais.
+// Builders of SYNTHETIC Codex rollout lines (paginated and legacy formats) and of a temporary CODEX_HOME
+// (sessions/YYYY/MM/DD/rollout-*.jsonl, archived_sessions/ and thread-writer-locks/), for tests. The formats follow
+// the Codex 0.162 code (codex-rs/protocol); nothing here comes from real conversations.
 import { mkdirSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { appendLines, tempDir, writeLines } from './fixtures';
 
-/** Id de thread sintético (UUID v7 de mentira). */
+/** Synthetic thread id (fake UUID v7). */
 export function threadId(n: number): string {
   return `0199b0c0-0000-7000-8000-${String(n).padStart(12, '0')}`;
 }
@@ -23,7 +23,7 @@ function item(thread: string, turn: string, it: Record<string, unknown>, at: num
 export interface MetaOpts {
   at?: number;
   cwd?: string;
-  /** null = sem history_mode (legacy). */
+  /** null = no history_mode (legacy). */
   history?: 'paginated' | 'legacy' | null;
   source?: unknown;
   sessionId?: string;
@@ -32,26 +32,26 @@ export interface MetaOpts {
 }
 
 export interface RateLimitsOpts {
-  /** null = sem cota (rate_limit_reached_type). */
+  /** null = no quota (rate_limit_reached_type). */
   primary?: { used: number; minutes?: number; resetsAt?: number } | null;
   secondary?: { used: number; minutes?: number; resetsAt?: number } | null;
   plan?: string;
   reached?: string;
 }
 
-/** Linhas de rollout. `t` = id do thread; `turn` = id do turno. */
+/** Rollout lines. `t` = thread id; `turn` = turn id. */
 export const R = {
   meta(t: string, o: MetaOpts = {}): string {
     const payload: Record<string, unknown> = {
       session_id: o.sessionId ?? t,
       id: t,
       timestamp: ts(o.at ?? Date.now()),
-      cwd: o.cwd ?? '/projetos/loja',
+      cwd: o.cwd ?? '/projects/store',
       originator: 'codex_cli_rs',
       cli_version: '0.162.0',
       source: o.source ?? 'cli',
       model_provider: 'openai',
-      base_instructions: { text: 'Instruções base sintéticas. '.repeat(40) },
+      base_instructions: { text: 'Synthetic base instructions. '.repeat(40) },
       git: { branch: o.branch ?? 'main', commit_hash: 'abc123' },
     };
     if (o.history !== null) payload.history_mode = o.history ?? 'paginated';
@@ -59,7 +59,7 @@ export const R = {
     return line('session_meta', payload, o.at ?? Date.now());
   },
   turnContext(o: { at?: number; cwd?: string; model?: string } = {}): string {
-    return line('turn_context', { cwd: o.cwd ?? '/projetos/loja', model: o.model ?? 'gpt-teste-codex', effort: 'medium', approval_policy: 'on-request' }, o.at ?? Date.now());
+    return line('turn_context', { cwd: o.cwd ?? '/projects/store', model: o.model ?? 'gpt-test-codex', effort: 'medium', approval_policy: 'on-request' }, o.at ?? Date.now());
   },
   taskStarted(turn: string, at = Date.now(), trigger?: string): string {
     const p: Record<string, unknown> = { type: 'task_started', turn_id: turn, started_at: Math.floor(at / 1000), model_context_window: 200_000 };
@@ -67,7 +67,7 @@ export const R = {
     return line('event_msg', p, at);
   },
   taskComplete(turn: string, at = Date.now(), durationMs = 4_000): string {
-    return line('event_msg', { type: 'task_complete', turn_id: turn, last_agent_message: 'pronto', duration_ms: durationMs }, at);
+    return line('event_msg', { type: 'task_complete', turn_id: turn, last_agent_message: 'done', duration_ms: durationMs }, at);
   },
   turnAborted(turn: string, at = Date.now(), reason = 'interrupted'): string {
     return line('event_msg', { type: 'turn_aborted', turn_id: turn, reason }, at);
@@ -90,7 +90,7 @@ export const R = {
         type: 'CommandExecution',
         id,
         command: ['/bin/zsh', '-lc', script],
-        cwd: 'file:///projetos/loja',
+        cwd: 'file:///projects/store',
         parsed_cmd: [{ type: 'unknown', cmd: script }],
         source: 'agent',
         status: o.status ?? (exit === 0 ? 'completed' : 'failed'),
@@ -101,7 +101,7 @@ export const R = {
       o.at ?? Date.now(),
     );
   },
-  /** FileChange no formato do rollout: mapa {caminho: {type: add|delete|update, ...}}. */
+  /** FileChange in the rollout format: map {path: {type: add|delete|update, ...}}. */
   fileChange(t: string, turn: string, id: string, changes: Record<string, Record<string, unknown>>, o: { status?: string; at?: number } = {}): string {
     return item(t, turn, { type: 'FileChange', id, changes, status: o.status ?? 'completed' }, o.at ?? Date.now());
   },
@@ -148,13 +148,13 @@ export const R = {
   functionOutput(callId: string, output: string, at = Date.now()): string {
     return line('response_item', { type: 'function_call_output', call_id: callId, output }, at);
   },
-  /** Mensagem de contexto (developer/user/assistant) mandada ao modelo: não é a conversa. */
+  /** Context message (developer/user/assistant) sent to the model: it is not the conversation. */
   message(role: string, text: string, at = Date.now()): string {
     return line('response_item', { type: 'message', role, content: [{ type: role === 'assistant' ? 'output_text' : 'input_text', text }] }, at);
   },
   /**
-   * Resposta entregue no code mode do app: response_item message/assistant com o marcador em `metadata` (no
-   * "incomplete", o texto cortado vem no próprio marcador). `callId` = a chamada user_messaging.send_message.
+   * Reply delivered in the app's code mode: response_item message/assistant with the marker in `metadata` (in
+   * "incomplete", the cut text comes in the marker itself). `callId` = the user_messaging.send_message call.
    */
   delivered(callId: string, text: string, at = Date.now(), complete = true): string {
     return JSON.stringify({
@@ -181,7 +181,7 @@ export const R = {
   },
 };
 
-/** session_meta.source de um subagente (thread_spawn) e de threads internos, como o Codex grava. */
+/** session_meta.source of a subagent (thread_spawn) and of internal threads, as Codex records it. */
 export const SOURCES = {
   sub: (parent: string, role = 'explorer') => ({ subagent: { thread_spawn: { parent_thread_id: parent, depth: 1, agent_nickname: 'Kepler', agent_role: role } } }),
   guardian: () => ({ subagent: { other: 'guardian' } }),
@@ -189,7 +189,7 @@ export const SOURCES = {
   review: () => ({ subagent: 'review' }),
 };
 
-/** Um CODEX_HOME temporário (apagado com `cleanup`). */
+/** A temporary CODEX_HOME (deleted with `cleanup`). */
 export function codexHome(name = '.codex') {
   const tmp = tempDir('habblaud-codex-');
   const dir = join(tmp.dir, name);
@@ -199,7 +199,7 @@ export function codexHome(name = '.codex') {
     home: tmp.dir,
     dir,
     cleanup: tmp.cleanup,
-    /** Grava o rollout de um thread (sessions/AAAA/MM/DD por padrão; `archived` em archived_sessions/). */
+    /** Writes the rollout of a thread (sessions/YYYY/MM/DD by default; `archived` in archived_sessions/). */
     rollout(t: string, lines: string[], o: { date?: string; archived?: boolean; mtime?: number } = {}): string {
       const date = o.date ?? '2026/10/09';
       const base = o.archived ? join(dir, 'archived_sessions') : join(dir, 'sessions', ...date.split('/'));
@@ -211,7 +211,7 @@ export function codexHome(name = '.codex') {
     append(path: string, lines: string[]): void {
       appendLines(path, lines);
     },
-    /** Cria o lock do thread; `createdAt` (epoch ms) recua o mtime (o Codex nunca escreve no lock). */
+    /** Creates the thread's lock; `createdAt` (epoch ms) moves the mtime back (Codex never writes to the lock). */
     lock(t: string, createdAt?: number): string {
       const path = join(dir, 'thread-writer-locks', `${t}.lock`);
       writeFileSync(path, '');

@@ -1,7 +1,7 @@
-// Ordem das salas na lista lateral escolhida pelo usuário (arrastando o cabeçalho da sala), guardada no navegador
-// pelo id da sala (a pasta do projeto). Salas que não estão na ordem guardada vão para o fim, na ordem em que vieram.
+// Order of the rooms in the side list chosen by the user (by dragging the room header), stored in the browser
+// by the room id (the project folder). Rooms that aren't in the stored order go to the end, in the order they came.
 const ORDER_KEY = 'habblaud.rooms.order';
-/** Salas lembradas (as mais recentes da lista). */
+/** Remembered rooms (the most recent in the list). */
 const MAX_ROOMS = 100;
 
 export function orderRooms<T>(items: readonly T[], idOf: (item: T) => string): T[] {
@@ -14,12 +14,12 @@ export function orderRooms<T>(items: readonly T[], idOf: (item: T) => string): T
     .map((x) => x.item);
 }
 
-/** Põe a sala `from` antes (ou depois) de `to` na lista `shown` (ids na ordem mostrada) e guarda. */
+/** Puts room `from` before (or after) `to` in the `shown` list (ids in the order shown) and stores it. */
 export function moveRoom(shown: readonly string[], from: string, to: string, after: boolean): boolean {
   if (from === to || !shown.includes(from) || !shown.includes(to)) return false;
   const rest = shown.filter((id) => id !== from);
   rest.splice(rest.indexOf(to) + (after ? 1 : 0), 0, from);
-  // salas guardadas que não estão na lista agora (fechadas ou filtradas) mantêm a posição relativa no fim
+  // stored rooms that aren't in the list now (closed or filtered) keep their relative position at the end
   const old = loadOrder().filter((id) => !rest.includes(id));
   saveOrder([...rest, ...old].slice(0, MAX_ROOMS));
   return true;
@@ -38,6 +38,6 @@ function saveOrder(ids: string[]): void {
   try {
     localStorage.setItem(ORDER_KEY, JSON.stringify(ids));
   } catch {
-    // sem armazenamento: a ordem vale só até recarregar
+    // no storage: the order lasts only until reload
   }
 }

@@ -1,7 +1,8 @@
-// Ditado: botão de microfone que grava no navegador (MediaRecorder), manda o áudio ao Habblaud (POST /api/dictation)
-// e devolve o texto transcrito pelo Whisper local do Mac, com o idioma detectado sozinho (português ou inglês; ver
-// server/dictation/whisper.ts). Fica no "Novo agente" e na caixa de mensagem (gaveta e terminal). O microfone só existe
-// em página segura (HTTPS ou localhost): fora disso o botão some.
+// Dictation: microphone button that records in the browser (MediaRecorder), sends the audio to Habblaud
+// (POST /api/dictation) and returns the text transcribed by the Mac's local Whisper, with the language detected on
+// its own (Portuguese or English; see server/dictation/whisper.ts). It sits in "New agent" and in the message box
+// (drawer and terminal). The microphone only exists on a secure page (HTTPS or localhost): otherwise the button
+// disappears.
 import { tr } from '../../../shared/i18n';
 import { h, setText } from './dom';
 import { ICONS } from './icons';
@@ -9,15 +10,15 @@ import { ICONS } from './icons';
 export const MAX_RECORD_MS = 180_000;
 const POLL_MS = 600;
 const WAIT_MS = 150_000;
-/** Formatos em ordem de preferência: o Safari do iPhone grava mp4 (AAC); Chrome e Firefox, webm/ogg (Opus). */
+/** Formats in order of preference: iPhone Safari records mp4 (AAC); Chrome and Firefox, webm/ogg (Opus). */
 const MIME_TYPES = ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus'];
 
-/** Aviso de ditado pronto, com o idioma reconhecido (uma frase inteira por idioma, para traduzir). */
+/** Notice that the dictation is ready, with the recognized language (one whole sentence per language, to translate). */
 export function dictationDone(lang: string | undefined): string {
-  if (lang === 'pt') return tr('Ditado em português: confira o texto.');
-  if (lang === 'en') return tr('Ditado em inglês: confira o texto.');
-  if (lang === 'es') return tr('Ditado em espanhol: confira o texto.');
-  return tr('Ditado pronto: confira o texto.');
+  if (lang === 'pt') return tr('Dictated in Portuguese: check the text.');
+  if (lang === 'en') return tr('Dictated in English: check the text.');
+  if (lang === 'es') return tr('Dictated in Spanish: check the text.');
+  return tr('Dictation ready: check the text.');
 }
 
 export interface DictationText {
@@ -35,7 +36,7 @@ interface DictationReply {
   error?: string;
 }
 
-/** Junta o texto ditado ao que já está no campo, na posição do cursor, com espaço/linha certos. */
+/** Joins the dictated text to what is already in the field, at the cursor position, with the right space/line. */
 export function insertDictation(value: string, start: number, end: number, text: string): { value: string; caret: number } {
   const t = text.trim();
   if (!t) return { value, caret: end };
@@ -65,7 +66,7 @@ function blobToBase64(blob: Blob): Promise<string> {
   return new Promise((ok, fail) => {
     const r = new FileReader();
     r.onload = () => ok(String(r.result).replace(/^data:[^,]*,/, ''));
-    r.onerror = () => fail(new Error(tr('não deu para ler a gravação')));
+    r.onerror = () => fail(new Error(tr("couldn't read the recording")));
     r.readAsDataURL(blob);
   });
 }
@@ -75,17 +76,17 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   try {
     res = await fetch(path, { credentials: 'same-origin', cache: 'no-store', ...init });
   } catch {
-    throw new Error(tr('o Habblaud não respondeu'));
+    throw new Error(tr("Habblaud didn't respond"));
   }
   const body = (await res.json().catch(() => ({}))) as T & { error?: string };
-  if (!res.ok) throw new Error(body.error ?? tr('erro {0}', [res.status]));
+  if (!res.ok) throw new Error(body.error ?? tr('error {0}', [res.status]));
   return body;
 }
 
 const AVAILABLE_TTL_MS = 30_000;
 let availableCache: { at: number; value: Promise<boolean> } | null = null;
 
-/** O ditado funciona daqui (navegador grava e o Mac tem o Whisper)? Uma consulta a cada 30 s, dividida entre as caixas. */
+/** Does dictation work from here (browser records and the Mac has Whisper)? One query every 30 s, shared by the boxes. */
 export function dictationAvailable(now = Date.now()): Promise<boolean> {
   if (!canRecord()) return Promise.resolve(false);
   if (availableCache && now - availableCache.at < AVAILABLE_TTL_MS) return availableCache.value;
@@ -98,9 +99,9 @@ export function dictationAvailable(now = Date.now()): Promise<boolean> {
 }
 
 export interface DictationButtonOptions {
-  /** Só o ícone (caixa de mensagem); gravando, mostra o tempo. */
+  /** Icon only (message box); while recording, shows the time. */
   compact?: boolean;
-  /** Chamado quando a gravação começa (a caixa guarda para qual agente era o ditado). */
+  /** Called when the recording starts (the box keeps which agent the dictation was for). */
   onStart?: () => void;
 }
 
@@ -120,11 +121,11 @@ export class DictationButton {
     private readonly say: (text: string, error?: boolean) => void,
     private readonly opts: DictationButtonOptions = {},
   ) {
-    this.label = h('span', { class: 'ui-dictate__label', text: opts.compact ? '' : tr('Ditar') });
+    this.label = h('span', { class: 'ui-dictate__label', text: opts.compact ? '' : tr('Dictate') });
     this.el = h('button', {
       class: `ui-btn ui-dictate${opts.compact ? ' ui-dictate--compact' : ''}`,
       type: 'button',
-      attrs: { 'aria-pressed': 'false', 'aria-label': tr('Ditar'), title: tr('Ditar (português ou inglês, o idioma é detectado sozinho)') },
+      attrs: { 'aria-pressed': 'false', 'aria-label': tr('Dictate'), title: tr('Dictate (Portuguese or English, the language is detected automatically)') },
       on: { click: () => void this.toggle() },
     });
     const icon = h('span', { class: 'ui-dictate__icon', attrs: { 'aria-hidden': 'true' } });
@@ -136,7 +137,7 @@ export class DictationButton {
     return this.state !== 'idle';
   }
 
-  /** Para a gravação sem transcrever (painel fechado). */
+  /** Stops the recording without transcribing (panel closed). */
   cancel(): void {
     if (this.state !== 'recording') return;
     this.cancelled = true;
@@ -150,19 +151,19 @@ export class DictationButton {
   }
 
   private async start(): Promise<void> {
-    if (!canRecord()) return this.say(tr('Este navegador não deixa gravar áudio aqui (precisa de HTTPS).'), true);
+    if (!canRecord()) return this.say(tr("This browser won't record audio here (HTTPS required)."), true);
     try {
       this.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
     } catch (err) {
       const denied = (err as DOMException)?.name === 'NotAllowedError';
-      return this.say(denied ? tr('Sem permissão para o microfone: libere nas configurações do navegador e tente de novo.') : tr('Não deu para abrir o microfone.'), true);
+      return this.say(denied ? tr('No microphone permission: allow it in the browser settings and try again.') : tr("Couldn't open the microphone."), true);
     }
     const mimeType = pickMimeType((t) => MediaRecorder.isTypeSupported(t));
     try {
       this.recorder = new MediaRecorder(this.stream, mimeType ? { mimeType } : undefined);
     } catch {
       this.release();
-      return this.say(tr('Este navegador não grava áudio.'), true);
+      return this.say(tr("This browser can't record audio."), true);
     }
     this.chunks = [];
     this.cancelled = false;
@@ -174,12 +175,12 @@ export class DictationButton {
     this.startedAt = Date.now();
     this.opts.onStart?.();
     this.set('recording');
-    this.say(this.opts.compact ? tr('Gravando… toque no microfone de novo para parar.') : tr('Gravando… fale em português ou inglês e toque em Parar.'));
+    this.say(this.opts.compact ? tr('Recording… tap the microphone again to stop.') : tr('Recording… speak Portuguese or English and tap Stop.'));
     this.timer = setInterval(() => {
       const ms = Date.now() - this.startedAt;
       const s = Math.floor(ms / 1000);
       const clock = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-      setText(this.label, this.opts.compact ? clock : tr('Parar {0}', [clock]));
+      setText(this.label, this.opts.compact ? clock : tr('Stop {0}', [clock]));
       if (ms >= MAX_RECORD_MS) this.stopRecorder();
     }, 250);
   }
@@ -190,7 +191,7 @@ export class DictationButton {
     try {
       if (this.recorder?.state !== 'inactive') this.recorder?.stop();
     } catch {
-      // já parado
+      // already stopped
     }
   }
 
@@ -211,10 +212,10 @@ export class DictationButton {
     }
     if (blob.size < 512) {
       this.set('idle');
-      return this.say(tr('Não ouvi nada: tente de novo, mais perto do microfone.'), true);
+      return this.say(tr("I didn't hear anything: try again, closer to the microphone."), true);
     }
     this.set('working');
-    this.say(tr('Transcrevendo no computador…'));
+    this.say(tr('Transcribing on the computer…'));
     try {
       let r = await api<DictationReply>('/api/dictation', {
         method: 'POST',
@@ -226,14 +227,14 @@ export class DictationButton {
         await new Promise((ok) => setTimeout(ok, POLL_MS));
         r = await api<DictationReply>(`/api/dictation/${encodeURIComponent(r.id)}`);
       }
-      if (r.status !== 'done') throw new Error(r.error || tr('o computador não respondeu a tempo'));
-      if (!r.text?.trim()) this.say(tr('Não entendi nada na gravação: tente de novo.'), true);
+      if (r.status !== 'done') throw new Error(r.error || tr("the computer didn't respond in time"));
+      if (!r.text?.trim()) this.say(tr("I couldn't make out anything in the recording: try again."), true);
       else {
         this.onText({ text: r.text, lang: r.lang });
         this.say(dictationDone(r.lang));
       }
     } catch (err) {
-      this.say(tr('Ditado falhou: {0}', [(err as Error).message]), true);
+      this.say(tr('Dictation failed: {0}', [(err as Error).message]), true);
     } finally {
       this.set('idle');
     }
@@ -247,8 +248,8 @@ export class DictationButton {
     this.el.disabled = state === 'working';
     const icon = this.el.querySelector('.ui-dictate__icon');
     if (icon) icon.innerHTML = state === 'recording' ? ICONS.stopRec : ICONS.mic;
-    this.el.setAttribute('aria-label', state === 'recording' ? tr('Parar o ditado') : state === 'working' ? tr('Transcrevendo') : tr('Ditar'));
+    this.el.setAttribute('aria-label', state === 'recording' ? tr('Stop dictation') : state === 'working' ? tr('Transcribing') : tr('Dictate'));
     if (this.opts.compact) setText(this.label, state === 'recording' ? '0:00' : state === 'working' ? '…' : '');
-    else setText(this.label, state === 'recording' ? tr('Parar {0}', ['0:00']) : state === 'working' ? tr('Transcrevendo…') : tr('Ditar'));
+    else setText(this.label, state === 'recording' ? tr('Stop {0}', ['0:00']) : state === 'working' ? tr('Transcribing…') : tr('Dictate'));
   }
 }

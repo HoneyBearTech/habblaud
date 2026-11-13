@@ -1,19 +1,19 @@
-// Sons sintetizados com WebAudio (sem arquivos de áudio): curtos, baixos e de timbre suave.
+// Sounds synthesized with WebAudio (no audio files): short, quiet and soft in timbre.
 import type { SoundKind } from './scheduler';
 
 export interface VoiceOpts {
-  /** Ganho final (já com o volume mestre). */
+  /** Final gain (already with the master volume). */
   gain: number;
-  /** -1 .. 1 (esquerda .. direita). */
+  /** -1 .. 1 (left .. right). */
   pan?: number;
-  /** Teclado: teclas na rajada. */
+  /** Keyboard: keys in the burst. */
   count?: number;
   rng: () => number;
-  /** Ruído branco curto (teclas). */
+  /** Short white noise (keys). */
   noise: AudioBuffer | null;
 }
 
-/** Envelope percussivo: ataque curto e queda exponencial. */
+/** Percussive envelope: short attack and exponential decay. */
 function env(g: GainNode, t: number, peak: number, attack: number, decay: number): void {
   g.gain.setValueAtTime(0.0001, t);
   g.gain.exponentialRampToValueAtTime(Math.max(0.0002, peak), t + attack);
@@ -32,7 +32,7 @@ function tone(ac: AudioContext, out: AudioNode, type: OscillatorType, freq: numb
   o.stop(t + attack + decay + 0.05);
 }
 
-/** Cria um buffer de ruído branco (base das teclas). */
+/** Creates a white noise buffer (the base of the keys). */
 export function makeNoise(ac: AudioContext): AudioBuffer | null {
   try {
     const len = Math.floor(ac.sampleRate * 0.06);
@@ -45,7 +45,7 @@ export function makeNoise(ac: AudioContext): AudioBuffer | null {
   }
 }
 
-/** Toca `kind` em `t` (tempo do AudioContext) na saída `dest`. */
+/** Plays `kind` at `t` (AudioContext time) on the output `dest`. */
 export function playVoice(ac: AudioContext, dest: AudioNode, kind: SoundKind, t: number, o: VoiceOpts): void {
   let out: AudioNode = dest;
   if (o.pan && typeof ac.createStereoPanner === 'function') {
@@ -57,17 +57,17 @@ export function playVoice(ac: AudioContext, dest: AudioNode, kind: SoundKind, t:
   const g = o.gain;
   switch (kind) {
     case 'chime':
-      // sino suave: duas parciais e uma terceira nota logo depois, com decaimento longo
+      // soft bell: two partials and a third note right after, with a long decay
       tone(ac, out, 'sine', 880, t, 0.16 * g, 0.012, 1.1);
       tone(ac, out, 'sine', 1318.5, t, 0.08 * g, 0.012, 1.1);
       tone(ac, out, 'sine', 1174.7, t + 0.14, 0.1 * g, 0.012, 1.1);
       return;
     case 'pop':
-      // "pop": varredura curta para baixo
+      // "pop": short downward sweep
       tone(ac, out, 'triangle', 740, t, 0.14 * g, 0.008, 0.15, 330);
       return;
     case 'elevator':
-      // "ding" de elevador: uma nota redonda com o brilho de sino sumindo antes
+      // elevator "ding": a round note with the bell brightness fading out earlier
       tone(ac, out, 'sine', 784, t, 0.11 * g, 0.004, 1.5);
       tone(ac, out, 'sine', 1568, t, 0.025 * g, 0.004, 0.7);
       tone(ac, out, 'sine', 2164, t, 0.012 * g, 0.004, 0.25);
@@ -76,15 +76,15 @@ export function playVoice(ac: AudioContext, dest: AudioNode, kind: SoundKind, t:
       keys(ac, out, t, o);
       return;
     case 'pingpong':
-      // raquetada: "tok" agudo com a altura caindo
+      // paddle hit: high "tok" with the pitch falling
       tone(ac, out, 'sine', 1250, t, 0.09 * g, 0.002, 0.06, 880);
       return;
     case 'table':
-      // quique na mesa: mais grave e mais curto
+      // bounce on the table: lower and shorter
       tone(ac, out, 'sine', 760, t, 0.06 * g, 0.002, 0.045, 520);
       return;
     case 'arcade': {
-      // fliperama: arpejo de três notas em onda quadrada, filtrado para não ferir
+      // arcade: three-note arpeggio in a square wave, filtered so it does not hurt
       const lp = ac.createBiquadFilter();
       lp.type = 'lowpass';
       lp.frequency.value = 2600;
@@ -99,7 +99,7 @@ export function playVoice(ac: AudioContext, dest: AudioNode, kind: SoundKind, t:
   }
 }
 
-/** Rajada de teclas: estalos de ruído filtrado com intervalos irregulares, como digitação de verdade. */
+/** Burst of keys: clicks of filtered noise at irregular intervals, like real typing. */
 function keys(ac: AudioContext, out: AudioNode, t: number, o: VoiceOpts): void {
   if (!o.noise) return;
   const n = Math.max(1, Math.min(8, o.count ?? 4));

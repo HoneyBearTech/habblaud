@@ -1,46 +1,46 @@
-// Área livre do escritório: a parte da tela que nenhum painel da UI cobre.
-// Mede barra superior, barra lateral, gaveta e feed e informa ao mundo (setViewInsets) para que a visão geral
-// e o foco (agente, sala, seguir) enquadrem só o que está visível. A mesma área vira variáveis CSS
-// (--free-top/right/bottom/left) para posicionar o estado vazio e os avisos.
+// Free area of the office: the part of the screen that no UI panel covers.
+// Measures the top bar, sidebar, drawer and feed and tells the world (setViewInsets) so that the overview
+// and the focus (agent, room, follow) frame only what is visible. The same area becomes CSS variables
+// (--free-top/right/bottom/left) to position the empty state and the notices.
 //
-// Detalhes de interação:
-// - a gaveta aberta por um clique no canvas só muda o enquadramento depois da janela do duplo clique
-//   (senão a câmera se mexe entre o 1º e o 2º clique e o duplo clique erra o alvo); nesse intervalo a gaveta
-//   também deixa os cliques passarem para o canvas;
-// - quando a seleção foi aberta "com foco" (lista, feed, aviso, Centralizar, duplo clique), o foco é refeito a
-//   cada mudança da área livre, até o usuário mexer na câmera.
+// Interaction details:
+// - the drawer opened by a click on the canvas only changes the framing after the double-click window
+//   (otherwise the camera moves between the 1st and the 2nd click and the double click misses the target); in that
+//   interval the drawer also lets the clicks pass through to the canvas;
+// - when the selection was opened "with focus" (list, feed, notice, Center, double click), the focus is redone on
+//   every change of the free area, until the user moves the camera.
 import type { Selection, ViewInsets, WorldApi } from '../world/api';
 
-/** Folga entre a borda do painel e o conteúdo enquadrado (px CSS). */
+/** Gap between the edge of the panel and the framed content (CSS px). */
 export const INSET_GAP = 8;
-/** Janela do duplo clique: a gaveta aberta pelo 1º clique só muda o enquadramento depois dela. */
+/** Double-click window: the drawer opened by the 1st click only changes the framing after it. */
 export const DBLCLICK_GUARD_MS = 380;
-/** Área livre mínima: em telas minúsculas os painéis cedem para o mundo continuar utilizável. */
+/** Minimum free area: on tiny screens the panels give way so the world stays usable. */
 export const MIN_FREE = 120;
-/** Tempo da animação de câmera do mundo (+ folga) antes de conferir se o agente ficou visível. */
+/** Time of the world's camera animation (+ slack) before checking whether the agent ended up visible. */
 const CAMERA_SETTLE_MS = 480;
 const DOUBLE_TAP_MS = 320;
 const DOUBLE_TAP_PX = 24;
 const DRAG_PX = 6;
-/** Largura padrão e mínima dos avisos (px CSS). */
+/** Default and minimum width of the notices (CSS px). */
 const TOAST_W = 344;
 const TOAST_MIN_W = 280;
 const CAMERA_KEYS = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'a', 'A', 'd', 'D', 'w', 'W', 's', 'S', '+', '=', '-', '_', '0', 'o', 'O']);
 
-/** Geometria final dos painéis (sem as transições de abrir/fechar), em px CSS relativos à viewport. */
+/** Final geometry of the panels (without the open/close transitions), in CSS px relative to the viewport. */
 export interface PanelGeometry {
   vw: number;
   vh: number;
-  /** Borda inferior da barra superior. */
+  /** Bottom edge of the top bar. */
   topBottom: number;
-  /** Borda direita da barra lateral aberta. */
+  /** Right edge of the open sidebar. */
   sideRight: number;
-  /** Borda esquerda e borda superior da gaveta aberta. */
+  /** Left edge and top edge of the open drawer. */
   drawerLeft: number;
   drawerTop: number;
-  /** Gaveta como folha inferior (celular) em vez de coluna à direita. */
+  /** Drawer as a bottom sheet (phone) instead of a column on the right. */
   drawerSheet: boolean;
-  /** Altura do feed aberto e recolhido, e a distância dele até a borda inferior. */
+  /** Height of the feed open and collapsed, and its distance to the bottom edge. */
   feedOpenH: number;
   feedClosedH: number;
   feedMargin: number;
@@ -50,7 +50,7 @@ export interface PanelFlags {
   sidebar: boolean;
   feed: boolean;
   drawer: boolean;
-  /** Tela estreita: a barra lateral vira gaveta sobreposta (com fundo escuro) e não conta como área coberta. */
+  /** Narrow screen: the sidebar becomes an overlay drawer (with a dark backdrop) and doesn't count as covered area. */
   narrow: boolean;
 }
 
@@ -62,7 +62,7 @@ function shrinkPair(a: number, b: number, total: number): [number, number] {
   return [Math.floor(a * k), Math.floor(b * k)];
 }
 
-/** Margens cobertas pela UI (puro: testado em viewport.test.ts). */
+/** Margins covered by the UI (pure: tested in viewport.test.ts). */
 export function computeInsets(g: PanelGeometry, f: PanelFlags, gap = INSET_GAP): ViewInsets {
   const top = Math.max(0, g.topBottom) + gap;
   const left = f.sidebar && !f.narrow ? Math.max(0, g.sideRight) + gap : 0;
@@ -91,7 +91,7 @@ export interface FreeAreaPanels {
   feed: HTMLElement;
 }
 
-/** `follow: 'option'` segue a opção "seguir selecionado" do momento; `true` = duplo clique (sempre segue). */
+/** `follow: 'option'` follows the "follow selected" option of the moment; `true` = double click (always follows). */
 type FocusIntent = { sel: NonNullable<Selection>; follow: boolean | 'option' };
 
 const isCanvas = (t: EventTarget | null): t is HTMLCanvasElement => t instanceof HTMLCanvasElement;
@@ -120,7 +120,7 @@ export class FreeArea {
     private panels: FreeAreaPanels,
     private flags: () => PanelFlags,
   ) {
-    // Sonda invisível: resolve as variáveis CSS (que mudam por media query) em px, sem esperar as transições.
+    // Invisible probe: resolves the CSS variables (which change by media query) to px, without waiting for the transitions.
     this.probeFeedOpen = document.createElement('span');
     this.probeFeedClosed = document.createElement('span');
     this.probeGap = document.createElement('span');
@@ -134,7 +134,7 @@ export class FreeArea {
     panels.root.append(this.probe);
 
     addEventListener('resize', () => this.schedule());
-    // A largura/posição do feed anima ao abrir/fechar painéis: reposiciona os avisos no fim da transição.
+    // The feed's width/position animates when panels open/close: repositions the notices at the end of the transition.
     panels.feed.addEventListener('transitionend', (e) => {
       if (e.target === panels.feed) this.schedule();
     });
@@ -149,17 +149,17 @@ export class FreeArea {
     this.watchCanvas();
   }
 
-  /** Margens atualmente informadas ao mundo. */
+  /** Margins currently reported to the world. */
   get insets(): ViewInsets {
     return this.applied ?? { top: 0, right: 0, bottom: 0, left: 0 };
   }
 
-  /** A gaveta está no intervalo do duplo clique (ainda não conta como área coberta). */
+  /** The drawer is in the double-click interval (it doesn't count as covered area yet). */
   get guarding(): boolean {
     return this.guardTimer !== null;
   }
 
-  /** Recalcula no próximo quadro (vários eventos no mesmo quadro viram uma medição). */
+  /** Recalculates on the next frame (several events in the same frame become one measurement). */
   schedule(): void {
     if (this.raf) return;
     this.raf = requestAnimationFrame(() => {
@@ -169,8 +169,8 @@ export class FreeArea {
   }
 
   /**
-   * Mede, informa o mundo e atualiza as variáveis CSS se algo mudou.
-   * `refocus: false` quando quem chamou vai focar logo em seguida (o foco já sai com as margens novas).
+   * Measures, tells the world and updates the CSS variables if something changed.
+   * `refocus: false` when the caller is going to focus right after (the focus already goes out with the new margins).
    */
   sync(opts: { refocus?: boolean } = {}): void {
     if (this.raf) {
@@ -191,14 +191,14 @@ export class FreeArea {
     try {
       this.world.setViewInsets?.(insets);
     } catch (err) {
-      console.error('[ui] setViewInsets falhou', err);
+      console.error('[ui] setViewInsets failed', err);
     }
     if (opts.refocus !== false) this.refocus();
   }
 
   /**
-   * Avisos: no canto inferior direito, ao lado do feed, quando sobra espaço ali (fora do prédio enquadrado);
-   * senão, logo acima do feed / da folha de detalhes. Sempre à esquerda da gaveta.
+   * Notices: in the bottom right corner, next to the feed, when there is room left there (outside the framed building);
+   * otherwise, right above the feed / the details sheet. Always to the left of the drawer.
    */
   private placeToasts(ins: ViewInsets, g: PanelGeometry): void {
     const feed = this.panels.feed;
@@ -214,9 +214,9 @@ export class FreeArea {
     this.panels.root.style.setProperty('--toast-w', `${Math.round(width)}px`);
   }
 
-  // ---------------------------------------------------------------- foco
+  // ---------------------------------------------------------------- focus
 
-  /** A seleção foi aberta com foco (lista, feed, aviso, Centralizar): refaz o foco quando a área mudar. */
+  /** The selection was opened with focus (list, feed, notice, Center): redoes the focus when the area changes. */
   setIntent(sel: NonNullable<Selection>, follow: boolean | 'option' = 'option'): void {
     this.intent = { sel, follow };
   }
@@ -225,14 +225,14 @@ export class FreeArea {
     this.intent = null;
   }
 
-  /** A seleção mudou fora da UI (clique no canvas, agente que saiu). */
+  /** The selection changed outside the UI (click on the canvas, agent that left). */
   selectionChangedExternally(prev: Selection, sel: Selection): void {
     if (this.intent && !sameSelection(this.intent.sel, sel)) this.intent = null;
     if (!prev && sel) this.beginGuard();
     else if (!sel) this.endGuard(false);
   }
 
-  /** Seleção feita pela UI: a gaveta conta na hora (o foco que vem a seguir já usa a área certa). */
+  /** Selection made by the UI: the drawer counts right away (the focus that comes next already uses the right area). */
   selectingFromUi(): void {
     this.endGuard(false);
   }
@@ -244,7 +244,7 @@ export class FreeArea {
     else this.world.focusRoom(it.sel.id);
   }
 
-  // ---------------------------------------------------------------- janela do duplo clique
+  // ---------------------------------------------------------------- double-click window
 
   private beginGuard(): void {
     this.endGuard(false);
@@ -261,7 +261,7 @@ export class FreeArea {
     if (check) this.ensureVisibleSoon();
   }
 
-  /** Depois que a câmera assentar: se o agente selecionado ficou fora da área livre, leva a câmera até ele. */
+  /** After the camera settles: if the selected agent ended up outside the free area, takes the camera to it. */
   private ensureVisibleSoon(): void {
     if (this.checkTimer) clearTimeout(this.checkTimer);
     this.checkTimer = setTimeout(() => {
@@ -275,16 +275,16 @@ export class FreeArea {
     }, CAMERA_SETTLE_MS);
   }
 
-  /** Duplo clique/toque no canvas: o mundo já focou o alvo; a UI passa a manter esse foco. */
+  /** Double click/tap on the canvas: the world already focused the target; the UI starts keeping that focus. */
   private onDoubleActivate(): void {
     const sel = this.world.getSelection();
     if (!sel) return;
-    // Duplo clique em agente = focar e seguir; em sala = enquadrar a sala.
+    // Double click on an agent = focus and follow; on a room = frame the room.
     this.intent = { sel, follow: sel.type === 'agent' };
     if (this.guarding) this.endGuard(false);
   }
 
-  // ---------------------------------------------------------------- interação com a câmera
+  // ---------------------------------------------------------------- interaction with the camera
 
   private watchCanvas(): void {
     addEventListener('dblclick', (e) => isCanvas(e.target) && this.onDoubleActivate());
@@ -300,7 +300,7 @@ export class FreeArea {
       (e) => {
         if (!this.down || e.buttons === 0) return;
         if (Math.hypot(e.clientX - this.down.x, e.clientY - this.down.y) > DRAG_PX) {
-          // Arrastou (ou pinçou): o usuário assumiu a câmera.
+          // Dragged (or pinched): the user took over the camera.
           this.intent = null;
           this.down = null;
           this.lastTap.t = 0;
@@ -314,11 +314,11 @@ export class FreeArea {
         const d = this.down;
         this.down = null;
         if (!d || !isCanvas(e.target) || e.pointerType === 'mouse') return;
-        // Duplo toque (o navegador não dispara dblclick para toque com touch-action: none).
+        // Double tap (the browser doesn't fire dblclick for touch with touch-action: none).
         const now = performance.now();
         if (now - this.lastTap.t < DOUBLE_TAP_MS && Math.hypot(e.clientX - this.lastTap.x, e.clientY - this.lastTap.y) < DOUBLE_TAP_PX) {
           this.lastTap.t = 0;
-          // O mundo trata o toque no mesmo evento: espera ele aplicar a seleção/foco.
+          // The world handles the touch in the same event: waits for it to apply the selection/focus.
           queueMicrotask(() => this.onDoubleActivate());
         } else {
           this.lastTap = { t: now, x: e.clientX, y: e.clientY };
@@ -337,9 +337,9 @@ export class FreeArea {
     );
   }
 
-  // ---------------------------------------------------------------- medição
+  // ---------------------------------------------------------------- measurement
 
-  /** Posições de layout (offset*), que ignoram o transform das animações de abrir/fechar. */
+  /** Layout positions (offset*), which ignore the transform of the open/close animations. */
   private measure(): PanelGeometry {
     const { topbar, sidebar, drawer } = this.panels;
     const vw = innerWidth;

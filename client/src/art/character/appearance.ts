@@ -1,6 +1,6 @@
-// Geração determinística de aparência a partir de uma semente (puro, sem DOM). O sorteio e as paletas moraram aqui e
-// foram para shared/world/appearance-flat.ts (o mesmo sorteio serve o escritório e o Habblaud World); este módulo
-// re-exporta e guarda o que é só do editor do personagem.
+// Deterministic generation of an appearance from a seed (pure, no DOM). The draw and the palettes used to live here
+// and moved to shared/world/appearance-flat.ts (the same draw serves the office and Habblaud World); this module
+// re-exports and keeps what belongs only to the character editor.
 import { ACCESSORIES, BOTTOM_STYLES, FACIAL_HAIR, HAIR_STYLES, TOP_STYLES, type PartKey } from '../../../../shared/appearance';
 import {
   ACC_COLORS,
@@ -23,12 +23,12 @@ import { tr } from '../../../../shared/i18n';
 export { appearanceFromSeed, SKINS } from '../../../../shared/world/appearance-flat';
 export type { BottomStyle, FacialHair } from '../../../../shared/world/appearance-flat';
 
-// O formato de shared/world/appearance-flat.ts e o da arte (art/api.ts) não podem se separar.
+// The format of shared/world/appearance-flat.ts and that of the art (art/api.ts) must not drift apart.
 type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
 const _sameAppearance: Same<SeedAppearance, Appearance> = true;
 void _sameAppearance;
 
-/** Chave estável de uma aparência (para cache de sprites). */
+/** Stable key of an appearance (for the sprite cache). */
 export function appearanceKey(a: Appearance): string {
   return [
     a.skin, a.hair, a.hairStyle, a.eyes, a.top, a.topAccent, a.topStyle, a.bottom, a.shoes, a.accessory,
@@ -36,13 +36,13 @@ export function appearanceKey(a: Appearance): string {
   ].join('|');
 }
 
-// ------------------------------------------------------------------ editor do personagem
+// ------------------------------------------------------------------ character editor
 
 const uniq = (list: readonly string[]): readonly string[] => [...new Set(list)];
 const colorsOf = (pairs: readonly (readonly [string, number])[]): string[] => pairs.map(([c]) => c);
 const ACCENTS = uniq([...LIGHT_ACCENTS, ...TOP_COLORS]);
 
-/** Cores da parte de cima e do detalhe para cada estilo: as mesmas que o sorteio usa. */
+/** Colors of the top and of the detail for each style: the same ones the draw uses. */
 function topPalettes(style: TopStyle): { top: readonly string[]; topAccent: readonly string[] } {
   switch (style) {
     case 'shirt_tie':
@@ -56,7 +56,7 @@ function topPalettes(style: TopStyle): { top: readonly string[]; topAccent: read
 
 export type EditorOptions = Readonly<Record<PartKey, readonly string[]>>;
 
-/** Opções de cada peça no editor do personagem, conforme a aparência atual (as cores da roupa dependem do estilo). */
+/** Options for each piece in the character editor, according to the current appearance (the outfit colors depend on the style). */
 export function editorOptions(a: Appearance): EditorOptions {
   const top = topPalettes(a.topStyle);
   return {
@@ -79,20 +79,20 @@ export function editorOptions(a: Appearance): EditorOptions {
 const TALL_HAIR: readonly string[] = ['afro', 'bun', 'mohawk', 'pigtails'];
 const SHORT_HAIR: readonly string[] = ['bald', 'buzz'];
 
-/** Combinação que o sorteio evita (o editor desabilita a opção): devolve o motivo, ou undefined se pode. */
+/** Combination the draw avoids (the editor disables the option): returns the reason, or undefined if it is allowed. */
 export function editorConflict(a: Appearance, key: PartKey, value: string): string | undefined {
   if (key === 'accessory') {
-    if ((value === 'cap' || value === 'beanie') && TALL_HAIR.includes(a.hairStyle)) return tr('Não combina com este cabelo');
-    if (value === 'bow' && SHORT_HAIR.includes(a.hairStyle)) return tr('Não combina com este cabelo');
+    if ((value === 'cap' || value === 'beanie') && TALL_HAIR.includes(a.hairStyle)) return tr("Doesn't go with this hair");
+    if (value === 'bow' && SHORT_HAIR.includes(a.hairStyle)) return tr("Doesn't go with this hair");
   }
   if (key === 'hairStyle') {
-    if ((a.accessory === 'cap' || a.accessory === 'beanie') && TALL_HAIR.includes(value)) return tr('Não combina com o boné ou o gorro');
-    if (a.accessory === 'bow' && SHORT_HAIR.includes(value)) return tr('Não combina com o laço');
+    if ((a.accessory === 'cap' || a.accessory === 'beanie') && TALL_HAIR.includes(value)) return tr("Doesn't go with the cap or beanie");
+    if (a.accessory === 'bow' && SHORT_HAIR.includes(value)) return tr("Doesn't go with the bow");
   }
   return undefined;
 }
 
-/** Depois de trocar um estilo: cores que não existem na paleta nova caem na primeira dela. */
+/** After changing a style: colors that do not exist in the new palette fall back to its first one. */
 export function fitToOptions(a: Appearance): Appearance {
   const o = editorOptions(a);
   const fit = (v: string, list: readonly string[]): string => (list.includes(v) ? v : list[0]);

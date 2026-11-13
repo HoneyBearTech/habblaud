@@ -1,16 +1,16 @@
-// Binário falso do Codex para os testes das mensagens: imita as saídas reais do `codex queue` (0.162) e anota cada
-// chamada (argumentos e CODEX_HOME) num arquivo. Nunca chama o Codex de verdade.
-// - thread que começa com 0199aaaa: "Error: ... no rollout found for thread id ..." no stderr, retorno 1;
-// - thread que começa com 0199bbbb: demora 10 s (para o prazo);
-// - opção proibida (-c, --enable, --disable, --no-daemon) ou argumento faltando: retorno 2;
-// - senão: "Queued message <id> for thread <thread>." no stdout, retorno 0.
+// Fake Codex binary for the messages tests: imitates the real outputs of `codex queue` (0.162) and notes each
+// call (arguments and CODEX_HOME) in a file. Never calls the real Codex.
+// - thread that starts with 0199aaaa: "Error: ... no rollout found for thread id ..." on stderr, return 1;
+// - thread that starts with 0199bbbb: takes 10 s (for the deadline);
+// - forbidden option (-c, --enable, --disable, --no-daemon) or missing argument: return 2;
+// - otherwise: "Queued message <id> for thread <thread>." on stdout, return 0.
 import { chmodSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { CODEX_BIN_NAME } from '../messages/codex';
 
 /**
- * O binário falso roda aqui? Ele é um script com shebang, e no Windows o execFile (sem shell) só roda .exe: lá os testes
- * que o executam ficam de fora (a busca pelo nome segue testada).
+ * Does the fake binary run here? It is a script with a shebang, and on Windows execFile (without a shell) only runs
+ * .exe: there the tests that execute it are left out (the search by name is still tested).
  */
 export const FAKE_CODEX_RUNS = process.platform !== 'win32';
 
@@ -30,13 +30,13 @@ if (args[0] !== 'queue' || args.some((a) => /^(-c|--config|--enable|--disable|--
   process.stderr.write('Error: failed to queue session message: thread/queue/add failed: failed to read thread: invalid thread-store request: no rollout found for thread id ' + thread + ' (code -32603)\\n');
   process.exit(1);
 } else if (thread.startsWith('0199bbbb')) {
-  setTimeout(() => process.stdout.write('tarde demais\\n'), 10000);
+  setTimeout(() => process.stdout.write('too late\\n'), 10000);
 } else {
   process.stdout.write('Queued message 01a11fb4-27d1-7450-947c-e3c97aa47303 for thread ' + thread + '.\\n');
 }
 `;
 
-/** Grava o binário falso como <dir>/codex (no Windows, codex.exe: o nome que a busca procura) e devolve o caminho. */
+/** Writes the fake binary as <dir>/codex (on Windows, codex.exe: the name the search looks for); returns the path. */
 export function writeFakeCodex(dir: string): string {
   const bin = join(dir, CODEX_BIN_NAME);
   writeFileSync(bin, SCRIPT);
@@ -44,7 +44,7 @@ export function writeFakeCodex(dir: string): string {
   return bin;
 }
 
-/** Chamadas anotadas pelo binário falso. */
+/** Calls noted by the fake binary. */
 export function fakeCodexCalls(log: string): Array<{ args: string[]; codexHome?: string }> {
   if (!existsSync(log)) return [];
   return readFileSync(log, 'utf8')

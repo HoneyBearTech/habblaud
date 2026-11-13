@@ -1,6 +1,7 @@
-// A visita a um prédio do mundo no `Sim` de verdade: o snapshot de shared/world/office-from-world.ts tem tudo o que a
-// simulação exige (semente, vaga, contas, tempos, listas vazias) e cada agente aparece na sala do andar dele, no
-// comportamento do status. Também o modo discreto, o prédio apagado e os patches (status, andar que some, andar novo).
+// The visit to a world building in the real `Sim`: the snapshot from shared/world/office-from-world.ts has everything
+// the simulation requires (seed, slot, accounts, times, empty lists) and each agent appears in the room of its floor,
+// with the behavior of its status. Also discreet mode, the building that is off and the patches (status, floor that
+// disappears, new floor).
 import { describe, expect, it } from 'vitest';
 import { applyBuildingPatch, officeFromBuilding } from '../../../../shared/world/office-from-world';
 import type { WorldBuildingDetail } from '../../../../shared/world/protocol';
@@ -44,7 +45,7 @@ const art = { appearanceFromSeed: () => appearance, roomTheme: () => theme } as 
 const T0 = 1_790_000_000_000;
 const OPTS = { version: 't' };
 
-/** Avança a simulação em passos de 1/30 s. */
+/** Advances the simulation in steps of 1/30 s. */
 function run(sim: Sim, clock: { now: number }, seconds: number, until?: () => boolean): void {
   const steps = Math.round(seconds * 30);
   for (let i = 0; i < steps; i++) {
@@ -54,7 +55,7 @@ function run(sim: Sim, clock: { now: number }, seconds: number, until?: () => bo
   }
 }
 
-/** Carteiras só em memória, como o timelapse. */
+/** Wallets in memory only, like the timelapse. */
 const newSim = () => new Sim(art, () => ({ ...DEFAULT_WORLD_OPTIONS, liveliness: 'calm' }), null);
 
 function enter(detail: WorldBuildingDetail): { sim: Sim; clock: { now: number }; snap: OfficeSnapshot } {
@@ -67,14 +68,14 @@ function enter(detail: WorldBuildingDetail): { sim: Sim; clock: { now: number };
 
 const charByName = (sim: Sim, name: string): Character => [...sim.chars.values()].find((c) => c.info.name === name)!;
 
-/** O tile em que o personagem está fica dentro do retângulo da sala dele. */
+/** The tile the character is on is inside the rectangle of its room. */
 function insideOwnRoom(sim: Sim, ch: Character): boolean {
   const room = sim.rooms.get(ch.roomId);
   return !!room && inRect(room.layout.rect, ch.tx, ch.ty);
 }
 
-describe('visita a um prédio do mundo no Sim', () => {
-  it('todos os personagens existem, na sala do andar deles e no comportamento do status', () => {
+describe('visit to a world building in the Sim', () => {
+  it('all the characters exist, in the room of their floor and in the behavior of the status', () => {
     const detail = sampleBuildingDetail();
     const { sim, clock, snap } = enter(detail);
     run(sim, clock, 3);
@@ -102,7 +103,7 @@ describe('visita a um prédio do mundo no Sim', () => {
       'idle',
       'idle',
     ]);
-    // quem trabalha ou espera está na própria mesa, dentro da sala do andar
+    // whoever works or waits is at their own desk, inside the floor's room
     for (const name of ['Marina', 'Beatriz']) {
       const ch = charByName(sim, name);
       expect(ch.homeSpot).not.toBeNull();
@@ -111,20 +112,20 @@ describe('visita a um prédio do mundo no Sim', () => {
     }
     expect(charByName(sim, 'Marina').pose).toBe('type');
     expect(charByName(sim, 'Beatriz').pose).toBe('raise_hand');
-    // o subagente acha o pai pelo id `world:`; o órfão segue sozinho
+    // the subagent finds the parent by the `world:` id; the orphan goes on alone
     const sub = charByName(sim, 'Rafael');
     expect(sim.chars.get(sub.info.parentId!)).toBe(charByName(sim, 'Marina'));
     expect(charByName(sim, 'Thiago').info.parentId).toBeUndefined();
-    // contas fictícias nas etiquetas: a do Codex com o selo da ferramenta
+    // fictional accounts on the labels: the Codex one with the tool's badge
     expect(sim.accounts.get('world:codex')).toEqual({ short: 'X', color: snap.accounts[1].color, name: 'Codex', provider: 'codex' });
     expect(sim.accounts.get('world:claude')).toMatchObject({ short: 'C', name: 'Claude Code' });
-    // um tempo depois, ninguém foi embora nem trocou de sala
+    // some time later, nobody has left or changed rooms
     run(sim, clock, 20);
     expect(sim.chars.size).toBe(6);
     for (const ch of sim.chars.values()) expect(ch.leaving).toBe(false);
   });
 
-  it('modo discreto: as salas aparecem, com a luz acesa, sem ninguém', () => {
+  it('discreet mode: the rooms show up, with the light on, with nobody', () => {
     const { sim, clock } = enter(sampleBuildingDetail('discreet'));
     run(sim, clock, 5);
     expect(sim.rooms.size).toBe(3);
@@ -135,18 +136,18 @@ describe('visita a um prédio do mundo no Sim', () => {
     expect(sim.chars.size).toBe(0);
   });
 
-  it('prédio apagado: as salas existem e ninguém aparece (a cena apaga as luzes)', () => {
+  it('building off: the rooms exist and nobody shows up (the scene turns off the lights)', () => {
     const { sim, clock } = enter(sampleBuildingDetail('away'));
     run(sim, clock, 5);
     expect([...sim.rooms.keys()]).toEqual(['f_0a1b2c3d4e', 'f_1b2c3d4e5f', 'f_2c3d4e5f60']);
     expect(sim.chars.size).toBe(0);
   });
 
-  it('patch: agente que troca de status, andar que some (todos vão embora) e andar novo (construído, com quem chega)', () => {
+  it('patch: agent that changes status, floor that goes away (everyone leaves) and new floor (built, with whoever arrives)', () => {
     const { sim, clock, snap } = enter(sampleBuildingDetail());
     run(sim, clock, 3);
     const floors = sampleBuildingDetail().floors.filter((f) => f.label !== 'aurora');
-    floors[1].agents[0].status = 'working'; // Beatriz: esperando -> trabalhando
+    floors[1].agents[0].status = 'working'; // Beatriz: waiting -> working
     floors.push({
       id: 'f_3d4e5f6071',
       label: 'orion',
@@ -163,7 +164,7 @@ describe('visita a um prédio do mundo no Sim', () => {
     const camila = charByName(sim, 'Camila');
     expect(camila.roomId).toBe('f_3d4e5f6071');
     expect(camila.arriving).toBe(true);
-    // quem estava no andar que sumiu vai embora depois do debounce
+    // whoever was on the floor that disappeared leaves after the debounce
     run(sim, clock, MISSING_DEBOUNCE_MS / 1000 + 1);
     expect(charByName(sim, 'Larissa').leaving).toBe(true);
     expect(charByName(sim, 'Gustavo').leaving).toBe(true);
@@ -180,7 +181,7 @@ describe('visita a um prédio do mundo no Sim', () => {
     expect([...sim.chars.values()].map((c) => c.info.name).sort()).toEqual(['Beatriz', 'Camila', 'Marina', 'Rafael', 'Thiago']);
   });
 
-  it('o prédio ficou discreto no meio da visita: todo mundo vai embora e as salas ficam', () => {
+  it('the building went discreet in the middle of the visit: everyone leaves and the rooms stay', () => {
     const { sim, clock, snap } = enter(sampleBuildingDetail());
     run(sim, clock, 3);
     const { snapshot } = applyBuildingPatch(snap, { rev: 13, building: sampleBuildingDetail('discreet').building }, clock.now);
@@ -191,9 +192,9 @@ describe('visita a um prédio do mundo no Sim', () => {
   });
 });
 
-// ------------------------------------------------------------------------------------------------ cena Visita (Fase 4)
+// ------------------------------------------------------------------------------------------------ Visit scene (Phase 4)
 
-/** O Sim da cena Visita: `visit: true`, carteiras só em memória. */
+/** The Sim of the Visit scene: `visit: true`, wallets in memory only. */
 const visitSim = () => new Sim(art, () => ({ ...DEFAULT_WORLD_OPTIONS, liveliness: 'calm' }), null, { visit: true });
 
 function visit(detail: WorldBuildingDetail, light: VisitLight = 'live'): { sim: Sim; clock: { now: number }; snap: OfficeSnapshot } {
@@ -205,11 +206,11 @@ function visit(detail: WorldBuildingDetail, light: VisitLight = 'live'): { sim: 
   return { sim, clock, snap };
 }
 
-describe('Sim da visita (visit: true)', () => {
-  it('nenhum tempo do status: quem espera um shell fica de braços cruzados (sem pipoca, teia ou cochilo) e o ocioso não cochila', () => {
+describe('Sim of the visit (visit: true)', () => {
+  it('no status time: whoever waits on a shell stays with arms crossed (no popcorn, cobweb or nap) and the idle one does not nap', () => {
     const { sim, clock } = visit(sampleBuildingDetail());
     expect(sim.visit).toBe(true);
-    // 40 min depois (o tempo da visita não é o tempo do status: nada escala)
+    // 40 min later (the visit's time is not the status time: nothing escalates)
     run(sim, clock, 2);
     clock.now += 40 * 60_000;
     run(sim, clock, 3);
@@ -225,7 +226,7 @@ describe('Sim da visita (visit: true)', () => {
       expect(sim.longIdle(ch, clock.now)).toBe(false);
       expect(ch.icon).not.toBe('zzz');
     }
-    // o mesmo prédio fora da visita: 40 min de espera viram cochilo com teia
+    // the same building outside the visit: 40 min of waiting turn into a nap with cobwebs
     const office = newSim();
     const snap = officeFromBuilding(sampleBuildingDetail(), T0, OPTS);
     office.applySnapshot(snap, T0);
@@ -237,7 +238,7 @@ describe('Sim da visita (visit: true)', () => {
     expect(office.longIdle(charByName(office, 'Larissa'), c2.now)).toBe(true);
   });
 
-  it('apagado: as salas entram escuras e ficam assim; discreto: acesas e vazias; o prédio que acende chama os agentes, que acendem a luz', () => {
+  it('off: the rooms come in dark and stay that way; discreet: lit and empty; the building that lights up calls the agents, who turn on the light', () => {
     const away = visit(sampleBuildingDetail('away'), 'away');
     for (const r of away.sim.rooms.values()) expect(r.lightOn, r.id).toBe(false);
     run(away.sim, away.clock, 5);
@@ -246,7 +247,7 @@ describe('Sim da visita (visit: true)', () => {
     run(discreet.sim, discreet.clock, 2);
     for (const r of discreet.sim.rooms.values()) expect(r.lightOn).toBe(true);
     expect(discreet.sim.chars.size).toBe(0);
-    // o dono voltou: o patch traz o prédio aceso e os andares com gente
+    // the owner is back: the patch brings the building lit and the floors with people
     const live = sampleBuildingDetail();
     away.sim.visitLight = 'live';
     const { snapshot } = applyBuildingPatch(away.snap, { rev: 13, floors: live.floors, building: live.building }, away.clock.now);
@@ -257,7 +258,7 @@ describe('Sim da visita (visit: true)', () => {
   });
 });
 
-describe('o visitante', () => {
+describe('the visitor', () => {
   const ME = { name: 'Pixel Dev', look: 'f' as const, parts: {} };
 
   function withVisitor(detail = sampleBuildingDetail()) {
@@ -268,7 +269,7 @@ describe('o visitante', () => {
     return { ...v, ch };
   }
 
-  it('chega pelo elevador da recepção, com o crachá de visitante, fora dos agentes (snapshot, vida social, lugares)', () => {
+  it('arrives by the reception elevator, with the visitor badge, outside the agents (snapshot, social life, places)', () => {
     const { sim, clock, ch, snap } = withVisitor();
     expect(ch.id).toBe(VISITOR_ID);
     expect(ch.appearance.lanyard).toBe(VISITOR_LANYARD);
@@ -281,31 +282,31 @@ describe('o visitante', () => {
     expect([...sim.people()].at(-1)).toBe(ch);
     expect(sim.person(VISITOR_ID)).toBe(ch);
     expect(sim.visitorElevator()).not.toBeNull();
-    // snapshots seguintes não mexem nele (nem o mandam embora)
+    // later snapshots do not touch the visitor (or send them away)
     sim.applySnapshot(snap, clock.now);
     run(sim, clock, MISSING_DEBOUNCE_MS / 1000 + 2);
     expect(sim.visitor).toBe(ch);
     expect(ch.leaving).toBe(false);
     for (const c of sim.chars.values()) expect(c.gathering?.members.some((m) => m.id === VISITOR_ID) ?? false).toBe(false);
     expect(ch.gathering).toBeNull();
-    // ninguém contou o visitante: as carteiras e as salas são só dos agentes
+    // nobody counted the visitor: the wallets and the rooms belong only to the agents
     expect(sim.social.wallets.get(VISITOR_ID)).toBeUndefined();
   });
 
-  it('anda com o teclado e não atravessa parede nem assento; o clique leva por um caminho', () => {
+  it('walks with the keyboard and does not go through a wall or a seat; the click leads along a path', () => {
     const { sim, clock, ch } = withVisitor();
     const start = { x: ch.x, y: ch.y };
     sim.visitorIntent = { dx: 0, dy: 1, run: false };
     run(sim, clock, 1.5);
     expect(ch.y).toBeGreaterThan(start.y + 20);
     expect(['walk', 'stand']).toContain(ch.pose);
-    // segurando para cima por muito tempo: para na parede, nunca dentro dela
+    // holding up for a long time: stops at the wall, never inside it
     sim.visitorIntent = { dx: 0, dy: -1, run: true };
     run(sim, clock, 6);
     sim.visitorIntent = { ...NO_INTENT };
     const grid = sim.building.grid;
     expect(canStand(grid, ch.x, ch.y)).toBe(true);
-    // passeando em todas as direções, os pés ficam sempre em chão livre
+    // strolling in every direction, the feet always stay on free floor
     for (const [dx, dy] of [[1, 0], [0, 1], [-1, 1], [1, -1], [-1, 0]] as const) {
       sim.visitorIntent = { dx, dy, run: true };
       for (let i = 0; i < 60; i++) {
@@ -315,7 +316,7 @@ describe('o visitante', () => {
     }
     sim.visitorIntent = { ...NO_INTENT };
     run(sim, clock, 0.2);
-    // o clique: até a porta da sala do primeiro andar
+    // the click: up to the door of the first floor's room
     const room = sim.rooms.get('f_0a1b2c3d4e')!;
     const door = room.layout.door!;
     expect(sim.visitorWalkTo(door.x, door.y)).toBe(true);
@@ -324,7 +325,7 @@ describe('o visitante', () => {
     expect(ch.seated).toBe(false);
   });
 
-  it('sai pelo elevador: entra, some e só então a cena manda o leave; ocupado, não anda nem sai de novo', () => {
+  it('leaves by the elevator: gets in, disappears and only then the scene sends the leave; when busy, does not walk or leave again', () => {
     const { sim, clock, ch } = withVisitor();
     sim.visitorIntent = { dx: 1, dy: 1, run: false };
     run(sim, clock, 1);
@@ -343,7 +344,7 @@ describe('o visitante', () => {
     expect([...sim.people()].some((c) => c.id === VISITOR_ID)).toBe(false);
   });
 
-  it('a aba voltou do segundo plano no meio da chegada ou da saída: termina na hora (e a saída acontece)', () => {
+  it('the tab came back from the background in the middle of the arrival or the exit: finishes right away (and the exit happens)', () => {
     const v = visit(sampleBuildingDetail());
     const ch = v.sim.setVisitor(visitorInfo(ME, v.clock.now), v.clock.now)!;
     v.sim.fastForward(v.clock.now);
@@ -356,8 +357,8 @@ describe('o visitante', () => {
   });
 });
 
-describe('stepFree e canStand (puros)', () => {
-  it('sem intenção não anda; diagonal normalizada; desliza na parede por um eixo', () => {
+describe('stepFree and canStand (pure)', () => {
+  it('with no intent it does not walk; normalized diagonal; slides along the wall on one axis', () => {
     const sim = visitSim();
     const grid = sim.building.grid;
     const el = sim.spots.get(sim.elevators[0]!.spotId)!;
@@ -365,7 +366,7 @@ describe('stepFree e canStand (puros)', () => {
     expect(stepFree(grid, pos, NO_INTENT, 10)).toEqual({ ...pos, moved: false });
     const d = stepFree(grid, pos, { dx: 1, dy: 1, run: false }, 10);
     expect(Math.hypot(d.x - pos.x, d.y - pos.y)).toBeCloseTo(10, 5);
-    // para cima, logo abaixo da parede dos elevadores: não sobe, mas anda para o lado
+    // up, right below the elevator wall: does not go up, but walks sideways
     const up = stepFree(grid, pos, { dx: 1, dy: -1, run: false }, 40);
     expect(up.moved).toBe(true);
     expect(canStand(grid, up.x, up.y)).toBe(true);

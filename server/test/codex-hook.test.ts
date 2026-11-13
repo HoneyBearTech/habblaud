@@ -1,7 +1,7 @@
-// Hook do Codex (mod/habblaud-codex/hook.mjs) rodado como processo de verdade contra o servidor de teste (rotas de
-// verdade e uma fonte do Codex falsa): eventos de observação (sem saída), a conta pelo CODEX_HOME, pelo
-// transcript_path ou ~/.codex, a configuração em ~/.habblaud/codex-hook.json, e o PermissionRequest (aprovar, recusar,
-// terminal, tempo esgotado, Habblaud fora do ar). HOME e CODEX_HOME sempre em pastas temporárias; stdin sintético.
+// Codex hook (mod/habblaud-codex/hook.mjs) run as a real process against the test server (real routes
+// and a fake Codex source): observation events (no output), the account by CODEX_HOME, by
+// transcript_path or ~/.codex, the configuration in ~/.habblaud/codex-hook.json, and the PermissionRequest (approve,
+// deny, terminal, timed out, Habblaud down). HOME and CODEX_HOME always in temporary folders; synthetic stdin.
 import { spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:net';
@@ -16,7 +16,7 @@ setQuiet(true);
 
 const HOOK = resolve(__dirname, '../../mod/habblaud-codex/hook.mjs');
 
-/** Funções exportadas pelo hook (JavaScript puro, sem tipos). */
+/** Functions exported by the hook (plain JavaScript, no types). */
 interface HookModule {
   readConfig(env: NodeJS.ProcessEnv): { port: number; waitMs: number };
   codexHomeOf(env: NodeJS.ProcessEnv, input: unknown): string;
@@ -27,7 +27,7 @@ interface HookModule {
 }
 const hook = (await import(pathToFileURL(HOOK).href)) as HookModule;
 
-/** Fonte do Codex falsa: guarda os eventos recebidos. */
+/** Fake Codex source: keeps the events received. */
 class FakeLive {
   calls: Array<{ account: string | undefined; input: Record<string, unknown> }> = [];
   applyHookEvent(account: string | undefined, input: Record<string, unknown>): boolean {
@@ -52,7 +52,7 @@ let live: FakeLive;
 beforeEach(() => {
   tmp = tempDir();
   home = join(tmp.dir, 'home');
-  codexHome = join(home, '.codex-trabalho');
+  codexHome = join(home, '.codex-work');
   mkdirSync(codexHome, { recursive: true });
   live = new FakeLive();
 });
@@ -62,7 +62,7 @@ afterEach(async () => {
   tmp.cleanup();
 });
 
-/** ~/.habblaud/codex-hook.json no HOME falso. */
+/** ~/.habblaud/codex-hook.json in the fake HOME. */
 function writeConfig(cfg: Record<string, unknown>): void {
   mkdirSync(join(home, '.habblaud'), { recursive: true });
   writeFileSync(join(home, '.habblaud', 'codex-hook.json'), JSON.stringify(cfg));
@@ -86,21 +86,21 @@ function runHook(stdin: string, env: NodeJS.ProcessEnv = {}): Promise<HookRun> {
   });
 }
 
-/** JSON (sintético) de um evento de hook do Codex. */
+/** JSON (synthetic) of a Codex hook event. */
 function codexEvent(event: string, over: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     session_id: CODEX_THREAD,
     turn_id: 'turn-1',
     transcript_path: null,
-    cwd: '/p/loja',
+    cwd: '/p/store',
     hook_event_name: event,
-    model: 'gpt-teste',
+    model: 'gpt-test',
     permission_mode: 'default',
     ...over,
   };
 }
 
-const permission = (over: Record<string, unknown> = {}) => codexEvent('PermissionRequest', { tool_name: 'Bash', tool_input: { command: 'npm test', description: 'Rodar os testes' }, ...over });
+const permission = (over: Record<string, unknown> = {}) => codexEvent('PermissionRequest', { tool_name: 'Bash', tool_input: { command: 'npm test', description: 'Run the tests' }, ...over });
 
 async function pendingId(s: PermissionServer): Promise<string> {
   for (let i = 0; i < 200; i++) {
@@ -108,7 +108,7 @@ async function pendingId(s: PermissionServer): Promise<string> {
     if (id) return id;
     await new Promise((ok) => setTimeout(ok, 25));
   }
-  throw new Error('o hook não registrou o pedido');
+  throw new Error('the hook did not register the request');
 }
 
 async function deadPort(): Promise<number> {
@@ -119,28 +119,28 @@ async function deadPort(): Promise<number> {
   return port;
 }
 
-describe('hook.mjs do Codex (processo)', () => {
-  it('evento de observação: vai para /api/codex/events com a conta e o CODEX_HOME; nada no stdout', async () => {
+describe('Codex hook.mjs (process)', () => {
+  it('observation event: goes to /api/codex/events with the account and the CODEX_HOME; nothing on stdout', async () => {
     srv = await servePermissions({ codex: true, codexLive: live });
     writeConfig({ port: srv.port });
     const input = codexEvent('PreToolUse', { tool_name: 'Bash', tool_use_id: 'call-1', tool_input: { command: 'ls' } });
     const r = await runHook(JSON.stringify(input), { CODEX_HOME: codexHome });
     expect(r).toMatchObject({ code: 0, stdout: '' });
     expect(r.ms).toBeLessThan(3_000);
-    expect(live.calls).toEqual([{ account: '.codex-trabalho', input }]);
+    expect(live.calls).toEqual([{ account: '.codex-work', input }]);
     expect(srv.registry!.size).toBe(0);
   });
 
-  it('a conta sai do transcript_path quando o CODEX_HOME não chega (o ambiente do hook é o do daemon); senão ~/.codex', async () => {
+  it('the account comes from transcript_path when CODEX_HOME does not arrive (the environment of the hook is that of the daemon); otherwise ~/.codex', async () => {
     srv = await servePermissions({ codex: true, codexLive: live });
     writeConfig({ port: srv.port });
     const transcript = join(codexHome, 'sessions', '2026', '10', '09', `rollout-2026-10-09T09-00-00-${CODEX_THREAD}.jsonl`);
-    await runHook(JSON.stringify(codexEvent('Stop', { transcript_path: transcript, last_assistant_message: 'pronto' })));
+    await runHook(JSON.stringify(codexEvent('Stop', { transcript_path: transcript, last_assistant_message: 'done' })));
     await runHook(JSON.stringify(codexEvent('SessionEnd', { reason: 'other' })));
-    expect(live.calls.map((c) => c.account)).toEqual(['.codex-trabalho', '.codex']);
+    expect(live.calls.map((c) => c.account)).toEqual(['.codex-work', '.codex']);
   });
 
-  it('textos enormes (saída de comando no PostToolUse) vão cortados, cabendo no limite do servidor', async () => {
+  it('huge texts (command output in PostToolUse) go truncated, fitting in the server limit', async () => {
     srv = await servePermissions({ codex: true, codexLive: live });
     writeConfig({ port: srv.port });
     const big = codexEvent('PostToolUse', { tool_name: 'Bash', tool_use_id: 'c', tool_input: { command: 'cat x' }, tool_response: { output: 'x'.repeat(600_000) } });
@@ -150,7 +150,7 @@ describe('hook.mjs do Codex (processo)', () => {
     expect((live.calls[0].input.tool_response as { output: string }).output.length).toBe(8_000);
   });
 
-  it('PermissionRequest aprovado no Habblaud: manda o evento, registra e imprime allow (só isso)', async () => {
+  it('PermissionRequest approved in Habblaud: sends the event, logs and prints allow (only that)', async () => {
     srv = await servePermissions({ codex: true, codexLive: live });
     writeConfig({ port: srv.port, permissionTimeoutS: 30 });
     const run = runHook(JSON.stringify(permission()), { CODEX_HOME: codexHome });
@@ -158,7 +158,7 @@ describe('hook.mjs do Codex (processo)', () => {
     expect(live.calls.map((c) => c.input.hook_event_name)).toEqual(['PermissionRequest']);
     const info = srv.registry!.detail(id)!;
     expect(info).toMatchObject({ provider: 'codex', tool: 'Bash', title: 'Bash(npm test)' });
-    // A espera do arquivo (30 s) vira o prazo do pedido no escritório.
+    // The wait from the file (30 s) becomes the deadline of the request in the office.
     expect(info.expiresAt - info.createdAt).toBeGreaterThan(25_000);
     expect(info.expiresAt - info.createdAt).toBeLessThanOrEqual(30_000);
     expect(srv.registry!.decide(id, { behavior: 'allow' })).toBe('ok');
@@ -167,27 +167,27 @@ describe('hook.mjs do Codex (processo)', () => {
     expect(r.stdout).toBe('{"hookSpecificOutput":{"hookEventName":"PermissionRequest","decision":{"behavior":"allow"}}}\n');
   });
 
-  it('recusado com motivo: deny com a mensagem (sem interrupt); "responder no terminal": nada no stdout', async () => {
+  it('denied with a reason: deny with the message (no interrupt); "answer in the terminal": nothing on stdout', async () => {
     srv = await servePermissions({ codex: true, codexLive: live });
     writeConfig({ port: srv.port });
     let run = runHook(JSON.stringify(permission()), { CODEX_HOME: codexHome });
     expect(srv.registry!.decide(await pendingId(srv), { behavior: 'deny', message: 'use pnpm' })).toBe('ok');
     let r = await run;
-    expect(JSON.parse(r.stdout)).toEqual({ hookSpecificOutput: { hookEventName: 'PermissionRequest', decision: { behavior: 'deny', message: 'Recusado pelo usuário no Habblaud: use pnpm' } } });
+    expect(JSON.parse(r.stdout)).toEqual({ hookSpecificOutput: { hookEventName: 'PermissionRequest', decision: { behavior: 'deny', message: 'Denied by the user in Habblaud: use pnpm' } } });
     run = runHook(JSON.stringify(permission()), { CODEX_HOME: codexHome });
     srv.registry!.decide(await pendingId(srv), { behavior: 'terminal' });
     r = await run;
     expect(r).toMatchObject({ code: 0, stdout: '' });
   });
 
-  it('HABBLAUD_PORT vale como reserva quando o arquivo não tem a porta', async () => {
+  it('HABBLAUD_PORT counts as a fallback when the file does not have the port', async () => {
     srv = await servePermissions({ codex: true, codexLive: live });
     const run = runHook(JSON.stringify(permission()), { CODEX_HOME: codexHome, HABBLAUD_PORT: String(srv.port) });
     srv.registry!.decide(await pendingId(srv), { behavior: 'allow' });
     expect(JSON.parse((await run).stdout).hookSpecificOutput.decision).toEqual({ behavior: 'allow' });
   });
 
-  it('Habblaud fora do ar, sem página aberta ou sessão desconhecida: sai rápido, sem decisão', async () => {
+  it('Habblaud down, no page open or unknown session: exits fast, without a decision', async () => {
     writeConfig({ port: await deadPort() });
     let r = await runHook(JSON.stringify(permission()), { CODEX_HOME: codexHome });
     expect(r).toMatchObject({ code: 0, stdout: '' });
@@ -202,7 +202,7 @@ describe('hook.mjs do Codex (processo)', () => {
     expect(srv.registry!.size).toBe(0);
   });
 
-  it('espera esgotada (permissionTimeoutS: 5): desiste e sai sem decisão (o Codex segue a aprovação normal)', async () => {
+  it('wait timed out (permissionTimeoutS: 5): gives up and exits without a decision (Codex follows the normal approval)', async () => {
     srv = await servePermissions({ codex: true, codexLive: live, registry: { orphanMs: 300 } });
     writeConfig({ port: srv.port, permissionTimeoutS: 5 });
     const r = await runHook(JSON.stringify(permission()), { CODEX_HOME: codexHome });
@@ -211,10 +211,10 @@ describe('hook.mjs do Codex (processo)', () => {
     expect(r.ms).toBeLessThan(10_000);
   }, 20_000);
 
-  it('stdin inválido ou evento que o Habblaud não usa: nada é mandado', async () => {
+  it('invalid stdin or an event that Habblaud does not use: nothing is sent', async () => {
     srv = await servePermissions({ codex: true, codexLive: live });
     writeConfig({ port: srv.port });
-    for (const stdin of ['', 'não é json', '[]', JSON.stringify({ hook_event_name: 'Stop' }), JSON.stringify(codexEvent('PreCompact', { trigger: 'auto' }))]) {
+    for (const stdin of ['', 'not json', '[]', JSON.stringify({ hook_event_name: 'Stop' }), JSON.stringify(codexEvent('PreCompact', { trigger: 'auto' }))]) {
       const r = await runHook(stdin, { CODEX_HOME: codexHome });
       expect(r, stdin).toMatchObject({ code: 0, stdout: '' });
     }
@@ -222,8 +222,8 @@ describe('hook.mjs do Codex (processo)', () => {
   });
 });
 
-describe('hook.mjs do Codex (funções)', () => {
-  it('readConfig: arquivo, reserva HABBLAUD_PORT, padrões e limites da espera', () => {
+describe('Codex hook.mjs (functions)', () => {
+  it('readConfig: file, HABBLAUD_PORT fallback, defaults and wait limits', () => {
     expect(hook.readConfig({ HOME: home })).toEqual({ port: 4747, waitMs: 25_000 });
     expect(hook.readConfig({ HOME: home, HABBLAUD_PORT: '4851' })).toEqual({ port: 4851, waitMs: 25_000 });
     writeConfig({ port: 4900, permissionTimeoutS: 60 });
@@ -232,33 +232,33 @@ describe('hook.mjs do Codex (funções)', () => {
     expect(hook.readConfig({ HOME: home })).toEqual({ port: 4747, waitMs: 5_000 });
     writeConfig({ permissionTimeoutS: 999 });
     expect(hook.readConfig({ HOME: home })).toEqual({ port: 4747, waitMs: 120_000 });
-    writeFileSync(join(home, '.habblaud', 'codex-hook.json'), '{ quebrado');
+    writeFileSync(join(home, '.habblaud', 'codex-hook.json'), '{ broken');
     expect(hook.readConfig({ HOME: home })).toEqual({ port: 4747, waitMs: 25_000 });
   });
 
-  it('codexHomeOf/accountOf: CODEX_HOME (com ~), transcript_path (sessions/ ou archived_sessions/) e ~/.codex', () => {
-    // resolve/join como o hook: no Windows, com a letra do drive e `\`.
+  it('codexHomeOf/accountOf: CODEX_HOME (with ~), transcript_path (sessions/ or archived_sessions/) and ~/.codex', () => {
+    // resolve/join like the hook: on Windows, with the drive letter and `\`.
     expect(hook.codexHomeOf({ HOME: '/u', CODEX_HOME: '~/.codex-b/' }, {})).toBe(resolve('/u/.codex-b'));
     expect(hook.codexHomeOf({ HOME: '/u' }, { transcript_path: `/x/.codex-c/sessions/2026/10/09/rollout-a-${CODEX_THREAD}.jsonl` })).toBe(resolve('/x/.codex-c'));
     expect(hook.codexHomeOf({ HOME: '/u' }, { transcript_path: `/x/.codex-d/archived_sessions/rollout-a.jsonl` })).toBe(resolve('/x/.codex-d'));
-    expect(hook.codexHomeOf({ HOME: '/u' }, { transcript_path: 'relativo/sessions/2026/10/09/r.jsonl' })).toBe(join('/u', '.codex'));
+    expect(hook.codexHomeOf({ HOME: '/u' }, { transcript_path: 'relative/sessions/2026/10/09/r.jsonl' })).toBe(join('/u', '.codex'));
     expect(hook.codexHomeOf({ HOME: '/u' }, { transcript_path: null })).toBe(join('/u', '.codex'));
     expect(hook.accountOf('/u/.codex')).toBe('.codex');
   });
 
-  it('permissionBody: provider codex, conta e só o que o Habblaud usa', () => {
-    const body = hook.permissionBody(permission({ agent_id: 'filho', agent_type: 'worker', tool_input: { command: 'y'.repeat(20_000) } }), '.codex', '/u/.codex', 25_000);
+  it('permissionBody: provider codex, account and only what Habblaud uses', () => {
+    const body = hook.permissionBody(permission({ agent_id: 'child', agent_type: 'worker', tool_input: { command: 'y'.repeat(20_000) } }), '.codex', '/u/.codex', 25_000);
     expect(Object.keys(body).sort()).toEqual(['account', 'agent_id', 'agent_type', 'codexHome', 'cwd', 'provider', 'session_id', 'timeout_ms', 'tool_input', 'tool_name', 'turn_id']);
     expect(body).toMatchObject({ provider: 'codex', account: '.codex', codexHome: '/u/.codex', session_id: CODEX_THREAD, tool_name: 'Bash', timeout_ms: 25_000 });
     expect((body.tool_input as { command: string }).command.length).toBe(8_000);
     expect(JSON.stringify(hook.eventBody(codexEvent('Stop'), '.codex', '/u/.codex'))).toContain('"hook_event_name":"Stop"');
   });
 
-  it('decisionOutput: só allow e deny (+message); nunca updatedInput, updatedPermissions nem interrupt', () => {
+  it('decisionOutput: only allow and deny (+message); never updatedInput, updatedPermissions or interrupt', () => {
     const allow = hook.decisionOutput({ status: 'decided', behavior: 'allow', suggestion: 0 });
     expect(allow).toEqual({ hookSpecificOutput: { hookEventName: 'PermissionRequest', decision: { behavior: 'allow' } } });
     expect(hook.decisionOutput({ status: 'decided', behavior: 'deny', interrupt: true })).toEqual({
-      hookSpecificOutput: { hookEventName: 'PermissionRequest', decision: { behavior: 'deny', message: 'Recusado pelo usuário no Habblaud.' } },
+      hookSpecificOutput: { hookEventName: 'PermissionRequest', decision: { behavior: 'deny', message: 'Denied by the user in Habblaud.' } },
     });
     expect(hook.decisionOutput({ status: 'decided', behavior: 'answer', answers: [] })).toBeUndefined();
     expect(hook.decisionOutput({ status: 'released', reason: 'terminal' })).toBeUndefined();

@@ -1,67 +1,70 @@
-// Rotas locais do Habblaud World (/api/world/*, server/world/http.ts): o que a página do Habblaud pede ao servidor
-// local, que fala com o servidor do mundo por ela. Só na porta local, com Host local (nunca pela porta do celular), e
-// tudo o que age pela conta só com a trava do terminal (bind local). O token do dispositivo nunca chega aqui.
+// Habblaud World local routes (/api/world/*, server/world/http.ts): what the Habblaud page asks the local server,
+// which talks to the world server for it. Only on the local port, with a local Host (never through the phone port),
+// and everything that acts for the account only with the terminal lock (local bind). The device token never gets here.
 //
 //   GET  /api/world/status[?refresh=1]       → WorldStatus
-//   POST /api/world/register                 {email, password, name, locale?, invite?} → 202 {} (name: o nome de jogador,
-//                                                reservado na lista de espera; 422 name_invalid | name_blocked, 409 name_taken)
-//   POST /api/world/verify                   {email, code} → 200 WorldStatus (entra: grava o token neste computador)
+//   POST /api/world/register                 {email, password, name, locale?, invite?} → 202 {} (name: the player name,
+//                                                reserved on the waitlist; 422 name_invalid | name_blocked, 409 name_taken)
+//   POST /api/world/verify                   {email, code} → 200 WorldStatus (signs in: saves the token on this computer)
 //   POST /api/world/login                    {email, password} → 200 WorldStatus
-//   POST /api/world/logout                   {} → 200 WorldStatus (apaga o token daqui e revoga no servidor)
+//   POST /api/world/logout                   {} → 200 WorldStatus (deletes the token from here and revokes it on the server)
 //   POST /api/world/resend                   {email} → 202 {}
 //   POST /api/world/password/forgot          {email} → 202 {}
 //   POST /api/world/password/reset           {email, code, password} → 204
-//   PUT  /api/world/character                PlayerInput → 200 Player (ao criar com nome reservado no cadastro, sem `name`)
+//   PUT  /api/world/character                PlayerInput → 200 Player (when creating with a name reserved at sign-up,
+//                                                without `name`)
 //   PUT  /api/world/visibility               Visibility → 200 Visibility
 //   GET  /api/world/devices                  → {devices: DeviceInfo[]}
-//   POST /api/world/devices/:id/revoke       {} → 204 (o próprio dispositivo: sai daqui também)
-//   PUT  /api/world/theme                    {theme: WorldThemeChoice} → 200 {theme} (com ou sem conta: fica em world.json)
-//   POST /api/world/pause                    {} → 200 WorldStatus (para o envio do pacote antes de responder; a
-//                                                conexão fecha, ou fica só para a cena Mundo aberta, sem `uplink`;
-//                                                avisa POST /v1/me/building/pause, documentada em protocol.ts)
-//   POST /api/world/resume                   {} → 200 WorldStatus (avisa POST /v1/me/building/resume e reabre o uplink;
-//                                                sem resposta do servidor do mundo, tenta de novo com espera crescente)
-//   POST /api/world/leave                    {} → 200 WorldStatus ("Sair do mundo": para o envio como a pausa, chama
-//                                                DELETE /v1/me/building e só então responde; a conta e o personagem
-//                                                continuam)
-//   POST /api/world/join                     {} → 200 WorldStatus ("Voltar ao mundo": POST /v1/me/building/join e,
-//                                                com a resposta, tira a saída e a pausa e reabre o uplink; o próximo
-//                                                pacote cria um prédio novo, em outro lote; sem ter saído, é o
-//                                                resume)
-//   GET  /api/world/last-uplink              → WorldLastUplink | {} (o que foi enviado por último, exato)
+//   POST /api/world/devices/:id/revoke       {} → 204 (this device itself: signs out here too)
+//   PUT  /api/world/theme                    {theme: WorldThemeChoice} → 200 {theme} (with or without an account:
+//                                                kept in world.json)
+//   POST /api/world/pause                    {} → 200 WorldStatus (stops sending the packet before responding; the
+//                                                connection closes, or stays only for the open World scene, without
+//                                                `uplink`; notifies POST /v1/me/building/pause, documented in protocol.ts)
+//   POST /api/world/resume                   {} → 200 WorldStatus (notifies POST /v1/me/building/resume and reopens the
+//                                                uplink; with no response from the world server, tries again with a
+//                                                growing wait)
+//   POST /api/world/leave                    {} → 200 WorldStatus ("Leave the world": stops sending like the pause,
+//                                                calls DELETE /v1/me/building and only then responds; the account and
+//                                                the character stay)
+//   POST /api/world/join                     {} → 200 WorldStatus ("Back to the world": POST /v1/me/building/join and,
+//                                                with the response, clears the leave and the pause and reopens the
+//                                                uplink; the next packet creates a new building, on another lot; without
+//                                                having left, it is the resume)
+//   GET  /api/world/last-uplink              → WorldLastUplink | {} (what was sent last, exact)
 //
-// A conta e os dados (Fase 6):
-//   POST /api/world/delete-account           {} → 202 {} ("Excluir conta": POST /v1/me/delete manda o código ao e-mail)
-//   POST /api/world/delete-account/confirm   {code} → 200 WorldStatus (POST /v1/me/delete/confirm; com a resposta boa,
-//                                                fecha a conexão do prédio e apaga o world.json inteiro: a sessão
-//                                                some daqui e o status volta sem conta, com lastError
-//                                                `account_deleted`)
-//   GET  /api/world/export                   → 200 WorldExport (o JSON da conta como veio de GET /v1/me/export), anexo
-//                                                (habblaud-world-dados.json); uma vez por dia (429 rate_limited); só
-//                                                pela própria página, como o stream (gasta a cota do dia)
-//   PUT  /api/world/visibility               aceita também `notifyInactivity` (opcional): o aviso por e-mail antes
-//                                                de retirar o prédio por inatividade
-// O social leve (Fase 5; server/world/social.ts), pela conexão do prédio, com a cena Mundo aberta ou não:
-//   POST /api/world/summary/seen             {} → 204 (manda ↑ `summary.seen`: o dono viu "Enquanto você estava fora";
-//                                                409 not_connected sem a conexão com o mundo)
-//   POST /api/world/unblock                  {playerId} → 204 (manda ↑ `unblock`; tira da lista de bloqueados daqui
-//                                                na hora e relê /v1/me; 409 not_connected sem a conexão)
-// O código do prédio ("Ir para HB-XXXX") vai direto no ↑ `teleport {code}` da cena: a rota GET /v1/buildings/:code do
-// protocolo (BuildingCodeResponse) não é usada pela página.
+// The account and the data (Phase 6):
+//   POST /api/world/delete-account           {} → 202 {} ("Delete account": POST /v1/me/delete sends the code to the email)
+//   POST /api/world/delete-account/confirm   {code} → 200 WorldStatus (POST /v1/me/delete/confirm; with a good response,
+//                                                closes the building connection and deletes the whole world.json: the
+//                                                session disappears from here and the status comes back with no account,
+//                                                with lastError `account_deleted`)
+//   GET  /api/world/export                   → 200 WorldExport (the account JSON as it came from GET /v1/me/export),
+//                                                attachment (habblaud-world-dados.json); once a day (429 rate_limited);
+//                                                only from the page itself, like the stream (uses up the day's quota)
+//   PUT  /api/world/visibility               also accepts `notifyInactivity` (optional): the email notice before
+//                                                removing the building for inactivity
+// Light social (Phase 5; server/world/social.ts), over the building connection, with the World scene open or not:
+//   POST /api/world/summary/seen             {} → 204 (sends ↑ `summary.seen`: the owner saw "While you were away";
+//                                                409 not_connected without the connection to the world)
+//   POST /api/world/unblock                  {playerId} → 204 (sends ↑ `unblock`; removes from the blocked list here
+//                                                right away and rereads /v1/me; 409 not_connected without the connection)
+// The building code ("Go to HB-XXXX") goes straight in the scene's ↑ `teleport {code}`: the protocol's route
+// GET /v1/buildings/:code (BuildingCodeResponse) is not used by the page.
 //
-// A cena Mundo (Fase 3; server/world/viewer.ts), com as mesmas travas e sem a porta do celular:
-//   GET  /api/world/stream                   → text/event-stream: `world.snapshot` (WorldSceneSnapshot) ao conectar e
-//                                                a cada recomeço (conexão com o mundo aberta ou caída, `view` de
-//                                                novo), `world` (WorldSceneMessage) com cada mensagem da cidade como
-//                                                veio, já na ordem e sem salto de `rev`, e `: ping` a cada 15 s. No
-//                                                máximo 4 abertos (429 too_many_streams). Abrir o primeiro manda
-//                                                `view` ao servidor do mundo; fechar o último, `view.off`
-//   POST /api/world/cmd                      {stream, cmds: WorldSceneCommand[]} → 202 {sent} (até 5 lotes/s por
-//                                                stream, 20 comandos por lote; de cada lote, só o último `move` vai)
+// The World scene (Phase 3; server/world/viewer.ts), with the same locks and without the phone port:
+//   GET  /api/world/stream                   → text/event-stream: `world.snapshot` (WorldSceneSnapshot) on connect and
+//                                                on every restart (connection to the world open or dropped, `view`
+//                                                again), `world` (WorldSceneMessage) with each city message as it
+//                                                came, already in order and with no `rev` jump, and `: ping` every 15 s.
+//                                                At most 4 open (429 too_many_streams). Opening the first sends
+//                                                `view` to the world server; closing the last, `view.off`
+//   POST /api/world/cmd                      {stream, cmds: WorldSceneCommand[]} → 202 {sent} (up to 5 batches/s per
+//                                                stream, 20 commands per batch; of each batch, only the last `move` goes)
 //
-// Erros: {error: {code, message?, retryAfter?}} com o status do servidor do mundo quando vêm de lá (códigos em
-// WORLD_ERROR_CODES do protocolo; um código novo passa como veio) ou com os códigos locais abaixo. A interface traduz
-// pelo `code`; `message` é só para quem lê o log ou usa o curl.
+// Errors: {error: {code, message?, retryAfter?}} with the world server's status when they come from there (codes in
+// WORLD_ERROR_CODES of the protocol; a new code passes as it came) or with the local codes below. The interface
+// translates by `code`; `message` is only for whoever reads the log or uses curl.
 import {
   WORLD_ERROR_CODES,
   type AfkMessage,
@@ -118,8 +121,8 @@ import {
 } from './protocol';
 
 /**
- * Tema escolhido em Configurações › Aparência, guardado em world.json (PUT /api/world/theme). O pacote leva o tema já
- * resolvido: o automático vira o tema do calendário (server/world/theme.ts).
+ * Theme chosen in Settings › Appearance, kept in world.json (PUT /api/world/theme). The packet carries the theme already
+ * resolved: the automatic one becomes the calendar theme (server/world/theme.ts).
  */
 export const WORLD_THEME_CHOICES = ['auto', 'none', 'halloween', 'christmas'] as const;
 export type WorldThemeChoice = 'auto' | WorldTheme;
@@ -128,124 +131,136 @@ export function isWorldThemeChoice(v: unknown): v is WorldThemeChoice {
   return typeof v === 'string' && (WORLD_THEME_CHOICES as readonly string[]).includes(v);
 }
 
-/** Estado da conta neste computador. */
+/** State of the account on this computer. */
 export type WorldState = 'off' | 'logged_out' | 'waiting' | 'approved';
 
-/** Por que o prédio parou de subir: o motivo do `goodbye` do servidor do mundo (o `deploy` só reconecta). */
+/** Why the building stopped uploading: the reason of the world server's `goodbye` (`deploy` only reconnects). */
 export type WorldBuildingStop = Exclude<GoodbyeReason, 'deploy'>;
 
 /**
- * Resposta do servidor do mundo à remessa (`uplink.ack`): aceita (`at` e `bytes` contados por ele) ou recusada com o
- * motivo (`error`, só os códigos de UPLINK_ACK_ERRORS; um código que esta versão não conhece vira `internal`; `at` é a
- * hora em que a recusa chegou aqui).
+ * The world server's response to the upload (`uplink.ack`): accepted (`at` and `bytes` counted by it) or refused with
+ * the reason (`error`, only the codes of UPLINK_ACK_ERRORS; a code this version does not know becomes `internal`; `at`
+ * is the time the refusal got here).
  */
 export interface WorldUplinkAck {
   ok: boolean;
   error?: UplinkAckError;
-  /** Horário (ms). */
+  /** Time (ms). */
   at: number;
   bytes?: number;
 }
 
 /**
- * O prédio deste computador no mundo: GET /api/world/status → `building`, só com a conta aprovada e o personagem
- * criado. `floors` e `agents` são os da última remessa (antes dela, os que o servidor mandou no `welcome`; 0 sem nada).
+ * This computer's building in the world: GET /api/world/status → `building`, only with the account approved and the
+ * character created. `floors` and `agents` are those of the last upload (before it, those the server sent in the
+ * `welcome`; 0 with nothing).
  */
 export interface WorldBuildingStatus {
   /**
-   * WebSocket aberto e aceito (`welcome`) e o prédio subindo. Pausado ou fora do mundo é sempre false: a conexão que a
-   * cena Mundo abre para andar pela cidade não leva o prédio.
+   * WebSocket open and accepted (`welcome`) and the building uploading. Paused or out of the world it is always false:
+   * the connection the World scene opens to walk around the city does not carry the building.
    */
   connected: boolean;
-  /** Pausado pelo dono (POST /api/world/pause). */
+  /** Paused by the owner (POST /api/world/pause). */
   paused: boolean;
   floors: number;
   agents: number;
-  /** Última remessa (ms). */
+  /** Last upload (ms). */
   lastUplinkAt?: number;
-  /** Resposta à última remessa (ausente enquanto não chega). */
+  /** Response to the last upload (absent until it arrives). */
   lastAck?: { ok: boolean; error?: UplinkAckError };
   /**
-   * O servidor do mundo fechou a conexão e o prédio parou: `banned`/`suspended` (conta), `update` (versão antiga: atualize),
-   * `other-device` (a conta conectou em outro lugar; volta com "Retomar" ou ao reabrir o Habblaud), `waiting`,
-   * `no_player`, `unauthorized` (a conta mudou do outro lado; o estado daqui é atualizado).
+   * The world server closed the connection and the building stopped: `banned`/`suspended` (account), `update` (old
+   * version: update), `other-device` (the account connected somewhere else; comes back with "Resume" or on reopening
+   * Habblaud), `waiting`, `no_player`, `unauthorized` (the account changed on the other side; the state here is updated).
    */
   stopped?: WorldBuildingStop;
-  /** Saiu do mundo (POST /api/world/leave): o prédio foi retirado e nenhum pacote sai até o join (prédio novo, lote novo). */
+  /**
+* Left the world (POST /api/world/leave): the building was removed and no packet goes out until the join (new building,
+* new lot).
+*/
   left?: true;
-  /** Visitantes dentro do prédio agora (veja WorldBuildingMeta.visitors). */
+  /** Visitors inside the building now (see WorldBuildingMeta.visitors). */
   visitors?: number;
   /**
-   * O mundo marcou o prédio como "não verificado" (WorldBuildingPublic.unverified, do `welcome` ou da cidade): os dados
-   * pareceram fora do plausível e estão em revisão; o prédio fica fora de placares e destaques. Dá para contestar.
+   * The world marked the building as "unverified" (WorldBuildingPublic.unverified, from the `welcome` or the city): the
+   * data looked implausible and is under review; the building stays out of leaderboards and highlights. It can be disputed.
    */
   unverified?: true;
-  /** Likes recebidos hoje (veja WorldBuildingMeta.likesToday). */
+  /** Likes received today (see WorldBuildingMeta.likesToday). */
   likesToday?: number;
-  /** Batidas na porta desde que este Habblaud abriu (veja WorldBuildingMeta.knocks). */
+  /** Knocks on the door since this Habblaud opened (see WorldBuildingMeta.knocks). */
   knocks?: number;
-  /** "Enquanto você estava fora" ainda não visto (↓ `away.summary` ou /v1/me): visitas, likes e carimbos, sem quem. */
+  /** "While you were away" not seen yet (↓ `away.summary` or /v1/me): visits, likes and stamps, without who. */
   summary?: AwaySummary;
-  /** O código do prédio ("HB-4F2K", do /v1/me), para mandar a um amigo. */
+  /** The building code ("HB-4F2K", from /v1/me), to send to a friend. */
   code?: string;
 }
 
-/** OfficeSnapshot.meta.world.building: o resumo do prédio (sem a conta), para a interface mostrar sem pedir o status. */
+/**
+* OfficeSnapshot.meta.world.building: the building summary (without the account), for the interface to show without
+* asking for the status.
+*/
 export interface WorldBuildingMeta {
   connected: boolean;
   paused: boolean;
   floors: number;
   agents: number;
   lastUplinkAt?: number;
-  /** Saiu do mundo (veja WorldBuildingStatus.left). */
+  /** Left the world (see WorldBuildingStatus.left). */
   left?: true;
-  /** O servidor do mundo parou o prédio (`goodbye`); o motivo só vai no status, que não chega ao celular. */
+  /**
+* The world server stopped the building (`goodbye`); the reason goes only in the status, which does not reach the phone.
+*/
   stopped?: true;
   /**
-   * Visitantes dentro do prédio agora (↓ `visitors {count}` na conexão do prédio, Fase 4): ausente antes da primeira
-   * contagem, sem conexão e com o prédio fechado a visitas (fechado, o servidor não manda nem o 0).
+   * Visitors inside the building now (↓ `visitors {count}` on the building connection, Phase 4): absent before the first
+   * count, without a connection and with the building closed to visits (closed, the server does not send even the 0).
    */
   visitors?: number;
-  /** Likes recebidos hoje (↓ `likes.today` ou /v1/me; Fase 5): o chip "❤️ 3 hoje" da barra. */
+  /** Likes received today (↓ `likes.today` or /v1/me; Phase 5): the "❤️ 3 today" chip in the bar. */
   likesToday?: number;
   /**
-   * Batidas na porta desde que este Habblaud abriu (↓ `knock {}`, sem nome; só com `knocks` ligado na visibilidade):
-   * a página mostra o aviso quando o número sobe.
+   * Knocks on the door since this Habblaud opened (↓ `knock {}`, no name; only with `knocks` on in the visibility):
+   * the page shows the notice when the number goes up.
    */
   knocks?: number;
-  /** Há um "Enquanto você estava fora" ainda não visto (o resumo em si só vai no status, que não chega ao celular). */
+  /**
+* There is a "While you were away" not seen yet (the summary itself goes only in the status, which does not reach the
+* phone).
+*/
   awaySummary?: true;
 }
 
-/** GET /api/world/last-uplink ("Ver o que foi enviado"): o pacote exato da última remessa, os bytes e a resposta. */
+/** GET /api/world/last-uplink ("See what was sent"): the exact packet of the last upload, the bytes and the response. */
 export interface WorldLastUplink {
   at: number;
-  /** Bytes do JSON do pacote (UTF-8), como o servidor do mundo mede. */
+  /** Bytes of the packet JSON (UTF-8), as the world server measures them. */
   bytes: number;
   uplink: WorldUplink;
   ack?: WorldUplinkAck;
 }
 
 /**
- * OfficeSnapshot.meta.world: só o necessário para a interface decidir se mostra a seção (o snapshot também vai ao
- * celular e à linha do tempo: nada da conta aqui).
+ * OfficeSnapshot.meta.world: only what the interface needs to decide whether to show the section (the snapshot also
+ * goes to the phone and to the timeline: nothing of the account here).
  */
 export interface WorldMeta {
   /**
-   * A seção aparece: HABBLAUD_WORLD não é 0 e o servidor do mundo foi aceito (o padrão, server.habblaud.com, ou uma
-   * HABBLAUD_WORLD_URL válida). Com a URL recusada o recurso está desligado e nada do World aparece na interface.
+   * The section shows: HABBLAUD_WORLD is not 0 and the world server was accepted (the default, server.habblaud.com, or a
+   * valid HABBLAUD_WORLD_URL). With the URL refused the feature is off and nothing of World shows in the interface.
    */
   enabled: boolean;
-  /** Servidor do mundo aceito (o padrão ou HABBLAUD_WORLD_URL válida). */
+  /** World server accepted (the default or a valid HABBLAUD_WORLD_URL). */
   configured: boolean;
   state: WorldState;
-  /** O prédio no mundo (só com a conta aprovada e o personagem criado). */
+  /** The building in the world (only with the account approved and the character created). */
   building?: WorldBuildingMeta;
   /**
-   * A cena Mundo (Fase 3), só com o World configurado, a conta aprovada e o personagem criado; `available` pede ainda a
-   * trava do terminal (as rotas da cena exigem) e nenhuma parada de banimento, suspensão, versão recusada ou outro
-   * computador (a conexão não volta sozinha). Pausado ou fora do mundo, vale (anda-se com o prédio apagado). A barra
-   * mostra o botão Mundo com `available`.
+   * The World scene (Phase 3), only with World configured, the account approved and the character created; `available`
+   * also asks for the terminal lock (the scene routes require it) and no stop for a ban, suspension, refused version or
+   * another computer (the connection does not come back on its own). Paused or out of the world, it still holds (you walk
+   * with the building off). The bar shows the World button with `available`.
    */
   scene?: WorldSceneMeta;
 }
@@ -254,9 +269,9 @@ export interface WorldSceneMeta {
   available: boolean;
 }
 
-// ------------------------------------------------------------------------------------------- a cena Mundo (Fase 3)
+// --------------------------------------------------------------------------------------- the World scene (Phase 3)
 
-/** Os comandos que o navegador pode mandar em POST /api/world/cmd (nada do prédio: hello, uplink e ping nunca). */
+/** The commands the browser can send in POST /api/world/cmd (nothing of the building: hello, uplink and ping never). */
 export const WORLD_SCENE_COMMANDS = [
   'move', 'profile', 'resync', 'view', 'view.off', 'enter', 'leave', 'like', 'unlike', 'greet', 'block', 'unblock', 'report',
   'stamp', 'teleport', 'knock', 'summary.seen',
@@ -278,12 +293,13 @@ export type WorldSceneCommand =
   | KnockMessage
   | SummarySeenMessage;
 
-/** Comandos por lote (POST /api/world/cmd) e lotes por segundo por stream. */
+/** Commands per batch (POST /api/world/cmd) and batches per second per stream. */
 export const WORLD_SCENE_LIMITS = { cmdsPerBatch: 20, batchesPerSec: 5, streams: 4 } as const;
 
 /**
- * As mensagens da cidade que o stream repassa (evento `world`), como vieram do servidor do mundo. O servidor local já
- * conferiu o `rev` dos patches (um salto vira `resync` e o patch não passa) e descartou o que não é da cena.
+ * The city messages the stream passes on (`world` event), as they came from the world server. The local server has
+ * already checked the `rev` of the patches (a jump becomes `resync` and the patch does not pass) and dropped what is
+ * not of the scene.
  */
 export type WorldSceneMessage =
   | AreaMessage
@@ -314,20 +330,20 @@ export const WORLD_SCENE_MESSAGES = [
 ] as const satisfies readonly WorldSceneMessage['t'][];
 
 /**
- * Dentro de um prédio (Fase 4, cena Visita): o interior que o servidor do mundo mandou no `building` (ao entrar ou no
- * `resync {building}`), com cada `building.patch` já aplicado, e o `rev` do prédio em que está.
+ * Inside a building (Phase 4, Visit scene): the interior the world server sent in the `building` (on entering or in the
+ * `resync {building}`), with each `building.patch` already applied, and the building `rev` it is at.
  */
 export interface WorldSceneInside {
-  /** Id do prédio (o id do dono). */
+  /** Building id (the owner's id). */
   id: string;
   rev: number;
   detail: WorldBuildingDetail;
 }
 
-/** A cidade (↓ `city`, Fase 5): prédios acesos, a meta da semana e a faixa dos tokens (as duas só com 10 prédios ou mais). */
+/** The city (↓ `city`, Phase 5): lit buildings, the week's goal and the token range (both only with 10 buildings or more). */
 export type WorldSceneCity = Omit<CityStatusMessage, 't'>;
 
-/** Eu na cena: o jogador desta conta (do `welcome`), sem as opções de visibilidade. */
+/** Me in the scene: this account's player (from the `welcome`), without the visibility options. */
 export interface WorldSceneMe {
   id: string;
   name: string;
@@ -336,75 +352,76 @@ export interface WorldSceneMe {
   traits: TraitId[];
   intro?: IntroId;
   country?: string;
-  /** O prédio desta conta (o id do prédio é o id do dono), se ela tem um no mundo. */
+  /** This account's building (the building id is the owner's id), if it has one in the world. */
   buildingId?: string;
 }
 
-/** Os prédios de um chunk, com o `rev` em que estão. */
+/** The buildings of a chunk, with the `rev` they are at. */
 export interface WorldSceneChunk {
   chunk: string;
   rev: number;
   buildings: WorldBuildingPublic[];
 }
 
-/** O estado da cidade que o servidor local tem (evento `world.snapshot`): o navegador troca o dele inteiro por este. */
+/** The city state the local server has (`world.snapshot` event): the browser replaces all of its own with this one. */
 export interface WorldSceneSnapshot {
-  /** Id deste stream: vai em POST /api/world/cmd. */
+  /** Id of this stream: goes in POST /api/world/cmd. */
   stream: string;
   /**
-   * A conexão com o servidor do mundo está aberta (`welcome`). Sem ela (caiu, reconectando, parada pelo servidor), nada
-   * desce. Pausado ou fora do mundo, ela abre só com a cena aberta, sem pacote do prédio.
+   * The connection to the world server is open (`welcome`). Without it (dropped, reconnecting, stopped by the server),
+   * nothing comes down. Paused or out of the world, it opens only with the scene open, without the building packet.
    */
   connected: boolean;
-  /** `view` mandado: o servidor do mundo está mandando a área e os jogadores. */
+  /** `view` sent: the world server is sending the area and the players. */
   viewing: boolean;
-  /** Distrito dos ids de chunk (`<distrito>:<cx>,<cy>`), do `welcome`. */
+  /** District of the chunk ids (`<distrito>:<cx>,<cy>`), from the `welcome`. */
   district?: string;
   me?: WorldSceneMe;
-  /** Minha posição: a do último `pos` do servidor (ou do meu id num `players`) ou a do último `move` mandado. */
+  /** My position: that of the server's last `pos` (or of my id in a `players`) or that of the last `move` sent. */
   pos?: WorldPosition;
-  /** O servidor mandou `afk` e ainda não houve comando de verdade (andar, virar, `view`, `profile`). */
+  /** The server sent `afk` and there has been no real command yet (walk, turn, `view`, `profile`). */
   afk: boolean;
-  /** Os chunks assinados (só os 3×3 em volta da minha posição). */
+  /** The subscribed chunks (only the 3×3 around my position). */
   chunks: WorldSceneChunk[];
-  /** Os outros jogadores visíveis (nunca eu), com a posição mais recente. */
+  /** The other visible players (never me), with the most recent position. */
   players: WorldPlayerPublic[];
-  /** O minimapa (prédios acesos por quarteirão), ou null antes do primeiro. */
+  /** The minimap (lit buildings per block), or null before the first one. */
   minimap: MinimapMessage['blocks'] | null;
-  /** Dentro de um prédio: o interior (até o `pos` que diz "de volta à rua"). Ausente na rua. */
+  /** Inside a building: the interior (until the `pos` that says "back on the street"). Absent on the street. */
   inside?: WorldSceneInside;
-  /** O último `city` (Fase 5): o servidor do mundo manda um ao abrir a cena e depois um por minuto. */
+  /** The last `city` (Phase 5): the world server sends one when the scene opens and then one per minute. */
   city?: WorldSceneCity;
-  /** Likes recebidos hoje pelo meu prédio (último ↓ `likes.today` desta conexão). */
+  /** Likes my building received today (last ↓ `likes.today` of this connection). */
   likesToday?: number;
-  /** O último "Enquanto você estava fora" desta conexão, até o `summary.seen`. */
+  /** The last "While you were away" of this connection, until the `summary.seen`. */
   summary?: AwaySummary;
 }
 
-/** GET /api/world/status (e a resposta de verify, login e logout). */
+/** GET /api/world/status (and the response of verify, login and logout). */
 export interface WorldStatus {
-  /** Dá para agir pela conta neste Habblaud (trava do terminal ligada: acesso só pelo próprio computador). */
+  /** Acting for the account is possible in this Habblaud (terminal lock on: access only from the computer itself). */
   available: boolean;
   configured: boolean;
   state: WorldState;
   /**
-   * `id`: o id da conta no mundo, quando já se sabe (do `welcome` da conexão do prédio); vai no assunto do recurso.
-   * `reservedName`: o nome de jogador escolhido no cadastro, reservado enquanto não há personagem (de `GET /v1/me`).
+   * `id`: the account's id in the world, when already known (from the `welcome` of the building connection); goes in the
+   * subject of the appeal.
+   * `reservedName`: the player name chosen at sign-up, reserved while there is no character (from `GET /v1/me`).
    */
   account?: { emailMasked: string; access: WorldAccess; id?: string; reservedName?: string };
   player?: Player;
   devices?: DeviceInfo[];
-  /** Código do último problema (worldLastError: só códigos conhecidos), quando os dados podem estar velhos. */
+  /** Code of the last problem (worldLastError: only known codes), when the data may be stale. */
   lastError?: WorldKnownErrorCode;
-  /** O prédio no mundo (só com a conta aprovada e o personagem criado). */
+  /** The building in the world (only with the account approved and the character created). */
   building?: WorldBuildingStatus;
-  /** Tema guardado para o prédio (PUT /api/world/theme); ausente = 'auto'. */
+  /** Theme saved for the building (PUT /api/world/theme); absent = 'auto'. */
   theme?: WorldThemeChoice;
-  /** Quem esta conta bloqueou (/v1/me; Fase 5): Configurações › Habblaud World › Bloqueados. */
+  /** Who this account blocked (/v1/me; Phase 5): Settings › Habblaud World › Blocked. */
   blocked?: WorldBlockedPlayer[];
 }
 
-/** Um jogador bloqueado (só o id que o mundo deu e o nome). */
+/** A blocked player (only the id the world gave and the name). */
 export interface WorldBlockedPlayer {
   id: string;
   name: string;
@@ -415,33 +432,33 @@ export interface WorldErrorResponse {
 }
 
 /**
- * Códigos dados pelo próprio servidor local. Ele também usa, com o mesmo sentido, alguns de WORLD_ERROR_CODES (os do
- * servidor do mundo): invalid, invalid_code, password_invalid, name_invalid, name_blocked, invalid_json, too_large,
- * unsupported_media_type, method_not_allowed, not_found e internal (500: erro do próprio servidor local).
+ * Codes given by the local server itself. It also uses, with the same meaning, some of WORLD_ERROR_CODES (those of the
+ * world server): invalid, invalid_code, password_invalid, name_invalid, name_blocked, invalid_json, too_large,
+ * unsupported_media_type, method_not_allowed, not_found and internal (500: error of the local server itself).
  */
 export const WORLD_LOCAL_ERROR_CODES = [
-  'not_configured', // 409: sem servidor do mundo aceito (HABBLAUD_WORLD_URL recusada)
-  'local_only', // 403: pela porta do celular ou com Host que não é local
-  'terminal_off', // 403: trava do terminal desligada (porta exposta na rede ou HABBLAUD_TERMINAL=0)
-  'not_logged_in', // 401: ação da conta sem ter entrado
-  'session_expired', // em lastError: o servidor do mundo recusou o token (revogado ou vencido) e a sessão foi apagada
+  'not_configured', // 409: no accepted world server (HABBLAUD_WORLD_URL refused)
+  'local_only', // 403: through the phone port or with a Host that is not local
+  'terminal_off', // 403: terminal lock off (port exposed on the network or HABBLAUD_TERMINAL=0)
+  'not_logged_in', // 401: account action without having signed in
+  'session_expired', // in lastError: the world server refused the token (revoked or expired) and the session was deleted
   'invalid_email', // 400
-  'altcha_failed', // 502: o desafio anti-robô do servidor do mundo não teve solução
-  'world_unreachable', // 502: sem conexão com o servidor do mundo
+  'altcha_failed', // 502: the world server's anti-bot challenge had no solution
+  'world_unreachable', // 502: no connection to the world server
   'world_timeout', // 504
-  'world_bad_response', // 502: resposta fora do formato
-  'world_error', // erro do servidor do mundo sem código legível (mesmo status)
-  'storage_failed', // em lastError: não deu para gravar world.json (a sessão vale só até reiniciar)
-  'too_many_streams', // 429: a cena Mundo já está aberta em 4 abas
-  'no_stream', // 409: comando de um stream que não está aberto (a cena fechou ou o servidor reiniciou)
-  'not_connected', // 409: comando sem a conexão com o servidor do mundo aberta
-  'account_deleted', // em lastError: a conta foi excluída (daqui ou de outro computador) e o world.json, apagado
-  'network', // em lastError: sem conexão com o servidor do mundo ou sem resposta no prazo
-  'unknown', // em lastError: outro problema (resposta fora do formato, código que esta versão não conhece)
+  'world_bad_response', // 502: malformed response
+  'world_error', // world server error with no readable code (same status)
+  'storage_failed', // in lastError: could not write world.json (the session lasts only until a restart)
+  'too_many_streams', // 429: the World scene is already open in 4 tabs
+  'no_stream', // 409: command from a stream that is not open (the scene closed or the server restarted)
+  'not_connected', // 409: command without the connection to the world server open
+  'account_deleted', // in lastError: the account was deleted (from here or from another computer) and world.json, erased
+  'network', // in lastError: no connection to the world server or no response in time
+  'unknown', // in lastError: another problem (malformed response, a code this version does not know)
 ] as const;
 export type WorldLocalErrorCode = (typeof WORLD_LOCAL_ERROR_CODES)[number];
 
-/** Todo código de erro conhecido: os do servidor do mundo e os do servidor local, sem repetir. */
+/** Every known error code: those of the world server and those of the local server, without repeats. */
 export const WORLD_KNOWN_ERROR_CODES: readonly (WorldErrorCode | WorldLocalErrorCode)[] = [...new Set([...WORLD_ERROR_CODES, ...WORLD_LOCAL_ERROR_CODES])];
 export type WorldKnownErrorCode = WorldErrorCode | WorldLocalErrorCode;
 
@@ -450,8 +467,8 @@ export function isWorldKnownErrorCode(v: unknown): v is WorldKnownErrorCode {
 }
 
 /**
- * O código que vai em WorldStatus.lastError: só os da lista; falta de conexão ou de resposta no prazo vira `network`, e
- * o resto (resposta fora do formato, erro sem código, código que esta versão não conhece) vira `unknown`.
+ * The code that goes in WorldStatus.lastError: only those on the list; no connection or no response in time becomes
+ * `network`, and the rest (malformed response, error with no code, code this version does not know) becomes `unknown`.
  */
 export function worldLastError(code: string): WorldKnownErrorCode {
   if (code === 'world_unreachable' || code === 'world_timeout') return 'network';

@@ -1,15 +1,15 @@
-// Windows: encerrar uma sessão do Claude Code aberta noutro terminal sem deixar o terminal "sujo".
-// O Claude Code liga modos do terminal (mouse, foco, teclado estendido, win32-input-mode, colagem entre
-// colchetes, tela alternativa) e os desliga ao sair normalmente. Encerrado à força (TerminateProcess), ninguém
-// os desliga e o Windows Terminal passa a mandar eventos de mouse/foco para o shell como texto.
-// Por isso um PowerShell auxiliar se liga ao console da sessão (AttachConsole), encerra o processo e escreve
-// nesse console as sequências que desligam esses modos, e devolve o modo de entrada do console ao normal.
-// Antes de encerrar, o auxiliar confere que o PID ainda é o mesmo processo (início exato, FILETIME): um PID
-// reaproveitado por outro programa não é encerrado.
+// Windows: end a Claude Code session opened in another terminal without leaving the terminal "dirty".
+// Claude Code turns on terminal modes (mouse, focus, extended keyboard, win32-input-mode, bracketed
+// paste, alternate screen) and turns them off when it exits normally. Ended by force (TerminateProcess), nobody
+// turns them off and Windows Terminal starts sending mouse/focus events to the shell as text.
+// So a helper PowerShell attaches to the session's console (AttachConsole), ends the process and writes
+// to that console the sequences that turn these modes off, and puts the console's input mode back to normal.
+// Before ending it, the helper checks that the PID is still the same process (exact start, FILETIME): a PID
+// reused by another program is not ended.
 import { execFile } from 'node:child_process';
 import { tr } from '../../shared/i18n';
 
-/** Desliga o que o Claude Code liga: mouse, foco, colagem, teclado (kitty e win32-input), tela alternativa. */
+/** Turns off what Claude Code turns on: mouse, focus, paste, keyboard (kitty and win32-input), alternate screen. */
 export const TERMINAL_RESET =
   '\x1b[?1000l\x1b[?1002l\x1b[?1003l\x1b[?1006l\x1b[?1004l\x1b[?2004l\x1b[?2031l\x1b[?9001l\x1b[<u\x1b[>4;0m\x1b[?25h\x1b[0m\r\n';
 
@@ -46,7 +46,7 @@ $w = 0
 [HabblaudConsole]::CloseHandle($out) | Out-Null
 $in = [HabblaudConsole]::CreateFileW('CONIN$', ([uint32]3221225472), 3, [IntPtr]::Zero, 3, 0, [IntPtr]::Zero)
 if ([HabblaudConsole]::GetConsoleMode($in, [ref]$m)) {
-  # Sem entrada VT (0x200) e com processamento, linha e eco: o shell volta a receber teclas normais.
+  # No VT input (0x200), and with processing, line and echo: the shell gets normal keys again.
   [HabblaudConsole]::SetConsoleMode($in, (($m -band (-bnot 0x200)) -bor 0x7)) | Out-Null
 }
 [HabblaudConsole]::CloseHandle($in) | Out-Null
@@ -55,13 +55,13 @@ if ([HabblaudConsole]::GetConsoleMode($in, [ref]$m)) {
 }
 
 /**
- * Encerra `pid` (só se ele ainda começou em `fileTime`) e limpa os modos do terminal dele. Se o auxiliar falhar
- * antes de encerrar, encerra direto, desde que `stillSame` confirme de novo que é o mesmo processo (o terminal
- * pode ficar com os modos ligados, como antes).
+ * Ends `pid` (only if it still started at `fileTime`) and clears its terminal modes. If the helper fails
+ * before ending it, ends it directly, as long as `stillSame` confirms again that it is the same process (the
+ * terminal may be left with the modes on, as before).
  */
 export function killWithConsoleReset(pid: number, fileTime: string, stillSame: () => Promise<boolean>, timeoutMs = 15_000): Promise<void> {
-  if (!Number.isSafeInteger(pid) || pid <= 0) return Promise.reject(new Error(tr('pid inválido')));
-  if (!/^\d+$/.test(fileTime)) return Promise.reject(new Error(tr('início do processo desconhecido')));
+  if (!Number.isSafeInteger(pid) || pid <= 0) return Promise.reject(new Error(tr('invalid pid')));
+  if (!/^\d+$/.test(fileTime)) return Promise.reject(new Error(tr('unknown process start time')));
   const encoded = Buffer.from(script(pid, fileTime), 'utf16le').toString('base64');
   return new Promise((ok, fail) => {
     execFile(
@@ -69,7 +69,7 @@ export function killWithConsoleReset(pid: number, fileTime: string, stillSame: (
       ['-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', encoded],
       { windowsHide: true, timeout: timeoutMs },
       (err) => {
-        if ((err as { code?: unknown } | null)?.code === 4) return fail(new Error(tr('o processo não é mais aquela sessão')));
+        if ((err as { code?: unknown } | null)?.code === 4) return fail(new Error(tr('the process is no longer that session')));
         void stillSame()
           .then((same) => {
             if (same) process.kill(pid);

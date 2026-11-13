@@ -1,6 +1,6 @@
-// Rodas (atividades em grupo dos ociosos): tipos e regras PURAS — escolha da atividade pela
-// personalidade, apostas, jokenpô e quem vence uma partida. O roteiro de cada roda (quem fala,
-// comemora, paga) fica em social.ts.
+// Hangouts (group activities of the idle): types and PURE rules — choice of the activity by
+// personality, bets, rock-paper-scissors and who wins a match. The script of each hangout (who
+// talks, celebrates, pays) is in social.ts.
 import type { Dir, HeldItem, Pose } from '../../art/api';
 import { hasTrait, type Bond, type Persona, type TraitId } from './persona';
 import { tr } from '../../../../shared/i18n';
@@ -10,53 +10,53 @@ export type Role = 'player' | 'watcher' | 'talker';
 export type Program = 'futebol' | 'novela' | 'desenho';
 export type Gesture = 'rock' | 'paper' | 'scissors';
 
-/** Programa da TV -> seed de drawScreen('show') (contrato da arte: seed % 3). */
+/** TV program -> seed of drawScreen('show') (art contract: seed % 3). */
 export const PROGRAM_SEED: Readonly<Record<Program, number>> = { futebol: 0, novela: 1, desenho: 2 };
 
 export interface KindInfo {
-  /** "Vendo TV" — para a interface ("Vendo TV com Rafaela"). */
+  /** "Watching TV" — for the interface ("Watching TV with Rafaela"). */
   label: string;
   emoji: string;
-  /** Mínimo de participantes para a roda acontecer. */
+  /** Minimum number of participants for the hangout to happen. */
   min: number;
-  /** Máximo (jogadores + torcida). */
+  /** Maximum (players + cheering crowd). */
   max: number;
-  /** Sozinho também vale (só para quem está ocioso; quem espera shell só entra em grupo). */
+  /** Alone also counts (only for whoever is idle; whoever waits for a shell only joins in a group). */
   solo?: boolean;
-  /** Jogo com vencedor (pode ter aposta). */
+  /** Game with a winner (can have a bet). */
   match?: boolean;
 }
 
 export const KINDS: Readonly<Record<GatherKind, KindInfo>> = {
-  tv: { label: tr('Vendo TV'), emoji: '📺', min: 2, max: 5 },
-  videogame: { label: tr('Jogando videogame'), emoji: '🎮', min: 2, max: 5, match: true },
-  arcade: { label: tr('Duelo no fliperama'), emoji: '👾', min: 2, max: 2, match: true },
-  pingpong: { label: tr('Jogando pingue-pongue'), emoji: '🏓', min: 2, max: 4, match: true },
-  kitchen: { label: tr('Papo na copa'), emoji: '☕', min: 2, max: 4 },
-  talk: { label: tr('Conversando'), emoji: '💬', min: 2, max: 2 },
-  rps: { label: tr('Jokenpô'), emoji: '✊', min: 2, max: 4, match: true },
-  mirror: { label: tr('Se arrumando no espelho'), emoji: '💄', min: 1, max: 2, solo: true },
+  tv: { label: tr('Watching TV'), emoji: '📺', min: 2, max: 5 },
+  videogame: { label: tr('Playing video games'), emoji: '🎮', min: 2, max: 5, match: true },
+  arcade: { label: tr('Arcade showdown'), emoji: '👾', min: 2, max: 2, match: true },
+  pingpong: { label: tr('Playing ping-pong'), emoji: '🏓', min: 2, max: 4, match: true },
+  kitchen: { label: tr('Kitchen chat'), emoji: '☕', min: 2, max: 4 },
+  talk: { label: tr('Chatting'), emoji: '💬', min: 2, max: 2 },
+  rps: { label: tr('Rock-paper-scissors'), emoji: '✊', min: 2, max: 4, match: true },
+  mirror: { label: tr('Primping at the mirror'), emoji: '💄', min: 1, max: 2, solo: true },
 };
 
 export interface Member {
   id: string;
   role: Role;
-  /** Spot reservado pela roda (assento, ponto de uso, ponto da torcida) ou null (em pé num tile). */
+  /** Spot reserved by the hangout (seat, use point, crowd point) or null (standing on a tile). */
   spot: string | null;
-  /** Em pé sem spot (torcida do jokenpô). */
+  /** Standing without a spot (rock-paper-scissors crowd). */
   tile?: { x: number; y: number; dir: Dir };
   arrived: boolean;
   left: boolean;
-  /** Entrou com a roda já formada (ou se formando): ninguém espera por ele para começar. */
+  /** Joined with the hangout already formed (or forming): nobody waits for them to start. */
   late?: boolean;
-  /** Pose de base enquanto participa. */
+  /** Base pose while taking part. */
   pose: Pose;
   held: HeldItem;
-  /** Ação curta por cima da pose de base (comemorar, rir, gesto...). */
+  /** Short action on top of the base pose (celebrate, laugh, gesture...). */
   actPose: Pose | null;
   actHeld: HeldItem;
   actUntil: number;
-  /** O que segura ao voltar para a mesa (o café da copa). */
+  /** What they hold when going back to the desk (the kitchen coffee). */
   carry: 'none' | 'coffee' | 'water';
 }
 
@@ -65,33 +65,33 @@ export interface Gathering {
   kind: GatherKind;
   host: string;
   members: Member[];
-  /** gather: indo para os lugares; run: rolando; final: comemoração/despedida; ended: acabou. */
+  /** gather: going to their places; run: under way; final: celebration/goodbye; ended: over. */
   phase: 'gather' | 'run' | 'final' | 'ended';
   createdAt: number;
   startAt: number;
-  /** Fim previsto (atividades sem placar). */
+  /** Expected end (activities without a score). */
   until: number;
-  /** Próxima batida do roteiro. */
+  /** Next beat of the script. */
   nextAt: number;
-  /** Contador de batidas (uso livre por roteiro). */
+  /** Beat counter (free use per script). */
   step: number;
   seed: number;
   rng: () => number;
   program: Program | null;
-  /** Moedinhas em jogo (0 = só pela honra). */
+  /** Coins at stake (0 = just for glory). */
   bet: number;
-  /** Placar [jogador 0, jogador 1]. */
+  /** Score [player 0, player 1]. */
   score: [number, number];
   gestures: [Gesture, Gesture] | null;
   ties: number;
   rematches: number;
   winner: string | null;
   loser: string | null;
-  /** Spots reservados pela roda (dono `g:<id>`), devolvidos quando ela acaba. */
+  /** Spots reserved by the hangout (owner `g:<id>`), returned when it ends. */
   pool: string[];
   lastLine: string | null;
   lastSpeaker: string | null;
-  /** Falas agendadas (ex.: o "bora!" de quem foi convidado, um pouco depois do convite). */
+  /** Scheduled lines (e.g. the "let's go!" of whoever was invited, a little after the invitation). */
   pending: { id: string; at: number; text: string }[];
 }
 
@@ -107,7 +107,7 @@ export function active(g: Gathering): Member[] {
   return g.members.filter((m) => !m.left);
 }
 
-// ---------------------------------------------------------------- escolha da atividade
+// ---------------------------------------------------------------- choice of the activity
 
 const BASE: Readonly<Record<GatherKind, number>> = {
   tv: 10,
@@ -120,7 +120,7 @@ const BASE: Readonly<Record<GatherKind, number>> = {
   mirror: 2,
 };
 
-/** Quanto cada traço multiplica a vontade de cada roda. */
+/** How much each trait multiplies the desire for each hangout. */
 const TRAIT_K: Partial<Record<TraitId, Partial<Record<GatherKind, number>>>> = {
   series: { tv: 3 },
   games: { videogame: 3, arcade: 2.5 },
@@ -144,7 +144,7 @@ export function kindWeight(kind: GatherKind, p: Persona): number {
   return w;
 }
 
-/** Sorteio ponderado entre as rodas possíveis agora (`avail[k]` true). */
+/** Weighted draw among the hangouts possible now (`avail[k]` true). */
 export function pickKind(rng: () => number, p: Persona, avail: Partial<Record<GatherKind, boolean>>): GatherKind | null {
   const kinds = (Object.keys(BASE) as GatherKind[]).filter((k) => avail[k]);
   let total = 0;
@@ -159,8 +159,8 @@ export function pickKind(rng: () => number, p: Persona, avail: Partial<Record<Ga
 }
 
 /**
- * Nota de um colega como parceiro numa roda: afinidade com a atividade, vínculo (amizade puxa
- * para qualquer roda; rivalidade para os jogos) e um pouco de acaso.
+ * Rating of a coworker as a partner in a hangout: affinity with the activity, bond (friendship pulls
+ * toward any hangout; rivalry toward the games) and a bit of chance.
  */
 export function partnerScore(kind: GatherKind, p: Persona, bond: Bond | null, rng: () => number): number {
   let s = kindWeight(kind, p) / BASE[kind] + p.sociability;
@@ -169,7 +169,7 @@ export function partnerScore(kind: GatherKind, p: Persona, bond: Bond | null, rn
   return s + rng() * 1.2;
 }
 
-/** Programa da TV, pelo gosto de quem liga. */
+/** TV program, by the taste of whoever turns it on. */
 export function pickProgram(rng: () => number, p: Persona): Program {
   if (hasTrait(p, 'esporte') && rng() < 0.7) return 'futebol';
   if (hasTrait(p, 'series') && rng() < 0.6) return 'novela';
@@ -177,14 +177,14 @@ export function pickProgram(rng: () => number, p: Persona): Program {
   return r < 0.4 ? 'futebol' : r < 0.75 ? 'novela' : 'desenho';
 }
 
-// ---------------------------------------------------------------- apostas e partidas
+// ---------------------------------------------------------------- bets and matches
 
-/** Teto de uma aposta. */
+/** Cap of a bet. */
 export const MAX_BET = 50;
 
 /**
- * Valor em jogo (0 = só pela honra). Jokenpô sempre vale algo quando os dois têm moedinhas;
- * nas partidas, só entre rivais ou com alguém de "apostas" na roda.
+ * Amount at stake (0 = just for glory). Rock-paper-scissors is always worth something when both have
+ * coins; in the matches, only between rivals or with someone with "betting" in the hangout.
  */
 export function betFor(kind: GatherKind, a: Persona, b: Persona, coinsA: number, coinsB: number, bond: Bond | null, rng: () => number): number {
   const cap = Math.min(coinsA, coinsB, MAX_BET);
@@ -204,7 +204,7 @@ export function betFor(kind: GatherKind, a: Persona, b: Persona, coinsA: number,
   return Math.max(1, Math.min(cap, v));
 }
 
-/** Quem ganha no jokenpô: 0 empate, 1 o primeiro, 2 o segundo. */
+/** Who wins at rock-paper-scissors: 0 tie, 1 the first, 2 the second. */
 export function rpsResult(a: Gesture, b: Gesture): 0 | 1 | 2 {
   if (a === b) return 0;
   const beats: Record<Gesture, Gesture> = { rock: 'scissors', scissors: 'paper', paper: 'rock' };
@@ -213,20 +213,20 @@ export function rpsResult(a: Gesture, b: Gesture): 0 | 1 | 2 {
 
 export const GESTURES: readonly Gesture[] = ['rock', 'paper', 'scissors'];
 
-/** Gesto escolhido (quem é de "competição" tem uma quedinha pela pedra). */
+/** Chosen gesture (whoever has "competition" has a soft spot for rock). */
 export function pickGesture(rng: () => number, p: Persona): Gesture {
   if (hasTrait(p, 'competicao') && rng() < 0.2) return 'rock';
   return GESTURES[Math.floor(rng() * 3) % 3];
 }
 
-/** Probabilidade de A vencer um ponto/rodada contra B, pela habilidade (0,15–0,85). */
+/** Probability of A winning a point/round against B, by skill (0.15–0.85). */
 export function winChance(skillA: number, skillB: number): number {
   return Math.max(0.15, Math.min(0.85, 0.5 + (skillA - skillB) * 0.6));
 }
 
-/** Pontos para vencer cada jogo. */
+/** Points to win each game. */
 export const TARGET: Readonly<Partial<Record<GatherKind, number>>> = { pingpong: 5, videogame: 2, arcade: 1 };
 
-/** Ícone de cada gesto acima da cabeça (contrato da arte). */
+/** Icon of each gesture above the head (art contract). */
 export const GESTURE_ICON = { rock: 'hand_rock', paper: 'hand_paper', scissors: 'hand_scissors' } as const;
 export const GESTURE_EMOJI: Readonly<Record<Gesture, string>> = { rock: '✊', paper: '✋', scissors: '✌️' };

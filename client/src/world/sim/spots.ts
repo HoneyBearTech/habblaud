@@ -1,4 +1,4 @@
-// Registro de spots com reservas (1 ocupante por spot) e busca de alternativas livres.
+// Registry of spots with reservations (1 occupant per spot) and search for free alternatives.
 import type { SpotDef, SpotKind } from '../layout/types';
 
 export class SpotRegistry {
@@ -7,7 +7,7 @@ export class SpotRegistry {
   private byKind = new Map<SpotKind, SpotDef[]>();
   private byGroup = new Map<string, SpotDef[]>();
 
-  /** Substitui o conjunto de spots mantendo as reservas dos que continuam existindo. Retorna as reservas perdidas. */
+  /** Replaces the set of spots keeping the reservations of those that still exist. Returns the lost reservations. */
   setSpots(spots: Iterable<SpotDef>): { spotId: string; owner: string }[] {
     this.spots.clear();
     this.byKind.clear();
@@ -72,7 +72,7 @@ export class SpotRegistry {
     for (const [id, o] of this.owners) if (o === by) this.owners.delete(id);
   }
 
-  /** Spots reservados por alguém. */
+  /** Spots reserved by someone. */
   reservedBy(by: string): string[] {
     const out: string[] = [];
     for (const [id, o] of this.owners) if (o === by) out.push(id);
@@ -80,8 +80,8 @@ export class SpotRegistry {
   }
 
   /**
-   * Spot livre de um tipo, o mais próximo de `near` (distância Manhattan em tiles), opcionalmente
-   * filtrado. Com `rng`, sorteia entre os 3 mais próximos para variar o destino.
+   * Free spot of a kind, the closest to `near` (Manhattan distance in tiles), optionally
+   * filtered. With `rng`, picks at random among the 3 closest to vary the destination.
    */
   findFree(kind: SpotKind, opts: { near?: { tx: number; ty: number }; filter?: (s: SpotDef) => boolean; by?: string; rng?: () => number } = {}): SpotDef | null {
     const list = this.byKind.get(kind);
@@ -99,7 +99,7 @@ export class SpotRegistry {
     return cands[0].s;
   }
 
-  /** Grupo (par) totalmente livre de um tipo: retorna os spots do grupo. */
+  /** Fully free group (pair) of a kind: returns the group's spots. */
   findFreeGroup(kind: SpotKind, opts: { rng?: () => number; filter?: (g: readonly SpotDef[]) => boolean } = {}): readonly SpotDef[] | null {
     const groups: (readonly SpotDef[])[] = [];
     const seen = new Set<string>();

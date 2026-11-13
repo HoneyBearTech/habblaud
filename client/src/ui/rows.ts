@@ -1,4 +1,4 @@
-// Linha de agente (avatar, nome, conta, papel, status e atividade), usada na barra lateral e na gaveta.
+// Agent row (avatar, name, account, role, status and activity), used in the sidebar and in the drawer.
 import type { AccountInfo, AgentInfo } from '../../../shared/types';
 import { createAvatar, updateAvatar, type AvatarSize } from './avatar';
 import { h, setAttr, setHidden, setStyleVar, setText, setTitle, setVariant } from './dom';
@@ -24,9 +24,9 @@ interface RowRefs {
   role: HTMLElement;
   dot: HTMLElement;
   activity: HTMLElement;
-  /** Título da sessão (do que se trata), como no hover do personagem. */
+  /** Session title (what it is about), as in the character's hover. */
   task: HTMLElement;
-  /** Há quanto tempo está ocioso (no lugar do "Principal"). */
+  /** How long it has been idle (in place of "Main"). */
   since: HTMLElement;
   size: AvatarSize;
 }
@@ -56,8 +56,8 @@ export function createAgentRow(agent: AgentInfo, onPick: (id: string) => void, s
 }
 
 /**
- * `now` = relógio do servidor (cronômetro do shell e limiar dos comandos longos em primeiro plano);
- * `agents` = agentes do escritório (shells que um subagente deixou rodando contam para o principal).
+ * `now` = server clock (shell timer and threshold for long foreground commands);
+ * `agents` = office agents (shells that a subagent left running count for the main one).
  */
 export function updateAgentRow(
   row: HTMLElement,
@@ -79,14 +79,14 @@ export function updateAgentRow(
   setText(r.task, title);
   setTitle(r.task, title);
   setHidden(r.task, !title);
-  // Agente principal ocioso há 1 min ou mais: o tempo aparece no lugar do "Principal".
+  // Main agent idle for 1 min or more: the time shows in place of "Main".
   const idleFor = agent.kind === 'main' && agent.status === 'idle' && agent.statusSince ? now - agent.statusSince : 0;
   const showIdle = idleFor >= 60_000;
-  setText(r.since, showIdle ? tr('ocioso {0}', [formatDuration(idleFor)]) : '');
-  setTitle(r.since, showIdle ? tr('Ocioso há {0}', [formatDuration(idleFor)]) : '');
+  setText(r.since, showIdle ? tr('idle {0}', [formatDuration(idleFor)]) : '');
+  setTitle(r.since, showIdle ? tr('Idle for {0}', [formatDuration(idleFor)]) : '');
   setHidden(r.since, !showIdle);
   setHidden(r.role, showIdle);
-  // Esperando um shell (ou parado num comando longo): ampulheta no ponto e o cronômetro na linha de atividade.
+  // Waiting on a shell (or stopped on a long command): hourglass on the dot and the timer on the activity line.
   const wait = shellWaitIn(agent, agents, now);
   const status = wait ? 'shell' : agent.status;
   updateStatusDot(r.dot, status);
@@ -95,11 +95,11 @@ export function updateAgentRow(
   setVariant(row, 'is-', status);
   row.classList.toggle('is-selected', selected);
   setAttr(row, 'aria-current', selected ? 'true' : null);
-  // Para leitores de tela, o tempo em minutos (o cronômetro mudaria o rótulo a cada segundo).
-  const doing = wait ? tr('{0}, há {1}', [shellLine(wait, now).label, formatDuration(now - wait.since)]) : agent.activity?.text;
+  // For screen readers, the time in minutes (the timer would change the label every second).
+  const doing = wait ? tr('{0}, for {1}', [shellLine(wait, now).label, formatDuration(now - wait.since)]) : agent.activity?.text;
   setAttr(
     row,
     'aria-label',
-    `${agent.name}, ${agent.kind === 'main' ? tr('agente principal') : tr('subagente {0}', [agent.role])}, ${account?.name ?? agent.account}${agent.provider === 'codex' ? ' (Codex)' : ''}, ${statusLabel(status)}${doing ? `: ${doing}` : ''}`,
+    `${agent.name}, ${agent.kind === 'main' ? tr('main agent') : tr('subagent {0}', [agent.role])}, ${account?.name ?? agent.account}${agent.provider === 'codex' ? ' (Codex)' : ''}, ${statusLabel(status)}${doing ? `: ${doing}` : ''}`,
   );
 }

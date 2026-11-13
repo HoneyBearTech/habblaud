@@ -1,10 +1,10 @@
-// Logs curtos e sem conteúdo de conversas (nunca registre prompts, respostas ou segredos).
+// Short logs with no conversation content (never log prompts, answers or secrets).
 
 type Level = 'info' | 'warn' | 'error';
 
 let quiet = false;
 
-/** Silencia os logs (usado nos testes). */
+/** Silences the logs (used in the tests). */
 export function setQuiet(q: boolean): void {
   quiet = q;
 }
@@ -17,7 +17,7 @@ function write(level: Level, msg: string): void {
   else console.error(line);
 }
 
-/** Mensagem curta de erro (sem stack), segura para log. */
+/** Short error message (no stack), safe for the log. */
 export function errMsg(err: unknown): string {
   if (err && typeof err === 'object') {
     const e = err as { code?: unknown; message?: unknown };
@@ -33,12 +33,12 @@ export const log = {
   info: (msg: string) => write('info', msg),
   warn: (msg: string) => write('warn', msg),
   error: (msg: string) => write('error', msg),
-  /** Registra só a primeira ocorrência de `key` (evita inundar o log no polling). */
+  /** Logs only the first occurrence of `key` (avoids flooding the log during polling). */
   warnOnce: (key: string, msg: string) => {
     if (once.has(key)) return;
     once.add(key);
     write('warn', msg);
   },
-  /** Permite que `key` volte a ser registrado (ex.: o problema foi resolvido). */
+  /** Lets `key` be logged again (e.g.: the problem was solved). */
   clearOnce: (key: string) => void once.delete(key),
 };

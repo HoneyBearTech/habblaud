@@ -1,6 +1,6 @@
-// Tela do terminal interativo (xterm.js) ligada a um pty do servidor (server/pty/manager.ts): saída pelo SSE
-// GET /api/pty/:id/stream (reset | data | exit) e teclas/tamanho por POST. Carregado sob demanda (import
-// dinâmico em ui/pty.ts): o xterm só entra quando alguém abre um terminal interativo.
+// Interactive terminal screen (xterm.js) attached to a server pty (server/pty/manager.ts): output through the SSE
+// GET /api/pty/:id/stream (reset | data | exit) and keys/size by POST. Loaded on demand (dynamic
+// import in ui/pty.ts): xterm only comes in when someone opens an interactive terminal.
 import { FitAddon } from '@xterm/addon-fit';
 import { Terminal } from '@xterm/xterm';
 import '@xterm/xterm/css/xterm.css';
@@ -16,7 +16,7 @@ export class PtyPane {
   private es: EventSource | null = null;
   private id: string | null = null;
   private exited = false;
-  /** Entrada ainda não enviada e a fila de envio (mantém a ordem das teclas). */
+  /** Input not sent yet and the send queue (keeps the order of the keys). */
   private pending = '';
   private sending: Promise<void> = Promise.resolve();
   private resizeTimer: ReturnType<typeof setTimeout> | null = null;
@@ -45,7 +45,7 @@ export class PtyPane {
     return this.id;
   }
 
-  /** Liga a tela a um pty do servidor (outro pty = tela nova). */
+  /** Attaches the screen to a server pty (another pty = new screen). */
   attach(id: string): void {
     if (this.id === id && this.es) return;
     this.detach();
@@ -66,9 +66,9 @@ export class PtyPane {
       try {
         code = (JSON.parse((e as MessageEvent<string>).data) as { code?: number }).code ?? 0;
       } catch {
-        // sem código
+        // no code
       }
-      this.term.write(`\r\n\x1b[2m[${code ? tr('Claude Code encerrado (código {0})', [code]) : tr('Claude Code encerrado')}]\x1b[0m\r\n`);
+      this.term.write(`\r\n\x1b[2m[${code ? tr('Claude Code exited (code {0})', [code]) : tr('Claude Code exited')}]\x1b[0m\r\n`);
       es.close();
       this.onExit();
     });
@@ -84,7 +84,7 @@ export class PtyPane {
     this.term.focus();
   }
 
-  /** Reajusta colunas/linhas ao tamanho do elemento (`force` reenvia ao servidor mesmo sem mudança). */
+  /** Readjusts columns/rows to the element's size (`force` resends to the server even with no change). */
   refit(force = false): void {
     if (!this.el.isConnected || this.el.clientWidth < 40 || this.el.clientHeight < 40) return;
     const before = `${this.term.cols}x${this.term.rows}`;

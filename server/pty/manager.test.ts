@@ -54,7 +54,7 @@ interface Setup {
   forceKill: ReturnType<typeof vi.fn>;
 }
 
-/** Gerenciador com tudo de fora trocado: um agente "acc:4242" aberto noutro terminal, vivo e conferido. */
+/** Manager with everything external swapped out: an agent "acc:4242" open in another terminal, alive and checked. */
 function setup(over: Partial<Omit<PtyManagerOptions, 'agent'>> & { agent?: Partial<PtyAgentRef>; proc?: ProcInfo | undefined; session?: unknown } = {}): Setup {
   const { agent: agentOver, proc: procOver, session, ...opts } = over;
   const alive = new Set([PID]);
@@ -70,7 +70,7 @@ function setup(over: Partial<Omit<PtyManagerOptions, 'agent'>> & { agent?: Parti
       return new FakeProc(++nextPid);
     },
     claudeBin: process.execPath,
-    accounts: () => [{ id: 'acc', dir: join(tmpdir(), 'conta'), isDefault: true }],
+    accounts: () => [{ id: 'acc', dir: join(tmpdir(), 'account'), isDefault: true }],
     agent: (id) => (id === agent.id ? agent : undefined),
     onChange: () => {},
     readSession: () => session ?? { sessionId: SESSION, startedAt: STARTED },
@@ -94,32 +94,32 @@ async function rejects(p: Promise<unknown>, status: number): Promise<PtyError> {
   return err as PtyError;
 }
 
-describe('PtyManager: conferir o processo antes de encerrar', () => {
-  it('encerra quando registro, início e executável batem', async () => {
+describe('PtyManager: checking the process before ending it', () => {
+  it('ends it when record, start and executable match', async () => {
     const s = setup();
     await s.manager.stop(`acc:${PID}`);
     expect(s.killPid).toHaveBeenCalledWith(PID, expect.objectContaining({ name: 'claude' }));
   });
 
-  it('recusa quando o registro é de outra sessão', async () => {
-    const s = setup({ session: { sessionId: 'outra', startedAt: STARTED } });
+  it('refuses when the record is from another session', async () => {
+    const s = setup({ session: { sessionId: 'other', startedAt: STARTED } });
     await rejects(s.manager.stop(`acc:${PID}`), 409);
     expect(s.killPid).not.toHaveBeenCalled();
   });
 
-  it('recusa um PID reaproveitado (o processo vivo começou bem depois do registro)', async () => {
+  it('refuses a reused PID (the live process started well after the record)', async () => {
     const s = setup({ proc: { startMs: STARTED + 3_600_000, name: 'claude' } });
     await rejects(s.manager.stop(`acc:${PID}`), 409);
     expect(s.killPid).not.toHaveBeenCalled();
   });
 
-  it('recusa quando o executável não é o Claude Code', async () => {
+  it('refuses when the executable is not Claude Code', async () => {
     const s = setup({ proc: { startMs: STARTED - 800, name: 'chrome' } });
     await rejects(s.manager.stop(`acc:${PID}`), 409);
     expect(s.killPid).not.toHaveBeenCalled();
   });
 
-  it('no Windows, o FILETIME do registro tem de ser o exato', async () => {
+  it('on Windows, the FILETIME of the record has to be the exact one', async () => {
     const reg = { sessionId: SESSION, startedAt: STARTED, procStart: '134360309381229341' };
     const other = setup({ session: reg, proc: { startMs: STARTED - 800, name: 'claude', fileTime: '134360309381229342' } });
     await rejects(other.manager.stop(`acc:${PID}`), 409);
@@ -128,15 +128,15 @@ describe('PtyManager: conferir o processo antes de encerrar', () => {
     expect(same.killPid).toHaveBeenCalledOnce();
   });
 
-  it('recusa quando não dá para saber nada do processo', async () => {
+  it('refuses when nothing can be known about the process', async () => {
     const s = setup({ proc: undefined });
     await rejects(s.manager.stop(`acc:${PID}`), 409);
     expect(s.killPid).not.toHaveBeenCalled();
   });
 });
 
-describe('PtyManager: assumir', () => {
-  it('encerra lá e retoma a mesma conversa aqui', async () => {
+describe('PtyManager: taking over', () => {
+  it('ends it there and resumes the same conversation here', async () => {
     const s = setup();
     const info = await s.manager.takeover(`acc:${PID}`);
     expect(s.killPid).toHaveBeenCalledOnce();
@@ -144,36 +144,36 @@ describe('PtyManager: assumir', () => {
     expect(info).toMatchObject({ resumed: SESSION, fromAgent: `acc:${PID}` });
   });
 
-  it('pasta que não existe: recusa antes de encerrar a sessão de lá', async () => {
-    const s = setup({ agent: { cwd: join(tmpdir(), 'nao-existe-habblaud-teste') } });
+  it('folder that does not exist: refuses before ending the session over there', async () => {
+    const s = setup({ agent: { cwd: join(tmpdir(), 'does-not-exist-habblaud-test') } });
     await rejects(s.manager.takeover(`acc:${PID}`), 400);
     expect(s.killPid).not.toHaveBeenCalled();
     expect(s.alive.has(PID)).toBe(true);
   });
 
-  it('conta desconhecida: recusa antes de encerrar', async () => {
-    const s = setup({ agent: { account: 'sumiu', id: `sumiu:${PID}` } });
-    await rejects(s.manager.takeover(`sumiu:${PID}`), 400);
+  it('unknown account: refuses before ending', async () => {
+    const s = setup({ agent: { account: 'gone', id: `gone:${PID}` } });
+    await rejects(s.manager.takeover(`gone:${PID}`), 400);
     expect(s.killPid).not.toHaveBeenCalled();
   });
 
-  it('limite de terminais: recusa antes de encerrar', async () => {
+  it('terminal limit: refuses before ending', async () => {
     const s = setup();
     for (let i = 0; i < MAX_PTYS; i++) s.manager.create({ cwd: tmpdir() });
     await rejects(s.manager.takeover(`acc:${PID}`), 429);
     expect(s.killPid).not.toHaveBeenCalled();
   });
 
-  it('a última vaga fica com a tomada em andamento', async () => {
+  it('the last slot goes to the takeover in progress', async () => {
     const s = setup();
     for (let i = 0; i < MAX_PTYS - 1; i++) s.manager.create({ cwd: tmpdir() });
     const run = s.manager.takeover(`acc:${PID}`);
-    expect(() => s.manager.create({ cwd: tmpdir() })).toThrow(/limite/);
+    expect(() => s.manager.create({ cwd: tmpdir() })).toThrow(/limit/);
     await run;
     expect(s.spawned).toHaveLength(MAX_PTYS);
   });
 
-  it('pedidos simultâneos do mesmo agente abrem um terminal só', async () => {
+  it('simultaneous requests from the same agent open only one terminal', async () => {
     const s = setup();
     const [a, b] = await Promise.all([s.manager.takeover(`acc:${PID}`), s.manager.takeover(`acc:${PID}`)]);
     expect(a.id).toBe(b.id);
@@ -181,28 +181,28 @@ describe('PtyManager: assumir', () => {
     expect(s.spawned).toHaveLength(1);
   });
 
-  it('não saiu a tempo: encerra à força e segue com o --resume', async () => {
+  it('did not exit in time: ends it by force and goes on with --resume', async () => {
     const s = setup({ killPid: vi.fn() });
     await s.manager.takeover(`acc:${PID}`);
     expect(s.forceKill).toHaveBeenCalledWith(PID);
     expect(s.spawned).toHaveLength(1);
   });
 
-  it('nem à força: erro, sem abrir a segunda cópia da conversa', async () => {
+  it('not even by force: error, without opening the second copy of the conversation', async () => {
     const s = setup({ killPid: vi.fn(), forceKill: vi.fn() });
     const err = await rejects(s.manager.takeover(`acc:${PID}`), 500);
-    expect(err.message).toMatch(/continua aberta/);
+    expect(err.message).toMatch(/still open/);
     expect(s.spawned).toHaveLength(0);
   });
 
-  it('claude que não roda: recusa antes de encerrar', async () => {
-    const s = setup({ claudeBin: join(tmpdir(), 'nao-existe-habblaud-claude') });
+  it('claude that does not run: refuses before ending', async () => {
+    const s = setup({ claudeBin: join(tmpdir(), 'does-not-exist-habblaud-claude') });
     await rejects(s.manager.takeover(`acc:${PID}`), 503);
     expect(s.killPid).not.toHaveBeenCalled();
     expect(s.alive.has(PID)).toBe(true);
   });
 
-  it('não abriu aqui depois de encerrar lá: o erro diz como continuar a conversa', async () => {
+  it('did not open here after ending there: the error says how to continue the conversation', async () => {
     const s = setup({
       spawn: () => {
         throw new Error('posix_spawnp failed.');
@@ -213,7 +213,7 @@ describe('PtyManager: assumir', () => {
     expect(err.message).toContain('posix_spawnp failed');
   });
 
-  it('registro antigo (PID reaproveitado): não encerra ninguém', async () => {
+  it('old record (reused PID): does not end anyone', async () => {
     const s = setup({ proc: { startMs: STARTED + 86_400_000, name: 'node' } });
     await rejects(s.manager.takeover(`acc:${PID}`), 409);
     expect(s.killPid).not.toHaveBeenCalled();
@@ -221,7 +221,7 @@ describe('PtyManager: assumir', () => {
   });
 });
 
-/** Resposta SSE de mentira: guarda o que foi escrito. */
+/** Fake SSE response: keeps what was written. */
 function fakeStream(): { req: IncomingMessage; res: ServerResponse; out: string[] } {
   const out: string[] = [];
   const req = Object.assign(new EventEmitter(), { socket: { setTimeout() {}, setNoDelay() {} } }) as unknown as IncomingMessage;
@@ -239,20 +239,20 @@ function fakeStream(): { req: IncomingMessage; res: ServerResponse; out: string[
   return { req, res, out };
 }
 
-describe('PtyManager: tela para quem conecta', () => {
-  it('manda a tela montada e, depois, a saída que chegou enquanto ela terminava de processar', () => {
+describe('PtyManager: screen for whoever connects', () => {
+  it('sends the assembled screen and, afterward, the output that arrived while it was finishing processing', () => {
     const pendingWrites: (() => void)[] = [];
     let content = '';
     const screen: PtyScreen = {
       write(data, done) {
-        // Processa depois, como o xterm.
+        // Processes later, like xterm.
         pendingWrites.push(() => {
           content += data;
           done?.();
         });
       },
       resize() {},
-      serialize: () => `[tela:${content}]`,
+      serialize: () => `[screen:${content}]`,
       dispose() {},
     };
     let proc: FakeProc | undefined;
@@ -265,42 +265,42 @@ describe('PtyManager: tela para quem conecta', () => {
       createScreen: () => screen,
     });
     const info = manager.create({ cwd: tmpdir() });
-    proc!.data('antes ');
+    proc!.data('before ');
     const { req, res, out } = fakeStream();
     manager.attach(info.id, req, res);
-    proc!.data('durante');
-    // Nada além do cabeçalho até a tela processar o que veio antes.
-    expect(out.join('')).not.toContain('tela');
+    proc!.data('during');
+    // Nothing besides the header until the screen processes what came before.
+    expect(out.join('')).not.toContain('screen');
     for (const w of pendingWrites.splice(0)) w();
     const text = out.join('');
-    expect(text.indexOf('[tela:antes ]')).toBeGreaterThan(-1);
-    expect(text.indexOf('durante')).toBeGreaterThan(text.indexOf('[tela:antes ]'));
-    proc!.data('depois');
-    expect(out.join('')).toContain('depois');
+    expect(text.indexOf('[screen:before ]')).toBeGreaterThan(-1);
+    expect(text.indexOf('during')).toBeGreaterThan(text.indexOf('[screen:before ]'));
+    proc!.data('after');
+    expect(out.join('')).toContain('after');
   });
 });
 
 describe('ptyRequestProblem', () => {
   const req = (h: Record<string, string>, addr = '127.0.0.1') => ({ socket: { remoteAddress: addr }, headers: h }) as unknown as IncomingMessage;
 
-  it('aceita o próprio computador, mesma origem', () => {
+  it('accepts the computer itself, same origin', () => {
     expect(ptyRequestProblem(req({ host: 'localhost:4747', origin: 'http://localhost:4747', 'sec-fetch-site': 'same-origin' }))).toBeNull();
     expect(ptyRequestProblem(req({ host: '127.0.0.1:4747' }, '::ffff:127.0.0.1'))).toBeNull();
   });
 
-  it('recusa conexão de fora, Host da rede, outra origem e pedido de outro site', () => {
-    expect(ptyRequestProblem(req({ host: 'localhost:4747' }, '192.168.0.9'))).toMatch(/próprio computador/);
-    expect(ptyRequestProblem(req({ host: 'meu-mac.local:4747' }))).toMatch(/localhost/);
-    expect(ptyRequestProblem(req({ host: 'localhost:4747', origin: 'http://evil.example' }))).toMatch(/origem/);
-    expect(ptyRequestProblem(req({ host: 'localhost:4747', 'sec-fetch-site': 'same-site' }))).toMatch(/origem/);
-    expect(ptyRequestProblem(req({ host: 'localhost:4747', 'sec-fetch-site': 'cross-site' }))).toMatch(/origem/);
+  it('refuses a connection from outside, a network Host, another origin and a request from another site', () => {
+    expect(ptyRequestProblem(req({ host: 'localhost:4747' }, '192.168.0.9'))).toMatch(/the computer running/);
+    expect(ptyRequestProblem(req({ host: 'my-mac.local:4747' }))).toMatch(/localhost/);
+    expect(ptyRequestProblem(req({ host: 'localhost:4747', origin: 'http://evil.example' }))).toMatch(/origin/);
+    expect(ptyRequestProblem(req({ host: 'localhost:4747', 'sec-fetch-site': 'same-site' }))).toMatch(/origin/);
+    expect(ptyRequestProblem(req({ host: 'localhost:4747', 'sec-fetch-site': 'cross-site' }))).toMatch(/origin/);
   });
 });
 
-describe('carregar o node-pty e achar o claude', () => {
+describe('loading node-pty and finding claude', () => {
   const unix = process.platform !== 'win32';
 
-  /** Pasta temporária, apagada no fim. */
+  /** Temporary folder, deleted at the end. */
   function withDir(fn: (dir: string) => void | Promise<void>) {
     return async () => {
       const dir = mkdtempSync(join(tmpdir(), 'habblaud-pty-'));
@@ -313,7 +313,7 @@ describe('carregar o node-pty e achar o claude', () => {
   }
 
   it.runIf(unix)(
-    'devolve a permissão de execução ao spawn-helper (o node-pty 1.1.0 publica sem)',
+    'gives the execute permission back to spawn-helper (node-pty 1.1.0 is published without it)',
     withDir((dir) => {
       const sub = join(dir, 'prebuilds', 'darwin-arm64');
       mkdirSync(sub, { recursive: true });
@@ -321,12 +321,12 @@ describe('carregar o node-pty e achar o claude', () => {
       chmodSync(join(sub, 'spawn-helper'), 0o644);
       fixSpawnHelper(dir, 'darwin', 'arm64');
       expect(statSync(join(sub, 'spawn-helper')).mode & 0o777).toBe(0o755);
-      // Sem spawn-helper nenhum: nada a fazer, sem erro.
-      expect(() => fixSpawnHelper(join(dir, 'vazia'), 'darwin', 'arm64')).not.toThrow();
+      // No spawn-helper at all: nothing to do, no error.
+      expect(() => fixSpawnHelper(join(dir, 'empty'), 'darwin', 'arm64')).not.toThrow();
     }),
   );
 
-  it('terminal de teste: aponta o motivo quando o spawn falha ou o processo sai com erro', async () => {
+  it('test terminal: points out the reason when the spawn fails or the process exits with an error', async () => {
     const failing: SpawnPty = () => {
       throw new Error('posix_spawnp failed.');
     };
@@ -337,11 +337,11 @@ describe('carregar o node-pty e achar o claude', () => {
       return p;
     };
     expect(await spawnProblem(exiting(0))).toBeNull();
-    expect(await spawnProblem(exiting(1))).toMatch(/código 1/);
+    expect(await spawnProblem(exiting(1))).toMatch(/code 1/);
   });
 
   it.runIf(unix)(
-    'executável: precisa existir e poder rodar; o PATH pula o que não roda',
+    'executable: must exist and be able to run; the PATH skips what does not run',
     withDir((dir) => {
       const a = join(dir, 'a');
       const b = join(dir, 'b');
@@ -357,10 +357,10 @@ describe('carregar o node-pty e achar o claude', () => {
       const env = { PATH: `${a}:${b}` };
       expect(findExecutable('claude', env)).toBe(join(b, 'claude'));
       expect(claudeBinFrom(env)).toBe(join(b, 'claude'));
-      // HABBLAUD_CLAUDE_BIN: um caminho vale como está; um nome é procurado no PATH.
+      // HABBLAUD_CLAUDE_BIN: a path is used as it is; a name is looked up in the PATH.
       expect(claudeBinFrom({ ...env, HABBLAUD_CLAUDE_BIN: join(a, 'claude') })).toBe(join(a, 'claude'));
       expect(claudeBinFrom({ ...env, HABBLAUD_CLAUDE_BIN: 'claude' })).toBe(join(b, 'claude'));
-      expect(claudeBinFrom({ ...env, HABBLAUD_CLAUDE_BIN: 'outro' })).toBeUndefined();
+      expect(claudeBinFrom({ ...env, HABBLAUD_CLAUDE_BIN: 'other' })).toBeUndefined();
     }),
   );
 });
