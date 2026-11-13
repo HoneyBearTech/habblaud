@@ -1,6 +1,6 @@
-// API de depuração do mundo (console: `habblaud.world.debug`), usada em testes visuais para
-// forçar cenários: sessões simuladas chegando/saindo, salas fechando, hora do dia, câmera e a
-// espera de shell (shells rodando, envelhecer a espera, terminar com sucesso/falha).
+// World debug API (console: `habblaud.world.debug`), used in visual tests to
+// force scenarios: simulated sessions arriving/leaving, rooms closing, time of day, camera and the
+// shell wait (shells running, aging the wait, finishing with success/failure).
 import type { Activity, AgentInfo, AgentStatus, RoomInfo, ShellJob } from '../../../shared/types';
 import { SPECIAL, type ShellOutcome } from '../../../shared/activity';
 import { hash32 } from '../../../shared/hash';
@@ -11,80 +11,80 @@ import { oldestShell } from './sim/shell';
 import type { Sim } from './sim/sim';
 import type { GatherKind } from './social/gathering';
 
-/** Um shell para os cenários de depuração: campos de ShellJob opcionais + idade relativa. */
+/** A shell for the debug scenarios: optional ShellJob fields + relative age. */
 export interface ShellJobInput extends Partial<ShellJob> {
-  /** Há quantos minutos o comando começou (ignorado se `startedAt` vier). */
+  /** How many minutes ago the command started (ignored if `startedAt` is given). */
   ageMinutes?: number;
   ageSeconds?: number;
 }
 
 export interface SpawnOptions {
-  /** Nome do projeto (sala). Padrão: um nome novo; se a sala existir, reaproveita. */
+  /** Project name (room). Default: a new name; if the room exists, reuses it. */
   project?: string;
   name?: string;
-  /** Id da conta (AccountInfo.id). */
+  /** Account id (AccountInfo.id). */
   account?: string;
   status?: AgentStatus;
-  /** Quantos subagentes (trabalhando) disparar junto. */
+  /** How many subagents (working) to start along with it. */
   subs?: number;
   /**
-   * Já começa esperando shell(s): status 'shell' (ou 'working' com `background: false`, um comando
-   * longo em primeiro plano). `count` > 1 cria vários (o "×N" da ampulheta).
+   * Starts out already waiting for shell(s): status 'shell' (or 'working' with `background: false`, a
+   * long command in the foreground). `count` > 1 creates several (the hourglass "×N").
    */
   shell?: { label?: string; command?: string; ageMinutes?: number; count?: number; background?: boolean; kind?: 'shell' | 'monitor' };
 }
 
 export interface WorldDebug {
-  /** Resumo do estado: salas (fase, luz) e personagens (modo, passo, posição). */
+  /** State summary: rooms (phase, light) and characters (mode, step, position). */
   state(): unknown;
-  /** Abre uma sessão simulada (sala nova se preciso). Retorna o id do agente principal. */
+  /** Opens a simulated session (new room if needed). Returns the main agent's id. */
   spawnSession(opts?: SpawnOptions): string;
-  /** Muda o status de uma sessão simulada (ex.: 'waiting', 'idle') ou de um subagente simulado. */
+  /** Changes the status of a simulated session (e.g. 'waiting', 'idle') or of a simulated subagent. */
   setStatus(agentId: string, status: AgentStatus, waitingFor?: string): void;
-  /** Encerra uma sessão simulada (o agente some do snapshot; os subagentes também). */
+  /** Ends a simulated session (the agent disappears from the snapshot; the subagents too). */
   endSession(agentId: string): void;
-  /** Simula o encerramento de uma sessão real (vai embora; se for o último, apaga a luz). */
+  /** Simulates the end of a real session (it leaves; if it is the last one, turns off the light). */
   closeSession(agentId: string): void;
-  /** Simula o fim de todas as sessões de uma sala: todos saem e a sala some do "snapshot". */
+  /** Simulates the end of all sessions in a room: everyone leaves and the room disappears from the "snapshot". */
   closeRoom(roomId: string): void;
-  /** Desfaz os encerramentos simulados e remove as sessões simuladas. */
+  /** Undoes the simulated endings and removes the simulated sessions. */
   reset(): void;
-  /** Força a hora do dia (0–24) para o ciclo dia/noite; null volta à hora local. */
+  /** Forces the time of day (0–24) for the day/night cycle; null goes back to local time. */
   setHour(hour: number | null): void;
-  /** Centraliza a câmera num ponto (tiles) com zoom opcional, sem animação. */
+  /** Centers the camera on a point (tiles) with optional zoom, without animation. */
   lookAt(tx: number, ty: number, zoom?: number): void;
-  /** Centraliza a câmera numa sala (id ou nome). */
+  /** Centers the camera on a room (id or name). */
   lookAtRoom(idOrName: string, zoom?: number): void;
-  /** Avança todos os comportamentos até o destino (como ao voltar de uma aba oculta). */
+  /** Advances all behaviors to their destination (as when coming back from a hidden tab). */
   fastForward(): void;
-  /** Faz todos os ociosos saírem para passear agora. */
+  /** Makes everyone who is idle go out for a walk now. */
   wanderNow(): void;
   /**
-   * Começa uma roda agora com quem estiver ocioso/esperando shell (ou com `ids`): todos voltam à mesa
-   * na hora e saem juntos. Retorna os nomes dos participantes ou null.
+   * Starts a hangout now with whoever is idle/waiting for a shell (or with `ids`): everyone goes back to
+   * the desk right away and they leave together. Returns the participants' names or null.
    */
   socialize(kind: GatherKind, ids?: string[]): string[] | null;
-  /** Rodas em andamento: tipo, fase, participantes, placar e aposta. */
+  /** Hangouts in progress: kind, phase, participants, score and bet. */
   gatherings(): unknown;
-  /** Soma (ou tira) moedinhas da carteira de um agente. Retorna o saldo. */
+  /** Adds coins to (or takes them from) an agent's wallet. Returns the balance. */
   coins(agentId: string, delta: number): number;
   /**
-   * Define os shells que um agente espera (sessão simulada ou agente real; o real fica sobreposto
-   * até reset()). Algum em segundo plano -> status 'shell'; só em primeiro plano -> 'working';
-   * lista vazia -> 'idle' (se estava em 'shell').
+   * Sets the shells an agent waits for (simulated session or real agent; the real one stays overlaid
+   * until reset()). Any in the background -> status 'shell'; only in the foreground -> 'working';
+   * empty list -> 'idle' (if it was in 'shell').
    */
   setShells(agentId: string, jobs: ShellJobInput[]): void;
-  /** Envelhece os shells (todas as sessões com shells, ou só um agente) em `minutes` — para ver os estágios. */
+  /** Ages the shells (all sessions with shells, or just one agent) by `minutes` — to see the stages. */
   ageShells(minutes: number, agentId?: string): void;
   /**
-   * Termina o shell mais antigo (ou todos, `opts.all`) de um agente: registra a Activity 'ShellDone'
-   * (error em 'failed'/'killed'), o que dispara o confete ou a chuva. Sem shells em segundo plano
-   * restantes, o status vira `opts.then` (padrão 'working': o agente acorda com a notificação).
+   * Finishes the oldest shell (or all, `opts.all`) of an agent: records the 'ShellDone' Activity
+   * (error on 'failed'/'killed'), which triggers the confetti or the rain. With no background shells
+   * left, the status becomes `opts.then` (default 'working': the agent wakes up with the notification).
    */
   finishShell(agentId: string, result?: 'completed' | 'failed' | 'killed', opts?: { all?: boolean; then?: AgentStatus }): void;
   /**
-   * Liga a festa (~12 s) ou o alarme (até desligar com `null`) de uma sala (id ou nome), como um evento
-   * do GitHub; `agentId` = o responsável (estrela na festa, balão "!" no alarme).
+   * Turns on the party (~12 s) or the alarm (until turned off with `null`) of a room (id or name), like a
+   * GitHub event; `agentId` = the one responsible (star at the party, "!" speech bubble at the alarm).
    */
   roomEffect(idOrName: string, kind: 'party' | 'alarm' | null, opts?: { text?: string; agentId?: string }): void;
   readonly sim: Sim;
@@ -134,7 +134,7 @@ export function createDebug(sim: Sim, renderer: Renderer, camera: Camera, onCame
       kind: j.kind ?? 'shell',
     }));
 
-  /** Status coerente com os shells: segundo plano -> 'shell'; só primeiro plano -> 'working'. */
+  /** Status consistent with the shells: background -> 'shell'; foreground only -> 'working'. */
   const statusFor = (cur: AgentStatus, shells: readonly ShellJob[]): AgentStatus => {
     if (cur === 'waiting' || cur === 'offline' || cur === 'done') return cur;
     if (shells.some((j) => j.background)) return 'shell';
@@ -143,8 +143,8 @@ export function createDebug(sim: Sim, renderer: Renderer, camera: Camera, onCame
   };
 
   /**
-   * Edita um agente como um snapshot novo faria (cópia alterada): sessões simuladas diretamente;
-   * agentes reais por sobreposição (sim.agentPatches) até reset().
+   * Edits an agent as a new snapshot would (changed copy): simulated sessions directly;
+   * real agents by overlay (sim.agentPatches) until reset().
    */
   const editAgent = (id: string, fn: (a: AgentInfo) => void): boolean => {
     const i = sim.injected.agents.findIndex((x) => x.id === id);
@@ -169,7 +169,7 @@ export function createDebug(sim: Sim, renderer: Renderer, camera: Camera, onCame
     if (status !== a.status) a.statusSince = now();
     a.status = status;
     a.shells = shells;
-    // como o servidor: o status 'shell' vale desde o início da espera
+    // like the server: the 'shell' status counts from the start of the wait
     const oldest = oldestShell(shells, false);
     if (status === 'shell' && oldest) a.statusSince = Math.min(a.statusSince, oldest.startedAt);
   };
@@ -237,7 +237,7 @@ export function createDebug(sim: Sim, renderer: Renderer, camera: Camera, onCame
           jobs.push({
             label: i === 0 ? sh.label : `${sh.label ?? 'Run the test suite'} (${i + 1})`,
             command: sh.command,
-            // os demais começaram depois do primeiro
+            // the others started after the first
             ageMinutes: Math.max(0, (sh.ageMinutes ?? 0) - i * 0.5),
             background: sh.background ?? true,
             kind: sh.kind,
@@ -260,7 +260,7 @@ export function createDebug(sim: Sim, renderer: Renderer, camera: Camera, onCame
     setStatus: (id, status, waitingFor) => {
       const i = sim.injected.agents.findIndex((x) => x.id === id);
       if (i < 0) return;
-      // cópia nova (como um snapshot de verdade), para o mundo perceber a mudança
+      // new copy (like a real snapshot), so the world notices the change
       const a: AgentInfo = { ...sim.injected.agents[i] };
       sim.injected.agents[i] = a;
       a.status = status;
@@ -386,7 +386,7 @@ export function createDebug(sim: Sim, renderer: Renderer, camera: Camera, onCame
         const rest = opts.all ? [] : shells.slice(1);
         const t = now();
         const ms = ended[0] ? t - ended[0].startedAt : undefined;
-        // mesmos textos do servidor ("Shell terminou: <rótulo> (<duração>)", "Shell falhou: …")
+        // same texts as the server ("Shell finished: <label> (<duration>)", "Shell failed: …")
         const outcome: ShellOutcome = ok ? 'ok' : result === 'killed' ? 'killed' : 'failed';
         const detail = ended.map((j) => j.command ?? j.label).join(' | ') || undefined;
         const activity: Activity = { id: `dbg-act-${++seq}`, at: t, ...SPECIAL.shellDone(ended[0]?.label, outcome, ms, detail) };

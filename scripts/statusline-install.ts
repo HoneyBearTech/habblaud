@@ -1,19 +1,19 @@
-// Instala (ou remove) o tap de statusline do Habblaud em cada conta do Claude Code. Roda no HOST, com tsx:
+// Installs (or removes) the Habblaud statusline tap in each Claude Code account. Runs on the HOST, with tsx:
 //
-//   npm run usage:install     # envolve o statusLine.command de cada conta com o tap (backup antes)
-//   npm run usage:uninstall   # devolve o comando original
-//   npm run usage:status      # mostra, por conta, se está instalado e a idade do último uso capturado
-//   (opções: --dry-run mostra o que mudaria sem gravar nada; --node <caminho> escolhe o node)
+//   npm run usage:install     # wraps each account's statusLine.command with the tap (backup first)
+//   npm run usage:uninstall   # puts the original command back
+//   npm run usage:status      # shows, per account, whether it is installed and the age of the last captured usage
+//   (options: --dry-run shows what would change without writing anything; --node <path> picks the node)
 //
-// O tap (scripts/statusline-tap.mjs) recebe do Claude Code o mesmo JSON que o statusline já recebe
-// e guarda só os percentuais de uso de 5h/semana em ~/.habblaud/usage/<conta>.json, repassando tudo
-// ao statusline original. Assim o Habblaud mostra o uso ao vivo sem ler credenciais.
+// The tap (scripts/statusline-tap.mjs) receives from Claude Code the same JSON the statusline already receives
+// and keeps only the 5h/week usage percentages in ~/.habblaud/usage/<account>.json, passing everything on
+// to the original statusline. This way Habblaud shows live usage without reading credentials.
 //
-// Em <conta>/settings.json só o campo statusLine.command muda (os demais campos e chaves ficam como
-// estão); antes de gravar, uma cópia vai para settings.json.habblaud-backup-<data>.
+// In <account>/settings.json only the statusLine.command field changes (the other fields and keys stay as
+// they are); before writing, a copy goes to settings.json.habblaud-backup-<date>.
 //
-// Nome antigo (CodeTown, até a 0.3.2): o install leva ~/.codetown para ~/.habblaud antes de tudo, para o uso
-// já capturado seguir valendo.
+// Old name (CodeTown, up to 0.3.2): install moves ~/.codetown to ~/.habblaud before anything else, so the usage
+// already captured keeps counting.
 import { accessSync, chmodSync, constants, existsSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { basename, delimiter, dirname, join, resolve, sep } from 'node:path';
@@ -41,27 +41,27 @@ Accounts: the same as the server's (~/.claude* with projects/ or sessions/, CLAU
 HABBLAUD_CLAUDE_DIRS). Usage captured in HABBLAUD_USAGE_DIR (default ~/.habblaud/usage).`);
 
 // ---------------------------------------------------------------------------------------------
-// Funções puras (testadas em server/test/statusline-install.test.ts)
+// Pure functions (tested in server/test/statusline-install.test.ts)
 // ---------------------------------------------------------------------------------------------
 
-/** Caracteres que dispensam aspas num comando de shell. */
+/** Characters that need no quotes in a shell command. */
 const SAFE_WORD = /^[\w@%+=:,./~-]+$/;
 
-/** Aspas simples de shell (o único caractere especial lá dentro é a própria aspa). */
+/** Shell single quotes (the only special character inside them is the quote itself). */
 export function shellQuote(s: string): string {
   return `'${s.replace(/'/g, `'\\''`)}'`;
 }
 
-/** Desfaz shellQuote; devolve undefined se `s` não for exatamente uma palavra entre aspas simples. */
+/** Undoes shellQuote; returns undefined if `s` is not exactly one word in single quotes. */
 export function shellUnquote(s: string): string | undefined {
   const m = /^'((?:[^']|'\\'')*)'$/.exec(s);
   return m ? m[1].replace(/'\\''/g, "'") : undefined;
 }
 
 /**
- * O comando original como argumento do tap. Comandos simples (só palavras "seguras", como
- * `npx -y ccstatusline`) ficam legíveis, sem aspas; o resto vai inteiro entre aspas simples, para que
- * pipes, `&&`, aspas e redirecionamentos continuem valendo só para o comando original.
+ * The original command as an argument of the tap. Simple commands (only "safe" words, such as
+ * `npx -y ccstatusline`) stay readable, without quotes; the rest goes whole in single quotes, so that
+ * pipes, `&&`, quotes and redirections keep applying only to the original command.
  */
 export function encodeOriginal(cmd: string): string {
   const words = cmd.trim().split(/\s+/);
@@ -77,7 +77,7 @@ export function isTapCommand(cmd: unknown): cmd is string {
   return typeof cmd === 'string' && cmd.includes(TAP_NAME);
 }
 
-/** Caminho entre aspas duplas (legível); com `$`, crase, `"` ou `\\`, aspas simples. */
+/** Path in double quotes (readable); with `$`, backtick, `"` or `\\`, single quotes. */
 export function quotePath(p: string): string {
   return /^[^"$`\\]*$/.test(p) ? `"${p}"` : shellQuote(p);
 }
@@ -87,7 +87,7 @@ function unquotePath(q: string): string {
   return shellUnquote(q) ?? q;
 }
 
-/** `node "<tap>" -- <original>` (ou só `node "<tap>"` quando não havia statusline). */
+/** `node "<tap>" -- <original>` (or just `node "<tap>"` when there was no statusline). */
 export function wrapCommand(nodeCmd: string, tapPath: string, original?: string): string {
   const node = SAFE_WORD.test(nodeCmd) ? nodeCmd : quotePath(nodeCmd);
   const head = `${node} ${quotePath(tapPath)}`;
@@ -97,7 +97,7 @@ export function wrapCommand(nodeCmd: string, tapPath: string, original?: string)
 const WRAPPED =
   /^\s*(?:"[^"]*"|'(?:[^']|'\\'')*'|\S+)\s+("[^"]*statusline-tap\.mjs"|'(?:[^']|'\\'')*statusline-tap\.mjs'|\S*statusline-tap\.mjs)(?:\s+--(?:\s+([\s\S]*))?)?\s*$/;
 
-/** Comando original guardado num comando já envolvido ('' = não havia statusline). */
+/** Original command stored in an already wrapped command ('' = there was no statusline). */
 export function unwrapCommand(cmd: string): { tapPath: string; original: string } | undefined {
   const m = WRAPPED.exec(cmd);
   if (!m) return undefined;
@@ -118,7 +118,7 @@ function statusLineOf(settings: Settings): StatusLine | undefined {
   return sl && typeof sl === 'object' && !Array.isArray(sl) ? (sl as StatusLine) : undefined;
 }
 
-/** Plano de instalação para um settings.json já lido (não grava nada). */
+/** Installation plan for a settings.json already read (writes nothing). */
 export function planInstall(settings: Settings, nodeCmd: string, tapPath: string): PlanAction {
   const sl = statusLineOf(settings);
   if (settings.statusLine !== undefined && !sl) return { action: 'skip', message: tr('statusLine in an unknown format; nothing was changed') };
@@ -145,7 +145,7 @@ export function planInstall(settings: Settings, nodeCmd: string, tapPath: string
   };
 }
 
-/** Plano de remoção: devolve o comando original (ou tira o statusLine que o próprio tap criou). */
+/** Removal plan: puts the original command back (or removes the statusLine that the tap itself created). */
 export function planUninstall(settings: Settings): PlanAction {
   const sl = statusLineOf(settings);
   if (!sl || !isTapCommand(sl.command)) return { action: 'none', message: tr("wasn't installed") };
@@ -159,7 +159,7 @@ export function planUninstall(settings: Settings): PlanAction {
   return { action: 'uninstall', settings: { ...settings, statusLine: { ...sl, command: cur.original } }, message: `restored: ${cur.original}` };
 }
 
-/** Diretórios onde um `node` fora de gerenciadores de versão fica estável entre atualizações. */
+/** Directories where a `node` outside version managers stays stable across updates. */
 function stableNode(p: string, home: string): boolean {
   const dir = dirname(p);
   const stable = ['/opt/homebrew/bin', '/usr/local/bin', '/usr/bin', '/bin', join(home, '.volta', 'bin'), join(home, '.asdf', 'shims'), join(home, '.local', 'share', 'mise', 'shims')];
@@ -167,9 +167,9 @@ function stableNode(p: string, home: string): boolean {
 }
 
 /**
- * Comando do node para o statusline: o caminho absoluto quando o `node` do PATH está num lugar estável
- * (Homebrew, /usr/local...); senão só `node` — caminhos do nvm/fnm mudam a cada versão, e o statusline
- * original (npx...) já depende do node no PATH de qualquer forma.
+ * Node command for the statusline: the absolute path when the PATH's `node` is in a stable place
+ * (Homebrew, /usr/local...); otherwise just `node` — nvm/fnm paths change with every version, and the original
+ * statusline (npx...) already depends on node in the PATH anyway.
  */
 export function detectNodeCommand(env: NodeJS.ProcessEnv, home: string, isExecutable: (p: string) => boolean = canExecute): string {
   for (const dir of (env.PATH ?? '').split(delimiter)) {
@@ -201,7 +201,7 @@ export function formatAge(ms: number): string {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Efeitos (arquivos)
+// Effects (files)
 // ---------------------------------------------------------------------------------------------
 
 export interface RunOptions {
@@ -243,7 +243,7 @@ function stamp(d: Date): string {
   return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
 }
 
-/** `~/...` para o que está no HOME; no Windows também com `\` (o resto sai com `/`, como o Git Bash escreve). */
+/** `~/...` for what is in HOME; on Windows also with `\` (the rest comes out with `/`, as Git Bash writes it). */
 export function tildify(p: string, home: string): string {
   if (p !== home && !p.startsWith(`${home}/`) && !p.startsWith(`${home}${sep}`)) return p;
   return `~${p.slice(home.length).split(sep).join('/')}`;
@@ -267,14 +267,14 @@ export function readSettings(file: string): { settings: Settings; raw?: string }
   }
 }
 
-/** Backup + gravação atômica preservando a permissão do arquivo. Devolve o caminho do backup. */
+/** Backup + atomic write preserving the file's permission. Returns the backup path. */
 export function writeSettings(file: string, settings: Settings, raw: string | undefined, now: Date): string | undefined {
   let mode = 0o600;
   if (raw !== undefined) mode = statSync(file).mode & 0o777;
   const tmp = `${file}.habblaud-tmp-${process.pid}`;
   writeFileSync(tmp, `${JSON.stringify(settings, null, 2)}\n`, { mode });
   chmodSync(tmp, mode);
-  // Relê agora: o backup é o que o rename substitui. Se mudou desde a leitura, aborta (sem merge).
+  // Rereads now: the backup is what the rename replaces. If it changed since the read, aborts (no merge).
   let current: string | undefined;
   try {
     current = readFileSync(file, 'utf8');
@@ -298,16 +298,16 @@ export function writeSettings(file: string, settings: Settings, raw: string | un
   return backup;
 }
 
-/** Pasta do uso capturado (HABBLAUD_USAGE_DIR ou ~/.habblaud/usage); também usada pelo mod-install. */
+/** Folder of the captured usage (HABBLAUD_USAGE_DIR or ~/.habblaud/usage); also used by mod-install. */
 export function usageDirOf(env: NodeJS.ProcessEnv, home: string): string {
   const d = env.HABBLAUD_USAGE_DIR?.trim();
   return d ? resolve(d.replace(/^~(?=\/|$)/, home)) : join(home, '.habblaud', 'usage');
 }
 
 /**
- * Leva ~/.codetown (nome antigo) para ~/.habblaud antes de criar ou usar a pasta do uso; também usada pelo
- * mod-install. Vale mesmo com HABBLAUD_USAGE_DIR em outro lugar (lá também ficam nomes e estatísticas, fora do
- * Docker). Devolve a linha para a saída (undefined = nada a fazer); na simulação, só diz o que faria.
+ * Moves ~/.codetown (old name) to ~/.habblaud before creating or using the usage folder; also used by
+ * mod-install. Applies even with HABBLAUD_USAGE_DIR somewhere else (names and stats also live there, outside
+ * Docker). Returns the line for the output (undefined = nothing to do); in a dry run, only says what it would do.
  */
 export function migrateLegacyState(home: string, dryRun: boolean): string | undefined {
   if (dryRun) {
@@ -324,7 +324,7 @@ export function migrateLegacyState(home: string, dryRun: boolean): string | unde
   return msg && `${r.error ? '!' : '✓'} ${msg}`;
 }
 
-/** Idade do último uso capturado de uma conta (arquivo do tap), ou undefined. */
+/** Age of an account's last captured usage (tap file), or undefined. */
 function lastCapture(dir: string, env: NodeJS.ProcessEnv, home: string): { at: number; five?: number; week?: number } | undefined {
   const file = join(usageDirOf(env, home), `${basename(dir)}.json`);
   try {
@@ -337,7 +337,7 @@ function lastCapture(dir: string, env: NodeJS.ProcessEnv, home: string): { at: n
   }
 }
 
-/** Executa o comando para todas as contas. Devolve o código de saída. */
+/** Runs the command for all accounts. Returns the exit code. */
 export function run(opts: RunOptions, ctx: RunContext): number {
   const { env, home, out } = ctx;
   const dirs = discoverClaudeDirs(env, home);
@@ -346,7 +346,7 @@ export function run(opts: RunOptions, ctx: RunContext): number {
     return 1;
   }
   const nodeCmd = opts.nodeCmd ?? detectNodeCommand(env, home);
-  // Nome antigo: o tap agora grava em ~/.habblaud/usage; o que estava em ~/.codetown vai junto.
+  // Old name: the tap now writes to ~/.habblaud/usage; what was in ~/.codetown goes along.
   if (opts.command === 'install') {
     const moved = migrateLegacyState(home, opts.dryRun);
     if (moved) out(moved);

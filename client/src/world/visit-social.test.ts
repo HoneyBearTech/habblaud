@@ -1,4 +1,4 @@
-// O social dentro do prédio (Fase 5), a parte pura: o carimbo de hoje (dia UTC) e o quadro de carimbos da recepção.
+// The social side inside the building (Phase 5), the pure part: today's stamp (UTC day) and the reception's stamp board.
 import { describe, expect, it } from 'vitest';
 import { stampBoard, stampedToday, stampKey, stampPinTitle, stampReply, utcDay } from './visit-social';
 

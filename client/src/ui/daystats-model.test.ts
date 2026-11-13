@@ -39,7 +39,7 @@ describe('My day with Codex', () => {
       ['.claude', false, '$1.50', '10'],
       ['.codex', true, null, '2 M'],
     ]);
-    // Sem a função, ninguém é do Codex (como antes).
+    // Without the function, nobody is from Codex (as before).
     expect(accountCards([acc('.codex', { ms: ms({ working: H }) })])[0]).toMatchObject({ codex: false, cost: '—' });
   });
 
@@ -99,12 +99,12 @@ describe('stacked bars', () => {
     ];
     const rows = roomRows(rooms, ALL_VISIBLE);
     expect(rows.map((r) => r.name)).toEqual(['a', 'b']);
-    // A escala é o maior total (b: 4 h): a barra de a ocupa 25%.
+    // The scale is the largest total (b: 4 h): the bar of a takes up 25%.
     expect(rows[0].segments.reduce((n, s) => n + s.pct, 0)).toBeCloseTo(25);
     expect(rows[1].segments.reduce((n, s) => n + s.pct, 0)).toBeCloseTo(100);
     expect(rows[0].waiting).toBe('30 min waiting on you');
     expect(rows[1].totalText).toBe('4 h total');
-    // Sem o ocioso, a escala passa a ser 2 h.
+    // Without the idle one, the scale becomes 2 h.
     const noIdle = roomRows(rooms, new Set(['waiting', 'working', 'shell']));
     expect(noIdle[0].segments.reduce((n, s) => n + s.pct, 0)).toBeCloseTo(50);
     expect(noIdle[1].segments.map((s) => s.status)).toEqual(['working']);

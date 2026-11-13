@@ -5,7 +5,7 @@ import { createUI } from './index';
 import { SoundControl } from './sound';
 import { dayLabel, hourTicks, TimelapsePlayer } from './timelapse';
 
-// Só o contexto e o player reais: os outros painéis não participam do relógio.
+// Only the real context and player: the other panels take no part in the clock.
 vi.mock('./daystats-launcher');
 vi.mock('./roomrename');
 vi.mock('./drawer');
@@ -30,7 +30,7 @@ vi.mock('./topbar', () => ({ TopBar: class {
   render() {}
 } }));
 
-/** DOM mínimo para os controles do player, sem layout nem canvas. */
+/** Minimal DOM for the player controls, without layout or canvas. */
 class ElementStub extends EventTarget {
   className = '';
   textContent = '';

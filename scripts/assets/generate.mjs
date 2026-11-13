@@ -1,20 +1,20 @@
-// Gerador de imagens via OpenRouter para os assets do Habblaud.
+// Image generator via OpenRouter for the Habblaud assets.
 //
-// Uso (a partir da raiz do projeto, com OPENROUTER_KEY exportada):
-//   node scripts/assets/generate.mjs models                 lista os modelos com saída de imagem
-//   node scripts/assets/generate.mjs list                   lista os assets de specs.json e o estado do cache
-//   node scripts/assets/generate.mjs gen [ids...]           gera os assets ainda sem imagem bruta em cache
-//        [--force]            regera mesmo com cache (a tomada anterior fica em .cache/takes/)
-//        [--model <id>]       sobrescreve o modelo definido em specs.json
-//        [--as <sufixo>]      grava como "<id>@<sufixo>" (comparações/tomadas extras sem trocar a escolhida)
-//        [--concurrency <n>]  requisições simultâneas (padrão 3)
-//        [--budget <n>]       limite total de requisições registradas no log (padrão 45)
-//   node scripts/assets/generate.mjs pick <id> <sufixo>     escolhe a tomada "<id>@<sufixo>" como imagem bruta oficial
+// Usage (from the project root, with OPENROUTER_KEY exported):
+//   node scripts/assets/generate.mjs models                 lists the models with image output
+//   node scripts/assets/generate.mjs list                   lists the assets in specs.json and the cache state
+//   node scripts/assets/generate.mjs gen [ids...]           generates the assets with no raw image in the cache yet
+//        [--force]            regenerates even with cache (the previous take stays in .cache/takes/)
+//        [--model <id>]       overrides the model set in specs.json
+//        [--as <suffix>]      writes as "<id>@<suffix>" (comparisons/extra takes without changing the chosen one)
+//        [--concurrency <n>]  simultaneous requests (default 3)
+//        [--budget <n>]       total limit of requests recorded in the log (default 45)
+//   node scripts/assets/generate.mjs pick <id> <suffix>     chooses the take "<id>@<suffix>" as the official raw image
 //
-// As imagens brutas ficam em scripts/assets/.cache/raw/<id>.png; o pós-processamento
-// (scripts/assets/postprocess.py) gera os arquivos finais em client/public/assets/.
-// Cada requisição é registrada em scripts/assets/generation-log.json (modelo, prompt, arquivo, custo).
-// A chave nunca é impressa nem gravada: só vai no header Authorization.
+// The raw images stay in scripts/assets/.cache/raw/<id>.png; the post-processing
+// (scripts/assets/postprocess.py) generates the final files in client/public/assets/.
+// Each request is recorded in scripts/assets/generation-log.json (model, prompt, file, cost).
+// The key is never printed or written: it only goes in the Authorization header.
 import { mkdir, readFile, writeFile, copyFile, access, open, rm } from 'node:fs/promises';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -26,13 +26,13 @@ const RAW = join(CACHE, 'raw');
 const TAKES = join(CACHE, 'takes');
 const SPECS = join(HERE, 'specs.json');
 const LOG = join(HERE, 'generation-log.json');
-// Trava contra execuções simultâneas (cada uma reescreveria o log da outra).
+// Lock against simultaneous runs (each one would rewrite the other's log).
 const LOCK = join(CACHE, 'generate.lock');
 const API = 'https://openrouter.ai/api/v1';
 const MAX_RETRIES = 2;
 const TIMEOUT_MS = 240_000;
 
-// Argumentos: primeiro o comando, depois ids posicionais e flags (--force, --model <id>...).
+// Arguments: first the command, then positional ids and flags (--force, --model <id>...).
 const VALUE_FLAGS = new Set(['model', 'as', 'concurrency', 'budget']);
 const BOOL_FLAGS = new Set(['force']);
 
@@ -80,11 +80,11 @@ async function loadLog() {
     if (err.code === 'ENOENT') return { budget: 45, entries: [] };
     throw err;
   }
-  // JSON inválido aborta (nunca reinicia o log por engano)
+  // Invalid JSON aborts (never resets the log by mistake)
   return JSON.parse(text);
 }
 
-/** Monta o prompt final: o pedido do asset seguido dos estilos compartilhados que ele referencia (specs.styles). */
+/** Builds the final prompt: the asset's request followed by the shared styles it references (specs.styles). */
 function buildPrompt(specs, asset) {
   const styles = (asset.styles ?? []).map((key) => {
     const text = specs.styles[key];
@@ -112,7 +112,7 @@ async function listModels() {
   console.log(`\n${image.length} models with image output (of ${data.length}).`);
 }
 
-/** Uma requisição de geração. Lança erro com mensagem curta (sem dados sensíveis) em caso de falha. */
+/** One generation request. Throws an error with a short message (no sensitive data) on failure. */
 async function requestImage(model, prompt, aspect) {
   const body = {
     model,
@@ -156,7 +156,7 @@ async function requestImage(model, prompt, aspect) {
   };
 }
 
-/** Executa tarefas com limite de concorrência. */
+/** Runs tasks with a concurrency limit. */
 async function pool(items, limit, worker) {
   const queue = [...items];
   const runners = Array.from({ length: Math.min(limit, queue.length) }, async () => {
@@ -261,7 +261,7 @@ async function runJobs(specs, log, todo, { budget, modelOverride, concurrency })
   console.log(`\nRequests logged: ${log.entries.length}/${budget}. Accumulated reported cost: US$ ${spent.toFixed(4)}.`);
 }
 
-/** Copia raw/<id>@<sufixo>.png para raw/<id>.png e registra a escolha em log.picks. */
+/** Copies raw/<id>@<suffix>.png to raw/<id>.png and records the choice in log.picks. */
 async function pick() {
   const [id, suffix] = positional;
   if (!id || !suffix) throw new Error('usage: pick <id> <suffix>');

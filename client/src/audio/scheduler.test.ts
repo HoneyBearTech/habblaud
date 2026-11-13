@@ -1,4 +1,4 @@
-// Agendador dos sons (puro): preferência geral, categorias, volume, aba oculta e limites de frequência.
+// Sound scheduler (pure): general preference, categories, volume, hidden tab and rate limits.
 import { describe, expect, it } from 'vitest';
 import { CATEGORY_OF, DEFAULT_SOUND_SETTINGS, masterGain, MAX_PER_SECOND, MIN_GAP_MS, sanitizeSoundSettings, SoundScheduler, type SoundKind } from './scheduler';
 
@@ -28,7 +28,7 @@ describe('sound scheduler', () => {
     expect(s.decide('chime', 0)).not.toBeNull();
     expect(s.allowed('keys')).toBe(false);
     expect(on({ alerts: false }).decide('pop', 0)).toBeNull();
-    // toda categoria existe nas preferências
+    // every category exists in the preferences
     for (const k of Object.keys(CATEGORY_OF) as SoundKind[]) expect(DEFAULT_SOUND_SETTINGS[CATEGORY_OF[k]]).toBe(true);
   });
 
@@ -53,7 +53,7 @@ describe('sound scheduler', () => {
     expect(s.decide('chime', 5_000)).not.toBeNull();
     expect(s.decide('pop', 5_500)).toBeNull();
     expect(s.decide('pop', 5_000 + MIN_GAP_MS.chime)).not.toBeNull();
-    // raquetada e quique dividem o canal do pingue-pongue
+    // paddle hit and bounce share the ping-pong channel
     expect(s.decide('pingpong', 9_000)).not.toBeNull();
     expect(s.decide('table', 9_050)).toBeNull();
     expect(s.decide('elevator', 9_050)).not.toBeNull();
@@ -66,7 +66,7 @@ describe('sound scheduler', () => {
     for (let t = 0; t < 1_000; t += 10) for (const k of kinds) if (s.decide(k, t) !== null) played++;
     expect(played).toBeLessThanOrEqual(MAX_PER_SECOND);
     expect(s.decide('chime', 999)).not.toBeNull();
-    // passada a janela de 1 s, volta a tocar
+    // once the 1 s window has passed, it plays again
     expect(s.decide('elevator', 2_600)).not.toBeNull();
   });
 

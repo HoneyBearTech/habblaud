@@ -1,37 +1,39 @@
-// Sobe (ou derruba) o Habblaud no Docker local. Roda no HOST, com tsx:
+// Brings up (or takes down) Habblaud in the local Docker. Runs on the HOST, with tsx:
 //
-//   npm run docker:up                 # detecta as contas, gera o override, constrói e sobe
-//   npm run docker:up -- --no-build   # sobe sem reconstruir a imagem
-//   npm run docker:down               # derruba o container
+//   npm run docker:up                 # detects the accounts, generates the override, builds and brings it up
+//   npm run docker:up -- --no-build   # brings it up without rebuilding the image
+//   npm run docker:down               # takes down the container
 //
-// O que ele faz ao subir:
-// 1. Descobre os config dirs do Claude Code no host (mesma regra do servidor: ~/.claude*,
-//    CLAUDE_CONFIG_DIR ou HABBLAUD_CLAUDE_DIRS) e lê os metadados das contas com detectAccounts.
-// 2. Gera o docker-compose.override.yml montando SOMENTE <conta>/projects e <conta>/sessions,
-//    somente leitura, em /claude/<conta>/... — nunca a pasta inteira da conta, onde ficam
-//    credenciais e configurações — e a pasta do uso capturado pelo statusline
-//    (~/.habblaud/usage, criada se faltar) em /usage, também somente leitura. Passa
-//    HABBLAUD_CLAUDE_DIRS, HABBLAUD_ACCOUNTS, HABBLAUD_USAGE_DIR e o fuso do host (TZ) ao container.
-//    Contas do Codex (~/.codex*, CODEX_HOME ou HABBLAUD_CODEX_DIRS; HABBLAUD_CODEX=0 desliga): SOMENTE
-//    sessions/, archived_sessions/ e thread-writer-locks/ de cada uma, somente leitura, em /codex/<conta>/... —
-//    nunca auth.json, config.toml, shell_snapshots/, history.jsonl, logs nem os SQLite. Vão em HABBLAUD_CODEX_DIRS
-//    e, com `provider: 'codex'` e a pasta do HOST (onde o `codex queue` roda), em HABBLAUD_ACCOUNTS.
-// 3. Migra o que sobrou do nome antigo (CodeTown, até a 0.3.2): ~/.codetown vira ~/.habblaud, o container
-//    `codetown` e a rede codetown_default saem e, se o volume novo ainda não existe, os dados de
-//    codetown_codetown-data são copiados para ele (o antigo fica, para apagar à mão). Avisa de CODETOWN_*
-//    no ambiente e no .env, que não valem mais.
-// 4. Roda `docker compose up -d --build`, espera o /api/health e mostra a URL.
-// 5. Diz no fim se o Habblaud World está ligado (HABBLAUD_WORLD_URL do ambiente ou do .env, conferida como o servidor
-//    confere) e para qual servidor; sem a variável, vem ligado apontando para server.habblaud.com ("(padrão)"), e
-//    HABBLAUD_WORLD=0 desliga tudo.
-// 6. Atualiza o mod do Habblaud nas contas onde ele JÁ está instalado com outra versão (depois de
-//    atualizar o Habblaud): relê o marketplace desta pasta e roda `claude plugin update` com o
-//    CLAUDE_CONFIG_DIR de cada conta. Nunca instala sozinho; se o `claude` faltar ou falhar, é só um aviso. Numa
-//    conta com o mod e sem o plugin de mensagens (que veio depois), só dá a dica de rodar o npm run mod:install.
+// What it does when bringing it up:
+// 1. Finds the Claude Code config dirs on the host (same rule as the server: ~/.claude*,
+//    CLAUDE_CONFIG_DIR or HABBLAUD_CLAUDE_DIRS) and reads the accounts' metadata with detectAccounts.
+// 2. Generates docker-compose.override.yml mounting ONLY <account>/projects and <account>/sessions,
+//    read-only, at /claude/<account>/... — never the account's whole folder, where credentials
+//    and settings are — and the folder of the usage captured by the statusline
+//    (~/.habblaud/usage, created if missing) at /usage, also read-only. Passes
+//    HABBLAUD_CLAUDE_DIRS, HABBLAUD_ACCOUNTS, HABBLAUD_USAGE_DIR and the host's time zone (TZ) to the container.
+//    Codex accounts (~/.codex*, CODEX_HOME or HABBLAUD_CODEX_DIRS; HABBLAUD_CODEX=0 turns it off): ONLY
+//    sessions/, archived_sessions/ and thread-writer-locks/ of each one, read-only, at /codex/<account>/... —
+//    never auth.json, config.toml, shell_snapshots/, history.jsonl, logs or the SQLite files. They go in
+//    HABBLAUD_CODEX_DIRS and, with `provider: 'codex'` and the HOST folder (where `codex queue` runs), in
+//    HABBLAUD_ACCOUNTS.
+// 3. Migrates what is left of the old name (CodeTown, up to 0.3.2): ~/.codetown becomes ~/.habblaud, the
+//    `codetown` container and the codetown_default network are removed and, if the new volume doesn't exist yet,
+//    the data from codetown_codetown-data is copied into it (the old one stays, to delete by hand). Warns about
+//    CODETOWN_* in the environment and in .env, which no longer apply.
+// 4. Runs `docker compose up -d --build`, waits for /api/health and shows the URL.
+// 5. Says at the end whether Habblaud World is on (HABBLAUD_WORLD_URL from the environment or from .env, checked as
+//    the server checks it) and for which server; without the variable, it comes on pointing at server.habblaud.com
+//    ("(default)"), and HABBLAUD_WORLD=0 turns everything off.
+// 6. Updates the Habblaud mod in the accounts where it is ALREADY installed with another version (after
+//    updating Habblaud): rereads the marketplace from this folder and runs `claude plugin update` with each
+//    account's CLAUDE_CONFIG_DIR. Never installs by itself; if `claude` is missing or fails, it is only a warning.
+//    In an account with the mod and without the messages plugin (which came later), it only gives the tip to run
+//    npm run mod:install.
 //
-// Uso de 5h/semanal ao vivo: o mod do Habblaud (npm run mod:install; Claude Code 2.1.287+) ou, em
-// versões anteriores, o tap de statusline (npm run usage:install). Os dois gravam os números na pasta
-// montada em /usage. Sem eles, vale o cache do /usage lido das contas ao subir.
+// Live 5h/weekly usage: the Habblaud mod (npm run mod:install; Claude Code 2.1.287+) or, in
+// earlier versions, the statusline tap (npm run usage:install). Both write the numbers to the folder
+// mounted at /usage. Without them, the /usage cache read from the accounts at startup is used.
 import { spawnSync } from 'node:child_process';
 import { chmodSync, mkdirSync, readFileSync, realpathSync, renameSync, statSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -51,32 +53,32 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const HOME = process.env.HOME || homedir();
 const STATE_DIR = join(HOME, '.habblaud');
 const OVERRIDE_FILE = join(ROOT, 'docker-compose.override.yml');
-/** O .env desta pasta, que o Compose lê sozinho. */
+/** This folder's .env, which Compose reads by itself. */
 const ENV_FILE = join(ROOT, '.env');
-/** Uso capturado no host pelo mod do Habblaud ou pelo tap de statusline (scripts/statusline-tap.mjs). */
+/** Usage captured on the host by the Habblaud mod or by the statusline tap (scripts/statusline-tap.mjs). */
 const USAGE_DIR = process.env.HABBLAUD_USAGE_DIR?.trim() ? resolve(process.env.HABBLAUD_USAGE_DIR.trim()) : join(STATE_DIR, 'usage');
-/** Onde essa pasta aparece no container. */
+/** Where that folder appears in the container. */
 const CONTAINER_USAGE_DIR = '/usage';
-/** Onde o container lê o certificado do acesso remoto (server/http/remote.ts). */
+/** Where the container reads the remote access certificate (server/http/remote.ts). */
 const CONTAINER_REMOTE_TLS_DIR = '/remote-tls';
 const SERVICE = 'habblaud';
-/** Raiz das montagens dentro do container: /claude/<conta>/{projects,sessions}. */
+/** Root of the mounts inside the container: /claude/<account>/{projects,sessions}. */
 const CONTAINER_ROOT = '/claude';
-/** Somente estas subpastas de cada conta entram no container. */
+/** Only these subfolders of each account go into the container. */
 const MOUNTED_SUBDIRS = ['projects', 'sessions'] as const;
-/** Raiz das montagens do Codex dentro do container: /codex/<conta>/{sessions,archived_sessions,thread-writer-locks}. */
+/** Root of the Codex mounts inside the container: /codex/<account>/{sessions,archived_sessions,thread-writer-locks}. */
 const CODEX_CONTAINER_ROOT = '/codex';
 /**
- * Somente estas subpastas de cada pasta do Codex entram no container (as conversas e os locks das sessões abertas).
- * auth.json, config.toml, shell_snapshots/, history.jsonl, logs e os SQLite ficam no host.
+ * Only these subfolders of each Codex folder go into the container (the conversations and the locks of the open sessions).
+ * auth.json, config.toml, shell_snapshots/, history.jsonl, logs and the SQLite files stay on the host.
  */
 export const CODEX_MOUNTED_SUBDIRS = ['sessions', 'archived_sessions', 'thread-writer-locks'] as const;
 const DEFAULT_PORT = 4747;
 const HEALTH_TIMEOUT_MS = 120_000;
-/** Imagem e volume de dados como o Compose os nomeia (`name: habblaud` no docker-compose.yml). */
+/** Image and data volume as Compose names them (`name: habblaud` in docker-compose.yml). */
 const IMAGE = 'habblaud:local';
 const DATA_VOLUME = 'habblaud_habblaud-data';
-/** O mesmo no CodeTown (até a 0.3.2), só para a migração: container_name fixo, rede padrão, volume e imagem. */
+/** The same in CodeTown (up to 0.3.2), only for the migration: fixed container_name, default network, volume and image. */
 const LEGACY_DOCKER = {
   container: LEGACY_NAME,
   network: `${LEGACY_NAME}_default`,
@@ -87,7 +89,7 @@ const LEGACY_DOCKER = {
 const USAGE = tr("Usage: npm run docker:up [-- options]\n\nOptions:\n  --no-build   starts without rebuilding the image\n  --down       stops the container (same as npm run docker:down)\n  -h, --help   shows this help\n\nVariables: HABBLAUD_PORT (host port, default {0}), HABBLAUD_CLAUDE_DIRS\n(comma-separated config dirs, if the accounts aren't in ~/.claude*), HABBLAUD_CODEX_DIRS\n(Codex folders, if they aren't in ~/.codex* or CODEX_HOME) and HABBLAUD_CODEX=0 (without Codex).", [DEFAULT_PORT]);
 
 // ---------------------------------------------------------------------------------------------
-// Saída no terminal
+// Terminal output
 // ---------------------------------------------------------------------------------------------
 
 const say = (msg: string) => console.log(`[docker-up] ${msg}`);
@@ -110,7 +112,7 @@ const USAGE_STATUS: Record<AccountInfo['usageStatus'], string> = {
 };
 
 // ---------------------------------------------------------------------------------------------
-// Argumentos
+// Arguments
 // ---------------------------------------------------------------------------------------------
 
 export interface Options {
@@ -139,26 +141,26 @@ export function hostPort(env: NodeJS.ProcessEnv): number {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Plano de montagens e override do Compose (funções puras, sem efeitos colaterais)
+// Mount plan and Compose override (pure functions, no side effects)
 // ---------------------------------------------------------------------------------------------
 
 export interface BindMount {
-  /** Caminho real no host (symlinks resolvidos: o Docker Desktop não os segue). */
+  /** Real path on the host (symlinks resolved: Docker Desktop doesn't follow them). */
   source: string;
-  /** Caminho dentro do container. */
+  /** Path inside the container. */
   target: string;
 }
 
 export interface AccountMount {
   account: DetectedAccount;
-  /** Config dir da conta no host. */
+  /** The account's config dir on the host. */
   hostDir: string;
-  /** Onde a conta aparece no container: /claude/<id>. */
+  /** Where the account appears in the container: /claude/<id>. */
   mountDir: string;
   binds: BindMount[];
 }
 
-/** Janelas de uso que o servidor exibe (as demais chaves do cache são ignoradas). */
+/** Usage windows the server shows (the other cache keys are ignored). */
 const USAGE_WINDOWS = ['five_hour', 'seven_day', 'seven_day_opus', 'seven_day_sonnet'] as const;
 
 type CachedWindow = { utilization: unknown; resets_at?: unknown };
@@ -166,7 +168,7 @@ type CachedUsage = { fetchedAtMs: unknown; utilization: Partial<Record<(typeof U
 
 export interface AccountPayload {
   id: string;
-  /** Só nas contas do Codex (ausente = Claude Code). */
+  /** Only on Codex accounts (absent = Claude Code). */
   provider?: 'codex';
   configDir: string;
   mountDir: string;
@@ -179,7 +181,7 @@ export interface AccountPayload {
   cachedUsage?: CachedUsage;
 }
 
-/** Caminho real de uma pasta existente, ou undefined. */
+/** Real path of an existing folder, or undefined. */
 function realDir(p: string): string | undefined {
   try {
     const real = realpathSync(p);
@@ -190,9 +192,9 @@ function realDir(p: string): string | undefined {
 }
 
 /**
- * Monta só projects/ e sessions/ de cada conta (as que existirem). `accounts` vem de
- * detectAccounts(dirs) e está na mesma ordem de `dirs`; o id (basename desambiguado) vira o
- * nome da pasta no container, então o servidor lá dentro deriva exatamente o mesmo id.
+ * Mounts only projects/ and sessions/ of each account (the ones that exist). `accounts` comes from
+ * detectAccounts(dirs) and is in the same order as `dirs`; the id (disambiguated basename) becomes the
+ * folder name in the container, so the server in there derives exactly the same id.
  */
 export function planMounts(dirs: string[], accounts: DetectedAccount[], resolveDir: (p: string) => string | undefined = realDir): AccountMount[] {
   const out: AccountMount[] = [];
@@ -210,9 +212,9 @@ export function planMounts(dirs: string[], accounts: DetectedAccount[], resolveD
 }
 
 /**
- * Monta só sessions/, archived_sessions/ e thread-writer-locks/ de cada pasta do Codex (as que existirem), em
- * /codex/<id>. `accounts` vem de detectCodexAccounts(dirs), na mesma ordem de `dirs`; o id vira o nome da pasta no
- * container, então o servidor lá dentro deriva o mesmo id.
+ * Mounts only sessions/, archived_sessions/ and thread-writer-locks/ of each Codex folder (the ones that exist), in
+ * /codex/<id>. `accounts` comes from detectCodexAccounts(dirs), in the same order as `dirs`; the id becomes the
+ * folder name in the container, so the server in there derives the same id.
  */
 export function planCodexMounts(dirs: string[], accounts: DetectedAccount[], resolveDir: (p: string) => string | undefined = realDir): AccountMount[] {
   const out: AccountMount[] = [];
@@ -229,7 +231,7 @@ export function planCodexMounts(dirs: string[], accounts: DetectedAccount[], res
   return out;
 }
 
-/** Metadados das contas do Codex para HABBLAUD_ACCOUNTS: `provider: 'codex'` e a pasta do HOST em `configDir`. */
+/** Metadata of the Codex accounts for HABBLAUD_ACCOUNTS: `provider: 'codex'` and the HOST folder in `configDir`. */
 export function codexAccountsPayload(mounts: AccountMount[]): AccountPayload[] {
   return mounts.map(({ account: a, hostDir, mountDir }) => {
     const p: AccountPayload = { id: a.id, provider: 'codex', configDir: hostDir, mountDir, short: a.short, name: a.name, color: a.color };
@@ -238,16 +240,16 @@ export function codexAccountsPayload(mounts: AccountMount[]): AccountPayload[] {
   });
 }
 
-/** HABBLAUD_CODEX desligado (0, false, off, no) no ambiente de quem roda o docker:up. */
+/** HABBLAUD_CODEX turned off (0, false, off, no) in the environment of whoever runs docker:up. */
 export function codexDisabled(env: NodeJS.ProcessEnv): boolean {
   const v = env.HABBLAUD_CODEX?.trim();
   return !!v && !/^(1|true|yes|sim|on)$/i.test(v);
 }
 
 /**
- * Do cache de uso do Claude Code (`cachedUsageUtilization`) só seguem a data da coleta e, de
- * cada janela exibida, o percentual e o horário de reinício. Identificadores da conta, gastos e
- * demais campos ficam de fora (o ambiente do container é visível em `docker inspect`).
+ * From the Claude Code usage cache (`cachedUsageUtilization`) only the collection date goes through and, for
+ * each window shown, the percentage and the reset time. Account identifiers, spending and
+ * the other fields stay out (the container's environment is visible in `docker inspect`).
  */
 export function sanitizeCachedUsage(raw: unknown): CachedUsage | undefined {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined;
@@ -266,7 +268,7 @@ export function sanitizeCachedUsage(raw: unknown): CachedUsage | undefined {
   return Object.keys(out.utilization).length ? out : undefined;
 }
 
-/** Metadados das contas para HABBLAUD_ACCOUNTS (o container não enxerga o .claude.json do host). */
+/** Metadata of the accounts for HABBLAUD_ACCOUNTS (the container does not see the host's .claude.json). */
 export function accountsPayload(mounts: AccountMount[]): AccountPayload[] {
   return mounts.map(({ account: a, mountDir }) => {
     const p: AccountPayload = { id: a.id, configDir: a.configDir, mountDir, short: a.short, name: a.name, color: a.color };
@@ -280,16 +282,16 @@ export function accountsPayload(mounts: AccountMount[]): AccountPayload[] {
 }
 
 /**
- * Escalar YAML seguro: string JSON (válida como string YAML entre aspas duplas) com `$`
- * duplicado, para o Compose não tentar interpolar variáveis dentro dos valores.
+ * Safe YAML scalar: JSON string (valid as a double-quoted YAML string) with `$`
+ * doubled, so that Compose does not try to interpolate variables inside the values.
  */
 export function yamlString(value: string): string {
   return JSON.stringify(value.replaceAll('$', '$$$$'));
 }
 
 /**
- * Fuso horário do host (TZ ou o do sistema), para o container: sem ele o Node do container usa UTC e
- * o "dia" do timelapse e do painel do dia viraria às 21h no horário de Brasília. Undefined se inválido.
+ * Host time zone (TZ or the system's), for the container: without it the container's Node uses UTC and
+ * the "day" of the timelapse and of the day panel would roll over at 21:00 Brasília time. Undefined if invalid.
  */
 export function hostTimeZone(env: NodeJS.ProcessEnv = process.env): string | undefined {
   let tz = env.TZ?.trim().replace(/^:/, '');
@@ -304,9 +306,9 @@ export function hostTimeZone(env: NodeJS.ProcessEnv = process.env): string | und
 }
 
 /**
- * `usageDir`: pasta do host com o uso capturado pelo tap de statusline (já existente; caminho real),
- * montada somente leitura em /usage. `timeZone`: fuso do host, repassado como TZ. `codex`: montagens das contas do
- * Codex (planCodexMounts).
+ * `usageDir`: host folder with the usage captured by the statusline tap (already existing; real path),
+ * mounted read-only at /usage. `timeZone`: the host's time zone, passed on as TZ. `codex`: mounts of the Codex
+ * accounts (planCodexMounts).
  */
 export function renderOverride(
   mounts: AccountMount[],
@@ -334,11 +336,11 @@ export function renderOverride(
     '    environment:',
     ...env.map(([k, v]) => `      ${k}: ${yamlString(v)}`),
   ];
-  // O Compose junta estas portas às do docker-compose.yml.
+  // Compose merges these ports with the ones in docker-compose.yml.
   if (extraPorts.length) lines.push('    ports:', ...extraPorts.map((p) => `      - ${yamlString(p)}`));
   const binds = [...mounts, ...codex].flatMap((m) => m.binds);
   if (usageDir) binds.push({ source: usageDir, target: CONTAINER_USAGE_DIR });
-  // Acesso remoto: SÓ a pasta do certificado do servidor (a chave da CA fica no host).
+  // Remote access: ONLY the server certificate's folder (the CA key stays on the host).
   if (remoteTlsDir) binds.push({ source: remoteTlsDir, target: CONTAINER_REMOTE_TLS_DIR });
   if (binds.length) {
     lines.push('    volumes:');
@@ -357,8 +359,9 @@ export function renderOverride(
 }
 
 /**
- * Dica do fim do docker:up sobre o mod: só aparece quando nenhuma conta tem o mod instalado (quem já instalou
- * recebe a atualização automática, ou um aviso). Sem o CLI do Claude Code, não dá para saber: fica quieto.
+ * Hint at the end of docker:up about the mod: it only shows when no account has the mod installed (whoever already
+ * installed it gets the automatic update, or a notice). Without the Claude Code CLI, there is no way to know: it
+ * stays quiet.
  */
 export function modHint(mod: Pick<ModUpdateResult, 'installed' | 'unavailable'>): string[] {
   if (mod.installed || mod.unavailable) return [];
@@ -369,20 +372,20 @@ export function modHint(mod: Pick<ModUpdateResult, 'installed' | 'unavailable'>)
 }
 
 // ---------------------------------------------------------------------------------------------
-// Nome antigo (CodeTown, até a 0.3.2): plano da subida no Docker e nomes do .env (funções puras)
+// Old name (CodeTown, up to 0.3.2): plan for the startup in Docker and names from the .env (pure functions)
 // ---------------------------------------------------------------------------------------------
 
-/** O que já existe no Docker antes de subir. */
+/** What already exists in Docker before starting. */
 export interface DockerState {
-  /** Container `codetown` do CodeTown (container_name fixo: prende o nome e a porta). */
+  /** CodeTown's `codetown` container (fixed container_name: it holds the name and the port). */
   legacyContainer: boolean;
-  /** Rede codetown_default. */
+  /** The codetown_default network. */
   legacyNetwork: boolean;
-  /** Volume codetown_codetown-data (nomes dos personagens, linha do tempo, estatísticas). */
+  /** The codetown_codetown-data volume (character names, timeline, statistics). */
   legacyVolume: boolean;
-  /** Imagem codetown:local. */
+  /** The codetown:local image. */
   legacyImage: boolean;
-  /** Volume de dados do Habblaud (habblaud_habblaud-data). */
+  /** Habblaud's data volume (habblaud_habblaud-data). */
   dataVolume: boolean;
 }
 
@@ -394,15 +397,15 @@ export type UpStep =
 
 export interface UpPlan {
   steps: UpStep[];
-  /** Comandos para apagar o que sobrou do CodeTown, mostrados no fim quando esta subida migrou algo. */
+  /** Commands to delete what is left of CodeTown, shown at the end when this startup migrated something. */
   cleanup: string[];
 }
 
 /**
- * Passos para subir o Habblaud. Antes, tira do caminho o container do CodeTown e a rede dele. Se o volume antigo
- * existe e o novo ainda não, os dados são copiados: o Compose cria o volume (com os labels dele; um volume criado
- * à mão gera aviso e pedido para recriar) e o container, ainda parado; a cópia entra e só então ele sobe. O volume
- * antigo nunca é apagado aqui.
+ * Steps to start Habblaud. First, it gets the CodeTown container and its network out of the way. If the old volume
+ * exists and the new one does not yet, the data is copied: Compose creates the volume (with its labels; a volume
+ * created by hand causes a warning and a request to recreate it) and the container, still stopped; the copy goes in
+ * and only then does it start. The old volume is never deleted here.
  */
 export function planUp(state: DockerState, build: boolean): UpPlan {
   const steps: UpStep[] = [];
@@ -426,9 +429,9 @@ export function planUp(state: DockerState, build: boolean): UpPlan {
 }
 
 /**
- * `docker run` descartável que copia o volume `from` (somente leitura) para `to` com a própria imagem do
- * Habblaud, como root (ela roda como `node`) e sem rede; a raiz de `to` fica com o dono e as permissões da de
- * `from`. O --rm leva junto o volume anônimo do VOLUME /data da imagem.
+ * Throwaway `docker run` that copies the volume `from` (read-only) to `to` with Habblaud's own
+ * image, as root (it runs as `node`) and without network; the root of `to` gets the owner and the permissions of
+ * the root of `from`. The --rm takes along the anonymous volume of the image's VOLUME /data.
  */
 export function copyVolumeArgs(from: string, to: string, image: string = IMAGE): string[] {
   const script = 'set -e; cp -a /from/. /to/; chown "$(stat -c %u:%g /from)" /to; chmod "$(stat -c %a /from)" /to';
@@ -436,7 +439,7 @@ export function copyVolumeArgs(from: string, to: string, image: string = IMAGE):
   return ['run', ...flags, '-v', `${from}:/from:ro`, '-v', `${to}:/to`, image, '-c', script];
 }
 
-/** Nomes das variáveis de um .env (linhas `NOME=valor`, com ou sem `export`). Os valores ficam de fora. */
+/** Names of the variables in a .env (lines `NOME=valor`, with or without `export`). The values stay out. */
 export function envFileKeys(text: string): string[] {
   const keys: string[] = [];
   for (const line of text.split(/\r?\n/)) {
@@ -446,13 +449,14 @@ export function envFileKeys(text: string): string[] {
   return keys;
 }
 
-/** As variáveis do Habblaud World que o docker-compose.yml repassa ao container. */
+/** The Habblaud World variables that docker-compose.yml passes on to the container. */
 const WORLD_ENV_KEYS = ['HABBLAUD_WORLD', 'HABBLAUD_WORLD_URL', 'HABBLAUD_WORLD_DEV'] as const;
 
 /**
- * A linha do Habblaud World no fim do docker:up: o que o container vai ler (o ambiente vale mais que o .env, como no
- * Compose), conferido pelo mesmo parseWorldConfig do servidor (no container não há `--dev`: só HABBLAUD_WORLD_DEV).
- * Mostra só o endereço já normalizado, nunca o valor cru (que poderia ter usuário e senha).
+ * The Habblaud World line at the end of docker:up: what the container will read (the environment wins over the .env,
+ * as in Compose), checked by the same parseWorldConfig as the server (in the container there is no `--dev`: only
+ * HABBLAUD_WORLD_DEV). Shows only the already normalized address, never the raw value (which could have a user and
+ * password).
  */
 export function worldLine(env: NodeJS.ProcessEnv, envFile = ''): string {
   const vars: NodeJS.ProcessEnv = {};
@@ -467,10 +471,10 @@ export function worldLine(env: NodeJS.ProcessEnv, envFile = ''): string {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Estado no host (~/.habblaud)
+// State on the host (~/.habblaud)
 // ---------------------------------------------------------------------------------------------
 
-/** O .env desta pasta ('' sem ele). */
+/** This folder's .env ('' without one). */
 function readEnvFile(): string {
   try {
     return readFileSync(ENV_FILE, 'utf8');
@@ -479,27 +483,27 @@ function readEnvFile(): string {
   }
 }
 
-/** Avisa das variáveis CODETOWN_* (nome antigo, ignoradas) no ambiente e no .env desta pasta. */
+/** Warns about the CODETOWN_* variables (old name, ignored) in the environment and in this folder's .env. */
 function warnLegacyEnv(): void {
   let fileKeys: string[] = [];
   try {
     fileKeys = envFileKeys(readFileSync(ENV_FILE, 'utf8'));
   } catch {
-    // sem .env (o normal) ou ilegível: nada a avisar
+    // no .env (the normal case) or unreadable: nothing to warn about
   }
   for (const msg of [legacyEnvWarning(Object.keys(process.env)), legacyEnvWarning(fileKeys, tr('in .env'))]) {
     if (msg) warn(msg);
   }
 }
 
-/** Leva ~/.codetown (nome antigo) para ~/.habblaud; roda antes de criar a pasta do uso, para ser um rename. */
+/** Moves ~/.codetown (old name) to ~/.habblaud; runs before creating the usage folder, so that it is a rename. */
 function migrateStateDir(): void {
   const result = migrateLegacyStateDir(HOME);
   const msg = describeStateMigration(result);
   if (msg) (result.error ? warn : say)(msg);
 }
 
-/** Cria a pasta do uso do statusline se faltar e devolve o caminho real (ou undefined, se falhar). */
+/** Creates the statusline usage folder if it is missing and returns the real path (or undefined, if it fails). */
 function ensureUsageDir(): string | undefined {
   try {
     mkdirSync(USAGE_DIR, { recursive: true, mode: 0o700 });
@@ -527,25 +531,25 @@ function checkDocker(): void {
 }
 
 function compose(args: string[], port: number): void {
-  // HABBLAUD_PORT explícito: vale sobre um eventual .env na pasta do projeto.
+  // Explicit HABBLAUD_PORT: it wins over a possible .env in the project folder.
   const res = spawnSync('docker', ['compose', ...args], { cwd: ROOT, stdio: 'inherit', env: { ...process.env, HABBLAUD_PORT: String(port) } });
   if (res.error) fail(tr('couldn\'t run "docker compose {0}": {1}', [args.join(' '), res.error.message]));
   if (res.status !== 0) fail(tr('"docker compose {0}" failed (code {1}).', [args.join(' '), res.status ?? res.signal]));
 }
 
-/** `docker <args>` sem mostrar nada no terminal: se deu certo, a saída e a última linha do erro. */
+/** `docker <args>` showing nothing in the terminal: whether it worked, the output and the last line of the error. */
 function dockerQuiet(args: string[]): { ok: boolean; out: string; error: string } {
   const res = spawnSync('docker', args, { encoding: 'utf8' });
-  // A última linha do docker costuma ser só "Run 'docker run --help' for more information".
+  // The last line from docker is usually just "Run 'docker run --help' for more information".
   const lines = (res.stderr ?? '').split('\n').filter((l) => l.trim() && !/^Run '.*--help'/.test(l));
   const error = res.error?.message || lines.pop()?.trim() || tr('code {0}', [res.status ?? res.signal]);
   return { ok: res.status === 0, out: res.stdout ?? '', error };
 }
 
-/** O que já existe no Docker do CodeTown e do Habblaud (entrada de planUp). */
+/** What already exists in Docker from CodeTown and from Habblaud (input of planUp). */
 function inspectDocker(): DockerState {
   const exists = (kind: 'network' | 'volume' | 'image', name: string) => dockerQuiet([kind, 'inspect', name]).ok;
-  // Só sai o container `codetown` que é mesmo do CodeTown: da imagem antiga ou do projeto antigo do Compose.
+  // Only the `codetown` container that really is CodeTown's goes: from the old image or from the old Compose project.
   const { container, image } = LEGACY_DOCKER;
   const c = dockerQuiet(['container', 'inspect', '--format', '{{.Config.Image}} {{index .Config.Labels "com.docker.compose.project"}}', container]);
   const [cImage = '', cProject = ''] = c.out.trim().split(' ');
@@ -560,9 +564,9 @@ function inspectDocker(): DockerState {
   };
 }
 
-/** Copia os dados do volume do CodeTown para o do Habblaud. Falha é só um aviso: o escritório sobe sem eles. */
+/** Copies the data from CodeTown's volume to Habblaud's. Failure is only a warning: the office starts without it. */
 function copyVolume(from: string, to: string): boolean {
-  // O volume novo tem de vir do Compose: o `docker run -v` criaria um sem os labels dele.
+  // The new volume has to come from Compose: `docker run -v` would create one without its labels.
   if (!dockerQuiet(['volume', 'inspect', to]).ok) {
     warn(tr("Compose didn't create the volume {0}; the CodeTown data wasn't copied and is still in {1}.", [to, from]));
     return false;
@@ -580,7 +584,7 @@ function copyVolume(from: string, to: string): boolean {
   return true;
 }
 
-/** Executa os passos de planUp. Derrubam o docker:up só o Compose e o container antigo que não sai. */
+/** Runs the planUp steps. Only Compose and the old container that does not go away bring docker:up down. */
 function runPlan(plan: UpPlan, port: number, build: boolean): { copyFailed: boolean } {
   let copyFailed = false;
   let created = false;
@@ -646,7 +650,7 @@ async function waitHealthy(baseUrl: string): Promise<Health | undefined> {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Comandos
+// Commands
 // ---------------------------------------------------------------------------------------------
 
 function down(port: number): void {
@@ -662,7 +666,7 @@ async function up(opts: Options, port: number): Promise<void> {
   const baseUrl = `http://127.0.0.1:${port}`;
   const publicUrl = `http://localhost:${port}`;
 
-  // Porta ocupada por um Habblaud fora do Docker (npm run dev / npm start)?
+  // Port taken by a Habblaud outside Docker (npm run dev / npm start)?
   const existing = await fetchHealth(baseUrl, 1_500);
   if (existing && !existing.docker) {
     fail(
@@ -688,8 +692,8 @@ async function up(opts: Options, port: number): Promise<void> {
   for (const dir of dirs) {
     if (!mounts.some((m) => m.hostDir === dir)) warn(tr('{0} has neither projects/ nor sessions/; account skipped.', [tildify(dir)]));
   }
-  // Pasta do Codex (CODEX_HOME) listada ou achada como se fosse do Claude Code: não é montada como conta do Claude.
-  // Ela entra (só as conversas e os locks) como conta do Codex, logo abaixo.
+  // Codex folder (CODEX_HOME) listed or found as if it were Claude Code's: it is not mounted as a Claude account.
+  // It goes in (only the conversations and the locks) as a Codex account, just below.
   const claudeRefused = codexDirsRefused(process.env, HOME);
   const codexDirs = codexDisabled(process.env) ? [] : discoverCodexDirs(process.env, HOME);
   for (const dir of claudeRefused) if (!codexDirs.includes(dir)) warn(tr('{0} is a Codex folder, not a Claude Code one; account skipped.', [tildify(dir)]));
@@ -742,15 +746,16 @@ async function up(opts: Options, port: number): Promise<void> {
     say(`  Codex ${m.account.short} (${m.account.id}): ${state}${usage ? ` · ${USAGE_STATUS[usage]}` : ''}`);
   }
   for (const line of modHint(updateMods(dirs, accounts))) say(line);
-  // Com a cópia falha, os dados só existem no volume antigo: nada de sugerir apagá-lo.
+  // With the copy failed, the data only exists in the old volume: no suggesting to delete it.
   if (plan.cleanup.length && !copyFailed) say(tr('  Left over from CodeTown; after checking the office, delete with: {0}', [plan.cleanup.join(' · ')]));
   say(`  ${worldLine(process.env, readEnvFile())}`);
   say(tr('  Logs: npm run docker:logs · Stop: npm run docker:down'));
 }
 
 /**
- * Acesso remoto ligado no .env (npm run remote:setup): confere o certificado do servidor e o refaz quando o IP do Wi-Fi
- * mudou ou ele está perto de vencer (a CA continua a mesma, então o celular segue confiando). Devolve a pasta a montar.
+ * Remote access turned on in the .env (npm run remote:setup): checks the server certificate and remakes it when the
+ * Wi-Fi IP changed or it is close to expiring (the CA stays the same, so the phone keeps trusting it). Returns the
+ * folder to mount.
  */
 function prepareRemoteTls(): string | undefined {
   let env = '';
@@ -778,10 +783,10 @@ function prepareRemoteTls(): string | undefined {
 }
 
 /**
- * Portas do acesso pelo celular, só com ele configurado (HABBLAUD_REMOTE_USER no .env): a remota (HABBLAUD_REMOTE_PORT,
- * padrão 4748) e, se houver, HABBLAUD_REMOTE_HTTP_PORT (o setup grava 80 quando a remota é a 443), que cai na mesma
- * porta do container e responde HTTP com 308 para https:// — quem digita só "meuclaude.local" cai no HTTPS. Sem o
- * setup, nada é publicado além da 4747.
+ * Ports for access from the phone, only with it configured (HABBLAUD_REMOTE_USER in the .env): the remote one
+ * (HABBLAUD_REMOTE_PORT, default 4748) and, if there is one, HABBLAUD_REMOTE_HTTP_PORT (the setup writes 80 when the
+ * remote one is 443), which lands on the same container port and answers HTTP with 308 to https:// — whoever types
+ * just "meuclaude.local" lands on HTTPS. Without the setup, nothing is published besides 4747.
  */
 export function remotePortsFrom(env: string): string[] {
   if (!readEnvValue(env, 'HABBLAUD_REMOTE_USER')) return [];
@@ -823,7 +828,7 @@ function statOk(path: string): boolean {
   }
 }
 
-/** Atualiza o mod de quem já instalou (ver mod-install.ts). Nada aqui derruba o docker:up. */
+/** Updates the mod for whoever already installed it (see mod-install.ts). Nothing here brings docker:up down. */
 function updateMods(dirs: string[], accounts: DetectedAccount[]): Pick<ModUpdateResult, 'installed' | 'unavailable'> {
   try {
     const labels = dirs.map((dir, i) => ({ dir, label: tr('Account {0}', [accounts[i]?.short ?? tildify(dir)]) }));
@@ -850,7 +855,7 @@ async function main(): Promise<void> {
   else await up(opts, port);
 }
 
-// Executa só quando chamado direto (importar o módulo, ex. em testes, não sobe nada).
+// Runs only when called directly (importing the module, e.g. in tests, starts nothing).
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   main().catch((err: unknown) => {
     if (err instanceof FatalError) console.error(tr('[docker-up] Error: {0}', [err.message]));

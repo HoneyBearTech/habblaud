@@ -1,16 +1,17 @@
-// Habblaud World no navegador: o cliente das rotas locais /api/world/* (o servidor local do Habblaud fala com o
-// servidor do mundo; o token do dispositivo nunca chega ao navegador) e um FakeWorldApi para o modo demonstração
-// (?mock=1&world=...) e para os testes. Erros chegam como `{error: {code}}`; a interface traduz o código
-// (ui/world/world-model.ts) e nunca mostra o `message` do servidor.
+// Habblaud World in the browser: the client of the local routes /api/world/* (the local Habblaud server talks to the
+// world server; the device token never reaches the browser) and a FakeWorldApi for demo mode
+// (?mock=1&world=...) and for the tests. Errors arrive as `{error: {code}}`; the interface translates the code
+// (ui/world/world-model.ts) and never shows the server's `message`.
 //
-// Fase 2 (prédio no mundo): `building` em meta.world e no status, GET /api/world/last-uplink (a última remessa, para
-// "Ver o que foi enviado"), POST /api/world/pause, /resume e /leave e PUT /api/world/theme. Os tipos do prédio vêm
-// de shared/world/api.ts (os mesmos do servidor local). Fase 3: POST /api/world/join ("Voltar ao mundo") e
-// `meta.world.scene` (o botão Mundo); a cena fala com o servidor local por net/world-stream.ts. Fase 5 (social leve):
-// likes do dia, batidas na porta e o "Enquanto você estava fora" no prédio, os bloqueados no status, "Avisar quando
-// baterem na porta" (`knocks`) na visibilidade e POST /api/world/summary/seen e /unblock. Fase 6: excluir a conta
-// (POST /api/world/delete-account e /confirm), baixar os dados (GET /api/world/export), o aviso de inatividade na
-// visibilidade, o id da conta no status e o selo "não verificado" do prédio.
+// Phase 2 (building in the world): `building` in meta.world and in the status, GET /api/world/last-uplink (the last
+// upload, for "See what was sent"), POST /api/world/pause, /resume and /leave and PUT /api/world/theme. The building
+// types come from shared/world/api.ts (the same as the local server's). Phase 3: POST /api/world/join ("Back to the
+// world") and `meta.world.scene` (the World button); the scene talks to the local server through net/world-stream.ts.
+// Phase 5 (light social features): likes of the day, knocks on the door and the "While you were away" on the building,
+// the blocked ones in the status, "Let me know when someone knocks" (`knocks`) in the visibility and
+// POST /api/world/summary/seen and /unblock. Phase 6: delete the account (POST /api/world/delete-account and
+// /confirm), download the data (GET /api/world/export), the inactivity notice in the visibility, the account id in the
+// status and the building's "unverified" badge.
 import type { AppearanceParts } from '../../../shared/appearance';
 import type { Locale } from '../../../shared/i18n';
 import type { OfficeSnapshot } from '../../../shared/types';
@@ -38,11 +39,11 @@ import { emailLooksValid, passwordProblem, traitsValid, DEFAULT_VISIBILITY } fro
 export type WorldServerState = 'off' | 'logged_out' | 'waiting' | 'approved';
 export type WorldAccess = 'waiting' | 'approved';
 
-// Os tipos do prédio são os do servidor local (shared/world/api.ts); a interface os importa daqui.
+// The building types are the local server's (shared/world/api.ts); the interface imports them from here.
 export { WORLD_THEME_CHOICES };
 export type { WorldBlockedPlayer, WorldBuildingMeta, WorldBuildingStatus, WorldBuildingStop, WorldLastUplink, WorldThemeChoice, WorldUplinkAck } from '../../../shared/world/api';
 
-/** OfficeSnapshot.meta.world: o que a interface precisa para decidir se o World aparece (e o prédio, na Fase 2). */
+/** OfficeSnapshot.meta.world: what the interface needs to decide whether World shows up (and the building, in Phase 2). */
 export type WorldMeta = NonNullable<OfficeSnapshot['meta']['world']>;
 
 export interface WorldVisibility {
@@ -52,9 +53,9 @@ export interface WorldVisibility {
   tokensVisible: boolean;
   leaderboard: boolean;
   compactions: boolean;
-  /** Aviso por e-mail antes de retirar o prédio por inatividade; ausente = o padrão da conta (ligado). */
+  /** Email notice before removing the building for inactivity; absent = the account default (on). */
   notifyInactivity?: boolean;
-  /** Avisar quando baterem na porta do prédio (Fase 5, opt-in). */
+  /** Notify when someone knocks on the building's door (Phase 5, opt-in). */
   knocks: boolean;
 }
 
@@ -64,17 +65,17 @@ export interface WorldPlayer {
   parts: AppearanceParts;
   traits: TraitId[];
   intro: IntroId;
-  /** ISO-2 visto pelo servidor na última conexão; ausente se escondido ou desconhecido. */
+  /** ISO-2 seen by the server on the last connection; absent if hidden or unknown. */
   country?: string;
   visibility: WorldVisibility;
   updatedAt?: number | string;
-  /** A moderação trocou o nome à força (o nome vem "???"): falta escolher um novo, que entra sem esperar 30 dias. */
+  /** Moderation changed the name by force (the name comes as "???"): a new one is still to be chosen, with no 30-day wait. */
   mustRename?: true;
 }
 
 export interface WorldDevice {
   id: string;
-  /** "Dispositivo N" (o servidor nunca usa o nome do computador). */
+  /** "Device N" (the server never uses the computer's name). */
   label: string;
   createdAt?: number | string;
   lastSeenAt?: number | string;
@@ -87,24 +88,24 @@ export interface WorldStatus {
   configured: boolean;
   state: WorldServerState;
   /**
-   * `id`: o id da conta no mundo, quando o servidor local já sabe (vai no assunto do recurso por e-mail).
-   * `reservedName`: o nome de jogador escolhido no cadastro, reservado enquanto o personagem não existe.
+   * `id`: the account id in the world, when the local server already knows it (it goes in the subject of the email appeal).
+   * `reservedName`: the player name chosen at sign-up, reserved while the character does not exist.
    */
   account?: { emailMasked: string; access: WorldAccess; id?: string; reservedName?: string };
   player?: WorldPlayer;
   devices?: WorldDevice[];
-  /** Último erro da conexão com o mundo (código), se houver. */
+  /** Last error of the connection to the world (code), if any. */
   lastError?: string;
-  /** O prédio (conta aprovada): conexão, pausa, contagens, a resposta à última remessa e por que parou. */
+  /** The building (approved account): connection, pause, counts, the reply to the last upload and why it stopped. */
   building?: WorldBuildingStatus;
-  /** Tema guardado para o prédio (PUT /api/world/theme); ausente = 'auto'. */
+  /** Theme saved for the building (PUT /api/world/theme); absent = 'auto'. */
   theme?: WorldThemeChoice;
-  /** Quem a conta bloqueou (Fase 5): Configurações › Habblaud World › Bloqueados. */
+  /** Who the account blocked (Phase 5): Settings › Habblaud World › Blocked. */
   blocked?: WorldBlockedPlayer[];
 }
 
 export interface WorldCharacterInput {
-  /** Ausente ao criar com o nome reservado no cadastro (o servidor usa a reserva) e, ao editar, mantém o nome. */
+  /** Absent on create with the name reserved at sign-up (the server uses the reservation); on edit, keeps the name. */
   name?: string;
   look: 'f' | 'm';
   parts: AppearanceParts;
@@ -113,8 +114,9 @@ export interface WorldCharacterInput {
 }
 
 /**
- * Códigos que a interface traduz: os do servidor do mundo e os do servidor local (shared/world/), mais dois só dela:
- * `offline` (o Habblaud local não respondeu) e `forbidden` (403 sem código: a guarda de origem recusou a página).
+ * Codes the interface translates: those of the world server and of the local server (shared/world/), plus two of
+ * its own: `offline` (the local Habblaud did not respond) and `forbidden` (403 with no code: the origin guard
+ * refused the page).
  */
 export const WORLD_UI_ERROR_CODES = [...WORLD_KNOWN_ERROR_CODES, 'offline', 'forbidden'] as const;
 export type WorldErrorCode = WorldKnownErrorCode | 'offline' | 'forbidden';
@@ -122,9 +124,9 @@ export type WorldErrorCode = WorldKnownErrorCode | 'offline' | 'forbidden';
 export type WorldResult<T = null> = { ok: true; data: T } | { ok: false; code: WorldErrorCode; status: number };
 
 export interface WorldClient {
-  /** `refresh`: o servidor local relê /v1/me antes de responder (a lista de bloqueados, por exemplo). */
+  /** `refresh`: the local server rereads /v1/me before responding (the blocked list, for example). */
   status(refresh?: boolean): Promise<WorldResult<WorldStatus>>;
-  /** `name`: o nome de jogador, reservado na lista de espera (422 name_invalid | name_blocked, 409 name_taken). */
+  /** `name`: the player name, reserved on the waitlist (422 name_invalid | name_blocked, 409 name_taken). */
   register(body: { email: string; password: string; name: string; locale: Locale }): Promise<WorldResult>;
   verify(body: { email: string; code: string }): Promise<WorldResult>;
   login(body: { email: string; password: string }): Promise<WorldResult>;
@@ -136,35 +138,35 @@ export interface WorldClient {
   saveVisibility(body: WorldVisibility): Promise<WorldResult>;
   devices(): Promise<WorldResult<WorldDevice[]>>;
   revokeDevice(id: string): Promise<WorldResult>;
-  /** A última remessa; `null` = nada saiu deste computador ainda. */
+  /** The last upload; `null` = nothing has left this computer yet. */
   lastUplink(): Promise<WorldResult<WorldLastUplink | null>>;
-  /** Para o envio na hora (antes da resposta; a conexão só fica para a cena Mundo aberta): o prédio apaga. */
+  /** Stops sending now (before the reply; the connection stays only for the open World scene): the building goes off. */
   pause(): Promise<WorldResult<{ paused: boolean }>>;
-  /** Volta a enviar: o prédio acende de novo. */
+  /** Sends again: the building lights up again. */
   resume(): Promise<WorldResult<{ paused: boolean }>>;
-  /** "Voltar ao mundo" depois de sair: o servidor do mundo aceita a volta e o prédio novo nasce em outro lote. */
+  /** "Back to the world" after leaving: the world server accepts the return; the new building is born in another lot. */
   join(): Promise<WorldResult>;
-  /** "Sair do mundo": o servidor local para o envio e o servidor do mundo retira o prédio antes da resposta. */
+  /** "Leave the world": the local server stops sending and the world server removes the building before the reply. */
   leave(): Promise<WorldResult>;
-  /** O tema escolhido em Aparência também vale para o prédio. */
+  /** The theme chosen in Appearance also applies to the building. */
   setTheme(theme: WorldThemeChoice): Promise<WorldResult>;
-  /** "Excluir conta", primeira etapa: o código de confirmação vai ao e-mail da conta. */
+  /** "Delete account", first step: the confirmation code goes to the account's email. */
   requestAccountDeletion(): Promise<WorldResult>;
-  /** "Excluir conta" com o código: a conta sai do mundo e este computador sai da conta. */
+  /** "Delete account" with the code: the account leaves the world and this computer signs out of the account. */
   confirmAccountDeletion(body: { code: string }): Promise<WorldResult>;
-  /** "Baixar meus dados": o JSON da conta, já formatado para salvar (uma vez por dia). */
+  /** "Download my data": the account's JSON, already formatted for saving (once a day). */
   exportData(): Promise<WorldResult<string>>;
-  /** O dono viu o "Enquanto você estava fora" (Fase 5). */
+  /** The owner saw the "While you were away" (Phase 5). */
   summarySeen(): Promise<WorldResult>;
-  /** Desbloqueia um jogador (Fase 5; precisa da conexão com o mundo). */
+  /** Unblocks a player (Phase 5; needs the connection to the world). */
   unblock(playerId: string): Promise<WorldResult>;
 }
 
-// ------------------------------------------------------------------ leitura defensiva
+// ------------------------------------------------------------------ defensive reading
 
 const STATES: readonly WorldServerState[] = ['off', 'logged_out', 'waiting', 'approved'];
 
-/** `meta.world` do snapshot, conferido (servidor antigo ou corpo torto: undefined = nada do World). */
+/** `meta.world` of the snapshot, checked (old server or malformed body: undefined = nothing of World). */
 export function readWorldMeta(snap: OfficeSnapshot | null | undefined): WorldMeta | undefined {
   const w = snap?.meta.world as Partial<WorldMeta> | undefined;
   if (!w || typeof w !== 'object' || typeof w.enabled !== 'boolean') return undefined;
@@ -188,18 +190,18 @@ function epochMs(v: unknown): number | undefined {
   return typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : undefined;
 }
 
-/** Motivo de recusa conhecido; um código de uma versão mais nova do servidor vira `internal` (como no servidor local). */
+/** Known refusal reason; a code from a newer server version becomes `internal` (as on the local server). */
 function ackError(v: unknown): UplinkAckError {
   return typeof v === 'string' && (UPLINK_ACK_ERRORS as readonly string[]).includes(v) ? (v as UplinkAckError) : 'internal';
 }
 
-/** `{ok, error?}` do `lastAck` do status. */
+/** `{ok, error?}` of the status's `lastAck`. */
 function parseAckState(v: unknown): { ok: boolean; error?: UplinkAckError } | undefined {
   if (!isObject(v) || typeof v.ok !== 'boolean') return undefined;
   return v.ok ? { ok: true } : { ok: false, error: ackError(v.error) };
 }
 
-/** O `ack` da última remessa: aceita (com os bytes que o mundo contou) ou recusada; sem horário, fora do formato. */
+/** The last upload's `ack`: accepted (with the bytes the world counted) or refused; with no time, out of format. */
 function parseUplinkAck(v: unknown): WorldUplinkAck | undefined {
   const state = parseAckState(v);
   const at = isObject(v) ? epochMs(v.at) : undefined;
@@ -209,10 +211,10 @@ function parseUplinkAck(v: unknown): WorldUplinkAck | undefined {
   return ack;
 }
 
-/** Motivos com que o prédio para (o `deploy` só reconecta e nunca chega aqui). */
+/** Reasons the building stops (`deploy` only reconnects and never gets here). */
 const STOPS = GOODBYE_REASONS.filter((r): r is WorldBuildingStop => r !== 'deploy');
 
-/** `building` de meta.world, conferido (corpo torto: sem prédio). A parada vem só como sim/não. */
+/** `building` of meta.world, checked (malformed body: no building). The stop comes only as yes/no. */
 export function parseBuildingMeta(v: unknown): WorldBuildingMeta | undefined {
   if (!isObject(v)) return undefined;
   const b: WorldBuildingMeta = { connected: v.connected === true, paused: v.paused === true, floors: count(v.floors), agents: count(v.agents) };
@@ -221,14 +223,14 @@ export function parseBuildingMeta(v: unknown): WorldBuildingMeta | undefined {
   if (v.left === true) b.left = true;
   if (v.stopped === true) b.stopped = true;
   if (typeof v.visitors === 'number' && Number.isInteger(v.visitors) && v.visitors >= 0) b.visitors = Math.min(v.visitors, 999);
-  // Fase 5: likes do dia, batidas desde que o Habblaud abriu e se há um resumo não visto.
+  // Phase 5: the day's likes, knocks since Habblaud opened and whether there is an unseen summary.
   if (typeof v.likesToday === 'number' && Number.isInteger(v.likesToday) && v.likesToday >= 0) b.likesToday = v.likesToday;
   if (count(v.knocks) > 0) b.knocks = count(v.knocks);
   if (v.awaySummary === true) b.awaySummary = true;
   return b;
 }
 
-/** `building` do status, conferido (corpo torto: sem prédio): com a resposta à última remessa e o motivo da parada. */
+/** The status's `building`, checked (malformed body: no building): with the last upload's reply and the stop reason. */
 export function parseBuilding(v: unknown): WorldBuildingStatus | undefined {
   const meta = parseBuildingMeta(v);
   if (!meta || !isObject(v)) return undefined;
@@ -244,13 +246,13 @@ export function parseBuilding(v: unknown): WorldBuildingStatus | undefined {
   return st;
 }
 
-/** `blocked` do status: `[{id, name}]` (o que está torto fica de fora). */
+/** `blocked` of the status: `[{id, name}]` (whatever is malformed is left out). */
 export function parseBlockedList(v: unknown): WorldBlockedPlayer[] | undefined {
   if (!Array.isArray(v)) return undefined;
   return v.filter((p): p is WorldBlockedPlayer => isObject(p) && typeof p.id === 'string' && !!p.id && typeof p.name === 'string').map((p) => ({ id: p.id, name: p.name }));
 }
 
-/** O prédio do snapshot como o cartão usa antes do primeiro status (o motivo de uma parada só vem no status). */
+/** The snapshot's building as the card uses it before the first status (a stop's reason only comes in the status). */
 export function buildingFromMeta(m: WorldBuildingMeta | undefined): WorldBuildingStatus | undefined {
   if (!m) return undefined;
   const { stopped: _stopped, ...b } = m;
@@ -258,8 +260,8 @@ export function buildingFromMeta(m: WorldBuildingMeta | undefined): WorldBuildin
 }
 
 /**
- * Corpo do GET /api/world/last-uplink: `{}` (nada saiu ainda) vira null; fora do formato, undefined. O `uplink` passa
- * como veio: a tela mostra exatamente o que o servidor local guardou.
+ * Body of GET /api/world/last-uplink: `{}` (nothing has left yet) becomes null; out of format, undefined. The `uplink`
+ * passes through as it came: the screen shows exactly what the local server stored.
  */
 export function parseLastUplink(v: unknown): WorldLastUplink | null | undefined {
   if (!isObject(v)) return undefined;
@@ -278,7 +280,7 @@ function parseDevices(v: unknown): WorldDevice[] | null {
   return list.filter((d): d is WorldDevice => isObject(d) && typeof d.id === 'string' && typeof d.label === 'string').map((d) => ({ ...d, current: d.current === true }));
 }
 
-/** Corpo do GET /api/world/status conferido; null se não for o formato do contrato. */
+/** Body of GET /api/world/status, checked; null if it is not the contract's format. */
 export function parseWorldStatus(v: unknown): WorldStatus | null {
   if (!isObject(v) || !STATES.includes(v.state as WorldServerState)) return null;
   const out: WorldStatus = { available: v.available !== false, configured: v.configured === true, state: v.state as WorldServerState };
@@ -308,7 +310,7 @@ export function parseWorldStatus(v: unknown): WorldStatus | null {
   return out;
 }
 
-/** Código do erro: `{error: {code}}` do contrato; senão pelo status HTTP (guarda, rota desligada...). */
+/** Error code: `{error: {code}}` from the contract; otherwise by the HTTP status (guard, route turned off...). */
 export function worldErrorCode(status: number, body: unknown): WorldErrorCode {
   const err = isObject(body) ? body.error : undefined;
   const code = isObject(err) ? err.code : undefined;
@@ -319,21 +321,21 @@ export function worldErrorCode(status: number, body: unknown): WorldErrorCode {
   return 'unknown';
 }
 
-// ------------------------------------------------------------------ cliente HTTP
+// ------------------------------------------------------------------ HTTP client
 
-/** Prazo de cada pedido: o cadastro resolve o desafio anti-robô e calcula o hash da senha antes de responder. */
+/** Timeout per request: sign-up solves the anti-bot challenge and computes the password hash before responding. */
 export const WORLD_TIMEOUT_MS = 45_000;
 
 export class HttpWorldApi implements WorldClient {
   constructor(
-    // Arrow: o fetch do navegador recusa ser chamado como método de outro objeto ("Illegal invocation").
+    // Arrow: the browser's fetch refuses to be called as a method of another object ("Illegal invocation").
     private readonly fetchImpl: typeof fetch = (input, init) => fetch(input, init),
     private readonly base = '/api/world',
   ) {}
 
   private async call<T>(method: 'GET' | 'POST' | 'PUT', path: string, body?: object): Promise<WorldResult<T>> {
     const init: RequestInit = { method, credentials: 'same-origin', cache: 'no-store', signal: AbortSignal.timeout(WORLD_TIMEOUT_MS) };
-    // A guarda do servidor só aceita POST/PUT com corpo JSON (mesmo vazio).
+    // The server's guard only accepts POST/PUT with a JSON body (even an empty one).
     if (method !== 'GET') Object.assign(init, { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body ?? {}) });
     let res: Response;
     try {
@@ -439,7 +441,7 @@ export class HttpWorldApi implements WorldClient {
     return this.done(this.call('POST', '/unblock', { playerId }));
   }
 
-  /** POST /pause e /resume → WorldStatus; vale o `building.paused` dele (sem o campo: o que foi pedido). */
+  /** POST /pause and /resume → WorldStatus; its `building.paused` is what counts (without the field: what was asked). */
   private async paused(path: string, expected: boolean): Promise<WorldResult<{ paused: boolean }>> {
     const r = await this.call<unknown>('POST', path);
     if (!r.ok) return r;
@@ -448,12 +450,12 @@ export class HttpWorldApi implements WorldClient {
   }
 }
 
-// ------------------------------------------------------------------ servidor falso (demonstração e testes)
+// ------------------------------------------------------------------ fake server (demo and tests)
 
 export interface FakeWorldOptions {
-  /** Estado inicial: sem servidor ('off': nada do World aparece), sem conta, ou com uma conta de exemplo já entrando (na espera ou liberada). */
+  /** Initial state: no server ('off': nothing of World shows), no account, or a sample account already signed in (waiting or approved). */
   state?: WorldServerState;
-  /** Espera de cada resposta, em ms (padrão 450; 0 nos testes). */
+  /** Wait for each response, in ms (default 450; 0 in tests). */
   delayMs?: number;
   now?: () => number;
 }
@@ -461,31 +463,31 @@ export interface FakeWorldOptions {
 interface FakeBuilding {
   connected: boolean;
   paused: boolean;
-  /** Saiu do mundo (fica pausado até retomar, que traz um prédio "novo"). */
+  /** Left the world (stays paused until resuming, which brings a "new" building). */
   left?: true;
-  /** O "mundo" parou o prédio (goodbye), até retomar. */
+  /** The "world" stopped the building (goodbye), until resuming. */
   stopped?: WorldBuildingStop;
-  /** O "mundo" marcou o prédio como "não verificado". */
+  /** The "world" marked the building as "unverified". */
   unverified?: true;
   last: WorldLastUplink | null;
-  /** Quando acendeu (as visitas de mentira começam alguns segundos depois; os likes do dia sobem 1 por minuto). */
+  /** When it lit up (the fake visits start a few seconds later; the day's likes go up 1 per minute). */
   since: number;
-  /** Visitantes agora, fixados por `setVisitors` (sem isso: a demonstração da visita, pelo relógio). */
+  /** Visitors now, fixed by `setVisitors` (without that: the visit demo, by the clock). */
   visitors?: number;
-  /** O social leve (Fase 5): o código, o resumo até ser visto e os bloqueados (nomes inventados). */
+  /** Light social (Phase 5): the code, the summary until it is seen and the blocked players (made-up names). */
   code: string;
   summary?: AwaySummary;
   blocked: WorldBlockedPlayer[];
-  /** Quando "Avisar quando baterem na porta" foi ligado (a 1ª batida chega 8 s depois, e outra a cada 45 s). */
+  /** When "Let me know when someone knocks" was turned on (the 1st knock arrives 8 s later, and another every 45 s). */
   knocksOn?: number;
 }
 
-/** Visitas de mentira no prédio da demonstração: ninguém nos primeiros segundos, depois 1 e, um pouco depois, 2. */
+/** Fake visits in the demo building: nobody in the first seconds, then 1 and, a little later, 2. */
 export function fakeVisitorsAt(ms: number): number {
   return ms < 8_000 ? 0 : ms < 20_000 ? 1 : 2;
 }
 
-/** O "Enquanto você estava fora" do falso: visitas, likes e carimbos, sem quem. */
+/** The fake's "While you were away": visits, likes and stamps, without who. */
 export const FAKE_SUMMARY: Readonly<AwaySummary> = {
   since: '2026-10-14',
   visits: 5,
@@ -497,7 +499,7 @@ export const FAKE_SUMMARY: Readonly<AwaySummary> = {
   ],
 };
 
-/** Bloqueados do falso (nomes inventados). */
+/** The fake's blocked players (made-up names). */
 const FAKE_BLOCKED: readonly WorldBlockedPlayer[] = [
   { id: 'p_spam', name: 'Spam Bot 3000' },
   { id: 'p_troll', name: 'Corner Troll' },
@@ -509,20 +511,21 @@ interface FakeAccount {
   verified: boolean;
   access: WorldAccess;
   player?: WorldPlayer;
-  /** O nome de jogador do cadastro, reservado até o personagem existir. */
+  /** The player name from sign-up, reserved until the character exists. */
   reservedName?: string;
   devices: WorldDevice[];
-  /** O prédio: nasce com a conta aprovada e com personagem. */
+  /** The building: it is born with the account approved and with a character. */
   building?: FakeBuilding;
-  /** "Excluir conta" pedido (o código é FAKE_CODE). */
+  /** "Delete account" requested (the code is FAKE_CODE). */
   deleteRequested?: boolean;
-  /** Exportações dos dados (a segunda recebe 429, como a de verdade, uma por dia). */
+  /** Data exports (the second gets 429, like the real one, one per day). */
   exports?: number;
 }
 
 /**
- * O que o prédio do falso "manda": o exemplo da seção 3.3 do plano (docs/world/privacidade.md), com as peças
- * completas nos três agentes (o plano abrevia duas com "..."). O tema é trocado pelo tema em vigor a cada remessa.
+ * What the fake's building "sends": the example from section 3.3 of the plan (docs/world/privacidade.md), with the
+ * complete parts in the three agents (the plan abbreviates two with "..."). The theme is swapped for the theme in
+ * effect on each upload.
  */
 export const FAKE_UPLINK: Readonly<WorldUplink> = {
   v: 1,
@@ -563,19 +566,19 @@ export const FAKE_UPLINK: Readonly<WorldUplink> = {
   ],
 };
 
-/** Tamanho de um pacote como vai para o fio (JSON compacto em UTF-8). */
+/** Size of a packet as it goes on the wire (compact JSON in UTF-8). */
 export function uplinkBytes(uplink: WorldUplink): number {
   return new TextEncoder().encode(JSON.stringify(uplink)).length;
 }
 
-/** E-mail da conta de exemplo dos estados 'waiting' e 'approved'. */
+/** Email of the sample account for the 'waiting' and 'approved' states. */
 export const FAKE_EMAIL = 'you@example.com';
-/** Senha da conta de exemplo. */
+/** Password of the sample account. */
 export const FAKE_PASSWORD = 'a really long password';
-/** O código que o "e-mail" do FakeWorldApi manda (a tela mostra no modo demonstração). */
+/** The code that the FakeWorldApi "email" sends (the screen shows it in demo mode). */
 export const FAKE_CODE = '123456';
 
-/** Nomes que o falso diz que já estão em uso (para ver o erro na demonstração). */
+/** Names the fake says are already in use (to see the error in the demo). */
 const FAKE_TAKEN = ['marina', 'caio', 'rafael'];
 
 function maskEmail(email: string): string {
@@ -584,8 +587,8 @@ function maskEmail(email: string): string {
 }
 
 /**
- * Servidor do World de mentira, todo em memória: cadastro com o código FAKE_CODE, lista de espera, personagem,
- * visibilidade e dispositivos. `failNext` simula um erro na próxima chamada; `approve` libera a conta da vez.
+ * Fake World server, all in memory: sign-up with the code FAKE_CODE, waitlist, character,
+ * visibility and devices. `failNext` simulates an error on the next call; `approve` approves the current account.
  */
 export class FakeWorldApi implements WorldClient {
   private readonly accounts = new Map<string, FakeAccount>();
@@ -597,11 +600,11 @@ export class FakeWorldApi implements WorldClient {
   private readonly listeners = new Set<() => void>();
   private resends: number[] = [];
   private deviceSeq = 0;
-  /** Tema do prédio (world.json no servidor de verdade). */
+  /** Building theme (world.json on the real server). */
   private theme: WorldThemeChoice = 'auto';
-  /** Código com que o "mundo" recusa as remessas (null: aceita). */
+  /** Code with which the "world" refuses the uploads (null: accepts). */
   private rejectCode: UplinkAckError | null = null;
-  /** O lastError do status (a conta excluída deixa `account_deleted` até entrar de novo). */
+  /** The status's lastError (the deleted account leaves `account_deleted` until signing in again). */
   private lastError: WorldErrorCode | null = null;
 
   constructor(opts: FakeWorldOptions = {}) {
@@ -637,27 +640,27 @@ export class FakeWorldApi implements WorldClient {
     }
   }
 
-  /** O que o snapshot diria em `meta.world` (sem servidor, como o de verdade: desligado, nada aparece). */
+  /** What the snapshot would say in `meta.world` (no server, like the real one: turned off, nothing shows). */
   meta(): WorldMeta {
     const meta: WorldMeta = { enabled: this.configured, configured: this.configured, state: this.state() };
     const b = this.buildingOf(this.current());
     if (b) {
-      // o resumo e o código só no status (local), como o de verdade: aqui, só se há um resumo não visto
+      // summary and code only in the status (local), like the real one: here, only whether there is an unseen summary
       const { lastAck: _ack, stopped, summary, code: _code, ...building } = b;
       meta.building = stopped ? { ...building, stopped: true } : building;
       if (summary) meta.building.awaySummary = true;
     }
-    // A cena Mundo do modo demonstração (FakeWorldStream) existe com a conta liberada e o personagem criado.
+    // The demo mode World scene (FakeWorldStream) exists with the account approved and the character created.
     if (b) meta.scene = { available: true };
     return meta;
   }
 
-  /** Tema do prédio em vigor (o escolhido, antes de resolver o automático). */
+  /** Building theme in effect (the chosen one, before resolving the automatic one). */
   worldTheme(): WorldThemeChoice {
     return this.theme;
   }
 
-  /** Visitantes no prédio de mentira (testes e capturas); null volta à demonstração pelo relógio. */
+  /** Visitors in the fake building (tests and screenshots); null goes back to the demo by the clock. */
   setVisitors(n: number | null): void {
     const b = this.current()?.building;
     if (!b) return;
@@ -666,7 +669,7 @@ export class FakeWorldApi implements WorldClient {
     this.changed();
   }
 
-  /** O "mundo" passa a recusar as remessas com este código (null: volta a aceitar); manda uma remessa na hora. */
+  /** The "world" starts refusing the uploads with this code (null: accepts again); sends an upload right away. */
   rejectUplinks(code: UplinkAckError | null): void {
     this.rejectCode = code;
     const acc = this.current();
@@ -674,7 +677,7 @@ export class FakeWorldApi implements WorldClient {
     this.changed();
   }
 
-  /** O "mundo" para o prédio com um `goodbye` (atualize, outro computador...), até retomar. */
+  /** The "world" stops the building with a `goodbye` (update, another computer...), until resuming. */
   stopBuilding(reason: WorldBuildingStop): void {
     const b = this.current()?.building;
     if (!b || b.paused) return;
@@ -683,7 +686,7 @@ export class FakeWorldApi implements WorldClient {
     this.changed();
   }
 
-  /** O "mundo" marca (ou desmarca) o prédio da conta como "não verificado". */
+  /** The "world" marks (or unmarks) the account's building as "unverified". */
   markUnverified(on: boolean): void {
     const b = this.current()?.building;
     if (!b) return;
@@ -692,7 +695,7 @@ export class FakeWorldApi implements WorldClient {
     this.changed();
   }
 
-  /** O "mundo" entra (ou sai) em manutenção: o status traz `maintenance` e o prédio fica sem conexão até acabar. */
+  /** The "world" enters (or leaves) maintenance: the status has `maintenance` and the building is cut off until it ends. */
   setMaintenance(on: boolean): void {
     const b = this.current()?.building;
     this.lastError = on ? 'maintenance' : null;
@@ -700,7 +703,7 @@ export class FakeWorldApi implements WorldClient {
     this.changed();
   }
 
-  /** A conexão com o mundo cai (o servidor de verdade tenta de novo sozinho; aqui, até pausar e retomar). */
+  /** The connection to the world drops (the real server retries on its own; here, until pausing and resuming). */
   dropConnection(): void {
     const b = this.current()?.building;
     if (!b || b.paused) return;
@@ -708,18 +711,18 @@ export class FakeWorldApi implements WorldClient {
     this.changed();
   }
 
-  /** Avisa quando o estado muda (a interface redesenha, como faria com um snapshot novo). */
+  /** Notifies when the state changes (the interface redraws, as it would with a new snapshot). */
   onChange(cb: () => void): () => void {
     this.listeners.add(cb);
     return () => void this.listeners.delete(cb);
   }
 
-  /** A próxima chamada falha com este código (testes e demonstração). */
+  /** The next call fails with this code (tests and demo). */
   failNext(code: WorldErrorCode): void {
     this.failures.push(code);
   }
 
-  /** A moderação troca à força o nome do personagem da conta que está entrando (vira "???" até escolher outro). */
+  /** Moderation forcibly changes the character name of the signed-in account (becomes "???" until another is chosen). */
   forceRename(): void {
     const acc = this.current();
     if (!acc?.player) return;
@@ -727,7 +730,7 @@ export class FakeWorldApi implements WorldClient {
     this.changed();
   }
 
-  /** Libera da lista de espera a conta que está entrando (o painel do servidor faria isso por lote). */
+  /** Releases the signed-in account from the waitlist (the server panel would do this by batch). */
   approve(): void {
     const acc = this.current();
     if (!acc) return;
@@ -736,14 +739,14 @@ export class FakeWorldApi implements WorldClient {
     this.changed();
   }
 
-  /** Acende o prédio da conta aprovada e com personagem, com a primeira remessa (o uplink de verdade faz isso). */
+  /** Lights the building of the approved account with a character, with the first upload (the real uplink does it). */
   private ensureBuilding(acc: FakeAccount): void {
     if (acc.building || acc.access !== 'approved' || !acc.player) return;
     acc.building = { connected: true, paused: false, last: null, code: 'HB-4F2K', summary: structuredClone(FAKE_SUMMARY), blocked: [...FAKE_BLOCKED], since: this.now() };
     this.sendUplink(acc);
   }
 
-  /** Uma remessa: o exemplo da 3.3 com o tema resolvido pela data; a resposta do "mundo" vem na hora. */
+  /** One upload: the 3.3 example with the theme resolved by the date; the reply from the "world" comes right away. */
   private sendUplink(acc: FakeAccount): void {
     const b = acc.building;
     if (!b || b.paused) return;
@@ -765,10 +768,10 @@ export class FakeWorldApi implements WorldClient {
     }
     if (b.left) out.left = true;
     if (b.stopped) out.stopped = b.stopped;
-    // visitantes: só aceso e aberto a visitas (fechado, o mundo não manda nem o 0)
+    // visitors: only when lit and open to visits (closed, the world does not send even the 0)
     if (b.connected && !b.paused && !b.left && !acc?.player?.visibility.closed) out.visitors = b.visitors ?? fakeVisitorsAt(this.now() - b.since);
     if (b.unverified) out.unverified = true;
-    // Fase 5: 3 likes hoje e mais um por minuto; batidas com "Avisar quando baterem na porta" ligado.
+    // Phase 5: 3 likes today and one more per minute; knocks with "Let me know when someone knocks" turned on.
     const now = this.now();
     out.likesToday = 3 + Math.floor(Math.max(0, now - b.since) / 60_000);
     if (b.knocksOn !== undefined && acc.player?.visibility.knocks && b.connected) {
@@ -806,8 +809,8 @@ export class FakeWorldApi implements WorldClient {
   }
 
   /**
-   * Responde depois da espera; um `failNext` pendente vira o erro desta resposta. Só as escritas (`write`) avisam quem
-   * escuta: uma leitura que avisasse faria a interface reler o status sem parar.
+   * Responds after the wait; a pending `failNext` becomes this response's error. Only the writes (`write`) notify
+   * listeners: a read that notified would make the interface reread the status nonstop.
    */
   private async reply<T>(run: () => WorldResult<T>, write = true): Promise<WorldResult<T>> {
     if (this.delayMs > 0) await new Promise((r) => setTimeout(r, this.delayMs));
@@ -849,19 +852,19 @@ export class FakeWorldApi implements WorldClient {
 
   register(body: { email: string; password: string; name: string; locale: Locale }): Promise<WorldResult> {
     return this.reply(() => {
-      // Como o servidor de verdade: o nome é conferido antes da senha e fica reservado para a conta.
+      // Like the real server: the name is checked before the password and stays reserved for the account.
       const name = parsePlayerName(body.name);
       if (!name.ok) return FakeWorldApi.fail(name.code, 422);
       if (this.nameTaken(name.key, undefined)) return FakeWorldApi.fail('name_taken', 409);
       if (!emailLooksValid(body.email) || passwordProblem(body.password, body.email)) return FakeWorldApi.fail('invalid', 422);
       const email = body.email.trim().toLowerCase();
-      // E-mail já cadastrado responde igual (nunca revela quem tem conta).
+      // An already registered email gets the same response (never reveals who has an account).
       if (!this.accounts.has(email)) this.accounts.set(email, { email, password: body.password, verified: false, access: 'waiting', devices: [], reservedName: name.name });
       return FakeWorldApi.ok();
     });
   }
 
-  /** O nome (pela chave) já é de outra conta: os fixos de FAKE_TAKEN, uma reserva do cadastro ou um personagem. */
+  /** The name (by key) is already another account's: the fixed FAKE_TAKEN ones, a sign-up reservation or a character. */
   private nameTaken(key: string, self: FakeAccount | undefined): boolean {
     if (FAKE_TAKEN.includes(key)) return true;
     for (const o of this.accounts.values()) {
@@ -929,7 +932,7 @@ export class FakeWorldApi implements WorldClient {
       if (passwordProblem(body.password, body.email)) return FakeWorldApi.fail('invalid', 422);
       acc.password = body.password;
       acc.verified = true;
-      // Trocar a senha desconecta todos os dispositivos (este também).
+      // Changing the password disconnects all devices (this one too).
       acc.devices = [];
       if (this.session?.email === acc.email) this.session = null;
       return FakeWorldApi.ok();
@@ -940,7 +943,7 @@ export class FakeWorldApi implements WorldClient {
     return this.reply(() => {
       const acc = this.current();
       if (!acc) return FakeWorldApi.fail('unknown', 401);
-      // Criando com a reserva do cadastro, o nome É a reserva; editando sem `name`, mantém.
+      // Creating with the sign-up reservation, the name IS the reservation; editing without `name`, keeps it.
       const raw = !acc.player && acc.reservedName ? acc.reservedName : body.name === undefined && acc.player ? acc.player.name : body.name;
       const name = parsePlayerName(raw);
       if (!name.ok) return FakeWorldApi.fail(name.code, 422);
@@ -1017,8 +1020,8 @@ export class FakeWorldApi implements WorldClient {
       const b = acc.building;
       if (!b) return FakeWorldApi.fail('no_player', 409);
       b.paused = paused;
-      // Como o de verdade: pausar apaga o prédio (o selo deixa de mostrar "no mundo"); retomar (também depois de sair
-      // do mundo ou de uma parada) reconecta e manda o pacote inteiro.
+      // Like the real one: pausing turns the building off (the badge stops showing "in the world"); resuming (also after
+      // leaving the world or after a stop) reconnects and sends the whole packet.
       b.connected = !paused;
       if (!paused) {
         delete b.left;
@@ -1029,7 +1032,7 @@ export class FakeWorldApi implements WorldClient {
     });
   }
 
-  /** "Voltar ao mundo": como retomar, mas só faz sentido depois de sair (sem ter saído, nada muda). */
+  /** "Back to the world": like resuming, but only makes sense after leaving (without having left, nothing changes). */
   join(): Promise<WorldResult> {
     return this.reply(() => {
       const acc = this.current();
@@ -1080,7 +1083,7 @@ export class FakeWorldApi implements WorldClient {
     }, false);
   }
 
-  /** Com o código: a conta some (e o tema, como o world.json apagado), e o status fica `account_deleted`. */
+  /** With the code: the account is gone (and the theme, like the deleted world.json); the status is `account_deleted`. */
   confirmAccountDeletion(body: { code: string }): Promise<WorldResult> {
     return this.reply(() => {
       const acc = this.current();
@@ -1109,7 +1112,7 @@ export class FakeWorldApi implements WorldClient {
       if (!acc) return FakeWorldApi.fail('not_logged_in', 401);
       acc.exports = (acc.exports ?? 0) + 1;
       if (acc.exports > 1) return FakeWorldApi.fail('rate_limited', 429);
-      // O formato de WorldExport (protocol.ts), só com dados de mentira.
+      // The WorldExport format (protocol.ts), with fake data only.
       const data = {
         format: 'habblaud-world-export',
         version: 1,
@@ -1128,7 +1131,7 @@ export class FakeWorldApi implements WorldClient {
     }, false);
   }
 
-  /** Como o de verdade: o `unblock` vai pela conexão com o mundo (pausado e sem a cidade aberta, não dá). */
+  /** Like the real one: `unblock` goes over the world connection (paused and without the city open, it cannot). */
   unblock(playerId: string): Promise<WorldResult> {
     return this.reply(() => {
       const b = this.current()?.building;
@@ -1140,20 +1143,20 @@ export class FakeWorldApi implements WorldClient {
   }
 }
 
-// ------------------------------------------------------------------ de onde vêm os dados
+// ------------------------------------------------------------------ where the data comes from
 
 export interface WorldSource {
-  /** null = nada do World nesta página. */
+  /** null = nothing of World on this page. */
   readonly client: WorldClient | null;
-  /** Modo demonstração: o FakeWorldApi responde (sem servidor, sem as travas de acesso). */
+  /** Demo mode: FakeWorldApi responds (no server, no access locks). */
   readonly fake: boolean;
-  /** O `meta.world` em vigor. */
+  /** The `meta.world` in effect. */
   meta(): WorldMeta | undefined;
-  /** Avisa quando o estado muda fora dos snapshots (só o falso). */
+  /** Notifies when the state changes outside the snapshots (only the fake). */
   onChange?(cb: () => void): () => void;
 }
 
-/** `?world=` do modo demonstração: o estado inicial do FakeWorldApi (sem o parâmetro, o World não aparece). */
+/** `?world=` of demo mode: the initial state of FakeWorldApi (without the parameter, World does not show). */
 export function fakeWorldStateFrom(search: string): WorldServerState | null {
   const params = new URLSearchParams(search);
   if (!params.has('world')) return null;
@@ -1162,9 +1165,9 @@ export function fakeWorldStateFrom(search: string): WorldServerState | null {
 }
 
 /**
- * O World desta página: no ?mock=1, o FakeWorldApi só com `&world=` (as capturas do README em modo demonstração
- * continuam sem nada do World, que está desligado por padrão); fora dele, as rotas locais e o `meta.world` do
- * snapshot ao vivo.
+ * This page's World: under ?mock=1, FakeWorldApi only with `&world=` (the README screenshots in demo mode
+ * still have nothing of World, which is off by default); outside it, the local routes and the `meta.world` of
+ * the live snapshot.
  */
 export function worldSource(store: { mock: boolean; readonly liveSnapshot: OfficeSnapshot | null }, search = typeof location === 'undefined' ? '' : location.search): WorldSource {
   if (store.mock) {

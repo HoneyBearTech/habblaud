@@ -1,4 +1,4 @@
-// Teclado da cidade: setas e WASD (maiúsculas com Shift e pelo código da tecla), diagonais e corrida.
+// City keyboard: arrows and WASD (uppercase with Shift and by the key code), diagonals and running.
 import { describe, expect, it } from 'vitest';
 import { intentFrom, moveKeyOf } from './input';
 

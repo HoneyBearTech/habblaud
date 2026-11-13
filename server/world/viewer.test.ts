@@ -1,6 +1,6 @@
-// O viewer da cena Mundo (viewer.ts) com uma conexão de mentira e respostas em memória: `view` só com stream aberto e
-// `view.off` com o último fechado, o snapshot ao conectar e a cada recomeço, o resync no salto de rev (sem repassar o
-// patch), a conexão nova e a queda, os limites e o filtro dos comandos.
+// The World scene viewer (viewer.ts) with a fake connection and in-memory responses: `view` only with a stream open
+// and `view.off` with the last one closed, the snapshot on connect and on each restart, the resync on the rev jump
+// (without passing the patch on), the new connection and the drop, the limits and the command filter.
 import { EventEmitter } from 'node:events';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { describe, expect, it } from 'vitest';
@@ -18,7 +18,7 @@ const WELCOME = {
 class FakeLink implements CityLink {
   connected = false;
   sent: ClientMessage[] = [];
-  /** O que a cena queria a cada aviso `cityChanged` (a conexão de quem está pausado abre ou fecha com isso). */
+  /** What the scene wanted at each `cityChanged` notice (the connection of whoever is paused opens or closes with that). */
   changes: boolean[] = [];
   viewer?: WorldViewer;
   cityChanged(): void {
@@ -39,7 +39,7 @@ interface FakeStream {
   res: ServerResponse;
   chunks: string[];
   status?: number;
-  /** Eventos SSE recebidos ({event, data}). */
+  /** SSE events received ({event, data}). */
   events(): Array<{ event: string; data: any }>;
   snapshots(): WorldSceneSnapshot[];
   world(): any[];
@@ -141,7 +141,7 @@ describe('WorldViewer: the city only with the scene open', () => {
     const b = open();
     await Promise.resolve();
     expect(link.changes).toEqual([true]);
-    // a conexão abriu por causa da cena: `view` a cada welcome
+    // the connection opened because of the scene: `view` on each welcome
     link.connected = true;
     viewer.opened(WELCOME);
     expect(link.types()).toEqual(['view']);
@@ -174,7 +174,7 @@ describe('WorldViewer: the city only with the scene open', () => {
     viewer.closed();
     expect(a.st.snapshots().at(-1)).toMatchObject({ connected: false, viewing: false, chunks: [] });
     expect(a.st.snapshots().at(-1)).not.toHaveProperty('pos');
-    // Reconectou: view de novo, cidade do zero.
+    // Reconnected: view again, city from scratch.
     link.connected = true;
     viewer.opened(WELCOME);
     expect(link.types()).toEqual(['view', 'view']);
@@ -194,7 +194,7 @@ describe('WorldViewer: city messages', () => {
     viewer.message({ t: 'player.join', player: { id: 'p1', name: 'Zeca', pos: { x: 1, y: 1, dir: 's', moving: false } } });
     expect(a.st.world()).toEqual([area, { t: 'area.patch', chunk: 'centro:0,0', rev: 5, changes: [{ id: 'b1', likes: 2 }] }, { t: 'player.join', player: { id: 'p1', name: 'Zeca', pos: { x: 1, y: 1, dir: 's', moving: false } } }]);
     expect(link.sent).toEqual([{ t: 'view' }, { t: 'resync', chunk: 'centro:0,0' }]);
-    // Um stream novo recebe tudo o que há no snapshot.
+    // A new stream receives everything there is in the snapshot.
     const b = open();
     expect(b.st.snapshots()[0]).toMatchObject({ chunks: [{ chunk: 'centro:0,0', rev: 5, buildings: [{ id: 'b1', likes: 2 }] }], players: [{ id: 'p1' }] });
     expect(viewer.current().chunks[0]?.rev).toBe(5);
@@ -238,10 +238,10 @@ describe('WorldViewer: visit (Phase 4)', () => {
     expect(a.st.world().map((m) => `${m.t}${m.rev ?? ''}`)).toEqual(['building3', 'building.patch4', 'visitors']);
     expect(link.sent.at(-1)).toEqual({ t: 'resync', building: ID });
     expect(viewer.current().inside).toMatchObject({ id: ID, rev: 4, detail: { visitors: 2 } });
-    // Um stream novo no meio da visita recebe o interior no snapshot.
+    // A new stream in the middle of the visit receives the interior in the snapshot.
     const b = open();
     expect(b.st.snapshots()[0]?.inside).toMatchObject({ id: ID, rev: 4 });
-    // O navegador pede o prédio de novo: só o id, campo a campo.
+    // The browser asks for the building again: only the id, field by field.
     expect(viewer.command({ stream: 's1', cmds: [{ t: 'resync', building: ID, token: 'x' }] })).toEqual({ ok: true, data: { sent: 1 } });
     expect(link.sent.at(-1)).toEqual({ t: 'resync', building: ID });
   });
@@ -297,11 +297,11 @@ describe('WorldViewer: commands', () => {
       clock.t += 200;
       expect(viewer.command(move(21 + i * 0.1)).ok, `batch ${i}`).toBe(true);
     }
-    // Parado 1 s, o balde enche: 5 de uma vez passam, o sexto não.
+    // Idle for 1 s, the bucket fills: 5 at once pass, the sixth does not.
     clock.t += 1_000;
     for (let i = 0; i < 5; i++) expect(viewer.command(move(30)).ok).toBe(true);
     expect(viewer.command(move(30))).toEqual({ ok: false, status: 429, code: 'rate_limited', retryAfter: 1 });
-    // O outro stream tem o seu próprio balde.
+    // The other stream has its own bucket.
     expect(viewer.command({ ...move(30), stream: 's2' }).ok).toBe(true);
     clock.t += 200;
     expect(viewer.command(move(30)).ok).toBe(true);

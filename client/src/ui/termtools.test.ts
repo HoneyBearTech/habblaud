@@ -22,14 +22,14 @@ const result = (id: string, toolUseId: string, text = 'ok'): TerminalEntry => ({
 const think = (id: string): TerminalEntry => ({ kind: 'thinking', id, at: 5, text: 'hmm' });
 const sys = (id: string): TerminalEntry => ({ kind: 'system', id, at: 6, text: 'Context compacted', detail: 'summary' });
 
-/** Itens na ordem da tela, como o painel os vê (ferramentas já com o resultado). */
+/** Items in screen order, as the panel sees them (tools already with their result). */
 function items(...entries: TerminalEntry[]): TerminalItem[] {
   const log = new TerminalLog();
   log.push(entries);
   return [...log.values()];
 }
 
-/** O texto que um trecho [a, b) do original marca. */
+/** The text that a range [a, b) of the original marks. */
 const cut = (text: string, query: string) => findMatches(text, foldQuery(query)).map(([a, b]) => text.slice(a, b));
 
 describe('search: matches', () => {
@@ -43,7 +43,7 @@ describe('search: matches', () => {
     const text = '🙂 é preciso rodar os TESTES';
     const [[a, b]] = findMatches(text, foldQuery('testes'));
     expect(text.slice(a, b)).toBe('TESTES');
-    // Acento decomposto (e + U+0301) também casa e é destacado inteiro.
+    // A decomposed accent (e + U+0301) also matches and is highlighted whole.
     expect(cut('café pronto', 'café')).toEqual(['café']);
   });
 
@@ -90,7 +90,7 @@ describe('search: navigation', () => {
     expect(refAt(counts, 4)).toEqual({ key: 'tool:t1', index: 2 });
     expect(refAt(counts, 5)).toBeNull();
     expect(refAt(counts, -1)).toBeNull();
-    // Ida e volta: o próximo do último volta ao primeiro.
+    // Round trip: the next one after the last goes back to the first.
     const total = 5;
     expect(refAt(counts, stepMatch(globalIndex(counts, { key: 'tool:t1', index: 2 }), total, 1))).toEqual({ key: 'user:u1', index: 0 });
   });
@@ -106,7 +106,7 @@ describe('filter', () => {
   it('final responses: the text with no tool after it until the next prompt (or the end)', () => {
     const list = items(user('u1'), say('a1', 'I will read.'), tool('t1'), result('r1', 't1'), say('a2', 'Done.'), sys('s1'), user('u2'), say('a3', 'Looking…'), tool('t2'), say('a4', 'The end.'));
     expect([...finalAnswerKeys(list)]).toEqual(['assistant:a2', 'assistant:a4']);
-    // Ainda trabalhando: o último texto pode deixar de ser final quando chega uma ferramenta.
+    // Still working: the last text can stop being final when a tool arrives.
     expect([...finalAnswerKeys(items(user('u1'), say('a1')))]).toEqual(['assistant:a1']);
     expect([...finalAnswerKeys(items(user('u1'), say('a1'), tool('t1')))]).toEqual([]);
   });

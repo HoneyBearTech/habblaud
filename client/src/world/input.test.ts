@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import type { Camera } from './camera';
 import { attachInput, type InputHandlers } from './input';
 
-/** `window` mínimo: o listener de teclado da câmera registra em `keydown`. */
+/** Minimal `window`: the camera's keyboard listener registers on `keydown`. */
 function installWindow(): { dispatch(ev: { key: string; target: unknown }): void; restore(): void } {
   const prev = globalThis.window;
   const listeners = new Set<(ev: KeyboardEvent) => void>();
@@ -71,7 +71,7 @@ describe('camera keyboard', () => {
         getAttribute: (name: string) => (name === 'role' ? 'radio' : null),
       },
     });
-    // O bug: a seta do grupo de velocidade chegava aqui como panBy(-90, 0).
+    // The bug: the arrow key of the speed group arrived here as panBy(-90, 0).
     expect(pans).toEqual([]);
   });
 
@@ -80,7 +80,7 @@ describe('camera keyboard', () => {
     const pans: [number, number][] = [];
     const camera = { zoom: 1, panBy: (dx: number, dy: number) => pans.push([dx, dy]), zoomAt() {}, settle() {} } as unknown as Camera;
     off = attachInput(canvas(), camera, handlers());
-    // Depois de clicar num botão da barra, o foco fica nele: as setas ainda são da câmera.
+    // After clicking a button on the bar, the focus stays on it: the arrows still belong to the camera.
     win.dispatch({ key: 'ArrowRight', target: { tagName: 'BUTTON', isContentEditable: false, getAttribute: () => null } });
     expect(pans).toEqual([[-90, 0]]);
   });
@@ -99,7 +99,7 @@ describe('camera keyboard', () => {
 });
 
 describe('modalOpen', () => {
-  /** `document` mínimo: alguns elementos e o `querySelector` dos dois seletores que a função usa. */
+  /** Minimal `document`: a few elements and the `querySelector` for the two selectors the function uses. */
   function installDocument(els: { tag: string; open?: boolean; ariaModal?: boolean }[]): () => void {
     const prev = globalThis.document;
     const matches = (sel: string, e: (typeof els)[number]): boolean => {

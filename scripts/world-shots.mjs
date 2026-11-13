@@ -1,18 +1,20 @@
-// Capturas da seção do Habblaud World no modo demonstração (?mock=1&world=approved: só dados fictícios do
-// FakeWorldApi, nada do escritório de verdade): o cartão "Seu prédio" (docs/screenshots/world-predio.png), a janela
-// "Ver o que foi enviado" (docs/screenshots/world-enviado.png) e a cidade de mentira (&scene=city: só prédios e
-// jogadores fictícios do FakeWorldStream de client/src/net/world-stream.ts) no fim da tarde (world-cidade.png), o
-// cartão de um prédio (world-cartao.png) e a visita ao prédio do vizinho (o interior de exemplo de
-// shared/world/visit-sample.ts): o escritório por dentro (world-visita.png) e o painel com o cartão de um agente
-// (world-visita-painel.png). Durante a visita, nenhuma requisição a /api sai da página (o modo demonstração não tem
-// servidor; ao vivo, a cena só fala com /api/world/*). O social leve (Fase 5): a roda de cumprimentos com os balões
-// (world-social.png) e a praça de noite com o termômetro da meta e os fogos (world-praca.png, pelo botão de teste de
-// &fireworks=1). Sobe o Vite sozinho (ou usa --url de um Habblaud já rodando) e fotografa com o Chromium
-// headless do Playwright, sem tocar no navegador de quem roda.
+// Captures of the Habblaud World section in demo mode (?mock=1&world=approved: only fictional data from
+// FakeWorldApi, nothing from the real office): the "Your building" card (docs/screenshots/world-predio.png), the
+// "See what was sent" window (docs/screenshots/world-enviado.png) and the make-believe city (&scene=city: only
+// fictional buildings and players from the FakeWorldStream in client/src/net/world-stream.ts) in the late afternoon
+// (world-cidade.png), the card of a building (world-cartao.png) and the visit to the neighbor's building (the sample
+// interior from shared/world/visit-sample.ts): the office from the inside (world-visita.png) and the panel with an
+// agent's card (world-visita-painel.png). During the visit, no request to /api leaves the page (demo mode has no
+// server; live, the scene only talks to /api/world/*). The light social part (Phase 5): the greeting wheel with the
+// speech bubbles (world-social.png) and the square at night with the goal thermometer and the fireworks
+// (world-praca.png, through the test button of &fireworks=1). Starts Vite by itself (or uses --url of a Habblaud
+// already running) and takes the pictures with Playwright's headless Chromium, without touching the browser of
+// whoever runs it.
 //
-// Uso: npm run shots:world [-- --url http://localhost:4747] [--out docs/screenshots] [--chromium /caminho/do/chrome]
-// Sem o Chromium headless da versão do playwright-core do projeto: npx playwright-core install chromium-headless-shell,
-// ou --chromium (ou HABBLAUD_CHROMIUM) com o caminho de outro executável.
+// Usage: npm run shots:world [-- --url http://localhost:4747] [--out docs/screenshots] [--chromium /path/to/chrome]
+// Without the headless Chromium of the project's playwright-core version:
+// npx playwright-core install chromium-headless-shell, or --chromium (or HABBLAUD_CHROMIUM) with the path of another
+// executable.
 import { mkdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -44,11 +46,11 @@ try {
     if (m.type() === 'error' || m.type() === 'warning') problems.push(`[console.${m.type()}] ${m.text()}`);
   });
   page.on('pageerror', (e) => problems.push(`[pageerror] ${e.message}`));
-  // Português (a língua de origem), mesmo com o navegador em outra língua.
+  // Portuguese (the language of the docs' World screenshots), even with the browser in another language.
   await page.addInitScript(() => localStorage.setItem('habblaud:locale', 'pt-BR'));
   await page.goto(`${base}/?mock=1&world=approved`, { waitUntil: 'load', timeout: 60_000 });
 
-  // O chip "no mundo" da barra do topo abre Configurações › Habblaud World.
+  // The "in the world" chip in the top bar opens Settings › Habblaud World.
   await page.locator('.ui-world-chip').click({ timeout: 20_000 });
   const card = page.locator('.ui-world__building.is-connected');
   await card.waitFor({ timeout: 10_000 });
@@ -63,7 +65,7 @@ try {
   await page.locator('.ui-world-sent').screenshot({ path: join(out, 'world-enviado.png'), animations: 'disabled' });
   console.log('saved:', join(out, 'world-enviado.png'));
 
-  // A cidade (botão Mundo): hora fixa, câmera parada entre a praça e o meu prédio, sem os avisos do escritório.
+  // The city (World button): fixed time, camera still between the square and my building, without the office notices.
   const city = async (hora, extra = '') => {
     await page.goto(`${base}/?mock=1&world=approved&scene=city&hora=${hora}${extra}`, { waitUntil: 'load', timeout: 60_000 });
     await page.waitForFunction(() => window.habblaud?.city?.scene()?.me(), null, { timeout: 20_000 });
@@ -76,7 +78,7 @@ try {
   await page.screenshot({ path: join(out, 'world-cidade.png') });
   console.log('saved:', join(out, 'world-cidade.png'));
 
-  // O cartão do prédio do vizinho ao passar o mouse (lote 4,1: a fachada da frente, com a porta na calçada sul).
+  // The card of the neighbor's building on mouse hover (lot 4,1: the front facade, with the door on the south sidewalk).
   await city('14');
   await page.evaluate(() => window.habblaud.city.scene().lookAt(70, 17, 2));
   await page.waitForTimeout(900);
@@ -96,7 +98,7 @@ try {
   await page.screenshot({ path: join(out, 'world-cartao.png'), clip: { x: x0, y: y0, width: x1 - x0, height: y1 - y0 } });
   console.log('saved:', join(out, 'world-cartao.png'));
 
-  // A visita (Fase 4): anda até a porta do vizinho (lote 4,1, aceso) e aperta E.
+  // The visit (Phase 4): walks to the neighbor's door (lot 4,1, lit) and presses E.
   await city('14');
   const neighbor = await page.evaluate(() => {
     const s = window.habblaud.city.scene();
@@ -116,7 +118,8 @@ try {
   page.on('request', onRequest);
   await page.keyboard.press('e');
   await page.waitForFunction(() => !!window.habblaud.city.scene().visit(), null, { timeout: 10_000 });
-  // o social de dentro (Fase 5): um carimbo na portaria (vai para o quadro da recepção), sem o aviso na foto
+  // the social part from the inside (Phase 5): a stamp at the front desk (goes to the reception board), without the
+  // notice in the picture
   await page.addStyleTag({ content: '.ui-city-toast { display: none !important; }' });
   await page.locator('.ui-visit-social__stamp').click();
   await page.locator('.ui-visit-social__choice[data-stamp="rocket"]').click();
@@ -124,7 +127,7 @@ try {
   await page.waitForTimeout(2600);
   await page.screenshot({ path: join(out, 'world-visita.png') });
   console.log('saved:', join(out, 'world-visita.png'));
-  // o painel: o cartão de quem espera o dono
+  // the panel: the card of the one waiting for the owner
   await page.locator('.ui-visit-agent', { hasText: 'Beatriz' }).click();
   await page.waitForTimeout(900);
   await page.locator('.ui-visit-panel').screenshot({ path: join(out, 'world-visita-painel.png') });
@@ -136,7 +139,7 @@ try {
   const outside = apiDuringVisit.filter((u) => !new URL(u).pathname.startsWith('/api/world/'));
   if (outside.length) problems.push(`[visit] routes outside /api/world/: ${outside.join(', ')}`);
 
-  // A roda de cumprimentos (G) quando um dos bots passa perto da minha porta, com os balões de quem se cumprimenta.
+  // The greeting wheel (G) when one of the bots passes near my door, with the speech bubbles of those greeting each other.
   await city('15:30');
   await page.waitForFunction(
     () => {
@@ -157,7 +160,8 @@ try {
   await page.screenshot({ path: join(out, 'world-social.png'), clip: { x: Math.max(0, wheel.x - 380), y: Math.max(0, wheel.y - 230), width: 760, height: 420 } });
   console.log('saved:', join(out, 'world-social.png'));
 
-  // A praça de noite: o termômetro da meta da semana (cheio, durante os fogos), a prefeitura, as bandeirinhas e os fogos.
+  // The square at night: the thermometer of the week's goal (full, during the fireworks), the city hall, the pennants
+  // and the fireworks.
   await city('20:40', '&fireworks=1');
   await page.evaluate(() => window.habblaud.city.scene().lookAt(21, 6, 2));
   await page.locator('.ui-city-testfw').click();

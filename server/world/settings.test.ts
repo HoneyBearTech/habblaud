@@ -53,7 +53,7 @@ describe('WorldSettingsStore', () => {
   it('update changes only access and character; clear deletes the file', () => {
     let now = 1_000;
     const { file, store: s } = store(() => now);
-    expect(s.update({ access: 'approved' })).toBe(false); // sem sessão, nada
+    expect(s.update({ access: 'approved' })).toBe(false); // without a session, nothing
     s.save(SESSION);
     now = 2_000;
     s.update({ access: 'approved' });
@@ -81,7 +81,7 @@ describe('WorldSettingsStore', () => {
     expect(again.getTheme()).toBe('halloween');
     expect(warn).not.toHaveBeenCalled();
     warn.mockRestore();
-    // De volta ao automático e sem sessão: o arquivo some.
+    // Back to automatic and without a session: the file goes away.
     again.setTheme('auto');
     expect(existsSync(file)).toBe(false);
   });
@@ -125,7 +125,7 @@ describe('WorldSettingsStore', () => {
   it('disk that refuses: the session holds in memory and the warning does not carry the token', () => {
     const { dir, store: _ } = store();
     mkdirSync(dir, { recursive: true });
-    // Um arquivo no lugar da pasta: o mkdir/rename falham.
+    // A file in place of the folder: the mkdir/rename fail.
     const blocker = join(dir, 'blocker');
     writeFileSync(blocker, '');
     const s = new WorldSettingsStore(join(blocker, 'world.json'));

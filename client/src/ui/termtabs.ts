@@ -1,7 +1,7 @@
-// Abas da janela de terminal: os agentes principais presentes no mesmo projeto (sala) do agente aberto.
-// Clicar numa aba troca a janela para o terminal daquele agente (interativo ou ao vivo). Arrastar uma aba
-// muda a ordem (a mesma da lista lateral; ver ui/agentorder.ts). Ao lado do nome, o começo do que o agente está
-// fazendo; o X encerra a sessão (pede um segundo clique) e só aparece com o terminal interativo ligado.
+// Tabs of the terminal window: the main agents present in the same project (room) as the open agent.
+// Clicking a tab switches the window to that agent's terminal (interactive or live). Dragging a tab changes
+// the order (the same as the side list; see ui/agentorder.ts). Next to the name, the start of what the agent
+// is doing; the X ends the session (asks for a second click) and only shows with the interactive terminal on.
 import type { AgentInfo } from '../../../shared/types';
 import type { UiContext } from './context';
 import { moveAgent, orderAgents } from './agentorder';
@@ -11,10 +11,10 @@ import { ptyControllable, stopAgent } from './ptyapi';
 import { createStatusDot, updateStatusDot } from './widgets';
 import { tr } from '../../../shared/i18n';
 
-/** Quanto tempo o X fica pedindo confirmação. */
+/** How long the X keeps asking for confirmation. */
 const CONFIRM_MS = 3000;
 
-/** O que mostrar ao lado do nome: a atividade de quem trabalha ou espera; o título da conversa de quem está parado. */
+/** What to show next to the name: the activity if working or waiting; the conversation title if stopped. */
 function doingOf(a: AgentInfo): string {
   if (a.status === 'working' || a.status === 'waiting') return a.activity?.text ?? activityFallback(a);
   return a.title ?? '';
@@ -26,10 +26,10 @@ export class TermTabs {
   private current: string | null = null;
   private roomId: string | null = null;
   private peers: AgentInfo[] = [];
-  /** Aba cujo X espera o segundo clique. */
+  /** Tab whose X waits for the second click. */
   private confirming: string | null = null;
   private confirmTimer: ReturnType<typeof setTimeout> | null = null;
-  /** Aba sendo arrastada (id do agente). */
+  /** Tab being dragged (agent id). */
   private dragging: string | null = null;
 
   constructor(private ctx: UiContext) {
@@ -45,7 +45,7 @@ export class TermTabs {
           h('span', { class: 'ui-ttab__name' }),
           h('span', { class: 'ui-ttab__doing' }),
           h('span', { class: 'ui-ttab__live', text: '›_', hidden: true }),
-          // Dentro do botão da aba: span (botão dentro de botão não vale); o teclado usa Delete na aba.
+          // Inside the tab's button: span (a button inside a button isn't valid); the keyboard uses Delete on the tab.
           h('span', { class: 'ui-ttab__close', role: 'button', attrs: { 'aria-label': tr('End this session') }, text: '×' }),
         );
         const close = b.children[4] as HTMLElement;
@@ -92,7 +92,7 @@ ${doing}` : ''}${live ? tr(' (interactive)') : ''}`);
     });
   }
 
-  /** `agentId` = agente aberto na janela (null = sessão do histórico ou nenhum). */
+  /** `agentId` = agent open in the window (null = history session or none). */
   render(agentId: string | null): void {
     this.current = agentId;
     const agent = agentId ? this.ctx.agent(agentId) : undefined;
@@ -103,12 +103,12 @@ ${doing}` : ''}${live ? tr(' (interactive)') : ''}`);
           .sort((x, y) => x.startedAt - y.startedAt || x.id.localeCompare(y.id))
       : [];
     this.peers = agent ? orderAgents(agent.roomId, peers, (a) => a.sessionId) : [];
-    // Uma aba só não ajuda: some.
+    // A single tab doesn't help: it goes away.
     setHidden(this.el, this.peers.length < 2);
     this.list.sync(this.peers.length < 2 ? [] : this.peers);
   }
 
-  /** X da aba: o primeiro clique pede confirmação; o segundo encerra a sessão (aqui ou noutro terminal). */
+  /** The tab's X: the first click asks for confirmation; the second ends the session (here or in another terminal). */
   private closeTab(id: string): void {
     if (!this.ctx.terminals?.interactiveEnabled || !ptyControllable(this.ctx.agent(id))) return;
     if (this.confirming !== id) {
@@ -127,7 +127,7 @@ ${doing}` : ''}${live ? tr(' (interactive)') : ''}`);
       .then(() => this.ctx.announce(tr('{0}: session ended.', [name])))
       .catch((err: Error) => this.ctx.announce(tr("Couldn't end it: {0}", [err.message])))
       .finally(() => this.ctx.invalidate());
-    // Era a aba aberta: passa para a vizinha.
+    // It was the open tab: moves to the neighbor.
     if (id === this.current) {
       const i = this.peers.findIndex((a) => a.id === id);
       const next = this.peers[i + 1] ?? this.peers[i - 1];
@@ -183,7 +183,7 @@ ${doing}` : ''}${live ? tr(' (interactive)') : ''}`);
     for (const el of this.el.querySelectorAll('.is-drop-before, .is-drop-after')) el.classList.remove('is-drop-before', 'is-drop-after');
   }
 
-  /** Põe `from` antes (ou depois) de `to` e guarda a ordem do projeto. */
+  /** Puts `from` before (or after) `to` and saves the project's order. */
   private move(from: string, to: string, after: boolean): void {
     if (!this.roomId) return;
     if (moveAgent(this.roomId, this.peers, (a) => a.id, (a) => a.sessionId, from, to, after)) this.ctx.invalidate();

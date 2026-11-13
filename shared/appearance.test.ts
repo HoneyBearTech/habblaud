@@ -31,7 +31,7 @@ describe('parseCharacterName', () => {
   it('trims, joins spaces (including line breaks) and normalizes to NFC', () => {
     expect(parseCharacterName('  Ana   Paula ')).toBe('Ana Paula');
     expect(parseCharacterName('Ana\nPaula')).toBe('Ana Paula');
-    // Escapes de propósito: NFD (u + U+0301) na entrada e NFC (U+00FA) no esperado; um editor normalizaria o literal.
+    // Escapes on purpose: NFD (u + U+0301) in the input and NFC (U+00FA) in the expected; an editor would normalize the literal.
     expect(parseCharacterName('Ju\u0301lia')).toBe('J\u00falia');
   });
 
@@ -46,7 +46,7 @@ describe('parseCharacterName', () => {
 
 describe('nameKey, parseSeed and partsKey', () => {
   it('nameKey ignores case and Unicode form', () => {
-    // NFD em maiúsculas contra NFC em minúsculas, em escapes (ver o teste de parseCharacterName).
+    // NFD in uppercase against NFC in lowercase, in escapes (see the parseCharacterName test).
     expect(nameKey('JU\u0301LIA')).toBe(nameKey('j\u00falia'));
     expect(nameKey('Ana')).toBe(nameKey('ana'));
     expect(nameKey('Ana')).not.toBe(nameKey('Ána'));

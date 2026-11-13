@@ -1,14 +1,14 @@
-// Os popups do lançamento do Habblaud World, um modal de verdade (<dialog> no top layer, com o fundo escurecido, o
-// foco preso e o Esc fechando) por cima do escritório, e acima da janela do Habblaud World quando ela está aberta:
-// - "Novidade: Habblaud World", para quem ainda não tem conta. "Agora não" fecha e ele volta depois de 3 dias, no
-//   máximo 3 vezes; "Não mostrar de novo" encerra; com a conta criada, nunca mais. Com Configurações ou a janela do
-//   World abertos, espera.
-// - "Você está na lista de espera", logo depois do cadastro (ou ao abrir a página já na espera), uma vez por navegador.
-// - "Acesso liberado!", quando a conta é liberada com a página aberta (ou ao abrir já liberada, sem personagem), uma
-//   vez por navegador; "Criar personagem" abre a janela do Habblaud World na tela do personagem.
-// Quem decide é nextWorldPopup (world-model.ts, puro e testado); a memória vai ao localStorage quando o popup aparece
-// (sem armazenamento, vale só para esta página). Só com o servidor do World configurado e a página aberta pelo próprio
-// computador: nunca pela porta do celular, no timelapse ou no modo demonstração.
+// The Habblaud World launch popups, a real modal (<dialog> in the top layer, with the backdrop darkened, the
+// focus trapped and Esc closing it) on top of the office, and above the Habblaud World window when it is open:
+// - "New: Habblaud World", for those who don't have an account yet. "Not now" closes it and it comes back after 3
+//   days, at most 3 times; "Don't show again" ends it; with the account created, never again. With Settings or the
+//   World window open, it waits.
+// - "You're on the waitlist", right after signup (or on opening the page already waiting), once per browser.
+// - "Access granted!", when the account is granted with the page open (or on opening already granted, with no
+//   character), once per browser; "Create character" opens the Habblaud World window on the character screen.
+// nextWorldPopup decides (world-model.ts, pure and tested); the memory goes to localStorage when the popup appears
+// (without storage, it holds only for this page). Only with the World server configured and the page opened from the
+// computer itself: never through the phone port, in the timelapse or in demo mode.
 import { tr } from '../../../../shared/i18n';
 import type { WorldSource } from '../../net/world';
 import type { UiComponent, UiContext } from '../context';
@@ -30,7 +30,7 @@ import {
   type WorldPopupMemory,
 } from './world-model';
 
-/** Prédio em pixels (o mundo é uma cidade de prédios): o selo dos popups e do cabeçalho da janela do World. */
+/** Building in pixels (the world is a city of buildings): the badge of the popups and of the World window header. */
 export const WORLD_BUILDING_ICON = pixelIcon(
   [
     '....####....',
@@ -51,9 +51,9 @@ export const WORLD_BUILDING_ICON = pixelIcon(
 );
 
 export interface WorldPopupHooks {
-  /** Abre a janela do Habblaud World na tela pedida (o cadastro ou o personagem). */
+  /** Opens the Habblaud World window on the requested screen (signup or the character). */
   openWorld(screen: 'register' | 'character'): void;
-  /** Configurações ou a janela do World abertos: o popup de lançamento espera (os outros dois ficam por cima). */
+  /** Settings or the World window open: the launch popup waits (the other two go on top). */
   panelOpen(): boolean;
 }
 
@@ -63,7 +63,7 @@ export class WorldPopups implements UiComponent {
   readonly el: HTMLDialogElement;
   private memory: WorldPopupMemory;
   private open: WorldPopupKind | null = null;
-  /** Quem tinha o foco antes do popup (volta para lá ao fechar). */
+  /** Who had the focus before the popup (it goes back there on closing). */
   private opener: HTMLElement | null = null;
 
   constructor(
@@ -72,15 +72,16 @@ export class WorldPopups implements UiComponent {
     private readonly hooks: WorldPopupHooks,
   ) {
     this.memory = this.load();
-    // `aria-modal` só enquanto aberto: fechado, o <dialog> continua no DOM e não pode parecer um modal aberto
-    // (o teclado da cidade e os atalhos do escritório param na presença de um modal).
+    // `aria-modal` only while open: closed, the <dialog> stays in the DOM and can't look like an open modal
+    // (the city keyboard and the office shortcuts stop in the presence of a modal).
     this.el = h('dialog', { class: 'ui-world-popup', attrs: { 'aria-labelledby': TITLE_ID } });
-    // Clique no fundo (fora do conteúdo) fecha, como "Agora não" / "Depois".
+    // Click on the backdrop (outside the content) closes, like "Not now" / "Later".
     this.el.addEventListener('click', (e) => {
       if (e.target === this.el) this.close();
     });
     this.el.addEventListener('close', () => this.onClosed());
-    // Esc fecha (o <dialog> modal já faz isso; sem showModal, fazemos aqui) e não chega aos atalhos do escritório.
+    // Esc closes (the modal <dialog> already does that; without showModal, we do it here) and doesn't reach the office
+    // shortcuts.
     this.el.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape') return;
       e.stopPropagation();
@@ -94,19 +95,19 @@ export class WorldPopups implements UiComponent {
   render(): void {
     const meta = this.src.meta();
     if (this.open) {
-      // A conta foi criada por outro caminho (a janela do World, outra aba): o lançamento não vale mais.
+      // The account was created another way (the World window, another tab): the launch no longer holds.
       if (this.open === 'launch' && meta?.state !== 'logged_out') this.close();
       return;
     }
     const gate = { ...worldGate(this.ctx, this.src), replaying: this.ctx.store.replaying };
     const d = nextWorldPopup(meta, gate, this.memory, Date.now());
-    // Com Configurações ou a janela do World abertos, o lançamento espera a próxima leitura (sem contar como aparição).
+    // With Settings or the World window open, the launch waits for the next read (without counting as an appearance).
     if (d.show === 'launch' && this.hooks.panelOpen()) return;
     if (d.memory) this.remember(d.memory);
     if (d.show) this.show(d.show);
   }
 
-  // ---------------------------------------------------------------- conteúdo
+  // ---------------------------------------------------------------- content
 
   private show(kind: WorldPopupKind): void {
     this.open = kind;
@@ -183,7 +184,7 @@ export class WorldPopups implements UiComponent {
     };
   }
 
-  // ---------------------------------------------------------------- ações
+  // ---------------------------------------------------------------- actions
 
   private go(screen: 'register' | 'character'): void {
     this.close();
@@ -212,7 +213,7 @@ export class WorldPopups implements UiComponent {
     this.ctx.invalidate();
   }
 
-  // ---------------------------------------------------------------- memória
+  // ---------------------------------------------------------------- memory
 
   private load(): WorldPopupMemory {
     try {
@@ -239,7 +240,7 @@ export class WorldPopups implements UiComponent {
         else s.setItem(key, value);
       }
     } catch {
-      // Sem armazenamento: a memória vale só para esta página.
+      // No storage: the memory holds only for this page.
     }
   }
 }

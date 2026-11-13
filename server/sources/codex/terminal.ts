@@ -1,10 +1,10 @@
-// Terminal do Codex: converte as linhas do rollout em TerminalEntry (prompts, respostas, raciocínio resumido,
-// comandos com a saída, mudanças de arquivo, chamadas MCP), com segredos mascarados e textos truncados pelas mesmas
-// regras do terminal do Claude Code (sources/terminal.ts).
+// Codex terminal: converts the rollout lines into TerminalEntry (prompts, responses, summarized reasoning,
+// commands with their output, file changes, MCP calls), with secrets masked and texts truncated by the same
+// rules as the Claude Code terminal (sources/terminal.ts).
 //
-// No formato paginated a conversa sai dos `item_completed`; os `response_item` são o contexto mandado ao modelo (há
-// mensagens injetadas) e ficam de fora. No legacy (threads antigos), o básico: user_message, agent_message,
-// agent_reasoning e os pares function_call/function_call_output.
+// In the paginated format the conversation comes from the `item_completed`; the `response_item` are the context
+// sent to the model (there are injected messages) and are left out. In legacy (old threads), the basics:
+// user_message, agent_message, agent_reasoning and the function_call/function_call_output pairs.
 import type { TerminalEntry, TerminalInputKind } from '../../../shared/types';
 import { formatDuration, maskSecrets } from '../../../shared/activity';
 import { marked, oneLine, prepare, RESULT_MAX, RESULT_MAX_LINES, TEXT_MAX, THINKING_MAX, toolView, INPUT_MAX, type TerminalParser } from '../terminal';
@@ -50,14 +50,14 @@ function toMs(v: unknown): number | undefined {
   return Number.isNaN(t) ? undefined : t;
 }
 
-/** Texto de um resultado MCP ({content: [{type: 'text', text}...]}) ou de uma saída de função. */
+/** Text of an MCP result ({content: [{type: 'text', text}...]}) or of a function output. */
 function resultText(raw: unknown): string {
   if (typeof raw === 'string') {
     try {
       const j = rec(JSON.parse(raw));
       if (j && typeof j.output === 'string') return j.output;
     } catch {
-      // texto puro
+      // plain text
     }
     return raw;
   }
@@ -78,7 +78,7 @@ class CodexTerminalParser implements TerminalParser {
   private cwd?: string;
   private lastAt?: number;
   private seq = 0;
-  /** Chamadas do legacy (call_id → nome), para rotular o resultado. */
+  /** Legacy calls (call_id → name), to label the result. */
   private readonly calls = new Map<string, string>();
 
   push(line: string): TerminalEntry[] {
@@ -86,7 +86,7 @@ class CodexTerminalParser implements TerminalParser {
     try {
       this.line(line);
     } catch {
-      // Linha estranha demais: fica o que já tiver saído dela; a leitura segue.
+      // Line too strange: whatever has already come out of it stays; the reading goes on.
     }
     return this.out;
   }
@@ -126,7 +126,7 @@ class CodexTerminalParser implements TerminalParser {
       case 'event_msg':
         return this.event(p, at, key);
       case 'response_item': {
-        // Resposta entregue no code mode do app: vale em qualquer formato (o id é o da chamada que a mandou).
+        // Response delivered in the app's code mode: counts in any format (the id is that of the call that sent it).
         const delivered = deliveredMessage(j);
         if (delivered) return this.assistant(delivered.id ?? key, at, delivered.text);
         if (this.mode === 'legacy') this.responseItem(p, at, key);
@@ -140,7 +140,7 @@ class CodexTerminalParser implements TerminalParser {
     }
   }
 
-  // ---------------------------------------------------------------- entradas
+  // ---------------------------------------------------------------- entries
 
   private user(id: string, at: number, raw: string, images = 0): void {
     const clean = promptText(raw);
@@ -250,7 +250,7 @@ class CodexTerminalParser implements TerminalParser {
         return this.fileChange(id, at, item.changes, str(item.status));
       case 'McpToolCall': {
         this.mode ??= 'paginated';
-        // Code mode: a mensagem para você é a resposta (mesmo id da entrega gravada como response_item).
+        // Code mode: the message to you is the response (same id as the delivery recorded as response_item).
         const said = userMessagingText(item.server, item.tool, item.arguments);
         if (said) return this.assistant(id, at, said);
         const name = mcpName(item.server, item.tool);
@@ -305,7 +305,7 @@ class CodexTerminalParser implements TerminalParser {
     else if (status === 'failed') this.result(id, at, tr("The change wasn't applied"), true);
   }
 
-  // ---------------------------------------------------------------- response_item (só no legacy)
+  // ---------------------------------------------------------------- response_item (legacy only)
 
   private responseItem(p: Rec, at: number, key: string): void {
     switch (p.type) {
@@ -345,7 +345,7 @@ class CodexTerminalParser implements TerminalParser {
   }
 }
 
-/** Parser com estado do terminal do Codex: uma instância por leitura de arquivo, alimentada na ordem do arquivo. */
+/** Stateful parser of the Codex terminal: one instance per file read, fed in file order. */
 export function createCodexTerminalParser(): TerminalParser {
   return new CodexTerminalParser();
 }

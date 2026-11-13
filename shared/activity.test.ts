@@ -39,7 +39,7 @@ describe('describeCommand in words (real cases that fell into the raw English de
     expect(t('sleep 5 && curl -s localhost:4771/')).toBe('Testing the local server (:4771/)');
     expect(t('(cd client && npm test)')).toBe('Running tests');
     expect(t('bash -c "npm run build"')).toBe('Building the project');
-    // Substituição de comando é parte da atribuição, não um comando.
+    // Command substitution is part of the assignment, not a command.
     expect(t('S=/tmp/x; NOW=$(date +%s); echo "{\\"a\\":$((NOW+1))}" | HOME=$S node scripts/statusline-tap.mjs; ls $S')).toBe('Running statusline-tap.mjs');
   });
 
@@ -100,12 +100,12 @@ describe('masked secrets', () => {
     expect(maskSecrets('curl "https://x.com/?token=abc&x=1" --password hunter2')).toBe('curl "https://x.com/?token=***&x=1" --password ***');
     expect(maskSecrets('{"password": "x", "max_tokens": 100}')).toBe('{"password": "***", "max_tokens": 100}');
     expect(maskSecrets('AKIAABCDEFGHIJKLMNOP eyJhbGciOiJIUzI1.eyJzdWIiOiIxMjM0.SflKxwRJSMeKKF2QT4f')).toBe('AKIA*** eyJ***');
-    // Prompt do usuário com um token colado.
+    // User prompt with a pasted token.
     expect(describePrompt('use the key sk-proj-0123456789abcdef to test').detail).toBe('use the key sk-*** to test');
   });
 
   it('webhooks and npm_/hf_ tokens (the secret disappears, the host stays)', () => {
-    // Montado em partes: o URL inteiro no fonte dispara o push protection do GitHub.
+    // Built in parts: the whole URL in the source triggers GitHub's push protection.
     const slack = ['https://hooks.slack.com/services', 'T00000000', 'B00000000', 'X'.repeat(24)].join('/');
     expect(maskSecrets(`curl -X POST ${slack}`)).toBe(
       'curl -X POST https://hooks.slack.com/services/***',
@@ -224,7 +224,7 @@ describe('AskUserQuestion in the office', () => {
     });
     expect(d.questions).toHaveLength(1);
     expect(d.questions![0]!.question).not.toContain('abcdefghijklmnop');
-    // As posições são as do original (a resposta pelo escritório volta por elas), com as inválidas contadas.
+    // The positions are those of the original (the answer through the office comes back by them), with the invalid ones counted.
     expect(d.questions![0]!.index).toBe(2);
     expect(d.questions![0]!.options).toEqual([{ index: 1, label: 'Yes' }]);
   });

@@ -1,5 +1,5 @@
-// Cartões da cidade: o do prédio (ao passar o mouse ou clicar) e o do jogador (ao clicar; o perfil chega pelo
-// stream). Os modelos são puros (testados); a parte DOM usa as classes `ui-city-card*` de ui/styles.css.
+// City cards: the building's (on hover or click) and the player's (on click; the profile arrives over the
+// stream). The models are pure (tested); the DOM part uses the `ui-city-card*` classes from ui/styles.css.
 import { avatarCanvas } from '../../art';
 import { hash32 } from '../../../../shared/hash';
 import { intlLocale, tr } from '../../../../shared/i18n';
@@ -8,17 +8,17 @@ import type { WorldBuildingPublic, WorldPlayerPublic } from '../../../../shared/
 import { TRAITS, isTraitId } from '../../../../shared/world/traits';
 import { h, setHidden, setText } from '../../ui/dom';
 
-/** O cartão mostra o número de andares até este; acima, "24+". (A fachada desenha até 12 e põe "+N".) */
+/** The card shows the number of floors up to this; above it, "24+". (The facade draws up to 12 and puts "+N".) */
 export const CARD_MAX_FLOORS = 24;
 
-/** Bandeira (emoji) de um código ISO-2; vazio se o código não tem o formato. */
+/** Flag (emoji) of an ISO-2 code; empty if the code doesn't have the format. */
 export function flagEmoji(code: string | undefined | null): string {
   if (!code || !/^[A-Za-z]{2}$/.test(code)) return '';
   const up = code.toUpperCase();
   return String.fromCodePoint(0x1f1e6 + up.charCodeAt(0) - 65, 0x1f1e6 + up.charCodeAt(1) - 65);
 }
 
-/** Nome do país no idioma de quem vê (o código, se o navegador não souber). */
+/** Country name in the viewer's language (the code, if the browser doesn't know it). */
 export function countryName(code: string | undefined | null): string {
   if (!code || !/^[A-Za-z]{2}$/.test(code)) return '';
   try {
@@ -28,7 +28,7 @@ export function countryName(code: string | undefined | null): string {
   }
 }
 
-/** "2026-10" → "outubro de 2026" (mês local, sem fuso: o dia 1 às 0 h na hora de quem vê). */
+/** "2026-10" → "October 2026" (local month, no time zone: day 1 at 0 h in the viewer's time). */
 export function monthLabel(ym: string | undefined): string {
   const m = /^(\d{4})-(\d{2})$/.exec(ym ?? '');
   if (!m) return '';
@@ -42,7 +42,7 @@ export function monthLabel(ym: string | undefined): string {
   }
 }
 
-/** "1 andar", "7 andares", "24+ andares", "só o térreo". */
+/** "1 floor", "7 floors", "24+ floors", "ground floor only". */
 export function floorsLabel(floors: number): string {
   const n = Number.isFinite(floors) ? Math.max(0, Math.floor(floors)) : 0;
   if (n === 0) return tr('ground floor only');
@@ -62,7 +62,7 @@ export interface BuildingCardModel {
   online: boolean;
   state: string;
   floors: string;
-  /** null = modo discreto (o dono não mostra os agentes). */
+  /** null = discreet mode (the owner doesn't show the agents). */
   agents: { working: number; waiting: number; idle: number } | null;
   likes: string;
   since: string;
@@ -94,7 +94,7 @@ export interface PlayerCardModel {
   traits: { emoji: string; label: string; desc: string }[];
   intro: string;
   likes: string;
-  /** O prédio do jogador, se ele tem um e a cidade conhece. */
+  /** The player's building, if they have one and the city knows it. */
   building: { id: string; floors: string; online: boolean } | null;
   hasBuilding: boolean;
 }
@@ -115,20 +115,20 @@ export function playerCardModel(p: WorldPlayerPublic, building: WorldBuildingPub
 // ====================================================================== DOM
 
 export interface CardActions {
-  /** Leva a câmera até o prédio (não o jogador). */
+  /** Takes the camera to the building (not the player). */
   showBuilding(id: string): void;
-  /** Até onde vai a barra do topo (px): o cartão fica abaixo dela. */
+  /** How far the top bar goes (px): the card stays below it. */
   topInset(): number;
-  /** (Opcional) Entrar no prédio: o meu, de qualquer lugar ("Ver como os outros veem"). */
+  /** (Optional) Enter the building: mine, from anywhere ("See it as others do"). */
   enter?(id: string): void;
   /**
-   * O que mais vai no fim do cartão (Fase 5, city/social.ts: curtir, bater, cumprimentar, bloquear, denunciar): um
-   * elemento que se atualiza sozinho, posto de volta a cada vez que o cartão é refeito.
+   * What else goes at the end of the card (Phase 5, city/social.ts: like, knock, greet, block, report): an
+   * element that updates itself, put back each time the card is rebuilt.
    */
   extras?(kind: 'building' | 'player', id: string): HTMLElement | null;
 }
 
-/** Os dois cartões (um de cada vez), posicionados perto do ponto da tela. */
+/** The two cards (one at a time), positioned near the point on the screen. */
 export class CityCards {
   readonly el: HTMLElement;
   private readonly title: HTMLElement;
@@ -137,7 +137,7 @@ export class CityCards {
   private readonly body: HTMLElement;
   private readonly avatar: HTMLElement;
   private readonly closeBtn: HTMLButtonElement;
-  /** O que está aberto: ('building'|'player', id) e se foi por clique (fica) ou por hover (some ao sair). */
+  /** What is open: ('building'|'player', id) and whether it was by click (stays) or by hover (goes away on leave). */
   kind: 'building' | 'player' | null = null;
   id: string | null = null;
   pinned = false;
@@ -200,7 +200,7 @@ export class CityCards {
       } else rows.push(h('div', { class: 'ui-city-card__muted', text: tr("Discreet mode: the owner doesn't show the agents.") }));
       if (m.closed) rows.push(h('div', { class: 'ui-city-card__muted', text: `🔒 ${tr('Closed to visitors')}` }));
       rows.push(h('div', { class: 'ui-city-card__row ui-city-card__foot' }, h('span', { text: `❤️ ${m.likes}` }), m.since ? h('span', { class: 'ui-city-card__since', text: tr('In the world since {0}', [m.since]) }) : null));
-      // o meu prédio: entrar de qualquer lugar e ver o que os outros veem lá dentro
+      // my building: enter from anywhere and see what the others see inside
       const enter = this.actions.enter;
       if (m.mine && enter) {
         const id = b.id;
@@ -255,14 +255,14 @@ export class CityCards {
     this.el.hidden = false;
   }
 
-  /** Perto do ponto (px da janela), sem sair da tela. */
+  /** Near the point (window px), without leaving the screen. */
   private place(at: { x: number; y: number }): void {
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     const w = this.el.offsetWidth || 260;
     const hgt = this.el.offsetHeight || 140;
     if (vw <= 520) {
-      // celular: o cartão fica embaixo, de lado a lado
+      // phone: the card stays at the bottom, from side to side
       this.el.style.transform = '';
       this.el.classList.add('is-docked');
       return;

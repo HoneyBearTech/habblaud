@@ -1,6 +1,6 @@
-// Estado da cidade: o snapshot do servidor local (WorldSceneSnapshot), área por chunk (substitui), patch (mescla,
-// substitui com `lot` e remove), chunks fora dos 3×3 saem, jogadores (entra, anda, sai; nunca eu), efeitos (pos, afk,
-// profile, notice), likes e minimapa.
+// City state: the local server's snapshot (WorldSceneSnapshot), area per chunk (replaces), patch (merges,
+// replaces with `lot` and removes), chunks outside the 3×3 leave, players (enters, walks, leaves; never me),
+// effects (pos, afk, profile, notice), likes and minimap.
 import { describe, expect, it } from 'vitest';
 import type { WorldSceneMe, WorldSceneSnapshot } from '../../../../shared/world/api';
 import type { WorldBuildingPublic, WorldPlayerPublic } from '../../../../shared/world/protocol';
@@ -91,7 +91,7 @@ describe('CityState', () => {
     expect(s.buildings.get('a')).toEqual(discreet);
     expect(s.buildings.get('a')).not.toHaveProperty('agents');
     expect(s.buildings.get('a')).not.toHaveProperty('closed');
-    // com `lot` mas sem o resto, não é um prédio: fica o que havia
+    // with `lot` but without the rest, it is not a building: what was there stays
     s.apply({ t: 'area.patch', chunk: 'c:0,0', rev: 3, changes: [{ id: 'a', lot: { district: 'centro', x: 9, y: 9 } }] }, 0);
     expect(s.buildings.get('a')?.lot).toEqual({ district: 'centro', x: 3, y: 0 });
   });
@@ -106,18 +106,18 @@ describe('CityState', () => {
 
   it('only the chunks of the 3×3 around the position stay (the server does not tell when it stops subscribing)', () => {
     const s = new CityState();
-    // chunk (0,0) = quarteirões 0..1 × 0..1; chunk (2,0) = quarteirões 4..5: longe da praça
+    // chunk (0,0) = blocks 0..1 × 0..1; chunk (2,0) = blocks 4..5: far from the plaza
     s.applySnapshot(snap({ chunks: [{ chunk: 'centro:0,0', rev: 1, buildings: [building('near', 3, 0)] }, { chunk: 'centro:2,0', rev: 5, buildings: [building('far', 12, 0)] }] }), 0);
     expect(s.keepAround(21, 15)).toBe(true);
     expect([...s.buildings.keys()]).toEqual(['near']);
     expect(s.buildingAt({ x: 12, y: 0 })).toBeUndefined();
     expect(s.chunkRev.has('centro:2,0')).toBe(false);
     expect(s.keepAround(21, 15)).toBe(false);
-    // no quarteirão (2,0) (chunk 1,0) os dois são vizinhos; um `area` traz o de lá de novo
+    // in block (2,0) (chunk 1,0) the two are neighbors; an `area` brings the one from there back
     s.apply({ t: 'area', chunk: 'centro:2,0', rev: 1, buildings: [building('far', 12, 0)] }, 0);
     expect(s.keepAround(2 * 51 + 2, 15)).toBe(false);
     expect(s.buildings.size).toBe(2);
-    // no quarteirão (4,0) (chunk 2,0), a praça fica de fora
+    // in block (4,0) (chunk 2,0), the plaza is left out
     expect(s.keepAround(4 * 51 + 2, 15)).toBe(true);
     expect([...s.buildings.keys()]).toEqual(['far']);
   });
@@ -145,7 +145,7 @@ describe('CityState', () => {
     expect(s.apply({ t: 'afk' }, 0)).toEqual({ type: 'afk' });
     const prof = s.apply({ t: 'profile', player: { ...player('x', 7, 7), intro: 'coffee', likesReceived: 9 } }, 0);
     expect(prof?.type).toBe('profile');
-    // o perfil atualiza os dados, mas a posição continua a das amostras
+    // the profile updates the data, but the position is still the one from the samples
     expect(s.players.get('x')!.info.likesReceived).toBe(9);
     expect(s.players.get('x')!.info.pos.x).toBe(1);
     expect(s.apply({ t: 'notice', level: 'warn', text: 'rate_limited' }, 0)).toEqual({ type: 'notice', level: 'warn', text: 'rate_limited' });

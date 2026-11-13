@@ -1,7 +1,8 @@
-// Lê os arquivos das entregas para o escritório. No modo Node o próprio servidor lê; no Docker, o que está numa pasta
-// montada (as pastas das contas, ex.: capturas em projects/) é lido aqui, e o resto o auxiliar do host busca:
-// POST /api/host/files/poll entrega os caminhos pedidos e /api/host/files/ack devolve o conteúdo (base64). Toda leitura
-// passa por checkFile (deliveries/files.ts), aqui e no auxiliar. Os arquivos lidos ficam num cache pequeno em memória.
+// Reads the delivery files for the office. In Node mode the server itself reads; in Docker, what is in a mounted
+// folder (the account folders, e.g. captures in projects/) is read here, and the host helper fetches the rest:
+// POST /api/host/files/poll hands over the requested paths and /api/host/files/ack returns the content (base64).
+// Every read goes through checkFile (deliveries/files.ts), here and in the helper. The files read stay in a small
+// in-memory cache.
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { tr } from '../../shared/i18n';
@@ -24,9 +25,9 @@ interface Pending {
 }
 
 export interface FileFetcherOptions {
-  /** Modo Node: lê direto do disco. */
+  /** Node mode: reads straight from disk. */
   direct?: boolean;
-  /** Docker: o caminho do host dentro do container, quando a pasta está montada (undefined = não está). */
+  /** Docker: the host path inside the container, when the folder is mounted (undefined = it is not). */
   mapHostPath?: (path: string) => string | undefined;
   read?: (path: string) => Buffer;
   check?: typeof checkFile;
@@ -76,7 +77,7 @@ export class FileFetcher {
     return r;
   }
 
-  /** Rodada do auxiliar: marca presença e entrega os caminhos pedidos. */
+  /** Helper round: marks presence and hands over the requested paths. */
   poll(): Array<{ id: string; path: string }> {
     this.host.seen();
     const out: Array<{ id: string; path: string }> = [];
@@ -88,7 +89,7 @@ export class FileFetcher {
     return out;
   }
 
-  /** Rodada com espera (?wait=1): sem nada pedido, fica parada até chegar um pedido ou passar `ms`. */
+  /** Round with wait (?wait=1): with nothing requested, it stays parked until a request arrives or `ms` passes. */
   pollWait(ms: number, signal?: AbortSignal): Promise<Array<{ id: string; path: string }>> {
     return pollWithWait(this.host, () => this.poll(), ms, signal);
   }

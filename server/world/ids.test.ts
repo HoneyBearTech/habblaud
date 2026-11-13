@@ -1,5 +1,5 @@
-// Ids do mundo (server/world/ids.ts) com relógio falso: aleatórios, estáveis por 24 h ± 6 h, trocados sozinhos, novos
-// para quem some e volta, e nunca derivados da chave do escritório.
+// World ids (server/world/ids.ts) with a fake clock: random, stable for 24 h ± 6 h, replaced on their own, new
+// for whoever disappears and comes back, and never derived from the office key.
 import { describe, expect, it } from 'vitest';
 import { ID_JITTER_MS, ID_LIFETIME_MS, WorldIds } from './ids';
 
@@ -27,9 +27,9 @@ describe('WorldIds', () => {
     let j = 0;
     const jitters = [-ID_JITTER_MS, ID_JITTER_MS, 0];
     const ids = new WorldIds({ jitter: () => jitters[j++ % jitters.length] });
-    const f1 = ids.floorId('/p/a', T0); // vive 18 h
-    const f2 = ids.floorId('/p/b', T0); // vive 30 h
-    const a1 = ids.agentId('m1', T0); // vive 24 h
+    const f1 = ids.floorId('/p/a', T0); // lives 18 h
+    const f2 = ids.floorId('/p/b', T0); // lives 30 h
+    const a1 = ids.agentId('m1', T0); // lives 24 h
     for (const t of [T0 + H, T0 + 17 * H]) {
       expect(ids.floorId('/p/a', t)).toBe(f1);
       expect(ids.floorId('/p/b', t)).toBe(f2);
@@ -58,7 +58,7 @@ describe('WorldIds', () => {
     const a = ids.agentId('m1', T0);
     ids.agentId('m2', T0);
     ids.sweep();
-    // Na projeção seguinte só /p/a e m2 aparecem: m1 é esquecido.
+    // In the next projection only /p/a and m2 appear: m1 is forgotten.
     expect(ids.floorId('/p/a', T0 + 1000)).toBe(f);
     ids.agentId('m2', T0 + 1000);
     ids.sweep();
@@ -72,7 +72,7 @@ describe('WorldIds', () => {
 
   it('no repeated id between keys, nor when changing', () => {
     let n = 0;
-    // Fonte "ruim": repete o mesmo valor algumas vezes antes de mudar.
+    // "Bad" source: repeats the same value a few times before changing.
     const ids = new WorldIds({ randomBytes: (len) => new Uint8Array(len).fill(Math.floor(n++ / 3)), jitter: () => 0 });
     const a = ids.agentId('m1', T0);
     const b = ids.agentId('m2', T0);

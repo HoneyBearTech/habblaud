@@ -76,7 +76,7 @@ describe('New agent attachments', () => {
     expect(store.put(file(6))).toEqual({ id: 'a1' });
     const taken = store.take(['a1']);
     expect(Array.isArray(taken) && taken.length).toBe(1);
-    // Os 6 bytes saíram do depósito, mas seguem na memória (pedido na fila): 6 + 6 passa do teto.
+    // The 6 bytes left the store, but are still in memory (request in the queue): 6 + 6 goes over the cap.
     expect(store.put(file(6))).toHaveProperty('error');
     store.release(6);
     expect(store.put(file(6))).toEqual({ id: 'a2' });

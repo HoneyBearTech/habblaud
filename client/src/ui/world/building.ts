@@ -1,13 +1,13 @@
-// Cartão "Seu prédio" (a janela do Habblaud World, conta aprovada) e a janela "Ver o que foi enviado".
+// "Your building" card (the Habblaud World window, approved account) and the "See what was sent" window.
 //
-// O cartão mostra a conexão, a pausa, a parada pedida pelo servidor do mundo (com o motivo) e "Fora do mundo"; o botão
-// "Sair do mundo" pede confirmação em dois cliques, como o "Sair da conta", e explica a diferença para a pausa. Fase 6:
-// conta suspensa ou banida ganha "Recorrer por e-mail" (mailto com o id da conta no assunto, quando se sabe), o prédio
-// "não verificado" mostra o selo com "Contestar por e-mail", e a manutenção do mundo aparece no lugar do "Reconectando".
-// O cartão é atualizado no lugar a cada render (contagens e "última remessa" mudam a cada poucos segundos sem refazer a
-// tela inteira, que perderia o foco). A janela mostra a última remessa exatamente como o servidor local a guardou
-// (GET /api/world/last-uplink): o JSON, o horário, o tamanho em bytes e a resposta do mundo. As regras e os textos
-// estão em world-model.ts (buildingView, ackView).
+// The card shows the connection, the pause, the stop requested by the world server (with the reason) and "Out of the
+// world"; the "Leave the world" button asks for confirmation in two clicks, like "Sign out", and explains how it differs
+// from the pause. Phase 6: a suspended or banned account gets "Appeal by e-mail" (mailto with the account id in the
+// subject, when known), the "unverified" building shows the badge with "Dispute by e-mail", and the world's maintenance
+// shows in place of "Reconnecting". The card is updated in place on every render (counts and "last upload" change
+// every few seconds without redoing the whole screen, which would lose the focus). The window shows the last upload
+// exactly as the local server stored it (GET /api/world/last-uplink): the JSON, the time, the size in bytes and the
+// world's response. The rules and the texts are in world-model.ts (buildingView, ackView).
 import { tr } from '../../../../shared/i18n';
 import type { WorldBuildingStatus, WorldClient, WorldLastUplink } from '../../net/world';
 import { copyText, h, iconButton, setAttr, setHidden, setText, setVariant } from '../dom';
@@ -19,19 +19,19 @@ import { ackView, appealMailto, buildingView, bytesText, leaveHint, prettyUplink
 
 export interface BuildingHost {
   readonly client: WorldClient | null;
-  /** O prédio segundo o último status (ou o snapshot, antes dele). */
+  /** The building according to the last status (or the snapshot, before it). */
   building(): WorldBuildingStatus | undefined;
   hasPlayer(): boolean;
-  /** Relê o status (depois de pausar ou retomar). */
+  /** Rereads the status (after pausing or resuming). */
   refresh(): void;
-  /** Abre a janela "Ver o que foi enviado". */
+  /** Opens the "See what was sent" window. */
   openSent(opener: HTMLElement): void;
-  /** "Ver como os outros veem": entra no próprio prédio pela cidade (null: a cena Mundo não está disponível aqui). */
+  /** "See it as others do": enters your own building through the city (null: the World scene isn't available here). */
   visitOwn?(): (() => void) | null;
   now(): number;
-  /** O id da conta no mundo, se o servidor local já sabe (vai no assunto do recurso). */
+  /** The account's id in the world, if the local server already knows it (it goes in the subject of the appeal). */
   accountId?(): string | undefined;
-  /** O mundo está em manutenção (o último status veio com `maintenance`). */
+  /** The world is under maintenance (the last status came with `maintenance`). */
   maintenance?(): boolean;
 }
 
@@ -54,12 +54,12 @@ export class BuildingCard {
   private readonly appealRow: HTMLElement;
   private readonly appealLink: HTMLAnchorElement;
   private readonly appealHint: HTMLElement;
-  /** Fase 5: o código do prédio e o "Enquanto você estava fora". */
+  /** Phase 5: the building's code and the "While you were away". */
   private readonly social: BuildingSocial;
   private statsKey = '';
   private busy = false;
   private action: 'pause' | 'resume' | 'join' | null = null;
-  /** Primeiro clique em "Sair do mundo" dado: o segundo confirma. */
+  /** First click on "Leave the world" done: the second confirms. */
   private confirmingLeave = false;
 
   constructor(private readonly host: BuildingHost) {
@@ -112,7 +112,7 @@ export class BuildingCard {
     this.sync();
   }
 
-  /** Atualiza no lugar (barato: só mexe no que mudou). */
+  /** Updates in place (cheap: only touches what changed). */
   sync(): void {
     const v = buildingView(this.host.building(), this.host.hasPlayer(), this.host.now(), { maintenance: this.host.maintenance?.() });
     setVariant(this.el, 'is-', v.state);
@@ -126,7 +126,8 @@ export class BuildingCard {
     setHidden(this.stats, !v.stats.length);
     setHidden(this.rejected, !v.rejected);
     setText(this.rejectedReason, v.rejected ?? '');
-    // "Ver o que foi enviado" fica sempre (sem personagem, nada saiu: a janela diz isso); o botão de pausa, só quando há.
+    // "See what was sent" always stays (with no character, nothing went out: the window says so); the pause button, only
+    // when there is one.
     setHidden(this.toggleBtn, !v.toggle);
     setHidden(this.hint, !v.toggle);
     if (v.toggle && !this.busy) {
@@ -134,7 +135,7 @@ export class BuildingCard {
       setText(this.toggleBtn, v.toggle.text);
       setText(this.hint, v.toggle.hint);
     }
-    // o próprio prédio, como os outros veem: com o prédio no mundo (aceso ou pausado) e a cena Mundo disponível
+    // your own building, as others see it: with the building in the world (lit or paused) and the World scene available
     setHidden(this.visitBtn, !(v.state === 'connected' || v.state === 'paused' || v.state === 'reconnecting') || !this.host.visitOwn?.());
     setHidden(this.leaveRow, !v.leave);
     if (!v.leave && this.confirmingLeave) this.resetLeave();
@@ -155,7 +156,7 @@ export class BuildingCard {
     this.leaveBtn.classList.remove('is-danger');
   }
 
-  /** "Sair do mundo" em dois cliques: o primeiro pede confirmação, o segundo retira o prédio. */
+  /** "Leave the world" in two clicks: the first asks for confirmation, the second removes the building. */
   private async leave(): Promise<void> {
     const client = this.host.client;
     if (this.busy || !client) return;
@@ -204,8 +205,8 @@ export class BuildingCard {
 }
 
 /**
- * Janela "Ver o que foi enviado". Fica dentro da janela do Habblaud World (um <dialog> dentro de outro): aberta como
- * modal, ela sobe para o topo da top layer sem fechar a do World, e Esc ou um clique fora fecham só ela.
+ * "See what was sent" window. It sits inside the Habblaud World window (a <dialog> inside another): opened as a
+ * modal, it goes to the top of the top layer without closing the World one, and Esc or a click outside close only it.
  */
 export class SentDialog {
   readonly el: HTMLDialogElement;

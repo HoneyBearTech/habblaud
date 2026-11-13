@@ -10,7 +10,7 @@ afterEach(async () => {
   while (closers.length) await closers.pop()!();
 });
 
-/** Servidor que responde sempre a mesma coisa (para os casos estranhos). */
+/** Server that always answers the same thing (for the odd cases). */
 async function rawServer(handler: http.RequestListener): Promise<string> {
   const server = http.createServer(handler);
   await new Promise<void>((ok) => server.listen(0, '127.0.0.1', ok));
@@ -45,7 +45,7 @@ describe('WorldClient', () => {
     if (!ver.ok) return;
     const me = await client.me(ver.data.token);
     expect(me.ok && me.data.account.emailMasked).toBe('a***@example.com');
-    // O nome do cadastro vem reservado enquanto não há personagem.
+    // The sign-up name comes reserved while there is no character.
     expect(me.ok && me.data.account.reservedName).toBe('Ana Pixel');
     expect(w.requests.map((r) => `${r.method} ${r.path} ${r.authorization ? 'auth' : '-'}`)).toEqual([
       'GET /v1/altcha -',
@@ -55,7 +55,7 @@ describe('WorldClient', () => {
     ]);
     expect(w.requests[3].authorization).toBe(`Bearer ${ver.data.token}`);
     expect(w.requests.every((r) => r.userAgent === 'Habblaud/9.9.9')).toBe(true);
-    // O token nunca vai na URL.
+    // The token never goes in the URL.
     expect(w.requests.some((r) => r.path.includes(ver.data.token))).toBe(false);
   });
 
@@ -111,7 +111,7 @@ describe('WorldClient', () => {
     expect(await client.me('t'.repeat(43))).toEqual({ ok: false, status: 429, code: 'rate_limited', retryAfter: 30 });
     expect(await client.verify({ email: 'a@b.co', code: '123456' })).toEqual({ ok: false, status: 500, code: 'world_error' });
     expect(await client.login({ email: 'a@b.co', password: 'x' })).toEqual({ ok: false, status: 400, code: 'world_error' });
-    // Redirecionamento não é seguido (o token nunca vai a outro endereço).
+    // A redirect is not followed (the token never goes to another address).
     expect(await client.logout('t'.repeat(43))).toEqual({ ok: false, status: 502, code: 'world_bad_response' });
   });
 
@@ -157,7 +157,7 @@ describe('WorldClient', () => {
     expect(exp).toEqual({ ok: true, status: 200, data: big });
     expect(seen.map((r) => `${r.method} ${r.url} ${r.body}`)).toEqual(['POST /v1/me/delete {}', `POST /v1/me/delete/confirm {"code":"${FAKE_CODE}"}`, 'GET /v1/me/export ']);
     expect(seen.every((r) => r.auth === 'Bearer tok_aaaaaaaaaaaaaaaa')).toBe(true);
-    // Uma lista (não um objeto) ou maior que o teto: resposta fora do formato.
+    // A list (not an object) or larger than the cap: response out of format.
     const odd = await rawServer((_req, res) => {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(_req.url === '/v1/me/export' ? '[1,2]' : '{}');
@@ -182,7 +182,7 @@ describe('WorldClient', () => {
 
   it('no connection and timeout', async () => {
     const base = await rawServer(() => {
-      // nunca responde
+      // never answers
     });
     const slow = new WorldClient({ baseUrl: base, version: '1', timeoutMs: 50 });
     expect(await slow.altcha()).toEqual({ ok: false, status: 504, code: 'world_timeout' });

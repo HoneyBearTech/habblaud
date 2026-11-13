@@ -1,4 +1,4 @@
-// Histórico fictício do "Meu dia" com a conta do Codex: ela sempre tem algum projeto, com tokens e sem custo.
+// Fictional "My day" history with the Codex account: it always has some project, with tokens and no cost.
 import { describe, expect, it } from 'vitest';
 import type { AgentInfo } from '../types';
 import { dayKeyOf, queryDay, StatsBook, type StatsView } from '../daystats';

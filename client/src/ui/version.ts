@@ -1,6 +1,6 @@
-// Versão do Habblaud: o número na barra superior, o selo "Nova versão" quando o GitHub tem uma release mais
-// nova (quem consulta é o servidor, server/updates/checker.ts), o aviso único por versão e a seção "Sobre"
-// das configurações (estado da verificação, "Verificar agora", novidades e como atualizar).
+// Habblaud version: the number in the top bar, the "New version" badge when GitHub has a newer
+// release (the server is the one that checks, server/updates/checker.ts), the one-time notice per version and the
+// "About" section of the settings (state of the check, "Check now", what's new and how to update).
 import type { Notice, OfficeSnapshot, UpdateStatus } from '../../../shared/types';
 import type { UiComponent, UiContext } from './context';
 import { h, setAttr, setHidden, setText, setTitle, setVariant } from './dom';
@@ -9,28 +9,28 @@ import { pixelIcon } from './icons';
 import { safeLocalStorage } from './prefs';
 import { tr } from '../../../shared/i18n';
 
-/** Última versão nova já avisada neste navegador (o aviso sai uma vez por versão). */
+/** Last new version already announced in this browser (the notice goes out once per version). */
 export const UPDATE_SEEN_KEY = 'habblaud:update-seen';
 
 export const VERSION_ICONS = {
   up: pixelIcon(['...##...', '..####..', '.######.', '########', '..####..', '..####..', '..####..', '..####..']),
 };
 
-/** Versão em uso e o resultado da verificação, do snapshot ao vivo (no timelapse e no ?mock=1 não há versão real). */
+/** Version in use and the result of the check, from the live snapshot (the timelapse and ?mock=1 have no real version). */
 export function versionInfo(snap: OfficeSnapshot | null | undefined): { version: string; updates?: UpdateStatus } | null {
   const v = snap?.meta.version;
   if (!v || !/^\d+\.\d+\.\d+/.test(v)) return null;
   return { version: v, updates: snap.meta.updates };
 }
 
-/** Só links do próprio GitHub viram link na página. */
+/** Only links to GitHub itself become a link on the page. */
 export function safeGithubUrl(url: string | undefined): string | undefined {
   return url && /^https:\/\/github\.com\/[^\s"'<>]+$/.test(url) ? url : undefined;
 }
 
 export type UpdateTone = 'new' | 'ok' | 'pending' | 'warn' | 'off';
 
-/** Linha de estado da seção "Sobre". */
+/** Status line of the "About" section. */
 export function updateStatusLine(version: string, s: UpdateStatus | undefined, now: number): { tone: UpdateTone; text: string } {
   if (!s) return { tone: 'off', text: tr("This server doesn't check for new versions.") };
   const checked = s.checkedAt ? ` · checked ${relativeTime(s.checkedAt, now)}` : '';
@@ -55,13 +55,13 @@ export function updateStatusLine(version: string, s: UpdateStatus | undefined, n
   }
 }
 
-/** Dica do número de versão na barra superior. */
+/** Tooltip of the version number in the top bar. */
 export function versionChipTitle(version: string, s: UpdateStatus | undefined, now: number): string {
   if (s?.available && s.latest) return tr("New Habblaud version: v{0} (you're on v{1}). Click to see what's new and how to update.", [s.latest, version]);
   return tr('Habblaud v{0}. {1} Click for details.', [version, updateStatusLine(version, s, now).text]);
 }
 
-/** Número da versão na barra superior; vira o selo "Nova versão" quando há release mais nova. */
+/** Version number in the top bar; becomes the "New version" badge when there is a newer release. */
 export class VersionChip implements UiComponent {
   readonly el: HTMLButtonElement;
   private text: HTMLElement;
@@ -93,7 +93,7 @@ export class VersionChip implements UiComponent {
   }
 }
 
-/** Avisa (uma vez por versão, neste navegador) quando aparece uma versão nova. */
+/** Notifies (once per version, in this browser) when a new version shows up. */
 export class UpdateToaster implements UiComponent {
   constructor(
     private ctx: UiContext,
@@ -112,13 +112,13 @@ export class UpdateToaster implements UiComponent {
       if (storage?.getItem(UPDATE_SEEN_KEY) === s.latest) return;
       storage?.setItem(UPDATE_SEEN_KEY, s.latest);
     } catch {
-      // Sem armazenamento: avisa uma vez por página aberta.
+      // No storage: notifies once per open page.
     }
     this.push({ id: `update:${s.latest}`, level: 'success', text: tr("New Habblaud version: v{0}. See what's new and how to update in Settings › About.", [s.latest]), at: this.ctx.now() });
   }
 }
 
-/** Seção "Sobre" das configurações. */
+/** "About" section of the settings. */
 export class AboutGroup {
   readonly el: HTMLElement;
   private name: HTMLElement;
@@ -188,7 +188,7 @@ export class AboutGroup {
     if (repoUrl) setAttr(this.repo, 'href', repoUrl);
   }
 
-  /** Rola até a seção e a destaca por um instante (clique no número da versão). */
+  /** Scrolls to the section and highlights it for a moment (click on the version number). */
   highlight(): void {
     this.el.scrollIntoView({ block: 'nearest' });
     this.el.classList.remove('is-highlight');

@@ -13,7 +13,7 @@ describe('office theme', () => {
     expect(seasonalThemeFor('auto', at(12, 27, 0))).toBe('none');
     expect(seasonalThemeFor('auto', at(1, 1))).toBe('none');
     expect(seasonalThemeFor('auto', at(7, 15))).toBe('none');
-    // Sem preferência (opções antigas do mundo) vale o automático.
+    // Without a preference (old world options) the automatic one applies.
     expect(seasonalThemeFor(undefined, at(10, 13))).toBe('halloween');
   });
 

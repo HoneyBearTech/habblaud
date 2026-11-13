@@ -19,7 +19,7 @@ interface Call {
   headers: Record<string, string>;
 }
 
-/** fetch falso: responde a fila `replies` em ordem e guarda as chamadas. */
+/** Fake fetch: answers the `replies` queue in order and keeps the calls. */
 function fakeFetch(replies: (Response | Error)[]): { fetch: typeof fetch; calls: Call[] } {
   const calls: Call[] = [];
   const fn = (async (url: string | URL, init?: RequestInit) => {

@@ -70,7 +70,7 @@ describe('migrateLegacyStateDir', () => {
     expect(read('.habblaud/names.json')).toBe('old');
     expect(read('.habblaud/usage/.claude.json')).toBe('new');
     expect(read('.habblaud/usage/.claude-conta2.json')).toBe('old, but more recent');
-    // O que perdeu para um arquivo mais novo fica na pasta antiga, que então não some.
+    // What lost to a newer file stays in the old folder, which then doesn't go away.
     expect(read('.codetown/usage/.claude.json')).toBe('old');
     expect(describeStateMigration(r)).toContain('names.json, usage/.claude-conta2.json');
   });

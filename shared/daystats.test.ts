@@ -83,10 +83,10 @@ describe('time zones and days', () => {
 
   it('start of the day and local time in the requested time zone', () => {
     expect(dayStart(DAY, 'UTC')).toBe(Date.UTC(2026, 9, 8));
-    // São Paulo (UTC-3, sem horário de verão): o dia começa às 03:00 UTC.
+    // São Paulo (UTC-3, no daylight saving time): the day starts at 03:00 UTC.
     expect(dayStart(DAY, 'America/Sao_Paulo')).toBe(Date.UTC(2026, 9, 8, 3));
     expect(dayKeyOf(Date.UTC(2026, 9, 8, 2, 59), 'America/Sao_Paulo')).toBe('2026-10-07');
-    // Dia de 23 h (horário de verão europeu começa em 29/03/2026).
+    // 23 h day (European daylight saving time starts on 03/29/2026).
     const r = dayRange('2026-03-29', 'Europe/Lisbon');
     expect(r.end - r.start).toBe(23 * H);
   });
@@ -116,7 +116,7 @@ describe('time zones and days', () => {
 describe('StatsTracker: time per status', () => {
   it('integrates the time between samples and splits the interval at statusSince', () => {
     const { tracker, day } = setup();
-    tracker.observe(view(agent({ id: 'a' })), T0); // primeira vez: só a referência
+    tracker.observe(view(agent({ id: 'a' })), T0); // first time: only the baseline
     tracker.observe(view(agent({ id: 'a' })), T0 + 60 * S);
     tracker.observe(view(agent({ id: 'a', status: 'waiting', statusSince: T0 + 90 * S, waitingFor: 'approve a permission' })), T0 + 120 * S);
     tracker.observe(view(agent({ id: 'a', status: 'waiting', statusSince: T0 + 90 * S })), T0 + 180 * S);
@@ -154,7 +154,7 @@ describe('StatsTracker: time per status', () => {
     expect(d.totals.ms.waiting).toBe(240 * S);
     expect(d.totals.waitWallMs).toBe(120 * S);
     expect(d.totals.waits).toBe(2);
-    // Por projeto: ordenado pelo tempo esperando você (empate: maior tempo total, depois nome).
+    // By project: sorted by the time waiting on you (tie: larger total time, then name).
     expect(d.rooms.map((r) => [r.name, r.ms.waiting])).toEqual([
       ['api', 120 * S],
       ['store', 120 * S],
@@ -179,10 +179,10 @@ describe('StatsTracker: time per status', () => {
     const stats = (n: number) => ({ toolCalls: n, tokensIn: n * 1000, tokensOut: n * 10, subagents: 0 });
     tracker.observe(view(agent({ id: 'a', status: 'waiting', statusSince: T0, stats: stats(10) })), T0);
     tracker.observe(view(agent({ id: 'a', status: 'waiting', statusSince: T0, stats: stats(10) })), T0 + 30 * S);
-    // Some do escritório por um minuto...
+    // Disappears from the office for a minute...
     tracker.observe(view(), T0 + 31 * S);
     tracker.observe(view(), T0 + 60 * S);
-    // ...e volta trabalhando, com 5 ferramentas a mais.
+    // ...and comes back working, with 5 more tools.
     tracker.observe(view(agent({ id: 'a', status: 'working', statusSince: T0 + 80 * S, stats: stats(15) })), T0 + 90 * S);
     const d = day();
     expect(d.totals.counts.toolCalls).toBe(5);
@@ -218,14 +218,14 @@ describe('StatsTracker: time per status', () => {
     expect(d2.totals.ms.waiting).toBe(30 * S);
     expect(d1.hours[23].ms.waiting).toBe(30 * S);
     expect(d2.hours[0].ms.waiting).toBe(30 * S);
-    // A espera atravessa a meia-noite: aparece nos dois dias, com a duração inteira, e segue em curso.
+    // The wait crosses midnight: it shows up on both days, with the whole duration, and is still ongoing.
     expect(d2.waits[0]).toMatchObject({ start: midnight - 30 * S, end: midnight + 30 * S, ms: 60 * S, ongoing: true });
     expect(d1.waits[0].ms).toBe(60 * S);
   });
 
   it('the day is built in the time zone of whoever asks', () => {
     const { book, tracker } = setup('UTC');
-    // 02:00–02:10 UTC = 23:00–23:10 do dia anterior em São Paulo.
+    // 02:00–02:10 UTC = 23:00–23:10 of the previous day in São Paulo.
     const t = Date.UTC(2026, 9, 8, 2);
     for (let m = 0; m <= 10; m++) tracker.observe(view(agent({ id: 'a', statusSince: t - MIN })), t + m * MIN);
     const utc = queryDay(book.list(), '2026-10-08', 'UTC', t + H);
@@ -243,14 +243,14 @@ describe('StatsTracker: counts from the cumulative numbers', () => {
     const { tracker, day } = setup('UTC', T0 - H);
     const a = (sec: number, toolCalls: number, tokensIn: number, extra: Partial<AgentInfo> = {}) =>
       tracker.observe(view(agent({ id: 'a', stats: { toolCalls, tokensIn, tokensOut: tokensIn / 100, subagents: 0 }, ...extra })), T0 + sec * S);
-    a(0, 100, 1_000_000); // já existia: nada conta
-    a(10, 150, 1_500_000); // começo do transcript lido em segundo plano (dentro da janela de base)
-    a(SETTLE_MS / S + 10, 152, 1_550_000); // +2 ferramentas, +50 mil tokens
-    a(SETTLE_MS / S + 11, 20, 200_000); // arquivo regravado: só a janela do fim (números menores)
-    a(SETTLE_MS / S + 12, 152, 1_550_000); // começo lido de novo: volta ao que já era
-    a(SETTLE_MS / S + 13, 155, 1_560_000); // +3, +10 mil
-    a(SETTLE_MS / S + 14, 300, 9_000_000); // salto impossível em 1 s: releitura, não uso
-    a(SETTLE_MS / S + 15, 301, 9_001_000); // +1, +1 mil
+    a(0, 100, 1_000_000); // already existed: nothing counts
+    a(10, 150, 1_500_000); // start of the transcript read in the background (inside the baseline window)
+    a(SETTLE_MS / S + 10, 152, 1_550_000); // +2 tools, +50 thousand tokens
+    a(SETTLE_MS / S + 11, 20, 200_000); // file rewritten: only the window at the end (smaller numbers)
+    a(SETTLE_MS / S + 12, 152, 1_550_000); // start read again: back to what it already was
+    a(SETTLE_MS / S + 13, 155, 1_560_000); // +3, +10 thousand
+    a(SETTLE_MS / S + 14, 300, 9_000_000); // impossible jump in 1 s: a reread, not usage
+    a(SETTLE_MS / S + 15, 301, 9_001_000); // +1, +1 thousand
     const c = day().totals.counts;
     expect(c.toolCalls).toBe(6);
     expect(c.tokensIn).toBe(61_000);
@@ -263,10 +263,10 @@ describe('StatsTracker: counts from the cumulative numbers', () => {
     const obs = (sec: number, cost: number | undefined, done: number, total = 3) =>
       tracker.observe(view(agent({ id: 'a', tasks: tasks(done, total), stats: { toolCalls: 0, tokensIn: 0, tokensOut: 0, subagents: 0, ...(cost === undefined ? {} : { costUSD: cost }) } })), T0 + sec * S);
     obs(0, undefined, 1);
-    obs(SETTLE_MS / S + 1, 5, 1); // custo da sessão inteira apareceu: não é gasto de hoje
-    obs(SETTLE_MS / S + 2, 5.5, 2); // +0,50 e +1 tarefa
-    obs(SETTLE_MS / S + 3, 5.5, 0, 4); // lista nova (TodoWrite): nada conta
-    obs(SETTLE_MS / S + 4, 5.75, 1, 4); // +0,25 e +1 tarefa
+    obs(SETTLE_MS / S + 1, 5, 1); // cost of the whole session showed up: it is not today's spending
+    obs(SETTLE_MS / S + 2, 5.5, 2); // +0.50 and +1 task
+    obs(SETTLE_MS / S + 3, 5.5, 0, 4); // new list (TodoWrite): nothing counts
+    obs(SETTLE_MS / S + 4, 5.75, 1, 4); // +0.25 and +1 task
     const c = day().totals.counts;
     expect(c.costUSD).toBe(0.75);
     expect(c.tasksDone).toBe(2);
@@ -297,11 +297,11 @@ describe('StatsTracker: counts from the cumulative numbers', () => {
       tracker.observe(view(agent({ id: 'a', sessionId, stats: { toolCalls, tokensIn: 0, tokensOut: 0, subagents: 0 } })), T0 + sec * S);
     obs(0, 's1', 50);
     obs(SETTLE_MS / S + 1, 's1', 52); // +2
-    obs(SETTLE_MS / S + 2, 's2', 0); // /clear: sessão nova, vazia
+    obs(SETTLE_MS / S + 2, 's2', 0); // /clear: new session, empty
     obs(SETTLE_MS / S + 3, 's2', 4); // +4
-    obs(SETTLE_MS / S + 4, 's3', 40); // /resume de uma sessão antiga: nada conta
-    obs(SETTLE_MS / S + 5, 's3', 41); // dentro da janela de base
-    obs(2 * SETTLE_MS / S + 10, 's3', 43); // +2 (desde o maior valor visto)
+    obs(SETTLE_MS / S + 4, 's3', 40); // /resume of an old session: nothing counts
+    obs(SETTLE_MS / S + 5, 's3', 41); // inside the baseline window
+    obs(2 * SETTLE_MS / S + 10, 's3', 43); // +2 (since the highest value seen)
     const d = day();
     expect(d.totals.counts.toolCalls).toBe(8);
     expect(d.totals.sessions).toBe(3);
@@ -326,8 +326,8 @@ describe('limit of waits per day', () => {
     const day = book.day(DAY);
     for (let i = 0; i < MAX_WAITS_PER_DAY + 20; i++) book.addWait(wait(i));
     expect(day.waits).toHaveLength(MAX_WAITS_PER_DAY);
-    expect(day.waits.some((w) => w.agentId === 'a0')).toBe(false); // a mais curta saiu
-    expect(day.waits.some((w) => w.agentId === `a${MAX_WAITS_PER_DAY + 19}`)).toBe(true); // a mais longa ficou
+    expect(day.waits.some((w) => w.agentId === 'a0')).toBe(false); // the shortest one left
+    expect(day.waits.some((w) => w.agentId === `a${MAX_WAITS_PER_DAY + 19}`)).toBe(true); // the longest one stayed
   });
 
   it('all still open: the limit applies just the same (the shortest one goes out)', () => {
@@ -358,7 +358,7 @@ describe('day file', () => {
     const before = queryDay(book.list(), DAY, 'UTC', T0 + H);
     const back = book.list().map((d) => parseDayFile(JSON.parse(JSON.stringify(d.toFile())), d.key)!);
     const after = queryDay(back, DAY, 'UTC', T0 + H);
-    // A espera continua aberta no arquivo (o servidor pode ter parado no meio dela).
+    // The wait is still open in the file (the server may have stopped in the middle of it).
     expect({ ...after, waits: after.waits.map((w) => ({ ...w, ongoing: undefined })) }).toEqual({ ...before, waits: before.waits.map((w) => ({ ...w, ongoing: undefined })) });
     expect(back[0].waits[0].open).toBe(true);
   });
@@ -415,18 +415,18 @@ describe('fictitious demo history', () => {
     };
     seedDemoHistory(book, v, now, 'UTC', 42);
     const d = queryDay(book.list(), DAY, 'UTC', now);
-    // Ontem inteiro também (para os prints feitos de manhã).
+    // All of yesterday too (for the screenshots taken in the morning).
     expect(queryDay(book.list(), '2026-10-07', 'UTC', now).hours.filter((h) => h.ms.working > 0).length).toBeGreaterThan(12);
     expect(d.totals.ms.working).toBeGreaterThan(H);
     expect(d.totals.ms.waiting).toBeGreaterThan(0);
     expect(d.totals.counts.tokensIn).toBeGreaterThan(0);
     expect(d.totals.counts.costUSD).toBeGreaterThan(0);
     expect(d.waits.length).toBeGreaterThan(0);
-    // As salas abertas e os outros projetos do demo, todos com o mesmo prefixo.
+    // The open rooms and the other demo projects, all with the same prefix.
     expect(new Set(d.rooms.map((r) => r.name))).toEqual(new Set(DEMO_PROJECT_NAMES));
     expect(d.rooms.every((r) => r.id.startsWith('demo:/dev/'))).toBe(true);
     expect(d.accounts.every((a) => a.id.startsWith('demo:'))).toBe(true);
-    // Nada depois de "agora", e madrugada parada.
+    // Nothing after "now", and a quiet small-hours stretch.
     expect(d.hours.filter((h) => h.t > now).every((h) => h.ms.working === 0)).toBe(true);
     expect(d.hours[3].ms.working).toBe(0);
     expect(run()).toEqual(d);

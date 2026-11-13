@@ -1,4 +1,4 @@
-// Cartões: bandeira só de código ISO-2, andares com teto de 24 ("24+"), mês sem fuso, modo discreto, perfil.
+// Cards: flag only from an ISO-2 code, floors capped at 24 ("24+"), month with no time zone, discreet mode, profile.
 import { describe, expect, it } from 'vitest';
 import type { WorldBuildingPublic, WorldPlayerPublic } from '../../../../shared/world/protocol';
 import { CARD_MAX_FLOORS, buildingCardModel, flagEmoji, floorsLabel, likesLabel, monthLabel, playerCardModel } from './cards';

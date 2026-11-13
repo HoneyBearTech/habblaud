@@ -1,23 +1,23 @@
-// Instala (ou remove) o hook de permissão do Habblaud em cada conta do Claude Code. Roda no HOST, com tsx:
+// Installs (or removes) Habblaud's permission hook in each Claude Code account. Runs on the HOST, with tsx:
 //
-//   npm run hooks:install     # acrescenta o hook PermissionRequest em <conta>/settings.json (backup antes)
-//   npm run hooks:uninstall   # tira só o hook do Habblaud (os seus hooks ficam)
-//   npm run hooks:status      # mostra, por conta, se está instalado, e se o Habblaud está respondendo pedidos
-//   (opções: --dry-run, --node <caminho>, --port <n>, --timeout <s>)
+//   npm run hooks:install     # adds the PermissionRequest hook in <account>/settings.json (backup first)
+//   npm run hooks:uninstall   # removes only Habblaud's hook (your hooks stay)
+//   npm run hooks:status      # shows, per account, if it is installed, and if Habblaud is answering requests
+//   (options: --dry-run, --node <path>, --port <n>, --timeout <s>)
 //
-// No Claude Code 2.1.287+ o mesmo hook vem pronto no plugin `habblaud-permissoes` do marketplace do
-// repositório (mod/habblaud-permissoes, que roda o MESMO script); este instalador fica para as versões
-// anteriores e para tirar instalações antigas.
+// In Claude Code 2.1.287+ the same hook comes ready in the `habblaud-permissoes` plugin of the repository's
+// marketplace (mod/habblaud-permissoes, which runs the SAME script); this installer stays for the earlier
+// versions and for removing old installations.
 //
-// O hook (mod/habblaud-permissoes/hooks/permission-hook.mjs) deixa aprovar ou recusar pelo escritório os
-// pedidos de permissão ("Do you want to…"): o Claude Code continua mostrando o diálogo no terminal e vale o
-// que você responder primeiro. Sem o Habblaud no ar ou sem nenhuma página aberta, o hook sai na hora e nada muda.
+// The hook (mod/habblaud-permissoes/hooks/permission-hook.mjs) lets you approve or deny from the office the
+// permission requests ("Do you want to…"): Claude Code keeps showing the dialog in the terminal and what counts is
+// what you answer first. With Habblaud down or with no page open, the hook exits right away and nothing changes.
 //
-// Em <conta>/settings.json só a lista hooks.PermissionRequest muda: entra um grupo {matcher: "*", hooks:
+// In <account>/settings.json only the hooks.PermissionRequest list changes: a group {matcher: "*", hooks:
 // [{type: "command", command: 'node "<Habblaud>/mod/habblaud-permissoes/hooks/permission-hook.mjs"', timeout,
-// statusMessage}]} (os demais hooks e chaves ficam como estão). Antes de gravar, uma cópia vai para
-// settings.json.habblaud-backup-<data>. Rodar de novo atualiza o caminho/opções sem duplicar (e troca o
-// caminho antigo, scripts/permission-hook.mjs, de antes da 0.3, e o do nome antigo, mod/codetown-permissoes/).
+// statusMessage}]} goes in (the other hooks and keys stay as they are). Before writing, a copy goes to
+// settings.json.habblaud-backup-<date>. Running it again updates the path/options without duplicating (and replaces
+// the old path, scripts/permission-hook.mjs, from before 0.3, and the old name's, mod/codetown-permissoes/).
 import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
@@ -28,25 +28,25 @@ import { tr } from '../shared/i18n';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const HOOK_SCRIPT = join(ROOT, 'mod', 'habblaud-permissoes', 'hooks', 'permission-hook.mjs');
-/** Onde o script ficava até a 0.2 (instalações antigas apontam para cá; o status avisa e manda reinstalar). */
+/** Where the script lived up to 0.2 (old installations point here; the status warns and says to reinstall). */
 export const LEGACY_HOOK_SCRIPT = join(ROOT, 'scripts', 'permission-hook.mjs');
 /**
- * O hook é reconhecido pelo NOME do arquivo, em qualquer pasta: assim o caminho antigo (scripts/), o do nome
- * antigo (mod/codetown-permissoes/hooks/, que não existe mais) e o novo (mod/habblaud-permissoes/hooks/) contam
- * como "nosso", e install/uninstall trocam ou tiram qualquer um deles.
+ * The hook is recognized by the file NAME, in any folder: this way the old path (scripts/), the old name's
+ * (mod/codetown-permissoes/hooks/, which no longer exists) and the new one (mod/habblaud-permissoes/hooks/) count
+ * as "ours", and install/uninstall replace or remove any of them.
  */
 const HOOK_NAME = 'permission-hook.mjs';
 const EVENT = 'PermissionRequest';
 export const DEFAULT_PORT = 4747;
 export const DEFAULT_TIMEOUT_S = 300;
-/** Folga do tempo limite do Claude Code sobre o do hook (o hook sempre desiste antes). */
+/** Slack of Claude Code's timeout over the hook's (the hook always gives up first). */
 const TIMEOUT_SLACK_S = 30;
 export const STATUS_MESSAGE = tr('Waiting for an answer in Habblaud');
 
 const USAGE = tr("Usage: npm run hooks:<install|uninstall|status> [-- options]\n\n  install     adds the Habblaud permission hook to each account (backs up settings.json)\n  uninstall   removes the Habblaud hook from each account (other hooks stay)\n  status      shows whether the hook is installed and whether Habblaud is handling requests\n\nOptions:\n  --dry-run        shows what would change, without writing anything\n  --node <cmd>     node command used in the hook (default: detected in PATH)\n  --port <n>       Habblaud port (default: HABBLAUD_PORT or {0})\n  --timeout <s>    how long the hook waits for your answer in Habblaud before handing the request back to the terminal\n                   (default: {1} s)\n  -h, --help       shows this help\n\nAccounts: the same as the server's (~/.claude* with projects/ or sessions/, CLAUDE_CONFIG_DIR or\nHABBLAUD_CLAUDE_DIRS).", [DEFAULT_PORT, DEFAULT_TIMEOUT_S]);
 
 // ---------------------------------------------------------------------------------------------
-// Funções puras (testadas em server/test/hooks-install.test.ts)
+// Pure functions (tested in server/test/hooks-install.test.ts)
 // ---------------------------------------------------------------------------------------------
 
 export interface HookOptions {
@@ -60,7 +60,7 @@ function rec(v: unknown): Rec | undefined {
   return v && typeof v === 'object' && !Array.isArray(v) ? (v as Rec) : undefined;
 }
 
-/** `node "<hook>"`, com --port/--timeout só quando diferentes do padrão. */
+/** `node "<hook>"`, with --port/--timeout only when different from the default. */
 export function hookCommand(nodeCmd: string, scriptPath: string, o: HookOptions): string {
   const node = /^[\w@%+=:,./~-]+$/.test(nodeCmd) ? nodeCmd : quotePath(nodeCmd);
   let cmd = `${node} ${quotePath(scriptPath)}`;
@@ -69,7 +69,7 @@ export function hookCommand(nodeCmd: string, scriptPath: string, o: HookOptions)
   return cmd;
 }
 
-/** O hook como o Claude Code o lê em hooks.PermissionRequest[].hooks[]. */
+/** The hook as Claude Code reads it in hooks.PermissionRequest[].hooks[]. */
 export function hookEntry(command: string, o: HookOptions): Rec {
   return { type: 'command', command, timeout: o.timeoutS + TIMEOUT_SLACK_S, statusMessage: STATUS_MESSAGE };
 }
@@ -85,7 +85,7 @@ export type PlanAction =
   | { action: 'none'; message: string }
   | { action: 'skip'; message: string };
 
-/** hooks e hooks.PermissionRequest num formato que dá para editar (ou o motivo para não mexer). */
+/** hooks and hooks.PermissionRequest in a format that can be edited (or the reason not to touch it). */
 function eventList(settings: Settings): { hooks: Rec; list: unknown[] } | string {
   if (settings.hooks !== undefined && !rec(settings.hooks)) return tr('"hooks" in an unknown format; nothing was changed');
   const hooks = rec(settings.hooks) ?? {};
@@ -93,7 +93,7 @@ function eventList(settings: Settings): { hooks: Rec; list: unknown[] } | string
   return { hooks, list: (hooks[EVENT] as unknown[] | undefined) ?? [] };
 }
 
-/** Lista sem os hooks do Habblaud (grupos que ficarem vazios saem); `removed` = quantos saíram. */
+/** List without Habblaud's hooks (groups left empty go away); `removed` = how many went away. */
 function withoutOurs(list: unknown[]): { list: unknown[]; removed: number } {
   let removed = 0;
   const out: unknown[] = [];
@@ -111,7 +111,7 @@ function withoutOurs(list: unknown[]): { list: unknown[]; removed: number } {
   return { list: out, removed };
 }
 
-/** Plano de instalação para um settings.json já lido (não grava nada). */
+/** Installation plan for a settings.json already read (writes nothing). */
 export function planInstall(settings: Settings, entry: Rec): PlanAction {
   const ev = eventList(settings);
   if (typeof ev === 'string') return { action: 'skip', message: ev };
@@ -128,7 +128,7 @@ export function planInstall(settings: Settings, entry: Rec): PlanAction {
   return { action: 'install', settings: next, message: mine.length ? tr('updated (new Habblaud path, node path or options)') : tr('installed') };
 }
 
-/** Plano de remoção: tira só os hooks do Habblaud (e o que ficar vazio por causa disso). */
+/** Removal plan: removes only Habblaud's hooks (and whatever is left empty because of that). */
 export function planUninstall(settings: Settings): PlanAction {
   const ev = eventList(settings);
   if (typeof ev === 'string') return { action: 'skip', message: ev };
@@ -143,7 +143,7 @@ export function planUninstall(settings: Settings): PlanAction {
   return { action: 'uninstall', settings: next, message: tr('Habblaud hook removed') };
 }
 
-/** Hook do Habblaud instalado nesta conta (o primeiro), ou undefined. */
+/** Habblaud hook installed in this account (the first one), or undefined. */
 export function installedHook(settings: Settings): Rec | undefined {
   const ev = eventList(settings);
   if (typeof ev === 'string') return undefined;
@@ -156,7 +156,7 @@ export function installedHook(settings: Settings): Rec | undefined {
   return undefined;
 }
 
-/** Caminho do script num comando instalado (entre aspas duplas ou simples, ou sem aspas). */
+/** Path of the script in an installed command (in double or single quotes, or without quotes). */
 export function scriptPathOf(command: string): string | undefined {
   const m = /("[^"]*permission-hook\.mjs"|'(?:[^']|'\\'')*permission-hook\.mjs'|\S*permission-hook\.mjs)/.exec(command);
   if (!m) return undefined;
@@ -167,7 +167,7 @@ export function scriptPathOf(command: string): string | undefined {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Efeitos (arquivos e o /api/health do Habblaud)
+// Effects (files and Habblaud's /api/health)
 // ---------------------------------------------------------------------------------------------
 
 export interface RunOptions extends HookOptions {
@@ -182,7 +182,7 @@ export interface RunContext {
   now: Date;
   hookPath: string;
   out: (line: string) => void;
-  /** Consulta o /api/health do Habblaud (testes injetam um falso). */
+  /** Queries Habblaud's /api/health (tests inject a fake one). */
   health?: (port: number) => Promise<{ permissions?: boolean } | undefined>;
 }
 
@@ -225,7 +225,7 @@ async function fetchHealth(port: number): Promise<{ permissions?: boolean } | un
   }
 }
 
-/** Executa o comando para todas as contas. Devolve o código de saída. */
+/** Runs the command for all accounts. Returns the exit code. */
 export async function run(opts: RunOptions, ctx: RunContext): Promise<number> {
   const { env, home, out } = ctx;
   const dirs = discoverClaudeDirs(env, home);

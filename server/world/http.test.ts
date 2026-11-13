@@ -1,6 +1,6 @@
-// Rotas locais do Habblaud World (/api/world/*) com o servidor do mundo de mentira (server/test/fake-world.ts): as
-// travas, a validação e o caminho inteiro de ponta a ponta (cadastro → verificação → lista de espera → entrar →
-// personagem → sair), conferindo que o token do dispositivo nunca aparece fora do world.json.
+// Local Habblaud World routes (/api/world/*) with the fake world server (server/test/fake-world.ts): the
+// locks, the validation and the whole path end to end (sign-up → verification → waitlist → sign in →
+// character → sign out), checking that the device token never shows up outside world.json.
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { existsSync, readFileSync, statSync } from 'node:fs';
@@ -28,7 +28,7 @@ setQuiet(true);
 const EMAIL = 'ana@example.com';
 const PASSWORD = 'a very long password';
 const NAME = 'Ana Pixel';
-/** O cadastro: o nome de jogador é obrigatório (fica reservado na lista de espera). */
+/** Sign-up: the player name is required (it stays reserved on the waitlist). */
 const REGISTER = { email: EMAIL, password: PASSWORD, name: NAME };
 const CHARACTER = {
   name: 'Ana Pixel',
@@ -58,7 +58,7 @@ afterEach(async () => {
   vi.restoreAllMocks();
 });
 
-/** A porta local do Habblaud (guard + API), com o mundo como no server/index.ts. */
+/** Habblaud's local port (guard + API), with the world as in server/index.ts. */
 async function start(opts: { world?: 'off' | 'no-url' | 'on'; terminal?: boolean; meTtlMs?: number; uplink?: boolean } = {}): Promise<Harness> {
   const mode = opts.world ?? 'on';
   const tmp = tempDir();
@@ -95,7 +95,7 @@ async function start(opts: { world?: 'off' | 'no-url' | 'on'; terminal?: boolean
   const hub = new Hub(office, { throttleMs: 0 });
   hub.start();
   closers.push(() => hub.stop());
-  // O prédio, como no server/index.ts (com esperas curtas).
+  // The building, as in server/index.ts (with short waits).
   const lastFile = join(tmp.dir, 'data', 'world-last-uplink.json');
   const uplink =
     opts.uplink && service && fake
@@ -120,7 +120,7 @@ async function start(opts: { world?: 'off' | 'no-url' | 'on'; terminal?: boolean
     uplink.start();
     closers.push(() => uplink.stop());
   }
-  // A cena Mundo, como no server/index.ts (só com o uplink).
+  // The World scene, as in server/index.ts (with the uplink only).
   const viewer = uplink ? new WorldViewer() : undefined;
   if (uplink && viewer) {
     viewer.attach(uplink);
@@ -152,7 +152,7 @@ async function start(opts: { world?: 'off' | 'no-url' | 'on'; terminal?: boolean
   return { base: `http://127.0.0.1:${(server.address() as AddressInfo).port}`, hub, office, uplink, viewer, lastFile, service, store, file, world: fake };
 }
 
-/** Todas as respostas locais do teste, para conferir que o token nunca sai. */
+/** All the local responses of the test, to check that the token never gets out. */
 const seen: string[] = [];
 
 async function call(
@@ -212,7 +212,8 @@ describe('HABBLAUD_WORLD and HABBLAUD_WORLD_URL', () => {
   it('parseWorldConfig: only https/wss; http://127.0.0.1 in development mode; only the origin', () => {
     const p = (url: string | undefined, extra: NodeJS.ProcessEnv = {}, argv: string[] = []) =>
       parseWorldConfig({ HABBLAUD_WORLD_URL: url, ...extra }, argv);
-    // Sem HABBLAUD_WORLD_URL (ou vazia), o servidor do mundo padrão; definida, vale a definida (e recusada não cai no padrão).
+    // Without HABBLAUD_WORLD_URL (or empty), the default world server; when set, the set one is used (and a refused one
+    // does not fall back to the default).
     expect(p(undefined)).toEqual({ enabled: true, dev: false, url: DEFAULT_WORLD_URL, defaultUrl: true });
     expect(p('  ')).toEqual({ enabled: true, dev: false, url: DEFAULT_WORLD_URL, defaultUrl: true });
     expect(DEFAULT_WORLD_URL).toBe('https://server.habblaud.com');
@@ -227,7 +228,7 @@ describe('HABBLAUD_WORLD and HABBLAUD_WORLD_URL', () => {
     expect(p('ws://127.0.0.1:4848', { HABBLAUD_WORLD_DEV: '1' }).url).toBe('http://127.0.0.1:4848');
     expect(p('http://localhost:4848', {}, ['--dev']).url).toBeUndefined();
     expect(p('http://10.0.0.5:4848', {}, ['--dev']).url).toBeUndefined();
-    // O servidor do mundo no host, visto de dentro do container do Habblaud (docker-compose.yml: extra_hosts).
+    // The world server on the host, seen from inside the Habblaud container (docker-compose.yml: extra_hosts).
     expect(p('http://host.docker.internal:4848', { HABBLAUD_WORLD_DEV: '1' }).url).toBe('http://host.docker.internal:4848');
     expect(p('ws://host.docker.internal:4848', {}, ['--dev']).url).toBe('http://host.docker.internal:4848');
     expect(p('http://host.docker.internal:4848').url).toBeUndefined();
@@ -238,7 +239,7 @@ describe('HABBLAUD_WORLD and HABBLAUD_WORLD_URL', () => {
     for (const bad of ['https://user:pw@server.habblaud.com', 'https://server.habblaud.com/v1', 'https://server.habblaud.com/?x=1', 'https://x/#a', 'nothing']) {
       expect(p(bad).url, bad).toBeUndefined();
       expect(p(bad).warning, bad).toBeTruthy();
-      // O aviso não repete a URL (pode ter senha).
+      // The notice does not repeat the URL (it may have a password).
       expect(p(bad).warning).not.toContain('pw@');
     }
     expect(p('https://server.habblaud.com', { HABBLAUD_WORLD: '0' })).toEqual({ enabled: false, dev: false });
@@ -314,7 +315,7 @@ describe('validation before going to the world server', () => {
     };
     expect(await code('POST', '/api/world/register', { email: 'no-at-sign', password: PASSWORD, name: NAME })).toBe('400 invalid_email');
     expect(await code('POST', '/api/world/register', { email: EMAIL, password: 'short', name: NAME })).toBe('400 password_invalid');
-    // O nome de jogador é obrigatório e é conferido antes da senha, como no servidor do mundo.
+    // The player name is required and is checked before the password, as on the world server.
     expect(await code('POST', '/api/world/register', { email: EMAIL, password: 'short' })).toBe('422 name_invalid');
     expect(await code('POST', '/api/world/register', { email: EMAIL, password: PASSWORD, name: 'Admin' })).toBe('422 name_blocked');
     expect(await code('POST', '/api/world/register', { email: EMAIL, password: PASSWORD, name: 'a!' })).toBe('422 name_invalid');
@@ -329,10 +330,10 @@ describe('validation before going to the world server', () => {
     expect(await code('PUT', '/api/world/character', { ...CHARACTER, intro: 'emacs' })).toBe('422 invalid');
     expect(await code('PUT', '/api/world/character', { ...CHARACTER, parts: { skin: 'red' } })).toBe('422 invalid');
     expect(await code('PUT', '/api/world/visibility', { mode: 'live' })).toBe('422 invalid');
-    // Válido, mas sem ter entrado.
+    // Valid, but without having signed in.
     expect(await code('PUT', '/api/world/character', CHARACTER)).toBe('401 not_logged_in');
     expect(await code('GET', '/api/world/devices', undefined)).toBe('401 not_logged_in');
-    // Nada disso chegou ao servidor do mundo.
+    // None of this reached the world server.
     expect(s.world!.requests).toEqual([]);
   });
 });
@@ -354,24 +355,24 @@ describe('end to end with the fake world server', () => {
     expect(snap()).toEqual({ enabled: true, configured: true, state: 'logged_out' });
     expect((await call(s.base, 'GET', '/api/world/status')).body).toEqual({ available: true, configured: true, state: 'logged_out' });
 
-    // Cadastro: o servidor local busca e resolve o ALTCHA sozinho, e manda tos e o idioma.
+    // Sign-up: the local server fetches and solves the ALTCHA by itself, and sends tos and the language.
     const reg = await call(s.base, 'POST', '/api/world/register', { ...REGISTER, name: '  Ana   Pixel ', locale: 'es', invite: 'invite_1' });
     expect(reg.status).toBe(202);
     expect(reg.body).toEqual({});
     const sent = w.requests.find((r) => r.path === '/v1/auth/register')!;
     expect(sent.body).toMatchObject({ email: EMAIL, password: PASSWORD, name: NAME, locale: 'es', tos: 'v1', invite: 'invite_1' });
     expect(w.accounts.get(EMAIL)?.verified).toBe(false);
-    // O nome já reservado por outra conta: 409 name_taken, com o mesmo status e código do servidor do mundo.
+    // The name already reserved by another account: 409 name_taken, with the same status and code as the world server.
     const taken = await call(s.base, 'POST', '/api/world/register', { ...REGISTER, email: 'bia@example.com', name: 'ana pixel' });
     expect(taken.status).toBe(409);
     expect(taken.body).toEqual({ error: { code: 'name_taken' } });
 
-    // Código errado: o erro do servidor do mundo volta com o mesmo status e o código.
+    // Wrong code: the world server's error comes back with the same status and the code.
     const wrong = await call(s.base, 'POST', '/api/world/verify', { email: EMAIL, code: '000000' });
     expect(wrong.status).toBe(400);
     expect(wrong.body).toEqual({ error: { code: 'invalid_code' } });
 
-    // Verificação: entra, grava o world.json (600) e fica na lista de espera.
+    // Verification: signs in, writes world.json (600) and stays on the waitlist.
     const ver = await call(s.base, 'POST', '/api/world/verify', { email: EMAIL, code: `${FAKE_CODE.slice(0, 3)} ${FAKE_CODE.slice(3)}` });
     expect(ver.status).toBe(200);
     expect(ver.body).toMatchObject({ available: true, configured: true, state: 'waiting', account: { emailMasked: 'a***@example.com', access: 'waiting' } });
@@ -383,11 +384,11 @@ describe('end to end with the fake world server', () => {
     const waiting = await call(s.base, 'GET', '/api/world/status');
     expect(waiting.body.state).toBe('waiting');
     expect(waiting.body.player).toBeUndefined();
-    // O nome do cadastro, reservado enquanto não há personagem.
+    // The sign-up name, reserved while there is no character.
     expect(waiting.body.account).toEqual({ emailMasked: 'a***@example.com', access: 'waiting', reservedName: NAME });
     expect(waiting.body.devices).toEqual([{ id: 'dev_1', label: 'Dispositivo 1', createdAt: expect.any(String), lastSeenAt: expect.any(String), current: true }]);
 
-    // Entrar de novo troca o dispositivo e revoga o anterior no servidor do mundo.
+    // Signing in again swaps the device and revokes the previous one on the world server.
     const login = await call(s.base, 'POST', '/api/world/login', { email: EMAIL, password: PASSWORD });
     expect(login.status).toBe(200);
     expect(login.body.state).toBe('waiting');
@@ -397,8 +398,8 @@ describe('end to end with the fake world server', () => {
     expect(w.devices.has(first.token)).toBe(false);
     expect(w.devices.has(second.token)).toBe(true);
 
-    // Personagem (já na lista de espera): o nome é a reserva do cadastro, e o pedido vai sem `name` (um nome no corpo
-    // nem sai daqui); o que o servidor manda a mais não passa.
+    // Character (already on the waitlist): the name is the sign-up reservation, and the request goes without `name` (a
+    // name in the body does not even leave here); whatever extra the server sends does not pass.
     const { name: _unused, ...noName } = CHARACTER;
     const ch = await call(s.base, 'PUT', '/api/world/character', { ...noName, name: 'Other Name' });
     expect(ch.status).toBe(200);
@@ -411,20 +412,20 @@ describe('end to end with the fake world server', () => {
     const st = await call(s.base, 'GET', '/api/world/status');
     expect(st.body.player).toMatchObject({ name: 'Ana Pixel', visibility: vis });
     expect(st.body.account).not.toHaveProperty('reservedName');
-    // Editando: o nome vai arrumado quando vem, e ausente mantém.
+    // Editing: the name goes tidied up when it comes, and when absent it is kept.
     const ed = await call(s.base, 'PUT', '/api/world/character', { ...CHARACTER, name: '  Ana   Nova ' });
     expect(ed.body.name).toBe('Ana Nova');
     expect((await call(s.base, 'PUT', '/api/world/character', noName)).body.name).toBe('Ana Nova');
     await call(s.base, 'PUT', '/api/world/character', CHARACTER);
     expect((await call(s.base, 'GET', '/api/world/devices')).body.devices.map((d: { id: string }) => d.id)).toEqual(['dev_2']);
 
-    // Liberado pelo lote: a próxima leitura (refresh) muda o estado e o snapshot.
+    // Released by the batch: the next read (refresh) changes the state and the snapshot.
     w.accounts.get(EMAIL)!.access = 'approved';
     expect((await call(s.base, 'GET', '/api/world/status?refresh=1')).body.state).toBe('approved');
-    // Com o personagem criado, a cena Mundo fica disponível (sem uplink neste teste, sem `building`).
+    // With the character created, the World scene becomes available (no uplink in this test, no `building`).
     expect(snap()).toEqual({ enabled: true, configured: true, state: 'approved', scene: { available: true } });
 
-    // Sair: revoga no servidor e apaga o world.json.
+    // Sign out: revokes on the server and deletes world.json.
     const out = await call(s.base, 'POST', '/api/world/logout', {});
     expect(out.status).toBe(200);
     expect(out.body).toEqual({ available: true, configured: true, state: 'logged_out' });
@@ -432,7 +433,7 @@ describe('end to end with the fake world server', () => {
     expect(w.devices.size).toBe(0);
     expect(snap()).toEqual({ enabled: true, configured: true, state: 'logged_out' });
 
-    // O Bearer só foi nas rotas da conta, nunca na URL, e o token nunca apareceu do lado de cá.
+    // The Bearer only went on the account routes, never in the URL, and the token never showed up on this side.
     for (const r of w.requests) {
       const needs = r.path.startsWith('/v1/me') || r.path === '/v1/auth/logout';
       expect(!!r.authorization, `${r.method} ${r.path}`).toBe(needs);
@@ -515,7 +516,7 @@ describe('end to end with the fake world server', () => {
     const s = await start();
     await call(s.base, 'POST', '/api/world/register', REGISTER);
     await call(s.base, 'POST', '/api/world/verify', { email: EMAIL, code: FAKE_CODE });
-    // Outro computador da mesma conta.
+    // Another computer of the same account.
     await new WorldClient({ baseUrl: s.world!.base, version: '1' }).login({ email: EMAIL, password: PASSWORD });
     const ids = (await call(s.base, 'GET', '/api/world/devices')).body.devices.map((d: { id: string }) => d.id);
     expect(ids).toEqual(['dev_1', 'dev_2']);
@@ -537,7 +538,7 @@ describe('end to end with the fake world server', () => {
       call(s.base, 'POST', '/api/world/login', { email: EMAIL, password: PASSWORD }),
     ]);
     expect([a.status, b.status]).toEqual([200, 200]);
-    // Só o dispositivo da última entrada continua valendo.
+    // Only the device of the last sign-in remains valid.
     expect(s.world!.devices.size).toBe(1);
     expect([...s.world!.devices.keys()][0]).toBe(s.store.get()?.token);
   });
@@ -567,12 +568,12 @@ describe('the building in the world (uplink) through the routes', () => {
     s.office.addMain({ id: '.claude:4242', account: '.claude', sessionId: 'sess-x', cwd: '/Users/ana/secret-project', role: 'Main agent', startedAt: Date.now(), status: 'working' });
     await call(s.base, 'POST', '/api/world/register', REGISTER);
     await call(s.base, 'POST', '/api/world/verify', { email: EMAIL, code: FAKE_CODE });
-    // Na lista de espera, com ou sem personagem: nada de prédio.
+    // On the waitlist, with or without a character: no building.
     await call(s.base, 'PUT', '/api/world/character', CHARACTER);
     expect((await call(s.base, 'GET', '/api/world/status')).body.building).toBeUndefined();
     expect(w.ws.connections).toHaveLength(0);
 
-    // Aprovada: o prédio conecta sozinho e manda o pacote.
+    // Approved: the building connects by itself and sends the packet.
     w.accounts.get(EMAIL)!.access = 'approved';
     expect((await call(s.base, 'GET', '/api/world/status?refresh=1')).body.state).toBe('approved');
     await waitFor(() => w.ws.uplinks.length === 1 && !!s.uplink!.status().lastAck, 'first upload');
@@ -580,13 +581,13 @@ describe('the building in the world (uplink) through the routes', () => {
     expect(st.building).toEqual({ connected: true, paused: false, floors: 1, agents: 1, lastUplinkAt: expect.any(Number), lastAck: { ok: true } });
     expect(s.hub.current().meta.world?.building).toEqual({ connected: true, paused: false, floors: 1, agents: 1, lastUplinkAt: st.building.lastUplinkAt });
 
-    // Ver o que foi enviado: o mesmo objeto que chegou ao servidor.
+    // See what was sent: the same object that reached the server.
     const last = (await call(s.base, 'GET', '/api/world/last-uplink')).body;
     expect(last).toEqual({ at: st.building.lastUplinkAt, bytes: w.ws.uplinks[0].bytes, uplink: w.ws.uplinks[0].uplink, ack: { ok: true, at: expect.any(Number), bytes: w.ws.uplinks[0].bytes } });
     expect(JSON.stringify(last)).not.toMatch(/secret-project|Users|\.claude|sess-x/);
     expect(statSync(s.lastFile).mode & 0o777).toBe(0o600);
 
-    // Tema: grava e manda o pacote com o tema novo; fora da lista, 422.
+    // Theme: saves and sends the packet with the new theme; outside the list, 422.
     expect((await call(s.base, 'PUT', '/api/world/theme', { theme: 'christmas' })).body).toEqual({ theme: 'christmas' });
     await waitFor(() => w.ws.uplinks.some((u) => u.uplink.theme === 'christmas'), 'theme in the packet');
     expect((await call(s.base, 'GET', '/api/world/status')).body.theme).toBe('christmas');
@@ -595,7 +596,7 @@ describe('the building in the world (uplink) through the routes', () => {
     expect(bad.status).toBe(422);
     expect(bad.body.error.code).toBe('invalid');
 
-    // Pausar: quando a resposta chega, a conexão já fechou; o servidor do mundo é avisado.
+    // Pause: when the response arrives, the connection has already closed; the world server is notified.
     const paused = await call(s.base, 'POST', '/api/world/pause', {});
     expect(paused.status).toBe(200);
     expect(w.ws.open).toHaveLength(0);
@@ -604,7 +605,7 @@ describe('the building in the world (uplink) through the routes', () => {
     await waitFor(() => w.requests.some((r) => r.path === '/v1/me/building/pause'), 'pause on the server');
     expect(s.hub.current().meta.world?.building).toMatchObject({ connected: false, paused: true });
 
-    // Retomar: avisa o servidor e reconecta, com o pacote inteiro.
+    // Resume: notifies the server and reconnects, with the whole packet.
     const sent = w.ws.uplinks.length;
     const resumed = await call(s.base, 'POST', '/api/world/resume', {});
     expect(resumed.status).toBe(200);
@@ -613,16 +614,16 @@ describe('the building in the world (uplink) through the routes', () => {
     expect(w.requests.map((r) => r.path)).toContain('/v1/me/building/resume');
     expect(w.ws.connections).toHaveLength(2);
 
-    // O token nunca aparece do lado de cá.
+    // The token never shows up on this side.
     const token = s.store.get()!.token;
     for (const text of [...seen, JSON.stringify(s.hub.current()), readFileSync(s.lastFile, 'utf8')]) expect(text).not.toContain(token);
 
-    // Sair: fecha o prédio e a última remessa some.
+    // Sign out: closes the building and the last upload disappears.
     await call(s.base, 'POST', '/api/world/logout', {});
     await waitFor(() => w.ws.open.length === 0, 'closed');
     expect((await call(s.base, 'GET', '/api/world/last-uplink')).body).toEqual({});
     expect(existsSync(s.lastFile)).toBe(false);
-    // O tema escolhido fica.
+    // The chosen theme stays.
     expect(JSON.parse(readFileSync(s.file, 'utf8'))).toEqual({ theme: 'christmas' });
   });
 
@@ -636,12 +637,12 @@ describe('the building in the world (uplink) through the routes', () => {
     w.accounts.get(EMAIL)!.access = 'approved';
     await call(s.base, 'GET', '/api/world/status?refresh=1');
     await waitFor(() => w.ws.uplinks.length === 1, 'first upload');
-    // A resposta da pausa demora: sem a fila, o resume chegaria antes e o prédio ficaria pausado lá.
+    // The pause response is slow: without the queue, the resume would come first and the building would stay paused there.
     w.options.pauseDelayMs = 80;
     await call(s.base, 'POST', '/api/world/pause', {});
     await call(s.base, 'POST', '/api/world/resume', {});
     await waitFor(() => w.ws.uplinks.length === 2, 'back');
-    // Espera a pausa atrasada terminar do lado do servidor.
+    // Waits for the delayed pause to finish on the server side.
     await new Promise((ok) => setTimeout(ok, 150));
     const order = w.requests.filter((r) => r.path.startsWith('/v1/me/building/')).map((r) => r.path);
     expect(order).toEqual(['/v1/me/building/pause', '/v1/me/building/resume']);
@@ -661,7 +662,7 @@ describe('the building in the world (uplink) through the routes', () => {
 
     const left = await call(s.base, 'POST', '/api/world/leave', {});
     expect(left.status).toBe(200);
-    // Quando a resposta chega, a conexão já fechou e o DELETE já foi.
+    // When the response arrives, the connection has already closed and the DELETE has already gone.
     expect(w.ws.open).toHaveLength(0);
     expect(w.accounts.get(EMAIL)!.buildingLeft).toBe(1);
     const del = w.requests.find((r) => r.method === 'DELETE');
@@ -669,13 +670,13 @@ describe('the building in the world (uplink) through the routes', () => {
     expect(left.body.building).toMatchObject({ connected: false, paused: true, left: true });
     expect(s.hub.current().meta.world?.building).toMatchObject({ connected: false, paused: true, left: true });
     expect(JSON.parse(readFileSync(s.file, 'utf8'))).toMatchObject({ paused: true, left: true });
-    // A conta e o personagem continuam; o prédio não volta sozinho (bem mais que a espera da reconexão).
+    // The account and the character remain; the building does not come back by itself (much more than the reconnect wait).
     await new Promise((ok) => setTimeout(ok, 200));
     expect(w.ws.connections).toHaveLength(1);
     const st = (await call(s.base, 'GET', '/api/world/status')).body;
     expect(st).toMatchObject({ state: 'approved', player: { name: 'Ana Pixel' }, building: { left: true } });
 
-    // Voltar ao mundo: o join responde antes de reconectar, e o pacote seguinte é aceito (um prédio novo).
+    // Back to the world: the join responds before reconnecting, and the next packet is accepted (a new building).
     const back = await call(s.base, 'POST', '/api/world/join', {});
     expect(back.status).toBe(200);
     expect(w.requests.filter((r) => r.path === '/v1/me/building/join')).toHaveLength(1);
@@ -704,7 +705,7 @@ describe('the building in the world (uplink) through the routes', () => {
     expect(JSON.parse(readFileSync(s.file, 'utf8'))).toMatchObject({ paused: true, left: true });
     await new Promise((ok) => setTimeout(ok, 120));
     expect(w.ws.connections).toHaveLength(1);
-    // A página antiga que chama /resume fora do mundo também passa pelo join.
+    // The old page that calls /resume while out of the world also goes through the join.
     const old = await call(s.base, 'POST', '/api/world/resume', {});
     expect(old.status).toBe(200);
     expect(w.requests.filter((q) => q.path === '/v1/me/building/join')).toHaveLength(2);
@@ -742,7 +743,7 @@ describe('the building in the world (uplink) through the routes', () => {
     w.accounts.get(EMAIL)!.access = 'approved';
     await call(s.base, 'GET', '/api/world/status?refresh=1');
     await waitFor(() => w.ws.uplinks.length === 1, 'first upload');
-    // O outro computador saiu do mundo; a mudança seguinte do escritório vai e volta recusada.
+    // The other computer left the world; the office's next change goes and comes back refused.
     w.accounts.get(EMAIL)!.left = true;
     s.office.addMain({ id: '.claude:10', account: '.claude', sessionId: 'sess-10', cwd: '/p/d', role: 'Main agent', startedAt: Date.now(), status: 'working' });
     await waitFor(() => w.ws.uplinks.length === 2, 'second upload');
@@ -827,7 +828,7 @@ describe('the building in the world (uplink) through the routes', () => {
   });
 });
 
-// ------------------------------------------------------------------------------------------------ a cena Mundo (Fase 3)
+// ------------------------------------------------------------------------------------------------ the World scene (Phase 3)
 
 interface SseClient {
   status: number;
@@ -837,7 +838,7 @@ interface SseClient {
   close(): void;
 }
 
-/** Abre o SSE e vai juntando o que chega (para os testes: sem EventSource no Node). */
+/** Opens the SSE and keeps collecting what arrives (for the tests: no EventSource in Node). */
 function openStream(base: string, headers: Record<string, string> = {}): Promise<SseClient> {
   return new Promise((ok, fail) => {
     const req = http.request(new URL('/api/world/stream', base), { method: 'GET', headers }, (res) => {
@@ -898,11 +899,11 @@ describe('the World scene through the routes (stream and commands)', () => {
     await waitFor(() => conn().messages.some((m) => m.t === 'resync'), 'resync of the jump');
     expect(conn().messages.find((m) => m.t === 'resync')).toEqual({ t: 'resync', chunk: 'centro:0,0' });
     expect(sse.events().filter((e) => e.event === 'world').map((e) => e.data.t)).toEqual(['pos', 'area', 'player.join']);
-    // Nada do prédio (nem o token) no stream.
+    // Nothing of the building (not even the token) in the stream.
     expect(sse.body).not.toContain(s.store.get()!.token);
     expect(sse.body).not.toContain('uplink');
 
-    // Comandos: só o último move de cada lote vai ao servidor do mundo.
+    // Commands: only the last move of each batch goes to the world server.
     const stream = snap.data.stream;
     const r = await call(s.base, 'POST', '/api/world/cmd', {
       stream,
@@ -917,7 +918,7 @@ describe('the World scene through the routes (stream and commands)', () => {
     await waitFor(() => conn().messages.some((m) => m.t === 'profile'), 'commands on the world server');
     const city = conn().messages.filter((m) => m.t === 'move' || m.t === 'profile');
     expect(city).toEqual([{ t: 'move', x: 23, y: 15, dir: 'e', moving: true }, { t: 'profile', playerId: 'p_2' }]);
-    // O que não é da cena nunca passa.
+    // What is not the scene's never passes.
     for (const bad of [{ t: 'hello', v: 1, token: 'x' }, { t: 'uplink', uplink: {} }]) {
       const b = await call(s.base, 'POST', '/api/world/cmd', { stream, cmds: [bad] });
       expect(b.status).toBe(400);
@@ -934,14 +935,14 @@ describe('the World scene through the routes (stream and commands)', () => {
     const { s, w, conn } = await approved();
     await waitFor(() => w.ws.uplinks.length >= 1, 'first upload');
     const sleep = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
-    /** O que a cena pode mandar com o prédio pausado ou fora do mundo. */
+    /** What the scene can send with the building paused or out of the world. */
     const SCENE_ONLY = new Set(['hello', 'view', 'view.off', 'move', 'profile', 'ping', 'pong']);
     const sse = await openStream(s.base);
     await waitFor(() => conn().messages.some((m) => m.t === 'view'), 'view');
     const first = conn();
     const stream = sse.events()[0].data.stream;
 
-    // Pausa com a cena aberta: a conexão continua, o tema novo (que mudaria o pacote) não sobe.
+    // Pause with the scene open: the connection continues, the new theme (which would change the packet) does not go up.
     expect((await call(s.base, 'POST', '/api/world/pause', {})).status).toBe(200);
     const sent = w.ws.uplinks.length;
     const fromPause = first.messages.length;
@@ -953,17 +954,17 @@ describe('the World scene through the routes (stream and commands)', () => {
     const move = await call(s.base, 'POST', '/api/world/cmd', { stream, cmds: [{ t: 'move', x: 22, y: 15, dir: 'e', moving: true }] });
     expect(move.status).toBe(202);
     await waitFor(() => first.messages.some((m) => m.t === 'move'), 'move while paused');
-    // O cartão e o selo: pausado e apagado (a conexão da cena não acende o prédio).
+    // The card and the badge: paused and off (the scene's connection does not light up the building).
     expect((await call(s.base, 'GET', '/api/world/status')).body.building).toMatchObject({ connected: false, paused: true });
     expect(s.service!.meta().scene).toEqual({ available: true });
 
-    // Fechada a cena: `view.off` e a conexão de quem está pausado fecha.
+    // With the scene closed: `view.off` and the connection of whoever is paused closes.
     sse.close();
     await waitFor(() => first.messages.some((m) => m.t === 'view.off'), 'view.off');
     await waitFor(() => !first.open, 'connection closed');
     expect(first.messages.slice(fromPause).every((m) => SCENE_ONLY.has(m.t as string))).toBe(true);
 
-    // A cena de novo, ainda pausado: conexão nova com `hello` e `view`, e nenhum pacote (nem o do welcome).
+    // The scene again, still paused: new connection with `hello` and `view`, and no packet (not even the welcome one).
     const sse2 = await openStream(s.base);
     await waitFor(() => w.ws.open.length === 1 && w.ws.open[0] !== first && w.ws.open[0]!.messages.some((m) => m.t === 'view'), 'view on the new connection');
     const second = w.ws.open[0]!;
@@ -971,13 +972,13 @@ describe('the World scene through the routes (stream and commands)', () => {
     expect(w.ws.uplinks).toHaveLength(sent);
     expect(second.messages.map((m) => m.t)).toEqual(['hello', 'view']);
 
-    // Retomar com a cena aberta: o pacote inteiro sai pela mesma conexão, já com o tema novo.
+    // Resume with the scene open: the whole packet goes out over the same connection, already with the new theme.
     expect((await call(s.base, 'POST', '/api/world/resume', {})).status).toBe(200);
     await waitFor(() => w.ws.uplinks.length > sent, 'packet after resuming');
     expect(w.ws.uplinks.at(-1)).toMatchObject({ conn: second.id, uplink: { theme: 'christmas' } });
     expect(second.open).toBe(true);
 
-    // Sair do mundo com a cena aberta: a conexão continua, sem pacote; o comando ainda vai.
+    // Leave the world with the scene open: the connection continues, with no packet; the command still goes.
     expect((await call(s.base, 'POST', '/api/world/leave', {})).status).toBe(200);
     const atLeave = w.ws.uplinks.length;
     const fromLeave = second.messages.length;
@@ -1013,7 +1014,7 @@ describe('the World scene through the routes (stream and commands)', () => {
       expect(r.body.error.code).toBe('local_only');
     }
     expect(conn().messages.some((m) => m.t === 'view')).toBe(false);
-    // A própria página (mesma origem) abre.
+    // The page itself (same origin) opens.
     const port = new URL(s.base).port;
     const ok = await openStream(s.base, { Origin: `http://127.0.0.1:${port}`, 'Sec-Fetch-Site': 'same-origin' });
     expect(ok.status).toBe(200);
@@ -1071,7 +1072,7 @@ describe('the account and the data (Phase 6)', () => {
   it('delete account: code requested, wrong code does not delete, the right one closes the building and deletes the whole world.json before answering', async () => {
     seen.length = 0;
     const { s, w } = await approved();
-    // Um tema escolhido: sair da conta o deixaria no world.json; excluir apaga o arquivo inteiro.
+    // A chosen theme: signing out would leave it in world.json; deleting erases the whole file.
     await call(s.base, 'PUT', '/api/world/theme', { theme: 'halloween' });
     const token = s.store.get()!.token;
 
@@ -1080,7 +1081,7 @@ describe('the account and the data (Phase 6)', () => {
     expect(asked.body).toEqual({});
     expect(w.requests.find((r) => r.path === '/v1/me/delete')).toMatchObject({ method: 'POST', authorization: `Bearer ${token}` });
 
-    // Fora do formato, recusado aqui; errado, recusado lá: nada muda.
+    // Malformed, refused here; wrong, refused there: nothing changes.
     expect((await call(s.base, 'POST', '/api/world/delete-account/confirm', { code: '12' })).body.error.code).toBe('invalid_code');
     expect(w.requests.filter((r) => r.path === '/v1/me/delete/confirm')).toHaveLength(0);
     const wrong = await call(s.base, 'POST', '/api/world/delete-account/confirm', { code: '000000' });
@@ -1093,18 +1094,18 @@ describe('the account and the data (Phase 6)', () => {
     expect(done.status).toBe(200);
     expect(done.body).toEqual({ available: true, configured: true, state: 'logged_out', lastError: 'account_deleted' });
     expect(w.requests.filter((r) => r.path === '/v1/me/delete/confirm').map((r) => r.body)).toEqual([{ code: '000000' }, { code: FAKE_CODE }]);
-    // Quando a resposta chega: a conexão fechou, o world.json (tema junto) e a última remessa sumiram.
+    // When the response arrives: the connection closed, world.json (theme included) and the last upload are gone.
     expect(w.ws.open).toHaveLength(0);
     expect(existsSync(s.file)).toBe(false);
     expect(existsSync(s.lastFile)).toBe(false);
     expect(s.store.get()).toBeUndefined();
     expect((await call(s.base, 'GET', '/api/world/last-uplink')).body).toEqual({});
     expect(s.hub.current().meta.world).toEqual({ enabled: true, configured: true, state: 'logged_out' });
-    // Nada reconecta, e o status continua dizendo por quê.
+    // Nothing reconnects, and the status keeps saying why.
     await new Promise((ok) => setTimeout(ok, 200));
     expect(w.ws.open).toHaveLength(0);
     expect((await call(s.base, 'GET', '/api/world/status')).body.lastError).toBe('account_deleted');
-    // Sem conta, as rotas da conta pedem a conta.
+    // Without an account, the account routes ask for the account.
     expect((await call(s.base, 'POST', '/api/world/delete-account', {})).body.error.code).toBe('not_logged_in');
     for (const text of seen) expect(text).not.toContain(token);
   });
@@ -1138,7 +1139,7 @@ describe('the account and the data (Phase 6)', () => {
     expect(r.headers['cache-control']).toBe('no-store');
     expect(r.body).toMatchObject({ format: 'habblaud-world-export', version: 1, account: { email: EMAIL }, player: { name: 'Ana Pixel' }, likesGiven: [], blocks: [], reportsMade: [] });
     expect(w.requests.find((q) => q.path === '/v1/me/export')?.method).toBe('GET');
-    // A segunda no mesmo dia: 429, com a espera.
+    // The second one on the same day: 429, with the wait.
     const again = await call(s.base, 'GET', '/api/world/export');
     expect(again.status).toBe(429);
     expect(again.body.error).toEqual({ code: 'rate_limited', retryAfter: 86400 });
@@ -1180,7 +1181,7 @@ describe('the account and the data (Phase 6)', () => {
     const st = await call(s.base, 'GET', '/api/world/status?refresh=1');
     expect(st.body.lastError).toBe('maintenance');
     expect((await call(s.base, 'POST', '/api/world/delete-account', {})).body.error.code).toBe('maintenance');
-    // Recusado a cada hello, com a espera crescendo (20, 40, 60 ms nos testes): poucas tentativas, nunca em rajada.
+    // Refused at every hello, with the wait growing (20, 40, 60 ms in the tests): few attempts, never in a burst.
     await new Promise((ok) => setTimeout(ok, 400));
     const tries = w.ws.connections.length;
     expect(tries).toBeGreaterThan(2);
@@ -1197,12 +1198,12 @@ describe('the account and the data (Phase 6)', () => {
     expect(st.account).toEqual({ emailMasked: 'a***@example.com', access: 'approved', id: 'acc_1' });
     expect(st.building.unverified).toBe(true);
     expect(JSON.stringify(s.hub.current().meta.world)).not.toMatch(/unverified|acc_1/);
-    // A revisão tirou o selo: o patch da cidade (o prédio inteiro, com lot e sem o campo) atualiza.
+    // The review removed the badge: the city patch (the whole building, with lot and without the field) updates.
     w.ws.open[0].send({ t: 'area.patch', chunk: 'centro:0,0', rev: 1, changes: [{ id: 'acc_1', lot: { district: 'centro', x: 0, y: 0 }, floors: 1 }] });
     await waitFor(() => !s.uplink!.status().unverified, 'stamp removed');
     w.ws.open[0].send({ t: 'area.patch', chunk: 'centro:0,0', rev: 2, changes: [{ id: 'acc_1', unverified: true }] });
     await waitFor(() => s.uplink!.status().unverified === true, 'stamp back');
-    // De outro prédio, nada muda.
+    // From another building, nothing changes.
     w.ws.open[0].send({ t: 'area', chunk: 'centro:0,0', rev: 3, buildings: [{ id: 'acc_9', unverified: false }] });
     await new Promise((ok) => setTimeout(ok, 50));
     expect(s.uplink!.status().unverified).toBe(true);

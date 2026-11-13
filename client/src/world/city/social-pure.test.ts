@@ -1,6 +1,6 @@
-// O social leve da cidade (Fase 5), os modelos puros: a roda e os balões dos cumprimentos, os limites do lado de cá, a
-// porta que dá para curtir ou bater, o coração voando, os tokens na fachada, o confete do fim de turno, a meta da
-// cidade e o código do "Ir para".
+// The city's light social features (Phase 5), the pure models: the wheel and the speech bubbles of the greetings, the
+// limits on this side, the door that can be liked or knocked on, the flying heart, the tokens on the facade, the
+// end-of-turn confetti, the city's goal and the "Go to" code.
 import { describe, expect, it } from 'vitest';
 import { lotDoor } from '../../../../shared/world/city';
 import type { CityGoal, WorldBuildingPublic } from '../../../../shared/world/protocol';

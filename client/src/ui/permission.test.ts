@@ -61,7 +61,7 @@ describe('answering from the office (pure pieces)', () => {
       note: CODEX_PERMISSION_NOTE,
     });
     expect(CODEX_PERMISSION_NOTE).toBe('In Codex, the approval only shows up in the terminal after you answer here or the time runs out.');
-    // Claude Code: como antes.
+    // Claude Code: as before.
     expect(permissionOptions({ suggestions }, { kind: 'main' })).toEqual({ always: true, interrupt: true, reasonRequired: false, seconds: false, note: '' });
     expect(permissionOptions({}, { kind: 'main' }).always).toBe(false);
     expect(permissionOptions({}, { kind: 'sub', background: true }).note).toMatch(/^This subagent runs in the background/);
@@ -92,7 +92,7 @@ describe('answering from the office (pure pieces)', () => {
 });
 
 describe('question card (AskUserQuestion)', () => {
-  // Posições do original: a opção 1 da primeira pergunta e a pergunta 1 foram puladas.
+  // Positions from the original: option 1 of the first question and question 1 were skipped.
   const single: AskQuestion = { index: 0, header: 'Database', question: 'Which database to use?', options: [{ index: 0, label: 'Postgres' }, { index: 2, label: 'SQLite' }] };
   const multi: AskQuestion = { index: 2, question: 'Which tests to run?', multiSelect: true, options: [{ index: 0, label: 'Unit' }, { index: 1, label: 'E2E' }] };
   const choice = (options: number[], otherOn = false, otherText = ''): AskChoice => ({ options, otherOn, otherText });
@@ -102,7 +102,7 @@ describe('question card (AskUserQuestion)', () => {
     expect(isQuestionRequest({ tool: 'AskUserQuestion', questions: [] })).toBe(false);
     expect(isQuestionRequest({ tool: 'Bash' })).toBe(false);
     expect(isQuestionRequest(undefined)).toBe(false);
-    // O Codex não pergunta pelo escritório: nunca vira cartão de pergunta.
+    // Codex doesn't ask through the office: it never becomes a question card.
     expect(isQuestionRequest({ tool: 'AskUserQuestion', questions: [single], provider: 'codex' })).toBe(false);
   });
 
@@ -115,7 +115,7 @@ describe('question card (AskUserQuestion)', () => {
     expect(answerFor(multi, choice([1, 0], true, 'lint'))).toEqual({ question: 2, options: [1, 0], other: 'lint' });
     expect(answerFor(multi, choice([0], false, 'ignored'))).toEqual({ question: 2, options: [0] });
     expect(answerFor(multi, choice([0], true, ''))).toBeUndefined();
-    // Posição que a pergunta não mostra: fica de fora.
+    // Position that the question doesn't show: it is left out.
     expect(answerFor(multi, choice([7]))).toBeUndefined();
     expect(answerFor(single, choice([], true, 'x'.repeat(2_500)))!.other).toHaveLength(2_000);
   });

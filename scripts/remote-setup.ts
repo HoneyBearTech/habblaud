@@ -1,12 +1,13 @@
-// npm run remote:setup — liga o acesso pelo celular com login e HTTPS, num passo só.
+// npm run remote:setup — turns on phone access with login and HTTPS, in a single step.
 //
-// Pergunta (ou recebe por opção) o usuário, a senha (escondida, duas vezes), o nome do endereço (<nome>.local) e, se
-// quiser, um endereço próprio (ex.: meuclaude.home); e então:
-//   1. cria a CA local e o certificado do servidor (server/remote/tls.ts) em ~/.habblaud/remote-tls;
-//   2. grava no .env SÓ o hash scrypt da senha (nunca a senha), o nome, a porta e HABBLAUD_REMOTE_BIND=0.0.0.0;
-//   3. deixa o anúncio do <nome>.local rodando como serviço (npm run remote:mdns; LaunchAgent/systemd);
-//   4. mostra os endereços, a impressão digital da CA e o passo a passo do celular.
-// Depois: npm run docker:up. Para desligar: npm run remote:setup -- --off.
+// Asks for (or receives by option) the username, the password (hidden, twice), the address name (<name>.local) and,
+// if you want, an address of your own (e.g. myclaude.home); and then:
+//   1. creates the local CA and the server certificate (server/remote/tls.ts) in ~/.habblaud/remote-tls;
+//   2. writes to .env ONLY the scrypt hash of the password (never the password), the name, the port and
+//      HABBLAUD_REMOTE_BIND=0.0.0.0;
+//   3. leaves the <name>.local announcement running as a service (npm run remote:mdns; LaunchAgent/systemd);
+//   4. shows the addresses, the CA fingerprint and the step-by-step for the phone.
+// After: npm run docker:up. To turn it off: npm run remote:setup -- --off.
 import { spawnSync } from 'node:child_process';
 import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import net from 'node:net';
@@ -85,7 +86,7 @@ export function parseArgs(argv: string[]): SetupArgs {
   return out;
 }
 
-/** Por que a senha não serve (undefined = serve). */
+/** Why the password does not work (undefined = it works). */
 export function passwordProblem(password: string, user: string): string | undefined {
   if (password.length < MIN_PASSWORD) return tr('use at least {0} characters', [MIN_PASSWORD]);
   if (password.trim() !== password) return tr('no spaces at the start or end');
@@ -93,7 +94,7 @@ export function passwordProblem(password: string, user: string): string | undefi
   return undefined;
 }
 
-/** O .env com o acesso remoto ligado (o resto do arquivo fica igual). */
+/** The .env with remote access turned on (the rest of the file stays the same). */
 export function remoteEnv(
   current: string,
   s: { user: string; hash: string; name: string; domain?: string; port: number; httpPort?: number; allow?: string },
@@ -135,7 +136,7 @@ function ask(question: string, fallback?: string): Promise<string> {
   );
 }
 
-/** Pergunta sem ecoar o que é digitado (só no terminal de verdade). */
+/** Asks without echoing what is typed (only in a real terminal). */
 function askHidden(question: string): Promise<string> {
   const stdin = process.stdin;
   if (!stdin.isTTY) throw new Error(tr('no terminal to ask for the password: use --password-stdin'));
@@ -198,7 +199,7 @@ function xml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-/** Instala (ou reinstala) o anúncio do <nome>.local como serviço. Devolve uma linha de status. */
+/** Installs (or reinstalls) the <name>.local announcement as a service. Returns a status line. */
 function installService(): string {
   const cmd = tsxCommand();
   const logDir = join(HOME, '.habblaud', 'logs');
@@ -314,7 +315,7 @@ async function main(): Promise<void> {
   const existingPort = Number(readEnvValue(current, 'HABBLAUD_REMOTE_PORT'));
   const port = args.port ?? (Number.isInteger(existingPort) && existingPort > 0 ? existingPort : (await portFree(443)) ? 443 : 4748);
 
-  // Na 443, a 80 (se livre) só redireciona para https://: digitar "meuclaude.local" sem https:// também funciona.
+  // On 443, 80 (if free) only redirects to https://: typing "myclaude.local" without https:// also works.
   const existingHttp = Number(readEnvValue(current, 'HABBLAUD_REMOTE_HTTP_PORT'));
   const httpPort = port !== 443 ? undefined : existingHttp === 80 || (await portFree(80)) ? 80 : undefined;
 
@@ -327,7 +328,7 @@ async function main(): Promise<void> {
   const service = args.service ? installService() : tr('service not installed (--no-service): run npm run remote:mdns');
 
   const fp = caFingerprint(paths);
-  // O IP do Wi-Fi/cabo (rota padrão), não o de uma VPN que também entra no certificado.
+  // The Wi-Fi/cable IP (default route), not that of a VPN that also goes into the certificate.
   const ip = primaryIp() ?? cert.targets.ips.find((i) => i !== '127.0.0.1');
   const caNote = !cert.createdCa ? '' : hadCa ? tr(' New local CA (the address changed or the previous one had no name constraints): install the certificate on the phone again.') : tr(' Local CA created.');
   const urls = [

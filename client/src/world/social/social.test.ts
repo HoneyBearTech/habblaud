@@ -1,5 +1,5 @@
-// Integração da vida social com a simulação (sem DOM): rodas que se formam sozinhas, quem é chamado
-// de volta ao trabalho, apostas, moedinhas pelo trabalho e quem espera shell.
+// Integration of social life with the simulation (no DOM): hangouts that form on their own, who is called
+// back to work, bets, coins for the work and who waits for a shell.
 import { describe, expect, it } from 'vitest';
 import type { AgentInfo, OfficeSnapshot, RoomInfo } from '../../../../shared/types';
 import type { Appearance, ArtModule, RoomTheme } from '../../art/api';
@@ -160,7 +160,7 @@ describe('social life', () => {
       expect(sim.social.events.at(-1)?.text).toMatch(/rock-paper-scissors/);
       expect(['Reception', 'Kitchen', 'Lounge']).toContain(sim.social.events.at(-1)?.place);
     }
-    // a roda acabou: nenhum lugar fica preso a ela
+    // the hangout is over: no place stays tied to it
     for (const s of sim.spots.all()) expect(sim.spots.ownerOf(s.id)?.startsWith('g:') ?? false).toBe(false);
   });
 

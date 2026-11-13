@@ -1,6 +1,6 @@
-// appearanceFromSeed saiu de client/src/art/character/appearance.ts para shared/world/appearance-flat.ts: estas são as
-// saídas do módulo antigo (gravadas antes da mudança) para 20 sementes, sem look, com look 'f', com look 'm' de
-// subagente e com peças do editor por cima. Qualquer diferença muda a aparência de todos os personagens.
+// appearanceFromSeed moved from client/src/art/character/appearance.ts to shared/world/appearance-flat.ts: these are
+// the outputs of the old module (recorded before the change) for 20 seeds, with no look, with look 'f', with look 'm'
+// of a subagent and with editor parts on top. Any difference changes the appearance of every character.
 import { describe, expect, it } from 'vitest';
 import { PART_KEYS, parseAppearanceParts } from '../appearance';
 import { hash32 } from '../hash';
@@ -12,7 +12,7 @@ const SIG_KEYS = [
 ] as const;
 const sig = (a: SeedAppearance) => SIG_KEYS.map((k) => String(a[k] ?? '-')).join('|');
 
-/** [semente, sem opções, look 'f', look 'm' + sub, look 'f' + peças] — saída do módulo antigo. */
+/** [seed, no options, look 'f', look 'm' + sub, look 'f' + parts] — output of the old module. */
 const GOLDEN: Array<[number, string, string, string, string]> = [
   [0, "#eab894|#3f2c22|buzz|#5a3b22|#4a6a8a|#e8e3d6|jacket|#5f6845|pants|#6b4630|none|#2b2b33|mustache|-|m", "#eab894|#3f2c22|curly|#5a3b22|#f2d16b|#f1efe9|blouse|#2c2c35|skirt|#3f63a8|glasses|#2b2b33|none|-|f", "#eab894|#3f2c22|buzz|#5a3b22|#4a6a8a|#e8e3d6|jacket|#5f6845|pants|#6b4630|none|#2b2b33|mustache|#f2b33d|m", "#eab894|#3f2c22|bob|#5a3b22|#4a86d8|#f1efe9|blouse|#2c2c35|skirt|#3f63a8|cap|#2b2b33|none|-|f"],
   [1, "#5a3623|#3f2c22|wavy|#2b2236|#dfe3e8|#c0392b|shirt_tie|#3f5f8c|pants|#2b2b33|cap|#4bab72|none|-|m", "#5a3623|#3f2c22|wavy|#2b2236|#c9713f|#4bab72|sweater|#3f5f8c|skirt|#2b2b33|earrings|#f2c14e|none|-|f", "#5a3623|#3f2c22|wavy|#2b2236|#dfe3e8|#c0392b|shirt_tie|#3f5f8c|pants|#2b2b33|cap|#4bab72|none|#4bab72|m", "#5a3623|#3f2c22|bob|#2b2236|#4a86d8|#4bab72|sweater|#3f5f8c|skirt|#2b2b33|cap|#f2c14e|none|-|f"],
@@ -67,7 +67,7 @@ describe('flattenAppearance', () => {
     expect(edited.hair).toBe('#e47aa8');
     expect(edited.hairStyle).toBe('afro');
     expect(edited.skin).toBe(a.skin);
-    // Um undefined explícito não apaga a peça sorteada.
+    // An explicit undefined does not erase the randomly picked piece.
     expect(flattenAppearance(seed, { skin: undefined }, 'm').skin).toBe(a.skin);
   });
 

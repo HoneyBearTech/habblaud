@@ -1,7 +1,7 @@
-// A projeção (shared/world/projection.ts) é o único lugar que monta o pacote do prédio. Estes testes são a garantia
-// da lista fechada de docs/world/privacidade.md: chaves só as do schema.json, nenhum texto do escritório no pacote
-// (canários), nada de número que pareça horário, demonstração de fora, nomes do pool, aparência sem a semente,
-// parentId traduzido, limites e as opções do jogador.
+// The projection (shared/world/projection.ts) is the only place that builds the building packet. These tests are the
+// guarantee of the closed list of docs/world/privacidade.md: only the keys of schema.json, no office text in the packet
+// (canaries), no number that looks like a time, demo left out, names from the pool, appearance without the seed,
+// translated parentId, limits and the player's options.
 import { describe, expect, it } from 'vitest';
 import { PART_KEYS } from '../appearance';
 import { hash32, mulberry32 } from '../hash';
@@ -18,7 +18,7 @@ const validate = compileValidator(schema);
 const ALLOWED = schemaKeyPaths(schema);
 const NOW = 1_760_000_000_000;
 
-/** Ids do mundo de mentira: aleatórios de um PRNG com semente (reprodutíveis), guardados por chave. */
+/** Fake world ids: random ones from a seeded PRNG (reproducible), stored by key. */
 class FakeIds implements WorldIdSource {
   readonly floors = new Map<string, string>();
   readonly agents = new Map<string, string>();
@@ -77,7 +77,7 @@ function input(rooms: RoomInfo[], agents: AgentInfo[], extra: Partial<Projection
 
 const agentsOf = (u: WorldUplink) => u.floors.flatMap((f) => f.agents);
 
-/** Todos os números do JSON (para conferir que nada parece horário nem vaza contadores). */
+/** All the numbers of the JSON (to check that nothing looks like a time or leaks counters). */
 function numbersIn(v: unknown, out: number[] = []): number[] {
   if (typeof v === 'number') out.push(v);
   else if (Array.isArray(v)) for (const x of v) numbersIn(x, out);
@@ -86,7 +86,7 @@ function numbersIn(v: unknown, out: number[] = []): number[] {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// O escritório cheio de canários
+// The office full of canaries
 // ---------------------------------------------------------------------------------------------------------------
 
 const CANARY_ROOM = '/Users/canary-user/projects/CANARY-SECRET-PROJECT';
@@ -161,7 +161,7 @@ describe('projection: closed list', () => {
     expect(validate(u)).toEqual([]);
     expect(u.floors).toHaveLength(2);
     expect(agentsOf(u)).toHaveLength(3);
-    // Todas as chaves opcionais aparecem aqui (tokens, parentId, compacted), para o teste de chaves valer por inteiro.
+    // All the optional keys show up here (tokens, parentId, compacted), so that the key test counts in full.
     expect(json).toContain('"tokens"');
     expect(json).toContain('"parentId"');
     expect(json).toContain('"compacted"');
@@ -209,7 +209,7 @@ describe('projection: rules', () => {
     expect(u.floors).toHaveLength(1);
     expect(agentsOf(u)).toHaveLength(1);
     expect(ids.calls.some((c) => c.startsWith('demo:') || c === 'acc:2')).toBe(false);
-    // Só demonstração: prédio sem andares.
+    // Demo only: building with no floors.
     expect(project(input([room('demo:/x')], [agent('demo:a', 'demo:/x')]), new FakeIds(), NOW).floors).toEqual([]);
   });
 
@@ -252,7 +252,7 @@ describe('projection: rules', () => {
       expect(isPoolName(a.name), a.name).toBe(true);
       expect(LOOK_OF.get(a.name), a.name).toBe(a.look);
     }
-    // Trocar o nome (editado) no escritório não muda nada no mundo.
+    // Changing the (edited) name in the office changes nothing in the world.
     const renamed = agents.map((a) => ({ ...a, name: 'Real Name Of The Person', custom: true as const }));
     expect(project(input(rooms, renamed), ids, NOW)).toEqual(u);
   });
@@ -275,7 +275,7 @@ describe('projection: rules', () => {
     const previous = new Map(agentsOf(first).map((a) => [a.id, a.name]));
     const second = project(input(rooms, agents.slice(5), { previousNames: previous }), ids, NOW);
     for (const a of agentsOf(second)) expect(a.name).toBe(previous.get(a.id));
-    // Nome anterior fora do pool (ou de outro look) não é aceito.
+    // A previous name outside the pool (or of another look) is not accepted.
     const bad = new Map([[agentsOf(first)[0].id, 'Made Up Name']]);
     expect(agentsOf(project(input(rooms, agents, { previousNames: bad }), ids, NOW))[0].name).not.toBe('Made Up Name');
   });

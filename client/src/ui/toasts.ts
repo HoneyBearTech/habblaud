@@ -1,4 +1,4 @@
-// Avisos rápidos (toasts) no canto inferior direito da área livre (acima do feed, à esquerda da gaveta).
+// Quick notices (toasts) in the bottom right corner of the free area (above the feed, to the left of the drawer).
 import type { Notice, NoticeLevel } from '../../../shared/types';
 import { createAvatar } from './avatar';
 import type { UiComponent, UiContext } from './context';
@@ -8,7 +8,7 @@ import { focusPermission } from './permission';
 import { tr } from '../../../shared/i18n';
 
 const MAX_VISIBLE = 4;
-/** Avisos iguais dentro desta janela viram um só (com contador). */
+/** Identical notices within this window become one (with a counter). */
 const DEDUPE_MS = 20_000;
 const LIFETIME: Record<NoticeLevel, number> = { info: 5_000, success: 6_000, warn: 9_000, alert: Infinity };
 
@@ -17,7 +17,7 @@ interface Toast {
   notice: Notice;
   el: HTMLElement;
   count: HTMLElement;
-  /** "Responder" (alertas de quem tem pedido de permissão para responder pelo escritório). */
+  /** "Reply" (alerts from those who have a permission request to answer from the office). */
   answer?: HTMLButtonElement;
   repeats: number;
   timer: ReturnType<typeof setTimeout> | null;
@@ -35,7 +35,7 @@ export class Toasts implements UiComponent {
   }
 
   push(n: Notice): void {
-    // Contas ocultas no filtro da barra lateral não geram avisos, exceto "precisa de você" (exige ação).
+    // Accounts hidden in the sidebar filter don't produce notices, except "needs you" (it requires action).
     if (n.level !== 'alert' && n.agentId) {
       const acc = this.ctx.agent(n.agentId)?.account;
       if (acc && this.ctx.prefs.hiddenAccounts.includes(acc)) return;
@@ -53,7 +53,7 @@ export class Toasts implements UiComponent {
       this.arm(dup, LIFETIME[n.level]);
       return;
     }
-    // Um novo alerta do mesmo agente substitui o anterior.
+    // A new alert from the same agent replaces the previous one.
     if (n.level === 'alert' && n.agentId) this.toasts.filter((t) => t.notice.level === 'alert' && t.notice.agentId === n.agentId).forEach((t) => this.dismiss(t));
 
     const toast = this.create(n, key);
@@ -66,13 +66,13 @@ export class Toasts implements UiComponent {
     }
   }
 
-  /** Alertas somem quando o agente deixa de esperar (ou sai do escritório). */
+  /** Alerts go away when the agent stops waiting (or leaves the office). */
   render(): void {
     for (const t of [...this.toasts]) {
       if (t.notice.level !== 'alert' || !t.notice.agentId) continue;
       const a = this.ctx.agent(t.notice.agentId);
       if (!a || a.status !== 'waiting') this.dismiss(t);
-      // O pedido pode chegar (pelo hook) depois do aviso: o atalho aparece quando ele existe.
+      // The request can arrive (through the hook) after the notice: the shortcut shows up when it exists.
       else if (t.answer) setHidden(t.answer, !a.permission);
     }
   }
@@ -99,7 +99,7 @@ export class Toasts implements UiComponent {
       el.append(toast.answer);
     }
     el.append(iconButton(ICONS.close, tr('Dismiss notice'), () => this.dismiss(toast), 'ui-icon-btn--sm ui-toast__close'));
-    // Pausa o tempo de vida com o mouse em cima.
+    // Pauses the lifetime with the mouse over it.
     el.addEventListener('mouseenter', () => this.pause(toast));
     el.addEventListener('mouseleave', () => this.arm(toast, toast.remaining));
     return toast;

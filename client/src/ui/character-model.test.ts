@@ -38,12 +38,12 @@ describe('changedParts', () => {
     const base = appearanceFromSeed(3, { look: 'm' });
     const shoes = base.shoes === '#101010' ? '#ffffff' : '#101010';
     const bottomStyle = base.bottomStyle === 'skirt' ? 'pants' : 'skirt';
-    // No literal da aparência `shoes` vem antes de `bottomStyle`; em PART_KEYS é o contrário.
+    // In the appearance literal `shoes` comes before `bottomStyle`; in PART_KEYS it is the opposite.
     expect(Object.keys(base).indexOf('shoes')).toBeLessThan(Object.keys(base).indexOf('bottomStyle'));
     expect(PART_KEYS.indexOf('bottomStyle')).toBeLessThan(PART_KEYS.indexOf('shoes'));
     expect(Object.keys(changedParts(base, { ...base, shoes, bottomStyle }))).toEqual(['bottomStyle', 'shoes']);
 
-    // Mesmo com as chaves da editada em ordem invertida, o resultado segue a ordem de PART_KEYS.
+    // Even with the keys of the edited one in reverse order, the result follows the order of PART_KEYS.
     const skin = base.skin === '#5a3623' ? '#ffe2cc' : '#5a3623';
     const topStyle = base.topStyle === 'jacket' ? 'polo' : 'jacket';
     const reversed = Object.fromEntries(Object.entries({ ...base, shoes, bottomStyle, topStyle, skin }).reverse()) as unknown as typeof base;
@@ -72,7 +72,7 @@ describe('editor groups and labels', () => {
   });
 });
 
-// Elementos mínimos para exercitar o editor no ambiente Node, sem desenho em canvas.
+// Minimal elements to exercise the editor in the Node environment, without canvas drawing.
 class EditorElement {
   className = '';
   textContent = '';

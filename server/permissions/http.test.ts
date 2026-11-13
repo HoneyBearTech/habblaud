@@ -1,6 +1,6 @@
-// Rotas de /api/permissions: a trava (desligado / Host que não é local), o guard (JSON e Origin), os
-// status (400, 404, 405, 409), o fluxo completo (registrar → esperar → decidir), o long-poll sem decisão,
-// a resposta imediata sem páginas abertas, as perguntas do AskUserQuestion e os pedidos fictícios do demo.
+// /api/permissions routes: the lock (off / Host that is not local), the guard (JSON and Origin), the
+// statuses (400, 404, 405, 409), the full flow (register → wait → decide), the long-poll with no decision,
+// the immediate answer with no pages open, the AskUserQuestion questions and the fake demo requests.
 import { afterEach, describe, expect, it } from 'vitest';
 import type { OfficeSnapshot, PermissionRequestInfo } from '../../shared/types';
 import { setQuiet } from '../log';
@@ -41,7 +41,7 @@ describe('local lock', () => {
       expect(r.status, host).toBe(403);
       expect(r.json).toMatchObject({ error: expect.stringMatching(/the computer running/) });
     }
-    // Host local com porta e localhost: valem.
+    // Local Host with a port and localhost: they are valid.
     expect((await request(srv.base, '/api/permissions', { method: 'POST', body: hookJson(), headers: { Host: `localhost:${srv.port}` } })).status).toBe(201);
   });
 
@@ -52,7 +52,7 @@ describe('local lock', () => {
     expect(form.status).toBe(415);
     const evil = await request(srv.base, `/api/permissions/${id}/decision`, { method: 'POST', body: { behavior: 'allow' }, headers: { Origin: 'https://evil.example' } });
     expect(evil.status).toBe(403);
-    // Da própria página (Origin local): passa.
+    // From the page itself (local Origin): passes.
     const ok = await request(srv.base, `/api/permissions/${id}/decision`, { method: 'POST', body: { behavior: 'allow' }, headers: { Origin: srv.base } });
     expect(ok.status).toBe(200);
   });
@@ -92,7 +92,7 @@ describe('routes', () => {
     expect((await request(srv.base, `/api/permissions/${id}/wait?timeout=0.2`)).json).toEqual({ status: 'pending' });
     expect(Date.now() - t0).toBeLessThan(2_000);
 
-    // A página vê o pedido no snapshot (sem os argumentos) e busca o detalhe.
+    // The page sees the request in the snapshot (without the arguments) and fetches the detail.
     const snap = (await request(srv.base, '/api/snapshot')).json as OfficeSnapshot;
     const agent = snap.agents.find((a) => a.id === MAIN)!;
     expect(agent).toMatchObject({ status: 'waiting', permission: { id, tool: 'Bash', title: 'Bash(npm test)' } });
@@ -185,7 +185,7 @@ describe('routes', () => {
 
   it('demo: the fictional request answers through the same route', async () => {
     srv = await servePermissions({ demo: true });
-    // Algum agente do demo pede permissão agora.
+    // Some demo agent asks for permission now.
     const sim = (srv.office as unknown as { demo: { forcePermission(now: number, kind?: string): string | undefined } }).demo;
     const agentId = sim.forcePermission(Date.now(), 'permission');
     srv.office.tick();

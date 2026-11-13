@@ -1,6 +1,6 @@
-// Validador mínimo de JSON Schema, para os testes conferirem pacotes contra shared/world/schema.json (o Habblaud não tem
-// dependências de runtime nem o Ajv; o servidor do mundo valida o mesmo arquivo com o Ajv). Só as palavras-chave que o
-// schema.json usa: qualquer outra derruba quem chamou, para nenhuma regra ser ignorada em silêncio. Usado só por testes.
+// Minimal JSON Schema validator, for the tests to check packets against shared/world/schema.json (Habblaud has no
+// runtime dependencies or Ajv; the world server validates the same file with Ajv). Only the keywords that schema.json
+// uses: any other one brings down the caller, so that no rule is silently ignored. Used only by tests.
 
 export type Schema = boolean | { [k: string]: unknown };
 export interface SchemaError { keyword: string; path: string }
@@ -98,8 +98,8 @@ export function compileValidator(root: { [k: string]: unknown }): (data: unknown
 }
 
 /**
- * Caminho de cada chave que o esquema permite, seguindo `$ref`, `items` e os ramos `then`/`else`: "v", "floors",
- * "floors[].agents[].parts.skin"... É a lista fechada do pacote, tirada do próprio schema.json.
+ * Path of each key the schema allows, following `$ref`, `items` and the `then`/`else` branches: "v", "floors",
+ * "floors[].agents[].parts.skin"... It is the closed list of the packet, taken from schema.json itself.
  */
 export function schemaKeyPaths(root: { [k: string]: unknown }): Set<string> {
   const out = new Set<string>();
@@ -121,7 +121,7 @@ export function schemaKeyPaths(root: { [k: string]: unknown }): Set<string> {
   return out;
 }
 
-/** Caminho de cada chave de um JSON, no mesmo formato de schemaKeyPaths. */
+/** Path of each key of a JSON, in the same format as schemaKeyPaths. */
 export function jsonKeyPaths(value: unknown, path = '', out = new Set<string>()): Set<string> {
   if (Array.isArray(value)) {
     for (const item of value) jsonKeyPaths(item, `${path}[]`, out);

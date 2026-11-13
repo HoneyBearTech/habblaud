@@ -1,10 +1,10 @@
-// Terminal interativo: janela flutuante com o Claude Code rodando de verdade (pty no servidor, xterm.js aqui).
-// Ao contrário do terminal ao vivo (ui/terminal.ts, que mostra a conversa), aqui dá para digitar, responder e encerrar.
-// Sessão aberta noutro terminal (ex.: Windows Terminal) abre primeiro no terminal ao vivo, com "Assumir daqui";
-// esta janela só mostra o aviso de "em outro terminal" quando o terminal ao vivo está desligado. As abas trocam
-// entre os agentes do mesmo projeto; as duas janelas se revezam no mesmo lugar.
-// As teclas não vazam para os atalhos do escritório (T, P, M, Esc...): Esc, por exemplo, interrompe o Claude.
-// Fechar a janela não encerra a sessão; "Encerrar" encerra.
+// Interactive terminal: floating window with Claude Code really running (pty on the server, xterm.js here).
+// Unlike the live terminal (ui/terminal.ts, which shows the conversation), here you can type, answer and end.
+// Session open in another terminal (e.g. Windows Terminal) opens first in the live terminal, with "Take over here";
+// this window only shows the "in another terminal" notice when the live terminal is off. The tabs switch
+// between the agents of the same project; the two windows take turns in the same place.
+// The keys don't leak to the office shortcuts (T, P, M, Esc...): Esc, for example, interrupts Claude.
+// Closing the window doesn't end the session; "End" does.
 import type { AgentInfo, PtyInfo } from '../../../shared/types';
 import type { UiComponent, UiContext } from './context';
 import { h, iconButton, setHidden, setText } from './dom';
@@ -17,18 +17,18 @@ import { TermTabs } from './termtabs';
 import { createAccountChip, updateAccountChip } from './widgets';
 import { tr } from '../../../shared/i18n';
 
-/** O que a gaveta e os atalhos usam do terminal interativo. */
+/** What the drawer and the shortcuts use from the interactive terminal. */
 export interface PtyControl {
-  /** Recurso ligado (fora do Docker, com node-pty e acesso local). */
+  /** Feature on (outside Docker, with node-pty and local access). */
   readonly enabled: boolean;
-  /** Por que está desligado. */
+  /** Why it is off. */
   readonly reason: string;
-  /** Terminal interativo rodando deste agente. */
+  /** Interactive terminal of this agent running. */
   ptyOf(agentId: string): PtyInfo | undefined;
-  /** Agente aberto na janela (com pty ou aberto noutro terminal). */
+  /** Agent open in the window (with a pty or open in another terminal). */
   readonly agentId: string | null;
   readonly isOpen: boolean;
-  /** Abre a janela no agente: o pty dele ou, se a sessão roda noutro terminal, a oferta de assumir. */
+  /** Opens the window on the agent: its pty or, if the session runs in another terminal, the offer to take over. */
   openAgent(agentId: string): void;
   close(): void;
   takeover(agentId: string): Promise<void>;
@@ -41,7 +41,7 @@ export class PtyPanel implements UiComponent, PtyControl {
   private pane: PtyPane | null = null;
   private loading: Promise<PtyPane> | null = null;
   private info: PtyInfo | null = null;
-  /** Agente aberto noutro terminal (sem pty aqui), mostrado com "Assumir daqui". */
+  /** Agent open in another terminal (no pty here), shown with "Take over here". */
   private external: string | null = null;
   private screen: HTMLElement;
   private away: HTMLElement;
@@ -53,9 +53,9 @@ export class PtyPanel implements UiComponent, PtyControl {
   private actions: TermActions;
   private tabs: TermTabs;
   private movable: Movable;
-  /** Avisado quando a janela aparece (o terminal ao vivo fecha: a janela é uma só). */
+  /** Notified when the window shows (the live terminal closes: there is only one window). */
   onShow: (() => void) | null = null;
-  /** Agente a selecionar quando aparecer no snapshot (sessão recém-aberta ou assumida). */
+  /** Agent to select when it appears in the snapshot (session just opened or taken over). */
   private pendingSelect: string | null = null;
 
   constructor(private ctx: UiContext) {
@@ -92,7 +92,7 @@ export class PtyPanel implements UiComponent, PtyControl {
       h('p', { class: 'ui-muted', text: tr('Use "Take over here" (at the top) to end it there and continue the same conversation in this window, with typing enabled.') }),
     );
     this.el = h('section', { class: 'ui-term ui-pty', role: 'dialog', hidden: true, attrs: { 'aria-label': tr('Terminal') } }, bar, this.tabs.el, this.screen, this.away);
-    // Teclas digitadas no terminal são do Claude Code, não dos atalhos do escritório.
+    // Keys typed in the terminal belong to Claude Code, not to the office shortcuts.
     this.el.addEventListener('keydown', (e) => e.stopPropagation());
     this.movable = new Movable(this.el, bar, { key: 'habblaud.move.term', enabled: () => !ctx.isNarrow(), onMove: () => this.pane?.refit(true) });
     this.el.addEventListener('keyup', (e) => e.stopPropagation());
@@ -158,7 +158,7 @@ export class PtyPanel implements UiComponent, PtyControl {
     if (this.external) return this.renderExternal(this.external);
     const info = this.info;
     if (!info) return;
-    // A lista do snapshot traz o estado mais novo (encerrado, código de saída).
+    // The snapshot's list carries the newest state (ended, exit code).
     const fresh = this.ctx.store.snapshot?.ptys?.find((p) => p.id === info.id);
     if (fresh) this.info = fresh;
     const cur = this.info ?? info;
@@ -178,9 +178,9 @@ export class PtyPanel implements UiComponent, PtyControl {
     this.setMode(false);
   }
 
-  /** Sessão aberta noutro terminal: quem é, do que se trata e o "Assumir daqui". */
+  /** Session open in another terminal: who it is, what it is about and the "Take over here". */
   private renderExternal(id: string): void {
-    // Assumida (por aqui ou por outra aba do navegador): vira o terminal de verdade.
+    // Taken over (from here or from another browser tab): it becomes the real terminal.
     const own = this.ptyOf(id);
     if (own) return this.show(own);
     const agent = this.ctx.agent(id);

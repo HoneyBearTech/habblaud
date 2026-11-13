@@ -1,5 +1,5 @@
-// Falas curtas dos personagens (balõezinhos) — puro. `{nome}` = um colega, `{sala}` = um projeto,
-// `{v}` = valor da aposta, `{a}`/`{b}` = placar. Nada aqui depende do gênero de quem fala.
+// Short lines of the characters (little speech bubbles) — pure. `{nome}` = a coworker, `{sala}` = a project,
+// `{v}` = bet amount, `{a}`/`{b}` = score. Nothing here depends on the gender of whoever speaks.
 import type { TraitId } from './persona';
 import { tr } from '../../../../shared/i18n';
 
@@ -94,11 +94,11 @@ export const CHAT = {
   laugh: ['HAHAHA', tr('Hahaha!'), '😂😂😂'],
 };
 
-/** Saindo de uma roda porque o trabalho chamou. */
+/** Leaving a hangout because work called. */
 export const CALLED: Pool = [tr("Oops, they're calling me! 🏃"), tr("Gotta go! Work's here"), tr('Be right back!'), tr('Uh-oh, gotta go!')];
 export const SHELL_DONE: Pool = [tr('My command finished! 🏃'), tr("Build's done, gotta go!")];
 
-/** Temas de papo que cada traço puxa. */
+/** Chat topics that each trait brings up. */
 export const TRAIT_TOPICS: Partial<Record<TraitId, keyof typeof CHAT>> = {
   fofoca: 'fofoca',
   cafeina: 'cafeina',
@@ -112,7 +112,7 @@ export const TRAIT_TOPICS: Partial<Record<TraitId, keyof typeof CHAT>> = {
   economia: 'economia',
 };
 
-/** Fala ligada ao dia/hora local, quando houver (sexta, segunda, manhã, almoço, noite). */
+/** Line tied to the local day/time, when there is one (Friday, Monday, morning, lunch, night). */
 export function timeLine(d: Date): string | null {
   const day = d.getDay();
   const h = d.getHours();
@@ -132,7 +132,7 @@ export interface LineVars {
   b?: number | string;
 }
 
-/** Preenche os campos da fala. Sem valor para um campo, a fala é descartada (retorna null). */
+/** Fills in the fields of the line. Without a value for a field, the line is discarded (returns null). */
 export function fill(line: string, vars: LineVars): string | null {
   let ok = true;
   const out = line.replace(/\{(nome|sala|v|a|b)\}/g, (_, k: keyof LineVars) => {
@@ -146,7 +146,7 @@ export function fill(line: string, vars: LineVars): string | null {
   return ok ? out : null;
 }
 
-/** Sorteia uma fala do conjunto (evitando `avoid` e as que não dá para preencher). */
+/** Draws a line from the set (avoiding `avoid` and the ones that cannot be filled in). */
 export function pick(pool: Pool, rng: () => number, vars: LineVars = {}, avoid?: string | null): string {
   const n = pool.length;
   const start = Math.floor(rng() * n);

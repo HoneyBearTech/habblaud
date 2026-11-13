@@ -1,5 +1,5 @@
-// O app do cliente: store (dados) -> mundo (canvas) -> UI (painéis). Carregado por main.ts depois do dicionário do
-// idioma ativo, porque vários módulos chamam tr() ao carregar.
+// The client app: store (data) -> world (canvas) -> UI (panels). Loaded by main.ts after the dictionary of the
+// active language, because several modules call tr() on load.
 import { loadAccess } from './net/access';
 import { OfficeStore } from './net/store';
 import { createWorld, type WorldApi } from './world';
@@ -10,10 +10,10 @@ import { migrateLegacyKeys, safeLocalStorage } from './ui/prefs';
 import { getLocale, tr } from '../../shared/i18n';
 
 export function start(): void {
-  // Antes de tudo: o mundo (carteiras) e a UI (preferências) leem o localStorage ao serem criados.
+  // Before anything else: the world (wallets) and the UI (preferences) read localStorage when they are created.
   migrateLegacyKeys(safeLocalStorage());
 
-  // Idioma escolhido (shared/i18n): leitores de tela e o corretor do navegador seguem o atributo lang.
+  // Chosen language (shared/i18n): screen readers and the browser's spell checker follow the lang attribute.
   document.documentElement.lang = getLocale();
   document.querySelector('meta[name="description"]')?.setAttribute(
     'content',
@@ -27,13 +27,13 @@ export function start(): void {
   const world = createWorld(worldCanvas, store);
   const city = cityHost({ world, worldCanvas, uiRoot, mock: store.mock, params, version: () => store.liveSnapshot?.meta.version ?? '' });
   createUI(uiRoot, store, world, city);
-  // O que esta página pode fazer (porta local ou remota com login) chega antes do primeiro snapshot (ou desiste em
-  // poucos segundos e fica a regra de antes).
+  // What this page can do (local port, or remote with login) arrives before the first snapshot (or it gives up in
+  // a few seconds and the earlier rule stays).
   if (store.mock) store.connect();
   else {
     void loadAccess().finally(() => store.connect());
-    // Reconexão (servidor reiniciado, celular de volta do bloqueio): o acesso pode ter mudado, e o login pode ter
-    // vencido (loadAccess leva à tela de entrada).
+    // Reconnection (server restarted, phone back from the lock screen): the access may have changed, and the login may
+    // have expired (loadAccess leads to the sign-in screen).
     let opened = false;
     store.on('connection', (state) => {
       if (state === 'open') {
@@ -43,14 +43,14 @@ export function start(): void {
     });
   }
 
-  // Facilita a depuração pelo console do navegador.
+  // Makes debugging from the browser console easier.
   Object.assign(window, { habblaud: { store, world, city } });
 }
 
 /**
- * A cena da cidade do Habblaud World (botão Mundo): um segundo canvas por cima do escritório, carregado só na
- * primeira vez que abre (quem não usa o World não baixa a cidade). Com a cidade na tela, o escritório para de
- * desenhar e o teclado é da cidade; Esc ou o botão Escritório voltam.
+ * The city scene of Habblaud World (World button): a second canvas on top of the office, loaded only the
+ * first time it opens (those who don't use World don't download the city). With the city on screen, the office
+ * stops drawing and the keyboard belongs to the city; Esc or the Office button go back.
  */
 function cityHost(o: { world: WorldApi; worldCanvas: HTMLCanvasElement; uiRoot: HTMLElement; mock: boolean; params: URLSearchParams; version: () => string }): CitySceneHost & { scene(): CityScene | null } {
   let scene: CityScene | null = null;
@@ -62,11 +62,11 @@ function cityHost(o: { world: WorldApi; worldCanvas: HTMLCanvasElement; uiRoot: 
   o.worldCanvas.after(canvas);
   const load = (): Promise<CityScene> =>
     (loading ??= Promise.all([import('./world/city'), import('./net/world-stream')]).then(([m, ws]) => {
-      // Modo demonstração: a cidade de mentira (`?perf=N` enche N lotes, para medir). Ao vivo: o stream do servidor
-      // local (GET /api/world/stream e POST /api/world/cmd).
+      // Demo mode: the fake city (`?perf=N` fills N lots, for measuring). Live: the stream of the local
+      // server (GET /api/world/stream and POST /api/world/cmd).
       const perf = Number(o.params.get('perf'));
       const buildings = o.mock && Number.isFinite(perf) && perf > 0 ? { buildings: perf } : {};
-      // a cidade falsa lembra onde eu estava entre um stream e o seguinte desta página (como o servidor, por conta)
+      // the fake city remembers where I was between one stream and the next on this page (like the server, per account)
       const memory = {};
       scene = m.createCityScene({
         canvas,

@@ -78,12 +78,12 @@ describe('building layout', () => {
       expect(door).toBeDefined();
       for (let x = door.x; x < door.x + door.w; x++) {
         for (let y = door.y; y < door.y + door.h; y++) expect(b.grid.walkable(x, y)).toBe(true);
-        // tile do corredor imediatamente fora da porta
+        // corridor tile immediately outside the door
         const outside = room.side === 'north' ? door.y + door.h : door.y - 1;
         expect(outside >= CORRIDOR_Y && outside < SOUTH_Y).toBe(true);
         expect(reachable(x, outside)).toBe(true);
       }
-      // o interior inteiro (fora móveis) é alcançável
+      // the whole interior (other than furniture) is reachable
       const r = room.rect;
       for (let y = r.y + 2; y < r.y + 11; y++)
         for (let x = r.x + 1; x < r.x + 15; x++) if (b.grid.walkable(x, y)) expect(reachable(x, y)).toBe(true);
@@ -157,11 +157,11 @@ describe('building layout', () => {
   });
 });
 
-/** Móveis de chão altos que escondem o que está pendurado na parede logo atrás. */
+/** Tall floor furniture that hides what hangs on the wall right behind it. */
 const TALL_FLOOR = new Set<FurnitureKind>(['plant_tall', 'bookshelf', 'binder_shelf', 'fridge', 'vending_machine', 'arcade', 'water_cooler', 'floor_lamp', 'toilet_stall']);
 const WALL_DECOR = new Set<FurnitureKind>(['painting', 'poster', 'window', 'tv', 'whiteboard', 'sign', 'clock', 'mirror', 'door_frame']);
 
-/** Itens de parede decorativos com algum móvel alto encostado na frente (ids). */
+/** Decorative wall items with some tall furniture up against the front (ids). */
 function hiddenWallItems(area: AreaLayout): string[] {
   const out: string[] = [];
   for (const w of area.wallItems) {
@@ -205,7 +205,7 @@ describe('variations of the project rooms', () => {
           for (let x = r.x + 1; x < r.x + 15; x++) if (b.grid.walkable(x, y)) expect(reach[y * b.grid.w + x], `tile ${x},${y} isolated (seed ${seed})`).toBe(1);
         expect(room.spots.filter((sp) => sp.kind === 'desk')).toHaveLength(6);
         expect(room.spots.filter((sp) => sp.kind === 'stool' || sp.kind === 'nook').length).toBeGreaterThanOrEqual(4);
-        // spots de uso não podem cair em cima de móvel que bloqueia
+        // use spots cannot land on top of furniture that blocks
         for (const sp of room.spots) expect(b.grid.walkable(sp.tx, sp.ty), `${sp.id} on furniture`).toBe(true);
         expect(hiddenWallItems(room)).toEqual([]);
       }
@@ -218,7 +218,7 @@ describe('variations of the project rooms', () => {
     expect(new Set(vs.map((v) => v.meeting)).size).toBe(3);
     expect(new Set(vs.map((v) => v.left)).size).toBeGreaterThan(1);
     expect(new Set(vs.map((v) => v.right)).size).toBeGreaterThan(1);
-    // o piso é porcelanato (azulejo é do banheiro) com um leve tom da sala
+    // the floor is porcelain tile (glazed tile is for the restroom) with a slight tone of the room
     const room = layoutProjectRoom({ id: '/v/x', slot: 0, seed: 42 }, theme);
     expect(room.floors.every((f) => f.kind !== 'tile_white')).toBe(true);
     expect(room.floorTint).toBe(theme.carpet);

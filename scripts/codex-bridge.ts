@@ -1,21 +1,24 @@
-// Auxiliar do Habblaud para as mensagens ao Codex quando o Habblaud roda no Docker. Roda no HOST (Mac), com tsx:
+// Habblaud helper for the messages to Codex when Habblaud runs in Docker. Runs on the HOST (Mac), with tsx:
 //
-//   npm run codex:bridge     (opções: --port <n>, --once)
+//   npm run codex:bridge     (options: --port <n>, --once)
 //
-// As mensagens ao Codex entram na sessão por `codex queue --thread <threadId> --message <texto>`, que precisa rodar no
-// Mac (é aqui que estão o Codex e as pastas das contas); no Docker o servidor não alcança o binário. Este processo, a
-// cada 2 s, pergunta ao Habblaud se há mensagens para as sessões do Codex (POST /api/codex/bridge/poll), roda o
-// comando para cada uma, na ordem, com o CODEX_HOME da conta, e confirma o resultado (POST /api/codex/bridge/ack).
-// Enquanto ele roda, o escritório deixa mandar mensagens aos agentes do Codex (o Habblaud o considera presente por até
-// 10 s depois da última rodada). Fora do Docker não precisa dele: o próprio servidor roda o comando.
+// The messages to Codex enter the session through `codex queue --thread <threadId> --message <texto>`, which needs
+// to run on the Mac (this is where Codex and the account folders are); in Docker the server can't reach the binary.
+// This process, every 2 s, asks Habblaud whether there are messages for the Codex sessions
+// (POST /api/codex/bridge/poll), runs the command for each one, in order, with the account's CODEX_HOME, and
+// confirms the result (POST /api/codex/bridge/ack).
+// While it runs, the office lets you send messages to the Codex agents (Habblaud considers it present for up to
+// 10 s after the last round). Outside Docker it isn't needed: the server itself runs the command.
 //
-// Binário: HABBLAUD_CODEX_BIN ou `codex` do PATH. Nunca roda o Codex com -c, --enable, --disable nem --no-daemon, e
-// confere cada mensagem antes (id de thread, pasta do Codex que existe). O texto das mensagens nunca vai para a tela.
-// Também começa os agentes novos pedidos no escritório (com HABBLAUD_PTY=1 no Habblaud; anexos gravados em
-// ~/.habblaud/attachments/), lê os arquivos das entregas (só de pastas de projeto conhecidas, da pasta temporária e dos
-// anexos) e transcreve o ditado com o Whisper local (whisper-cli + ffmpeg + modelo; ver server/dictation/whisper.ts).
-// Arquivos e ditado usam rodadas com espera: o Habblaud só responde quando chega trabalho (ou a cada 20 s).
-// Ctrl+C para parar.
+// Binary: HABBLAUD_CODEX_BIN or `codex` from the PATH. Never runs Codex with -c, --enable, --disable or --no-daemon,
+// and checks each message first (thread id, Codex folder that exists). The text of the messages never goes to the
+// screen.
+// It also starts the new agents requested in the office (with HABBLAUD_PTY=1 in Habblaud; attachments written to
+// ~/.habblaud/attachments/), reads the delivery files (only from known project folders, the temporary folder and
+// the attachments) and transcribes the dictation with the local Whisper (whisper-cli + ffmpeg + model; see
+// server/dictation/whisper.ts).
+// Files and dictation use rounds with a wait: Habblaud only answers when work arrives (or every 20 s).
+// Ctrl+C to stop.
 import { statSync } from 'node:fs';
 import { isAbsolute, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -32,9 +35,9 @@ import { HOST_WAIT_MS } from '../server/host-wait';
 import { readFileSync } from 'node:fs';
 
 export const DEFAULT_PORT = 4747;
-/** Intervalo entre as rodadas. */
+/** Interval between the rounds. */
 export const POLL_MS = 2_000;
-/** Pausa mínima entre rodadas com espera (Habblaud antigo, que responde na hora) e depois de uma recusa. */
+/** Minimum pause between rounds with a wait (old Habblaud, which answers right away) and after a refusal. */
 export const WAIT_ROUND_MIN_MS = 500;
 export const REFUSED_RETRY_MS = 60_000;
 const REQUEST_TIMEOUT_MS = 5_000;
@@ -53,7 +56,7 @@ export interface BridgeResult {
   id: string;
   ok: boolean;
   error?: string;
-  /** Agentes novos: rodando em segundo plano (`cli`) ou na tela do app esperando o Enter (`app`). */
+  /** New agents: running in the background (`cli`) or on the app's screen waiting for Enter (`app`). */
   how?: SpawnHow;
   note?: string;
 }
@@ -91,8 +94,8 @@ function isDir(p: string): boolean {
 }
 
 /**
- * Confere uma mensagem vinda do Habblaud antes de rodar o comando: id, texto, id de thread (UUID) e uma pasta do
- * Codex que existe neste computador (nunca uma do Claude Code). Devolve a mensagem ou o motivo da recusa.
+ * Checks a message coming from Habblaud before running the command: id, text, thread id (UUID) and a Codex
+ * folder that exists on this computer (never a Claude Code one). Returns the message or the reason for the refusal.
  */
 export function checkMessage(raw: unknown): BridgeMessage | { id?: string; error: string } {
   const r = rec(raw);
@@ -105,7 +108,7 @@ export function checkMessage(raw: unknown): BridgeMessage | { id?: string; error
   return { id, account: typeof r.account === 'string' ? r.account : '', codexHome: resolve(home), thread: r.thread, text: r.text };
 }
 
-/** POST JSON ao Habblaud local; null = fora do ar, tempo esgotado ou resposta ilegível. */
+/** POST JSON to the local Habblaud; null = down, timed out or unreadable response. */
 export type Post = (path: string, body: unknown) => Promise<{ status: number; json: unknown } | null>;
 
 export function httpPost(port: number, timeoutMs = REQUEST_TIMEOUT_MS): Post {
@@ -113,7 +116,7 @@ export function httpPost(port: number, timeoutMs = REQUEST_TIMEOUT_MS): Post {
     try {
       const res = await fetch(`http://127.0.0.1:${port}${path}`, {
         method: 'POST',
-        // O guard do Habblaud exige JSON em todo POST da API (mesmo o corpo vazio da rodada).
+        // The Habblaud guard requires JSON in every API POST (even the round's empty body).
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
         signal: AbortSignal.timeout(timeoutMs),
@@ -137,7 +140,7 @@ export type RoundResult =
   | { state: 'refused'; status: number; error?: string }
   | { state: 'ok'; results: BridgeResult[] };
 
-/** Uma rodada: busca as mensagens, roda `codex queue` para cada uma (na ordem) e confirma cada resultado. Nunca lança. */
+/** One round: fetches the messages, runs `codex queue` for each one (in order) and confirms each result. Never throws. */
 export async function round(post: Post, run: CodexQueueRunner, log: (line: string) => void = () => {}): Promise<RoundResult> {
   const polled = await post('/api/codex/bridge/poll', {});
   if (!polled) return { state: 'down' };
@@ -172,7 +175,7 @@ export async function round(post: Post, run: CodexQueueRunner, log: (line: strin
   return { state: 'ok', results };
 }
 
-/** Anexos de um pedido vindo do Habblaud: nomes seguros, base64 válido, tamanho e quantidade no limite. */
+/** Attachments of a request coming from Habblaud: safe names, valid base64, size and count within the limit. */
 export function checkFiles(raw: unknown): Attachment[] | { error: string } {
   if (raw === undefined) return [];
   if (!Array.isArray(raw) || raw.length > ATTACHMENTS_PER_SPAWN) return { error: tr('invalid attachments') };
@@ -187,7 +190,7 @@ export function checkFiles(raw: unknown): Attachment[] | { error: string } {
   return out;
 }
 
-/** Linha do log de um agente novo que abriu: uma frase inteira por caso (anexos e nota), para traduzir. */
+/** Log line of a new agent that opened: one whole sentence per case (attachments and note), for translation. */
 function spawnedLine(folder: string, how: SpawnHow, files: number, note?: string): string {
   if (how === 'cli') {
     if (!files) return tr('✓ new agent in {0} running in the background', [folder]);
@@ -208,9 +211,9 @@ function spawnedLine(folder: string, how: SpawnHow, files: number, note?: string
 }
 
 /**
- * Agentes novos pelo escritório: busca os pedidos (POST /api/host/spawn/poll), confere cada um (pasta que existe
- * aqui), roda em segundo plano com o `claude --bg` (com `cli`) ou, se não der, monta o link claude://code/new ele
- * mesmo e abre o app do Claude; confirma em /api/host/spawn/ack. Nunca lança.
+ * New agents from the office: fetches the requests (POST /api/host/spawn/poll), checks each one (folder that exists
+ * here), runs it in the background with `claude --bg` (with `cli`) or, if that isn't possible, builds the
+ * claude://code/new link itself and opens the Claude app; confirms in /api/host/spawn/ack. Never throws.
  */
 export async function spawnRound(
   post: Post,
@@ -251,8 +254,8 @@ export async function spawnRound(
 }
 
 /**
- * Ditado: busca os áudios (POST /api/host/dictation/poll), transcreve cada um com o Whisper local e devolve o texto e
- * o idioma em /api/host/dictation/ack. O texto nunca vai para a tela. Nunca lança.
+ * Dictation: fetches the audios (POST /api/host/dictation/poll), transcribes each one with the local Whisper and
+ * returns the text and the language in /api/host/dictation/ack. The text never goes to the screen. Never throws.
  */
 export async function dictationRound(post: Post, transcribe: Transcriber, log: (line: string) => void = () => {}, opts: { wait?: boolean } = {}): Promise<RoundResult> {
   const polled = await post(`/api/host/dictation/poll${opts.wait ? '?wait=1' : ''}`, {});
@@ -284,9 +287,9 @@ export async function dictationRound(post: Post, transcribe: Transcriber, log: (
 }
 
 /**
- * Arquivos das entregas: busca os caminhos pedidos (POST /api/host/files/poll), confere cada um com checkFile (tipo de
- * ver, nada com cara de segredo, até 25 MB, links resolvidos) e com `inside` (pastas que pode ler) e devolve o conteúdo
- * em /api/host/files/ack. Nunca lança.
+ * Delivery files: fetches the requested paths (POST /api/host/files/poll), checks each one with checkFile (a type
+ * that can be viewed, nothing that looks like a secret, up to 25 MB, links resolved) and with `inside` (folders it
+ * may read) and returns the content in /api/host/files/ack. Never throws.
  */
 export async function filesRound(
   post: Post,
@@ -321,7 +324,7 @@ export async function filesRound(
   return { state: 'ok', results: results.map(({ id, ok, error }) => ({ id, ok, ...(error ? { error } : {}) })) };
 }
 
-/** Repete uma rodada com espera: fora do ar, de 2 em 2 s; recusada (recurso desligado), a cada minuto. */
+/** Repeats a round with a wait: when down, every 2 s; refused (feature turned off), every minute. */
 async function waitLoop(roundFn: () => Promise<RoundResult>): Promise<never> {
   for (;;) {
     const started = Date.now();
@@ -357,7 +360,7 @@ async function main(): Promise<void> {
     log(tr('Dictation: local Whisper ({0}), languages {1} auto-detected.', [whisper.model.split('/').pop(), whisper.langs.join('/')]));
     transcribe = createWhisperTranscriber(whisper);
   }
-  // Arquivos das entregas e ditado (a pessoa está esperando): rodadas com espera, cada uma no seu laço.
+  // Delivery files and dictation (the person is waiting): rounds with a wait, each one in its own loop.
   if (!parsed.once) {
     const waitPost = httpPost(parsed.port, HOST_WAIT_MS + 10_000);
     const accountDirs = discoverClaudeDirs(process.env);
@@ -370,7 +373,7 @@ async function main(): Promise<void> {
     }
   }
   let last = '';
-  // Agentes novos desligados no Habblaud (sem HABBLAUD_PTY=1): pergunta de novo só a cada minuto.
+  // New agents turned off in Habblaud (without HABBLAUD_PTY=1): asks again only every minute.
   let spawnRetryAt = 0;
   let spawned: RoundResult = { state: 'ok', results: [] };
   for (;;) {

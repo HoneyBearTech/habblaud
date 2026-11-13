@@ -1,6 +1,7 @@
-// Renomear uma sala (botão direito na sala, na lista lateral ou no escritório): um campo flutuante perto do clique.
-// O nome fica no servidor (POST /api/rooms/rename, model/room-aliases.ts) e vale para todas as abas; vazio volta ao
-// nome da pasta. Enter salva, Esc cancela, clicar fora salva. A gaveta da sala tem também um lápis ao lado do nome.
+// Rename a room (right-click on the room, in the side list or in the office): a floating field near the click.
+// The name stays on the server (POST /api/rooms/rename, model/room-aliases.ts) and applies to all tabs; empty
+// goes back to the folder name. Enter saves, Esc cancels, clicking outside saves. The room drawer also has a
+// pencil next to the name.
 import { isDemoId } from '../../../shared/timeline';
 import type { UiContext } from './context';
 import { h, setText } from './dom';
@@ -10,9 +11,9 @@ import { tr } from '../../../shared/i18n';
 const NAME_MAX = 40;
 
 /**
- * Dá para renomear esta sala daqui? O servidor recusa as de demonstração, quem não abriu o Habblaud pelo próprio
- * computador e o Habblaud exposto na rede (sem a trava do terminal); no modo mock e no timelapse não há servidor para
- * gravar.
+ * Can this room be renamed from here? The server refuses demo rooms, anyone who didn't open Habblaud from their own
+ * computer and Habblaud exposed on the network (without the terminal lock); in mock mode and in the timelapse there
+ * is no server to save to.
  */
 export function canRenameRoom(ctx: UiContext, roomId: string): boolean {
   return (
@@ -62,7 +63,7 @@ export class RoomRenamer {
     this.input.addEventListener('keyup', (e) => e.stopPropagation());
   }
 
-  /** Abre o campo para a sala, perto do ponto (px da janela). */
+  /** Opens the field for the room, near the point (window px). */
   open(roomId: string, at: { x: number; y: number }): void {
     const room = this.ctx.store.room(roomId);
     if (!room) return;
@@ -96,7 +97,7 @@ export class RoomRenamer {
       if (this.roomId === id) this.close();
       this.ctx.announce(name ? tr('Room renamed to {0}.', [name]) : tr('The room is back to the folder name.'));
     } catch (err) {
-      // fica aberto com o motivo (ex.: sala de demonstração, Habblaud aberto por outro endereço)
+      // stays open with the reason (e.g. demo room, Habblaud opened from another address)
       setText(this.hint, tr("Didn't work: {0}", [(err as Error).message]));
       this.hint.classList.add('is-error');
     }

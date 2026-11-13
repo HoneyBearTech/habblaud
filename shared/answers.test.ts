@@ -1,9 +1,9 @@
-// Respostas do AskUserQuestion pelo escritório: conferência contra as perguntas (por posição) e o resumo.
+// AskUserQuestion answers from the office: the check against the questions (by position) and the summary.
 import { describe, expect, it } from 'vitest';
 import { answerSummary, checkAnswers } from './answers';
 import type { AskQuestion } from './types';
 
-// Posições do original: a pergunta 1 era inválida (pulada) e a opção 1 da primeira também.
+// Positions from the original: question 1 was invalid (skipped) and so was option 1 of the first one.
 const QS: AskQuestion[] = [
   { index: 0, header: 'Database', question: 'Which database to use?', options: [{ index: 0, label: 'Postgres' }, { index: 2, label: 'SQLite' }] },
   { index: 2, question: 'Which tests to run before the commit?', multiSelect: true, options: [{ index: 0, label: 'Unit' }, { index: 1, label: 'E2E' }] },
@@ -15,7 +15,7 @@ describe('checkAnswers', () => {
       { question: 0, options: [2] },
       { question: 2, options: [0, 1], other: 'lint' },
     ]);
-    // Sem multiSelect, o texto livre vale no lugar de uma opção; com multiSelect, sozinho também.
+    // Without multiSelect, the free text counts in place of an option; with multiSelect, alone too.
     expect(checkAnswers(QS, [{ question: 0, other: 'MySQL' }, { question: 2, other: 'none' }])).toEqual([
       { question: 0, other: 'MySQL' },
       { question: 2, other: 'none' },

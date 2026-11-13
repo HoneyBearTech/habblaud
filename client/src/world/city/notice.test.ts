@@ -1,5 +1,6 @@
-// Avisos do mundo na cena: cada id de NOTICE_IDS tem o seu texto (ou nada, se só interessa a quem depura), e um id
-// que esta versão não conhece vira o genérico. Os da porta (Fase 4) dizem onde estou: na porta ou posto para fora.
+// World notices in the scene: each id in NOTICE_IDS has its text (or nothing, if it only matters to whoever debugs),
+// and an id this version does not know becomes the generic one. The door ones (Phase 4) say where I am: at the door
+// or put outside.
 import { describe, expect, it } from 'vitest';
 import { NOTICE_IDS } from '../../../../shared/world/protocol';
 import { noticeText } from './notice';
@@ -9,7 +10,7 @@ describe('noticeText', () => {
     const generic = noticeText('new_id');
     expect(generic).toBeTruthy();
     const texts = NOTICE_IDS.map((id) => noticeText(id));
-    // Sem texto: `ignored`, `invalid` e `view_required` (só para quem depura).
+    // No text: `ignored`, `invalid` and `view_required` (only for whoever debugs).
     expect(texts.filter((t) => t === null)).toHaveLength(3);
     const shown = texts.filter((t): t is string => t !== null);
     expect(new Set([...shown, generic]).size).toBe(shown.length + 1);

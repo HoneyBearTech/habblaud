@@ -4,7 +4,7 @@ import { L } from '../test/fixtures';
 import { createTerminalParser, DETAIL_MAX, INPUT_MAX, RESULT_MAX, RESULT_MAX_LINES, TEXT_MAX, THINKING_MAX } from './terminal';
 
 const T0 = Date.parse('2026-10-06T10:00:00Z');
-// Token falso montado em partes (nada de segredo literal no repositório).
+// Fake token built in parts (no literal secret in the repository).
 const TOKEN = ['sk', 'ant', 'api03', 'testeFALSO0123456789abcdefXYZ'].join('-');
 
 function run(lines: string[]): TerminalEntry[] {
@@ -16,7 +16,7 @@ function only<K extends TerminalEntry['kind']>(entries: TerminalEntry[], kind: K
   return entries.filter((e): e is Extract<TerminalEntry, { kind: K }> => e.kind === kind);
 }
 
-/** Linha attachment `queued_command` (prompt digitado com o agente ocupado ou notificação entregue no meio do turno). */
+/** `queued_command` attachment line (prompt typed while the agent is busy or notification delivered mid-turn). */
 function queued(prompt: unknown, extra: Record<string, unknown> = {}, at = T0): string {
   return JSON.stringify({
     type: 'attachment',
@@ -107,7 +107,7 @@ describe('terminal — session events', () => {
       L.notification('toolu_bg', 'completed', 'Background command "Run tests" completed (exit code 0)'),
       L.shellNotification('message', { taskId: 'b2', status: 'failed', summary: 'Background command "build" failed' }),
       queued(withResult, { commandMode: 'task-notification' }),
-      // A fila (queue-operation) não é a entrega: ignorada.
+      // The queue (queue-operation) is not the delivery: ignored.
       L.shellNotification('queue', { taskId: 'b3', status: 'completed' }),
     ]);
     const s = only(e, 'system');
@@ -189,7 +189,7 @@ describe('terminal — session events', () => {
       '',
     ];
     const out = junk.flatMap((l) => p.push(l));
-    // A única entrada aproveitável: o tool_use sem nome nem id ainda aparece.
+    // The only usable entry: the tool_use with no name or id still appears.
     expect(out.map((e) => e.kind)).toEqual(['tool']);
   });
 });
@@ -350,11 +350,11 @@ describe('terminal — security, limits and duplicates', () => {
     }
     const t = only(run([L.assistant([L.tool('t', 'Bash', { command: `${'b'.repeat(INPUT_MAX - 6)} ${TOKEN}` })])]), 'tool')[0];
     expect(t.input).not.toMatch(/sk-ant|teste/);
-    // Muitos segredos encolhem o texto ao mascarar: o fim do recorte prévio (com meio token, curto demais
-    // para as expressões) ficaria visível se não fosse descartado.
+    // Many secrets shrink the text when masked: the end of the earlier cut (with half a token, too short
+    // for the expressions) would be visible if it were not discarded.
     const window = RESULT_MAX * 2 + 1_024;
     const step = TOKEN.length + 1;
-    const lead = window - 9 - step * 200 - 1; // o recorte deixa só "sk-ant-ap"
+    const lead = window - 9 - step * 200 - 1; // the cut leaves only "sk-ant-ap"
     const r = only(run([L.result('b', `${'z'.repeat(lead)} ${`${TOKEN} `.repeat(400)}`)]), 'result')[0];
     expect(r.truncated).toBe(true);
     expect(r.text).toContain('sk-***');
@@ -369,7 +369,7 @@ describe('terminal — security, limits and duplicates', () => {
       think,
       L.assistant([L.text('First')], { msgId: 'm1' }),
       L.assistant([L.tool('t1', 'Bash', { command: 'ls' })], { msgId: 'm1' }),
-      // Linha cumulativa (outra uuid, repetindo os blocos anteriores da mesma mensagem).
+      // Cumulative line (another uuid, repeating the earlier blocks of the same message).
       L.assistant([L.text('First'), L.tool('t1', 'Bash', { command: 'ls' }), L.text('Second')], { msgId: 'm1' }),
       L.result('t1', 'ok'),
     ];

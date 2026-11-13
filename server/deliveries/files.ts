@@ -1,8 +1,9 @@
-// Arquivos das entregas: o que pode ser mostrado no escritório. Só arquivos que o próprio agente entregou (o servidor
-// só pede caminhos que estão numa entrega) e, mesmo assim, só tipos de ver (imagem, PDF, vídeo, página, texto) e nunca
-// algo com cara de segredo (.ssh, .env, chaves, credenciais...). Quem lê é o servidor (modo Node, ou pasta montada no
-// Docker) ou o auxiliar do host (scripts/codex-bridge.ts), que confere tudo de novo antes de ler.
-// Node puro e sem dependências: também é importado pelo auxiliar do host (via tsx).
+// Delivery files: what can be shown in the office. Only files the agent itself delivered (the server only asks for
+// paths that are in a delivery) and, even then, only viewable types (image, PDF, video, page, text) and never
+// something that looks like a secret (.ssh, .env, keys, credentials...). The reader is the server (Node mode, or a
+// folder mounted in Docker) or the host helper (scripts/codex-bridge.ts), which checks everything again before
+// reading.
+// Pure Node with no dependencies: it is also imported by the host helper (via tsx).
 import { existsSync, realpathSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -34,7 +35,7 @@ const TYPES: Readonly<Record<string, { kind: DeliveryAttachmentKind; type: strin
   zip: { kind: 'file', type: 'application/zip' },
 };
 
-/** Pastas e nomes que nunca saem, mesmo que um agente os "entregue" (texto injetado num transcript, por exemplo). */
+/** Folders and names that never leave, even if an agent "delivers" them (e.g. text injected into a transcript). */
 const SECRET_DIRS = /(^|\/)(\.ssh|\.gnupg|\.aws|\.azure|\.kube|\.docker|\.password-store|\.config\/gh|\.config\/gcloud|Keychains|\.habblaud\/remote-tls)(\/|$)/i;
 const SECRET_NAMES = /(^|\/)(\.env[^/]*|id_[a-z0-9]+|[^/]*\.(pem|key|p12|pfx|keystore|jks|kdbx)|[^/]*(secret|credential|password|senha|token)[^/]*)$/i;
 
@@ -44,12 +45,12 @@ export function extensionOf(path: string): string {
   return dot > 0 ? base.slice(dot + 1).toLowerCase() : '';
 }
 
-/** Tipo de visualização e Content-Type, ou undefined se a extensão não é de ver. */
+/** Viewing type and Content-Type, or undefined if the extension is not viewable. */
 export function fileType(path: string): { kind: DeliveryAttachmentKind; type: string } | undefined {
   return TYPES[extensionOf(path)];
 }
 
-/** Motivo para NÃO mostrar o caminho (só olhando o texto), ou undefined. */
+/** Reason NOT to show the path (looking only at the text), or undefined. */
 export function pathProblem(path: string): string | undefined {
   if (!path || path.includes('\0') || !path.startsWith('/') || /(^|\/)\.\.(\/|$)/.test(path)) return tr('invalid path');
   if (!fileType(path)) return tr("file type that can't be shown here");
@@ -57,7 +58,7 @@ export function pathProblem(path: string): string | undefined {
   return undefined;
 }
 
-/** Confere no disco (links resolvidos, tamanho, arquivo comum). Devolve o caminho real ou o motivo. */
+/** Checks on disk (links resolved, size, regular file). Returns the real path or the reason. */
 export function checkFile(
   path: string,
   fs: { realpath(p: string): string; stat(p: string): { isFile(): boolean; size: number } } = { realpath: realpathSync, stat: statSync },
@@ -79,7 +80,7 @@ export function checkFile(
   return { path: real, size: st.size };
 }
 
-/** Pastas temporárias onde os agentes guardam rascunhos e prints (a do sistema e as de sempre no macOS e no Linux). */
+/** Temp folders where agents keep drafts and screenshots (the system one and the usual ones on macOS and Linux). */
 export function tempRoots(): string[] {
   const out = new Set<string>(['/tmp', '/private/tmp', '/var/folders', '/private/var/folders']);
   try {
@@ -91,9 +92,9 @@ export function tempRoots(): string[] {
 }
 
 /**
- * O arquivo (caminho real) está numa pasta que o auxiliar do host pode ler: uma pasta de projeto que alguma conta do
- * Claude Code conhece (ela, ou uma acima dela, tem <conta>/projects/<pasta codificada>) ou uma das `roots` (pastas
- * temporárias, anexos do Habblaud). Assim um pedido vindo do container não alcança o resto do computador.
+ * The file (real path) is in a folder the host helper can read: a project folder that some Claude Code account
+ * knows (it, or one above it, has <account>/projects/<encoded folder>) or one of the `roots` (temporary folders,
+ * Habblaud attachments). This way a request coming from the container does not reach the rest of the computer.
  */
 export function insideKnownFolder(
   path: string,
@@ -101,7 +102,7 @@ export function insideKnownFolder(
 ): boolean {
   if (opts.roots.some((r) => r && path.startsWith(`${r.replace(/\/+$/, '')}/`))) return true;
   const exists = opts.exists ?? existsSync;
-  // Mesma codificação de sources/watcher.ts (encodeCwd): todo caractere não alfanumérico vira "-".
+  // Same encoding as sources/watcher.ts (encodeCwd): every non-alphanumeric character becomes "-".
   for (let dir = dirname(path); dir.split('/').filter(Boolean).length >= 2; dir = dirname(dir)) {
     const encoded = dir.replace(/[^a-zA-Z0-9]/g, '-');
     if (opts.accountDirs.some((acc) => exists(join(acc, 'projects', encoded)))) return true;

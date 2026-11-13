@@ -1,4 +1,4 @@
-// Regras puras da espera de shell: estágios da escalada, giros, bocejos, teia, balão e modos.
+// Pure rules of the shell wait: escalation stages, spins, yawns, cobweb, speech bubble and modes.
 import { describe, expect, it } from 'vitest';
 import type { ShellJob } from '../../../../shared/types';
 import { modeFor, shouldRun } from './behavior';
@@ -65,7 +65,7 @@ describe('wait escalation', () => {
 });
 
 describe('chair spins', () => {
-  /** Inícios dos giros (ms de idade) amostrando a cada 20 ms. */
+  /** Starts of the spins (ms of age) sampling every 20 ms. */
   function spinStarts(seed: number, from: number, to: number): number[] {
     const starts: number[] = [];
     let prev = -1;
@@ -82,17 +82,17 @@ describe('chair spins', () => {
       expect(spinStarts(seed, 0, SHELL_RESTLESS_MS)).toEqual([]);
       expect(spinStarts(seed, SHELL_COBWEB_MS, SHELL_COBWEB_MS + 2 * MIN)).toEqual([]);
       const starts = spinStarts(seed, SHELL_RESTLESS_MS, SHELL_COBWEB_MS);
-      // 7 min com intervalos de 15–25 s
+      // 7 min with intervals of 15–25 s
       expect(starts.length).toBeGreaterThanOrEqual(Math.floor((7 * MIN) / (SPIN_GAP_MAX_MS + SPIN_MS)));
       expect(starts.length).toBeLessThanOrEqual(Math.ceil((7 * MIN) / SPIN_GAP_MIN_MS) + 1);
-      // o primeiro giro vem logo depois que a pipoca acaba
+      // the first spin comes right after the popcorn runs out
       expect(starts[0] - SHELL_RESTLESS_MS).toBeLessThan(5_000);
       for (let i = 1; i < starts.length; i++) {
         const gap = starts[i] - starts[i - 1];
         expect(gap).toBeGreaterThanOrEqual(SPIN_GAP_MIN_MS - 20);
         expect(gap).toBeLessThanOrEqual(SPIN_GAP_MAX_MS + 20);
       }
-      // duração de um giro
+      // duration of one spin
       const s0 = starts[0];
       expect(spinPhase(s0 + SPIN_MS - 30, seed)).toBeGreaterThan(0.9);
       expect(spinPhase(s0 + SPIN_MS + 10, seed)).toBe(-1);
@@ -123,7 +123,7 @@ describe('chair spins', () => {
       }
       prev = p;
     }
-    // 15 min com intervalos de 18–32 s
+    // 15 min with intervals of 18–32 s
     expect(yawns).toBeGreaterThan(20);
     expect(yawns).toBeLessThan(55);
   });
@@ -145,7 +145,7 @@ describe('agent shells', () => {
   it('foreground only becomes waiting after 10 s', () => {
     expect(foregroundWaiting([job('fg', FOREGROUND_WAIT_MS - 1, { background: false })], NOW)).toBe(false);
     expect(foregroundWaiting([job('fg', FOREGROUND_WAIT_MS + 1, { background: false })], NOW)).toBe(true);
-    // shells em segundo plano não contam como "parado esperando" enquanto o agente trabalha
+    // background shells don't count as "stopped waiting" while the agent works
     expect(foregroundWaiting([job('bg', 30 * MIN)], NOW)).toBe(false);
     expect(foregroundWaiting(undefined, NOW)).toBe(false);
   });
@@ -223,10 +223,10 @@ describe('wait speech bubble', () => {
     expect(shellBubbleAlpha(35_000)).toBe(0);
     expect(shellBubbleAlpha(61_000)).toBe(1);
     expect(shellBubbleAlpha(30_000 * 40 + 1_000)).toBe(1);
-    // deslocamento por personagem
+    // offset per character
     expect(shellBubbleAlpha(31_000, 5_000)).toBe(0);
     expect(shellBubbleAlpha(36_000, 5_000)).toBe(1);
-    // fração visível ~ (6 s + 4 s a cada 30 s)
+    // visible fraction ~ (6 s + 4 s every 30 s)
     let on = 0;
     for (let t = 0; t < 10 * MIN; t += 100) if (shellBubbleAlpha(t) > 0) on++;
     expect(on / ((10 * MIN) / 100)).toBeGreaterThan(0.12);

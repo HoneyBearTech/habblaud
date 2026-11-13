@@ -1,10 +1,10 @@
-// Teclado do seletor de velocidade do timelapse (PR #63). Fica fora de timelapse.test.ts, que troca vários módulos
-// por mocks para testar o relógio dos painéis.
+// Keyboard of the timelapse speed selector (PR #63). It stays out of timelapse.test.ts, which swaps several modules
+// for mocks to test the panels' clock.
 import { afterEach, describe, expect, it } from 'vitest';
 import type { UiContext } from './context';
 import { TimelapsePlayer } from './timelapse';
 
-/** DOM mínimo para montar o player e disparar o keydown dos rádios (a suíte roda em node). */
+/** Minimal DOM to mount the player and fire the radios' keydown (the suite runs in node). */
 class FakeEl {
   readonly tagName: string;
   className = '';
@@ -107,7 +107,7 @@ describe('timelapse: speed', () => {
     const current = radios.find((b) => b.textContent === '180×');
     expect(current).toBeTruthy();
     const ev = press(current!, 'ArrowRight');
-    // O bug: a seta não mudava a seleção (180× seguia marcada) e a câmera recebia o pan.
+    // The bug: the arrow didn't change the selection (180× stayed checked) and the camera got the pan.
     expect((player as unknown as { speed: number }).speed).toBe(600);
     expect(focused?.textContent).toBe('600×');
     expect(radios.find((b) => b.textContent === '600×')?.getAttribute('aria-checked')).toBe('true');

@@ -1,4 +1,4 @@
-// Grupo "Sons" das configurações: interruptor geral, volume mestre e categorias.
+// "Sounds" group of the settings: main switch, master volume and categories.
 import { SOUND_CATEGORIES, type SoundCategory, type SoundKind } from '../audio/scheduler';
 import type { UiContext } from './context';
 import { h, setAttr, setText } from './dom';
@@ -37,7 +37,7 @@ export class SoundSettingsGroup {
       ctx.updatePrefs({ sounds: { ...ctx.prefs.sounds, volume: Number(this.volume.value) / 100 } });
       setText(this.volumeOut, `${this.volume.value}%`);
     });
-    // amostra ao soltar o controle (não a cada passo do arrasto)
+    // sample when the control is released (not at every step of the drag)
     this.volume.addEventListener('change', () => this.sound.preview('pop'));
     this.volumeOut = h('span', { class: 'ui-snd__value', attrs: { 'aria-hidden': 'true' } });
 

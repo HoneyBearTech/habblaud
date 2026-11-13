@@ -1,8 +1,9 @@
-// Traços de personalidade: os mesmos para os personagens do escritório (client/src/world/social/persona.ts, que sorteia
-// 2 ou 3 por semente) e para o jogador do Habblaud World (que escolhe 2 ou 3). Os ids e os pares que não combinam
-// vêm do protocolo; aqui ficam os rótulos (tr) e a validação da escolha do jogador. Puro: sem Node nem DOM.
+// Personality traits: the same for the office characters (client/src/world/social/persona.ts, which draws
+// 2 or 3 per seed) and for the Habblaud World player (who chooses 2 or 3). The ids and the pairs that do not go
+// together come from the protocol; here are the labels (tr) and the validation of the player's choice. Pure: no Node
+// or DOM.
 //
-// Os rótulos são substantivos ("Competição", "Vaidade"): não dependem do gênero de ninguém.
+// The labels are nouns ("Competition", "Vanity"): they do not depend on anyone's gender.
 import { tr } from '../i18n';
 import { PLAYER_TRAITS, TRAIT_CLASHES, TRAIT_IDS, type TraitId } from './protocol';
 
@@ -12,11 +13,11 @@ export interface Trait {
   id: TraitId;
   emoji: string;
   label: string;
-  /** Uma frase explicando o efeito no escritório (dica na interface). */
+  /** A sentence explaining the effect in the office (hint in the interface). */
   desc: string;
 }
 
-/** Na ordem de TRAIT_IDS (um teste confere: o sorteio de personaFor depende dela). */
+/** In the order of TRAIT_IDS (a test checks it: the draw of personaFor depends on it). */
 export const TRAITS: Readonly<Record<TraitId, Trait>> = {
   competicao: { id: 'competicao', emoji: '🏆', label: tr('Competition'), desc: tr('Loves to compete: challenges coworkers at ping-pong, video games and rock-paper-scissors.') },
   apostas: { id: 'apostas', emoji: '🎲', label: tr('Betting'), desc: tr('Takes any bet and bets big at rock-paper-scissors.') },
@@ -38,14 +39,14 @@ export function isTraitId(v: unknown): v is TraitId {
   return typeof v === 'string' && (TRAIT_IDS as readonly string[]).includes(v);
 }
 
-/** Os dois traços não combinam na mesma pessoa (TRAIT_CLASHES, nos dois sentidos). */
+/** The two traits do not go together in the same person (TRAIT_CLASHES, both ways). */
 export function traitsClash(a: TraitId, b: TraitId): boolean {
   return TRAIT_CLASHES.some(([x, y]) => (x === a && y === b) || (x === b && y === a));
 }
 
 /**
- * Traços escolhidos pelo jogador: 2 ou 3 ids conhecidos, sem repetir e sem par que não combina. Devolve a lista (na
- * ordem recebida) ou null.
+ * Traits chosen by the player: 2 or 3 known ids, without repeating and without a pair that does not go together.
+ * Returns the list (in the order received) or null.
  */
 export function parsePlayerTraits(raw: unknown): TraitId[] | null {
   if (!Array.isArray(raw) || raw.length < PLAYER_TRAITS.min || raw.length > PLAYER_TRAITS.max) return null;

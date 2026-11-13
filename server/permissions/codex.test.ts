@@ -1,7 +1,7 @@
-// Pedidos de aprovação do Codex no registro de permissões: o agente pelo thread (agent_id ?? session_id) entre os
-// agentes do Codex (a conta só desempata), sem sugestões nem perguntas, recusa só com motivo (interromper e "sempre
-// permitir" = unsupported), sem a busca da resposta no transcript, waitingFor "aprovar um comando", e os títulos pelos
-// nomes do Codex (Bash, acesso à rede, apply_patch, request_permissions, mcp__…, write_stdin). Dados sintéticos.
+// Codex approval requests in the permission registry: the agent by thread (agent_id ?? session_id) among the Codex
+// agents (the account only breaks ties), no suggestions or questions, deny only with a reason (interrupt and "always
+// allow" = unsupported), no search for the answer in the transcript, waitingFor "approve a command", and the titles
+// by the Codex names (Bash, network access, apply_patch, request_permissions, mcp__…, write_stdin). Synthetic data.
 import { describe, expect, it } from 'vitest';
 import { setQuiet } from '../log';
 import { NameStore } from '../model/names';
@@ -79,7 +79,7 @@ describe('PermissionRegistry: Codex requests', () => {
     expect(a.permission).toMatchObject({ id, provider: 'codex', tool: 'Bash', title: 'Bash(npm test)', expiresAt: 1_025_000 });
     expect(a.permission!.suggestions).toBeUndefined();
     expect(registry.detail(id)).toMatchObject({ input: 'npm test', inputKind: 'command' });
-    // O agente do Claude Code não é tocado.
+    // The Claude Code agent is not touched.
     expect(snapAgent(office, CLAUDE)!.permission).toBeUndefined();
   });
 
@@ -98,11 +98,11 @@ describe('PermissionRegistry: Codex requests', () => {
     registered(registry.register(codexInput({ account: '.codex-two', codexHome: '/u/.codex-two' })));
     expect(snapAgent(office, `.codex~2:${THREAD}`)!.permission).toBeDefined();
     expect(snapAgent(office, MAIN)!.permission).toBeUndefined();
-    // Conta que ninguém tem: vale o thread.
+    // Account that nobody has: the thread is what counts.
     registered(registry.register(codexInput({ account: '.codex-x', codexHome: '/other' })));
     expect(snapAgent(office, MAIN)!.permission).toBeDefined();
     expect(registry.register(codexInput({ session_id: 'sess-1' }))).toEqual({ skip: 'unknown-session' });
-    // Pedido do Claude Code (sem provider) com o thread do Codex: não acha o agente do Codex.
+    // Claude Code request (no provider) with the Codex thread: does not find the Codex agent.
     expect(registry.register({ session_id: THREAD, tool_name: 'Bash', tool_input: { command: 'ls' } })).toEqual({ skip: 'unknown-session' });
   });
 

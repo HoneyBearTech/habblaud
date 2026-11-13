@@ -1,9 +1,9 @@
-// Rotas do timelapse (linha do tempo gravada por history/timeline.ts):
-//   GET /api/timeline/days    -> {recording, days: [{day, bytes, from, to}]} (do mais recente ao mais antigo)
-//   GET /api/timeline/:dia    -> o arquivo do dia (JSONL, formato em shared/timeline.ts), com gzip se aceito
-// Mesma exposição do /api/snapshot (resumos de atividade): vale com qualquer bind, sem a trava local do
-// terminal. O dia só é aceito no formato AAAA-MM-DD de uma data válida: o caminho do arquivo nunca leva
-// texto vindo da URL (nada de "..", barras ou bytes estranhos).
+// Timelapse routes (timeline recorded by history/timeline.ts):
+//   GET /api/timeline/days    -> {recording, days: [{day, bytes, from, to}]} (from the most recent to the oldest)
+//   GET /api/timeline/:dia    -> the day's file (JSONL, format in shared/timeline.ts), with gzip if accepted
+// Same exposure as /api/snapshot (activity summaries): it works with any bind, without the terminal's local
+// lock. The day is only accepted in the AAAA-MM-DD format of a valid date: the file's path never carries
+// text coming from the URL (no "..", slashes or strange bytes).
 import { createReadStream, statSync } from 'node:fs';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { pipeline } from 'node:stream';
@@ -16,13 +16,13 @@ const DAYS_PATH = '/api/timeline/days';
 const DAY_ROUTE = /^\/api\/timeline\/([^/]+)$/;
 
 export interface TimelineRoutesOptions {
-  /** Pasta dos arquivos (<dataDir>/timeline). */
+  /** Folder of the files (<dataDir>/timeline). */
   dir: string;
-  /** O servidor está gravando (HABBLAUD_TIMELINE não desligou). */
+  /** The server is recording (HABBLAUD_TIMELINE did not turn it off). */
   recording: boolean;
 }
 
-/** Devolve um handler que trata /api/timeline/* e responde false para o resto. */
+/** Returns a handler that handles /api/timeline/* and answers false for the rest. */
 export function createTimelineHandler(opts: TimelineRoutesOptions): (req: IncomingMessage, res: ServerResponse, url: URL) => boolean {
   return (req, res, url) => {
     const path = url.pathname;
@@ -63,7 +63,7 @@ export function createTimelineHandler(opts: TimelineRoutesOptions): (req: Incomi
   };
 }
 
-/** Transmite o arquivo até o tamanho visto agora (o resto, ainda sendo gravado, fica para a próxima). */
+/** Streams the file up to the size seen now (the rest, still being written, is left for the next time). */
 function sendDay(req: IncomingMessage, res: ServerResponse, file: string, size: number, head: boolean): void {
   const gzip = /\bgzip\b/i.test(String(req.headers['accept-encoding'] ?? ''));
   const headers: Record<string, string | number> = {

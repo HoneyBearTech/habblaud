@@ -47,7 +47,7 @@ describe('message box (pure pieces)', () => {
   it('composerMode: ready only for a present main agent with the plugin, feature on and local page', () => {
     expect(composerMode(agent(), ON)).toEqual({ kind: 'ready' });
     for (const status of ['working', 'waiting', 'shell'] as const) expect(composerMode(agent({ status }), ON).kind).toBe('ready');
-    // Recurso ligado, mas a sessão sem o plugin: a dica de instalação.
+    // Feature on, but the session without the plugin: the install hint.
     expect(composerMode(agent({ canMessage: undefined }), ON)).toEqual({ kind: 'hint', text: PLUGIN_HINT });
     expect(PLUGIN_HINT).toBe('To send messages from here: npm run mod:install (plugin habblaud-mensagens)');
   });
@@ -74,7 +74,7 @@ describe('message box (pure pieces)', () => {
     expect(canSend(' \n\t ')).toBe(false);
     expect(canSend('x'.repeat(20_000))).toBe(true);
     expect(canSend('x'.repeat(20_001))).toBe(false);
-    // Espaços no fim não contam para o limite (são cortados antes).
+    // Trailing spaces don't count toward the limit (they are cut before).
     expect(canSend(`${'x'.repeat(20_000)}\n\n`)).toBe(true);
   });
 
@@ -115,7 +115,7 @@ describe('message box (pure pieces)', () => {
     expect(sendStatusText({ phase: 'delivered', at: 0 }, 1_000, 'codex')).toBe("Delivered ✓ to the session queue: goes in when Codex finishes what it's doing (up to ~10 s)");
     expect(sendStatusText({ phase: 'delivered', at: 0 }, DELIVERED_SHOW_MS, 'codex')).toBe('');
     expect(sendStatusText({ phase: 'queued', at: 0 }, 0, 'codex')).toBe('Queued: delivering to Codex…');
-    // O Claude Code continua como antes.
+    // Claude Code stays as before.
     expect(sendStatusText({ phase: 'delivered', at: 0 }, 1_000, 'claude')).toBe(sendStatusText({ phase: 'delivered', at: 0 }, 1_000));
     expect(composerTip('codex')).toMatch(/^Joins the session queue and becomes the next prompt when Codex finishes/);
     expect(composerTip()).toBe('Goes into the session as if you had typed it. Enter sends; Shift+Enter adds a new line.');

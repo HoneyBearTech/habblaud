@@ -1,5 +1,5 @@
-// Fachada: altura que cabe no lote, "+N" acima de 12 andares, janelas acesas na proporção working/total, as
-// waiting piscando (ao menos uma), apagado no away, metade no modo discreto, chave do cache estável.
+// Facade: height that fits in the lot, "+N" above 12 floors, windows lit in the working/total ratio, the
+// waiting ones blinking (at least one), off when away, half in discreet mode, stable cache key.
 import { describe, expect, it } from 'vitest';
 import { FACADE, FACADE_VARIANTS, facadeHeight, facadeKey, facadeModel, signRect, windowOrder, windowRect } from './facade';
 
@@ -27,7 +27,7 @@ describe('facade', () => {
     expect(m.lit).toHaveLength(Math.round(count / 2));
     const all = facadeModel({ floors: 4, state: 'online', theme: 'none', agents: agents(5, 5) }, 'front', 3);
     expect(all.lit).toHaveLength(count);
-    // um agente trabalhando já acende alguma coisa
+    // one working agent already lights something up
     expect(facadeModel({ floors: 10, state: 'online', theme: 'none', agents: agents(40, 1) }, 'front', 3).lit.length).toBeGreaterThan(0);
   });
 

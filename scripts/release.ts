@@ -1,9 +1,9 @@
-// Publica a versão do package.json no GitHub: confere se o CHANGELOG.md tem a seção dela, cria a tag vX.Y.Z e a
-// release com o texto dessa seção como notas (é o que o Habblaud abre em Configurações › Sobre › Ver o que mudou).
-//   npm run release                -> publica (precisa do gh autenticado)
-//   npm run release -- --dry-run   -> só confere e mostra as notas
-// Antes: suba a versão no package.json (npm version minor --no-git-tag-version), escreva a seção no CHANGELOG.md e
-// faça o merge na main.
+// Publishes the package.json version on GitHub: checks that CHANGELOG.md has its section, creates the vX.Y.Z tag
+// and the release with that section's text as notes (it is what Habblaud opens in Settings › About › See what changed).
+//   npm run release                -> publishes (needs gh authenticated)
+//   npm run release -- --dry-run   -> only checks and shows the notes
+// Before: bump the version in package.json (npm version minor --no-git-tag-version), write the section in
+// CHANGELOG.md and merge into main.
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -28,8 +28,8 @@ export function parseReleaseArgs(argv: string[]): ReleaseArgs {
 }
 
 /**
- * Texto da seção `## [versão]` do CHANGELOG (sem o título e sem os links do fim), ou undefined se não houver
- * seção ou se ela estiver vazia.
+ * Text of the `## [version]` section of the CHANGELOG (without the title and without the links at the end), or
+ * undefined if there is no section or if it is empty.
  */
 export function changelogSection(changelog: string, version: string): string | undefined {
   const lines = changelog.split(/\r?\n/);
@@ -47,8 +47,9 @@ export function changelogSection(changelog: string, version: string): string | u
 }
 
 /**
- * Junta as linhas quebradas só para caber em 120 colunas: nas notas da release o GitHub mostra cada quebra de linha,
- * e as frases apareceriam cortadas no meio. Títulos, itens novos, citações, tabelas e blocos de código ficam como estão.
+ * Joins the lines that were broken only to fit in 120 columns: in the release notes GitHub shows every line break,
+ * and the sentences would show up cut in the middle. Titles, new items, quotes, tables and code blocks stay as
+ * they are.
  */
 export function unwrapMarkdown(text: string): string {
   const out: string[] = [];

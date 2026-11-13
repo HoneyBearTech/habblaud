@@ -149,7 +149,7 @@ describe.skipIf(!HAS_OPENSSL)('certificates (openssl)', () => {
     ensureServerCert(paths, targets);
     const ok = spawnSync('openssl', ['verify', '-CAfile', paths.caCert, paths.serverCert], { encoding: 'utf8' });
     expect(ok.status, ok.stderr).toBe(0);
-    // Um certificado para example.com assinado com a chave da CA (como faria quem a roubasse) não vale.
+    // A certificate for example.com signed with the CA's key (as someone who stole it would do) is not valid.
     const key = join(tmp.dir, 'evil.key');
     const csr = join(tmp.dir, 'evil.csr');
     const crt = join(tmp.dir, 'evil.crt');
@@ -160,7 +160,7 @@ describe.skipIf(!HAS_OPENSSL)('certificates (openssl)', () => {
     const evil = spawnSync('openssl', ['verify', '-CAfile', paths.caCert, crt], { encoding: 'utf8' });
     expect(evil.status).not.toBe(0);
     expect(`${evil.stdout}${evil.stderr}`).toMatch(/subtree/i);
-    // Endereço próprio novo não cabe nesta CA: o docker:up pede o setup; o setup (newCa) cria outra.
+    // A new own address doesn't fit in this CA: docker:up asks for the setup; the setup (newCa) creates another.
     const other = remoteTargets({ name: 'myclaude', domain: 'other.lan' }, { dns: ['localhost'], ips: ['127.0.0.1'] });
     expect(caCovers(paths, other)).toBe(false);
     expect(() => ensureServerCert(paths, other)).toThrow(/remote:setup/);
@@ -222,7 +222,7 @@ describe.skipIf(!HAS_OPENSSL)('certificates (openssl)', () => {
       });
     const first = await get('myclaude.local');
     expect(first).toMatchObject({ status: 200, body: 'ok-https' });
-    // HTTP sem "s": 308 para https://
+    // HTTP without "s": 308 to https://
     const redirect = await new Promise<{ status: number; location?: string }>((ok, fail) => {
       const req = http.request({ host: '127.0.0.1', port, path: '/x?y=1', headers: { Host: `myclaude.local:${port}` } }, (res) => {
         res.resume();
@@ -232,7 +232,7 @@ describe.skipIf(!HAS_OPENSSL)('certificates (openssl)', () => {
       req.end();
     });
     expect(redirect).toEqual({ status: 308, location: `https://myclaude.local:${port}/x?y=1` });
-    // Nome que o Habblaud não conhece não vira redirecionamento (nada de mandar o navegador para outro lugar).
+    // A name Habblaud doesn't know doesn't become a redirect (no sending the browser somewhere else).
     const foreign = await new Promise<number>((ok, fail) => {
       const req = http.request({ host: '127.0.0.1', port, path: '/', headers: { Host: 'evil.example' } }, (res) => {
         res.resume();
@@ -242,7 +242,7 @@ describe.skipIf(!HAS_OPENSSL)('certificates (openssl)', () => {
       req.end();
     });
     expect(foreign).toBe(400);
-    // Certificado novo (renovação): o servidor troca sem reiniciar.
+    // New certificate (renewal): the server swaps it without restarting.
     ensureServerCert(paths, targets, { force: true });
     const future = new Date(Date.now() + 60_000);
     utimesSync(paths.serverCert, future, future);
@@ -257,13 +257,13 @@ describe('docker-compose.yml', () => {
   it('passes on to the container every remote access variable that the server reads', () => {
     const compose = readFileSync(join(__dirname, '..', '..', 'docker-compose.yml'), 'utf8');
     const server = readFileSync(join(__dirname, '..', 'http', 'remote.ts'), 'utf8');
-    // No Docker, porta, host e pasta do certificado são fixos (4748, 0.0.0.0, /remote-tls): o resto precisa vir do .env.
+    // In Docker, port, host and certificate folder are fixed (4748, 0.0.0.0, /remote-tls): the rest must come from .env.
     const fixedInDocker = new Set(['HABBLAUD_REMOTE_PORT', 'HABBLAUD_REMOTE_HOST', 'HABBLAUD_REMOTE_TLS_DIR', 'HABBLAUD_REMOTE_PASSWORD']);
     const read = [...new Set([...server.matchAll(/env\.(HABBLAUD_REMOTE_[A-Z_]+)/g)].map((m) => m[1]))].filter((k) => !fixedInDocker.has(k));
     expect(read.sort()).toEqual(['HABBLAUD_REMOTE_ALLOW', 'HABBLAUD_REMOTE_INSECURE_HTTP', 'HABBLAUD_REMOTE_PASSWORD_HASH', 'HABBLAUD_REMOTE_USER']);
     for (const key of read) expect(compose, key).toMatch(new RegExp(`^\\s+${key}: \\$\\{${key}:-\\}$`, 'm'));
     expect(compose).not.toMatch(/HABBLAUD_REMOTE_PASSWORD: /);
-    // A porta remota só é publicada pelo override do docker:up, depois do setup.
+    // The remote port is only published by the docker:up override, after the setup.
     expect(compose).not.toMatch(/4748/);
   });
 });

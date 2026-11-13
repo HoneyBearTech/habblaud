@@ -1,4 +1,4 @@
-// Minimapa: luz por quarteirão (prédios acesos / 6), centrado no quarteirão do jogador, e o clique de volta em tiles.
+// Minimap: light per block (lit buildings / 6), centered on the player's block, and the click back in tiles.
 import { describe, expect, it } from 'vitest';
 import { BLOCK_STRIDE, BLOCK_TILES } from '../../../../shared/world/city';
 import { blockLight, minimapModel, minimapToTile } from './minimap';

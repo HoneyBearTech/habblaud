@@ -1,5 +1,5 @@
-// GitHub no escritório (mundo): efeitos das salas vindos do snapshot (relógio, expiração, troca) e a
-// comemoração dos personagens na festa. Sem DOM.
+// GitHub in the office (world): room effects coming from the snapshot (clock, expiration, swap) and the
+// characters' celebration at the party. No DOM.
 import { describe, expect, it } from 'vitest';
 import type { AgentInfo, OfficeSnapshot, RoomEffect, RoomInfo } from '../../../../shared/types';
 import type { Appearance, ArtModule, RoomTheme } from '../../art/api';
@@ -81,7 +81,7 @@ const alarm = (at: number, agentId?: string): RoomEffect => ({ kind: 'alarm', te
 describe('room effects in the world', () => {
   it('converts to the browser clock (diverging clocks do not matter)', () => {
     const fx = new RoomFxState();
-    // servidor 1 h adiantado; a festa começou há 2 s no servidor
+    // server 1 h ahead; the party started 2 s ago on the server
     const server = T0 + 3_600_000;
     fx.sync([room('/a', 0, party(server - 2_000, 'ana'))], server, T0);
     const a = fx.get('/a', T0)!;
@@ -109,7 +109,7 @@ describe('room effects in the world', () => {
     expect(fx.get('/a', T0 + 1_000)).toBeUndefined();
     expect(fx.alarmOwner('ana', T0 + 1_000)).toBeUndefined();
     expect(fx.get('/b', T0 + 1_000)?.kind).toBe('alarm');
-    // efeito já vencido no servidor nem entra
+    // an effect already expired on the server doesn't even get in
     fx.sync([room('/c', 2, party(T0 - 20_000))], T0, T0);
     expect(fx.get('/c', T0)).toBeUndefined();
   });
@@ -148,12 +148,12 @@ describe('party: the room celebrates', () => {
     expect(sim.chars.get('ana')!.icon).toBe('star');
     expect(sim.effects.some((e) => e.kind === 'confetti' && e.charId === 'ana')).toBe(true);
     expect(sim.chars.get('caio')!.pose).toBe('raise_hand');
-    // depois da comemoração, cada um volta para o lugar
+    // after the celebration, each one goes back to their place
     run(sim, clock, PARTY_CHEER_MS / 1000 + 1);
     const ana = sim.chars.get('ana')!;
     expect(ana.atSpot).toBe(ana.homeSpot);
     expect(ana.pose).toBe('type');
-    // ninguém comemora duas vezes a mesma festa
+    // nobody celebrates the same party twice
     cheered = new Set();
     for (let i = 0; i < 60; i++) {
       run(sim, clock, 1 / 30);

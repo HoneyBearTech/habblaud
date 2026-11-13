@@ -1,12 +1,12 @@
-// Gravador da linha do tempo do escritório (timelapse). Grava em <dataDir>/timeline/AAAA-MM-DD.jsonl
-// (dia local; formato em shared/timeline.ts) um keyframe a cada ~5 min e na virada do dia e, a cada
-// snapshot novo do Office em que algo que o player desenha mudou, um delta (no máximo um por segundo).
-// Guarda só os resumos que o /api/snapshot já expõe (atividades mascaradas): nada de transcript.
+// Recorder of the office timeline (timelapse). Writes to <dataDir>/timeline/YYYY-MM-DD.jsonl
+// (local day; format in shared/timeline.ts) a keyframe every ~5 min and at the day rollover and, for each
+// new Office snapshot in which something the player draws changed, a delta (at most one per second).
+// Keeps only the summaries that /api/snapshot already exposes (masked activities): no transcript.
 //
-// Limites: passou de ~20 MB no dia, grava menos (delta a cada 15 s, keyframe a cada 15 min); passou
-// de ~30 MB, para até a virada do dia. Retenção: os últimos 7 dias (os mais antigos são apagados).
-// Falha de disco nunca derruba o servidor: o gravador avisa no log uma vez, espera 1 min e tenta de
-// novo (com um keyframe, já que os deltas do intervalo se perderam).
+// Limits: past ~20 MB in the day, it writes less (delta every 15 s, keyframe every 15 min); past
+// ~30 MB, it stops until the day rollover. Retention: the last 7 days (the older ones are deleted).
+// A disk failure never brings the server down: the recorder warns in the log once, waits 1 min and tries
+// again (with a keyframe, since the deltas of the interval were lost).
 import { appendFileSync, closeSync, mkdirSync, openSync, readdirSync, readSync, statSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import type { OfficeSnapshot } from '../../shared/types';
@@ -14,13 +14,13 @@ import { compactSnapshot, dayKey, diffFrames, isDayKey, isDemoId, keyframeOf, sh
 import { errMsg, log } from '../log';
 import { tr } from '../../shared/i18n';
 
-/** Pasta dentro do HABBLAUD_DATA_DIR. */
+/** Folder inside HABBLAUD_DATA_DIR. */
 export const TIMELINE_DIR = 'timeline';
 export const KEYFRAME_MS = 5 * 60_000;
 export const THROTTLE_MS = 1_000;
-/** Acima disto (bytes no dia), grava com menos frequência. */
+/** Above this (bytes in the day), it writes less often. */
 export const SOFT_LIMIT_BYTES = 20 * 1024 * 1024;
-/** Acima disto, para de gravar até a virada do dia. */
+/** Above this, it stops writing until the day rollover. */
 export const HARD_LIMIT_BYTES = 30 * 1024 * 1024;
 export const SLOW_THROTTLE_MS = 15_000;
 export const SLOW_KEYFRAME_MS = 15 * 60_000;
@@ -31,10 +31,10 @@ const TICK_MS = 500;
 const FILE_RE = /^(\d{4}-\d{2}-\d{2})\.jsonl$/;
 
 export interface TimelineRecorderOptions {
-  /** Pasta dos arquivos (<dataDir>/timeline). */
+  /** Folder of the files (<dataDir>/timeline). */
   dir: string;
   now?: () => number;
-  /** Quem é do modo demonstração (gravado com `demo: true`). Padrão: id com prefixo "demo:". */
+  /** Who is from demo mode (written with `demo: true`). Default: id with the "demo:" prefix. */
   isDemo?: (id: string) => boolean;
   keyframeMs?: number;
   throttleMs?: number;
@@ -42,12 +42,12 @@ export interface TimelineRecorderOptions {
   hardBytes?: number;
   slowThrottleMs?: number;
   slowKeyframeMs?: number;
-  /** Dias guardados (contando hoje); 0 ou Infinity = nunca apaga. */
+  /** Days kept (counting today); 0 or Infinity = never deletes. */
   retentionDays?: number;
   retryMs?: number;
 }
 
-/** Caminho do arquivo do dia, só para chaves AAAA-MM-DD válidas (nunca monta caminho com texto livre). */
+/** Path of the day's file, only for valid YYYY-MM-DD keys (never builds a path from free text). */
 export function timelineFile(dir: string, day: string): string | null {
   return isDayKey(day) ? join(dir, `${day}.jsonl`) : null;
 }
@@ -65,9 +65,9 @@ export class TimelineRecorder {
   private readonly retentionDays: number;
   private readonly retryMs: number;
 
-  /** Último estado recebido. */
+  /** Last state received. */
   private latest: TimelineFrame | null = null;
-  /** Estado que o arquivo reconstrói até a última linha gravada. */
+  /** State that the file rebuilds up to the last line written. */
   private written: TimelineFrame | null = null;
   private day: string | null = null;
   private file = '';
@@ -77,7 +77,7 @@ export class TimelineRecorder {
   private pending = false;
   private needKeyframe = true;
   private booted = false;
-  /** O dia chegou ao limite: nada mais até a virada. */
+  /** The day reached the limit: nothing more until the rollover. */
   private limited = false;
   private failedAt: number | null = null;
   private timer: ReturnType<typeof setInterval> | null = null;
@@ -96,14 +96,14 @@ export class TimelineRecorder {
     this.retryMs = opts.retryMs ?? RETRY_MS;
   }
 
-  /** Relógio interno: deltas pendentes (throttle), keyframes periódicos e virada do dia. */
+  /** Internal clock: pending deltas (throttle), periodic keyframes and day rollover. */
   start(): void {
     if (this.timer) return;
     this.timer = setInterval(() => this.tick(), TICK_MS);
     this.timer.unref?.();
   }
 
-  /** Para o relógio e marca o fim no arquivo (o player mostra "sem dados" depois disso). */
+  /** Stops the clock and marks the end in the file (the player shows "no data" after that). */
   stop(): void {
     if (this.timer) clearInterval(this.timer);
     this.timer = null;
@@ -113,7 +113,7 @@ export class TimelineRecorder {
     this.append({ t: 'end', at: now }, now);
   }
 
-  /** Snapshot novo do Office (o hub chama a cada commit com mudança). */
+  /** New Office snapshot (the hub calls it on every commit with a change). */
   ingest(snap: OfficeSnapshot): void {
     try {
       this.latest = compactSnapshot(snap, this.isDemo);
@@ -133,12 +133,12 @@ export class TimelineRecorder {
     }
   }
 
-  /** Para os testes e o /api/health. */
+  /** For the tests and /api/health. */
   get state(): { day: string | null; bytes: number; limited: boolean; failing: boolean; slow: boolean } {
     return { day: this.day, bytes: this.bytes, limited: this.limited, failing: this.failedAt !== null, slow: this.bytes >= this.softBytes };
   }
 
-  // ---------------------------------------------------------------- internos
+  // ---------------------------------------------------------------- internals
 
   private pump(): void {
     if (!this.latest) return;
@@ -166,9 +166,9 @@ export class TimelineRecorder {
     try {
       this.bytes = statSync(this.file).size;
     } catch {
-      // arquivo novo
+      // new file
     }
-    // Servidor reiniciado depois do limite: continua parado até a virada (o 'end' já está no arquivo).
+    // Server restarted after the limit: it stays stopped until the rollover (the 'end' is already in the file).
     this.limited = this.bytes >= this.hardBytes;
     this.prune(day);
   }
@@ -220,7 +220,7 @@ export class TimelineRecorder {
     return true;
   }
 
-  /** Apaga os dias fora da retenção (só arquivos AAAA-MM-DD.jsonl; o resto da pasta não é tocado). */
+  /** Deletes the days outside retention (only YYYY-MM-DD.jsonl files; the rest of the folder is not touched). */
   private prune(today: string): void {
     if (!(this.retentionDays > 0) || !Number.isFinite(this.retentionDays)) return;
     const oldest = shiftDay(today, -(this.retentionDays - 1));
@@ -242,13 +242,13 @@ export class TimelineRecorder {
   }
 }
 
-// ------------------------------------------------------------------ dias disponíveis
+// ------------------------------------------------------------------ available days
 
 export interface TimelineDayInfo {
-  /** AAAA-MM-DD. */
+  /** YYYY-MM-DD. */
   day: string;
   bytes: number;
-  /** Horário do primeiro e do último registro (epoch ms). */
+  /** Time of the first and of the last record (epoch ms). */
   from: number;
   to: number;
 }
@@ -257,7 +257,7 @@ const HEAD_BYTES = 512;
 const TAIL_BYTES = 64 * 1024;
 const cache = new Map<string, { size: number; mtimeMs: number; info: TimelineDayInfo | null }>();
 
-/** `at` do registro (é sempre o primeiro "at" da linha: ver shared/timeline.ts). */
+/** `at` of the record (it is always the first "at" in the line: see shared/timeline.ts). */
 function atOf(line: string): number | null {
   const m = /"at":(\d+)/.exec(line);
   return m ? Number(m[1]) : null;
@@ -274,14 +274,14 @@ function readSlice(file: string, start: number, length: number): string {
   }
 }
 
-/** Primeiro e último horário de um arquivo do dia, lendo só o começo e o fim. */
+/** First and last time of a day's file, reading only the beginning and the end. */
 function summarize(file: string, day: string, size: number): TimelineDayInfo | null {
   if (size <= 0) return null;
   const from = atOf(readSlice(file, 0, Math.min(size, HEAD_BYTES)).split('\n')[0]);
   if (from === null) return null;
   const tailStart = Math.max(0, size - TAIL_BYTES);
   const lines = readSlice(file, tailStart, size - tailStart).split('\n');
-  // A primeira linha do trecho final pode estar cortada; a última pode estar incompleta (gravando).
+  // The first line of the final stretch may be cut; the last one may be incomplete (being written).
   if (tailStart > 0) lines.shift();
   let to = from;
   for (let i = lines.length - 1; i >= 0; i--) {
@@ -296,7 +296,7 @@ function summarize(file: string, day: string, size: number): TimelineDayInfo | n
   return { day, bytes: size, from, to };
 }
 
-/** Dias gravados, do mais recente para o mais antigo. Nunca lança (pasta ausente = nenhum dia). */
+/** Recorded days, from the most recent to the oldest. Never throws (missing folder = no days). */
 export function listTimelineDays(dir: string): TimelineDayInfo[] {
   let names: string[];
   try {
@@ -320,7 +320,7 @@ export function listTimelineDays(dir: string): TimelineDayInfo[] {
       }
       if (info) out.push(info);
     } catch {
-      // arquivo sumiu ou ilegível: fica de fora
+      // file gone or unreadable: it is left out
     }
   }
   return out.sort((a, b) => (a.day < b.day ? 1 : a.day > b.day ? -1 : 0));

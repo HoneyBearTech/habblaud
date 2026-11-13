@@ -1,6 +1,7 @@
-// Habblaud World › Bloqueados (Fase 5): quem esta conta bloqueou (pelo cartão da pessoa, na cidade) e
-// "Desbloquear" (POST /api/world/unblock, pela conexão com o mundo). Bloquear vale nos dois sentidos: um não vê o outro
-// na rua, nos prédios, nos cumprimentos e nos carimbos. A lista vem do /v1/me (o status relido ao abrir a tela).
+// Habblaud World › Blocked (Phase 5): who this account blocked (from the person's card, in the city) and
+// "Unblock" (POST /api/world/unblock, through the connection with the world). Blocking works both ways: one doesn't
+// see the other on the street, in the buildings, in the greetings and in the stamps. The list comes from /v1/me (the
+// status reread when the screen opens).
 import { tr } from '../../../../shared/i18n';
 import type { WorldBlockedPlayer, WorldClient } from '../../net/world';
 import { h, setAttr, setHidden, setText } from '../dom';
@@ -8,21 +9,21 @@ import { worldErrorText } from './world-model';
 
 export interface BlockedHost {
   readonly client: WorldClient | null;
-  /** A lista do último status (undefined antes de chegar). */
+  /** The list from the last status (undefined before it arrives). */
   list(): WorldBlockedPlayer[] | undefined;
-  /** Relê o status com /v1/me (a lista pode ter mudado na cidade). */
+  /** Rereads the status with /v1/me (the list may have changed in the city). */
   refresh(): Promise<void>;
-  /** A tela ainda é esta (uma resposta que chega depois de sair dela não mexe em nada). */
+  /** The screen is still this one (a response that arrives after leaving it doesn't touch anything). */
   current(): boolean;
   announce(text: string): void;
 }
 
-/** A tela: o cabeçalho (com o voltar) vem de settings-world.ts. */
+/** The screen: the header (with the back button) comes from settings-world.ts. */
 export function buildBlocked(head: HTMLElement, host: BlockedHost): { el: HTMLElement; sync(): void } {
   const list = h('ul', { class: 'ui-world__blocked' });
   const note = h('p', { class: 'ui-set__hint', text: tr('Loading…') });
   const error = h('p', { class: 'ui-world__error', role: 'alert', hidden: true });
-  /** Ids desbloqueados nesta tela (somem da lista na hora, antes do status novo). */
+  /** Ids unblocked on this screen (they leave the list right away, before the new status). */
   const gone = new Set<string>();
   let key = '';
   let loaded = false;

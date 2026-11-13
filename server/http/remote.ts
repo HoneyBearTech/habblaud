@@ -1,23 +1,25 @@
-// Acesso remoto autenticado (celular na mesma rede): uma SEGUNDA porta, com usuário, senha e HTTPS.
+// Authenticated remote access (phone on the same network): a SECOND port, with user, password and HTTPS.
 //
-// A porta principal continua só no loopback (hooks, plugins e o navegador do próprio computador, sem login). A porta
-// remota aceita qualquer endereço, mas TODA requisição nela passa por aqui antes da API: sem o cookie de sessão, a
-// página vira a tela de login e a API responde 401. O que separa "local" de "remoto" é a porta em que a conexão
-// chegou, nunca o cabeçalho Host (que um cliente da rede imita à vontade).
+// The main port stays on the loopback only (hooks, plugins and the browser of the computer itself, without login).
+// The remote port accepts any address, but EVERY request on it goes through here before the API: without the session
+// cookie, the page becomes the login screen and the API answers 401. What separates "local" from "remote" is the port
+// the connection arrived on, never the Host header (which a client on the network imitates at will).
 //
-// Configuração (escrita por `npm run remote:setup`, scripts/remote-setup.ts):
-//   HABBLAUD_REMOTE_USER + HABBLAUD_REMOTE_PASSWORD_HASH  ligam a porta (o hash é scrypt, ver remote/password.ts;
-//                                                         senha em texto puro não é aceita)
-//   HABBLAUD_REMOTE_ALLOW   o que a sessão remota pode fazer além de ver: permissions, messages, terminal ("none" = só
-//                           ver). Padrão: permissions.
-//   HABBLAUD_REMOTE_TLS_DIR pasta com server.key, server.crt (e ca.crt, servido em /remote/ca.crt). Padrão:
-//                           /remote-tls no Docker, ~/.habblaud/remote-tls/server no Node. Sem certificado a porta não
-//                           sobe, a menos que HABBLAUD_REMOTE_INSECURE_HTTP=1 (HTTP puro: senha e cookie à vista na rede).
-//   HABBLAUD_REMOTE_PORT / HABBLAUD_REMOTE_HOST  só no Node (padrão 0.0.0.0:4748); no Docker o container escuta sempre
-//                           em 0.0.0.0:4748 e quem decide a exposição é a porta publicada (HABBLAUD_REMOTE_BIND).
+// Configuration (written by `npm run remote:setup`, scripts/remote-setup.ts):
+//   HABBLAUD_REMOTE_USER + HABBLAUD_REMOTE_PASSWORD_HASH  turn the port on (the hash is scrypt, see
+//                                                         remote/password.ts; a plain-text password is not accepted)
+//   HABBLAUD_REMOTE_ALLOW   what the remote session can do besides viewing: permissions, messages, terminal ("none" =
+//                           view only). Default: permissions.
+//   HABBLAUD_REMOTE_TLS_DIR folder with server.key, server.crt (and ca.crt, served at /remote/ca.crt). Default:
+//                           /remote-tls in Docker, ~/.habblaud/remote-tls/server in Node. Without a certificate the
+//                           port does not come up, unless HABBLAUD_REMOTE_INSECURE_HTTP=1 (plain HTTP: password and
+//                           cookie in plain sight on the network).
+//   HABBLAUD_REMOTE_PORT / HABBLAUD_REMOTE_HOST  Node only (default 0.0.0.0:4748); in Docker the container always
+//                           listens on 0.0.0.0:4748 and what decides the exposure is the published port
+//                           (HABBLAUD_REMOTE_BIND).
 //
-// Sessão: cookie HttpOnly + SameSite=Strict (+ Secure com HTTPS) assinado com HMAC; chave = segredo aleatório em
-// <dataDir>/remote-secret misturado com usuário e hash da senha: trocar a senha derruba todas as sessões.
+// Session: HttpOnly + SameSite=Strict cookie (+ Secure with HTTPS) signed with HMAC; key = random secret in
+// <dataDir>/remote-secret mixed with the user and the password hash: changing the password drops all sessions.
 import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, unwatchFile, watchFile, writeFileSync } from 'node:fs';
 import http, { type IncomingMessage, type ServerResponse } from 'node:http';
@@ -45,17 +47,17 @@ export interface RemoteConfig {
   host: string;
   user: string;
   passwordHash: PasswordHash;
-  /** Texto do hash como veio do ambiente (entra na chave das sessões). */
+  /** Text of the hash as it came from the environment (it goes into the sessions' key). */
   passwordHashText: string;
   allow: ReadonlySet<RemoteFeature>;
-  /** Ausente = HTTP puro (só com HABBLAUD_REMOTE_INSECURE_HTTP=1). */
+  /** Absent = plain HTTP (only with HABBLAUD_REMOTE_INSECURE_HTTP=1). */
   tls?: RemoteTls;
 }
 
 export const DEFAULT_REMOTE_PORT = 4748;
 export const COOKIE = 'habblaud_remote';
 export const SESSION_MS = 30 * 24 * 60 * 60 * 1000;
-/** Prazo para o primeiro byte de uma conexão na porta remota (antes de saber se é HTTPS). */
+/** Deadline for the first byte of a connection on the remote port (before knowing whether it is HTTPS). */
 const FIRST_BYTE_MS = 15_000;
 
 function truthy(v: string | undefined): boolean {
@@ -67,7 +69,7 @@ export function defaultTlsDir(env: NodeJS.ProcessEnv, inDocker: boolean): string
   return inDocker ? '/remote-tls' : join(env.HOME || homedir(), '.habblaud', 'remote-tls', 'server');
 }
 
-/** Liga o acesso remoto a partir do ambiente. `warning` explica por que ficou desligado quando parece intencional. */
+/** Turns remote access on from the environment. `warning` explains why it stayed off when it looks intentional. */
 export function parseRemoteConfig(
   env: NodeJS.ProcessEnv,
   inDocker: boolean,
@@ -104,7 +106,7 @@ export function parseAllow(raw: string | undefined): Set<RemoteFeature> {
   return out;
 }
 
-/** Segredo de assinatura: lido de `file` ou criado (32 bytes, permissão 600). Sem disco gravável, vale só nesta execução. */
+/** Signing secret: read from `file` or created (32 bytes, permission 600). Without a writable disk, valid only for this run. */
 export function loadSecret(file: string): Buffer {
   try {
     if (existsSync(file)) {
@@ -121,7 +123,7 @@ export function loadSecret(file: string): Buffer {
   }
 }
 
-/** Compara em tempo constante (os dois lados viram digests do mesmo tamanho). */
+/** Compares in constant time (both sides become digests of the same size). */
 export function safeEqual(a: string, b: string): boolean {
   const h = (s: string) => createHash('sha256').update(s, 'utf8').digest();
   return timingSafeEqual(h(a), h(b));
@@ -129,14 +131,14 @@ export function safeEqual(a: string, b: string): boolean {
 
 export class RemoteSessions {
   private readonly key: Buffer;
-  /** Assinatura -> validade dos tokens encerrados por "Sair" antes de vencer (o cookie apagado não basta: uma cópia valeria até expirar). */
+  /** Signature -> expiry of the tokens ended by "Sign out" before expiring (the deleted cookie is not enough: a copy would work until it expires). */
   private readonly revoked = new Map<string, number>();
 
   constructor(
     secret: Buffer,
     cfg: Pick<RemoteConfig, 'user' | 'passwordHashText'>,
     private readonly now: () => number = Date.now,
-    /** Onde a lista de tokens encerrados sobrevive a reinícios (ausente = só em memória). */
+    /** Where the list of ended tokens survives restarts (absent = in memory only). */
     private readonly revokedFile?: string,
   ) {
     this.key = createHmac('sha256', secret).update(`${cfg.user}\0${cfg.passwordHashText}`, 'utf8').digest();
@@ -158,7 +160,7 @@ export class RemoteSessions {
     return !!parsed && !this.revoked.has(parsed.sig);
   }
 
-  /** Encerra este token (botão "Sair"); token inválido ou vencido não muda nada. */
+  /** Ends this token ("Sign out" button); an invalid or expired token changes nothing. */
   revoke(token: string | undefined): void {
     const parsed = this.parse(token);
     if (!parsed) return;
@@ -188,7 +190,7 @@ export class RemoteSessions {
         if (/^[A-Za-z0-9_-]{43}$/.test(sig) && typeof exp === 'number' && exp > now) this.revoked.set(sig, exp);
       }
     } catch {
-      // sem arquivo (ou ilegível): ninguém encerrado ainda
+      // no file (or unreadable): nobody ended yet
     }
   }
 
@@ -200,7 +202,7 @@ export class RemoteSessions {
       writeFileSync(tmp, JSON.stringify(Object.fromEntries(this.revoked)), { mode: 0o600 });
       renameSync(tmp, this.revokedFile);
     } catch {
-      // segue valendo em memória até o próximo reinício
+      // it stays valid in memory until the next restart
     }
   }
 }
@@ -216,9 +218,10 @@ export function readCookie(header: string | undefined, name: string): string | u
 }
 
 /**
- * Freio contra tentativa e erro: depois de 5 falhas seguidas, cada nova tentativa espera 2^(n-5) s (até 5 min).
- * Global, não por IP: no Docker todo cliente da rede chega com o endereço do gateway. Uma conferência de senha por vez
- * (begin/end), contada como falha desde o começo: tentativas em paralelo não passam pelo freio enquanto o scrypt roda.
+ * Brake against trial and error: after 5 failures in a row, each new attempt waits 2^(n-5) s (up to 5 min).
+ * Global, not per IP: in Docker every client on the network arrives with the gateway's address. One password check
+ * at a time (begin/end), counted as a failure from the start: parallel attempts do not get past the brake while
+ * scrypt runs.
  */
 export class LoginThrottle {
   private failures = 0;
@@ -227,12 +230,12 @@ export class LoginThrottle {
 
   constructor(private readonly now: () => number = Date.now) {}
 
-  /** Segundos até poder tentar de novo (0 = pode; 1 enquanto outra tentativa está em andamento). */
+  /** Seconds until you can try again (0 = you can; 1 while another attempt is in progress). */
   retryAfter(): number {
     return Math.max(this.busy ? 1 : 0, Math.ceil((this.blockedUntil - this.now()) / 1000));
   }
 
-  /** Começa uma tentativa (já contada como falha); false se o freio ou outra tentativa não deixam. */
+  /** Starts an attempt (already counted as a failure); false if the brake or another attempt does not allow it. */
   begin(): boolean {
     if (this.retryAfter() > 0) return false;
     this.busy = true;
@@ -240,7 +243,7 @@ export class LoginThrottle {
     return true;
   }
 
-  /** Fim da tentativa começada em begin(): acertou zera o freio; errou fica a falha já contada. */
+  /** End of the attempt started in begin(): a hit resets the brake; a miss keeps the failure already counted. */
   end(ok: boolean): void {
     this.busy = false;
     if (ok) this.succeed();
@@ -257,10 +260,10 @@ export class LoginThrottle {
   }
 }
 
-/** Requisições que chegaram pela porta remota e passaram pelo login. */
+/** Requests that arrived through the remote port and passed the login. */
 const remoteRequests = new WeakSet<IncomingMessage>();
-/** Arquivos que a porta remota serve sem login: manifesto e ícones (o celular os busca antes do login, sem o
- *  cookie). Nada da API nem do escritório. */
+/** Files the remote port serves without login: manifest and icons (the phone fetches them before login, without the
+ *  cookie). Nothing from the API or from the office. */
 const PUBLIC_STATIC = /^\/(manifest\.webmanifest|assets\/brand\/[\w.@-]+\.png)$/;
 
 export function isRemoteRequest(req: IncomingMessage): boolean {
@@ -294,7 +297,7 @@ function readBody(req: IncomingMessage, max = 8 * 1024): Promise<string> {
 
 export const CA_PATH = '/remote/ca.crt';
 
-/** Texto nosso (tr) dentro do HTML: escapa o que o HTML interpretaria. */
+/** Our own text (tr) inside the HTML: escapes what the HTML would interpret. */
 function esc(text: string): string {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
@@ -303,7 +306,7 @@ export function loginPage(opts: { caDownload: boolean }): string {
   const ca = opts.caDownload
     ? `<p class="ca">${esc(tr('First time on this phone?'))} <a href="${CA_PATH}" download="habblaud-ca.crt">${esc(tr('Install the Habblaud certificate'))}</a> ${esc(tr('to remove the security warning (check the fingerprint that npm run remote:setup showed).'))}</p>`
     : '';
-  // Dentro do <script>: JSON com "<" escapado, para nenhum texto fechar a tag.
+  // Inside the <script>: JSON with "<" escaped, so that no text closes the tag.
   const js = (text: string) => JSON.stringify(text).replace(/</g, '\\u003c');
   return `<!doctype html>
 <html lang="${getLocale()}">
@@ -389,18 +392,18 @@ function cookieHeader(value: string, maxAgeS: number, secure: boolean): string {
 export interface RemoteGateDeps {
   config: Pick<RemoteConfig, 'user' | 'passwordHash'>;
   sessions: RemoteSessions;
-  /** Cookie com Secure (a porta fala HTTPS). */
+  /** Cookie with Secure (the port speaks HTTPS). */
   secure: boolean;
-  /** Arquivo da CA pública servido em /remote/ca.crt (ausente = sem download). */
+  /** Public CA file served at /remote/ca.crt (absent = no download). */
   caFile?: string;
   throttle?: LoginThrottle;
-  /** Conferência da senha (injetável nos testes; padrão: scrypt). */
+  /** Password check (injectable in the tests; default: scrypt). */
   verify?: (password: string, hash: PasswordHash) => Promise<boolean>;
 }
 
 /**
- * Filtro da porta remota, depois do guard (Host/Origin/JSON) e antes da API: devolve true quando já respondeu (login,
- * logout, 401, redirecionamento, CA) e false quando a requisição está autenticada — e então a marca como remota.
+ * Filter of the remote port, after the guard (Host/Origin/JSON) and before the API: returns true when it has already
+ * answered (login, logout, 401, redirect, CA) and false when the request is authenticated — and then marks it remote.
  */
 export function createRemoteGate(deps: RemoteGateDeps): (req: IncomingMessage, res: ServerResponse, url: URL) => boolean {
   const throttle = deps.throttle ?? new LoginThrottle();
@@ -425,8 +428,8 @@ export function createRemoteGate(deps: RemoteGateDeps): (req: IncomingMessage, r
         tooMany();
         return true;
       }
-      // A tentativa só começa (e ocupa o freio) com o corpo inteiro na mão: um corpo que nunca termina não trava o
-      // login de mais ninguém.
+      // The attempt only starts (and takes the brake) with the whole body in hand: a body that never ends does not lock
+      // anyone else's login.
       let begun = false;
       let ok = false;
       readBody(req)
@@ -437,11 +440,11 @@ export function createRemoteGate(deps: RemoteGateDeps): (req: IncomingMessage, r
           try {
             body = JSON.parse(raw) as typeof body;
           } catch {
-            // corpo inválido: cai na recusa abaixo
+            // invalid body: falls into the refusal below
           }
           const user = typeof body.user === 'string' ? body.user : '';
           const password = typeof body.password === 'string' ? body.password : '';
-          // O scrypt roda sempre (sem atalho que denuncie se foi o usuário ou a senha que errou).
+          // scrypt always runs (no shortcut that gives away whether it was the user or the password that was wrong).
           const okPassword = await verify(password, deps.config.passwordHash);
           const okUser = safeEqual(user.trim(), deps.config.user);
           if (!(okUser && okPassword)) return sendJson(res, 401, { error: tr('Incorrect username or password.') });
@@ -469,7 +472,7 @@ export function createRemoteGate(deps: RemoteGateDeps): (req: IncomingMessage, r
     }
 
     if (path === CA_PATH) {
-      // Público de propósito: é só o certificado da CA (a chave nunca sai do computador).
+      // Public on purpose: it is only the CA certificate (the key never leaves the computer).
       req.resume();
       if (!caAvailable()) sendJson(res, 404, { error: tr('no CA certificate') });
       else {
@@ -499,7 +502,7 @@ export function createRemoteGate(deps: RemoteGateDeps): (req: IncomingMessage, r
       remoteRequests.add(req);
       return false;
     }
-    // Ícone e manifesto do app (Tela de Início): públicos, o celular os busca antes do login (e sem o cookie).
+    // App icon and manifest (Home Screen): public, the phone fetches them before login (and without the cookie).
     if ((method === 'GET' || method === 'HEAD') && PUBLIC_STATIC.test(path)) {
       remoteRequests.add(req);
       return false;
@@ -517,15 +520,16 @@ export function createRemoteGate(deps: RemoteGateDeps): (req: IncomingMessage, r
 }
 
 export interface RemoteListener {
-  /** O que escuta a porta (TCP com HTTPS + redirecionamento, ou HTTP puro). */
+  /** What listens on the port (TCP with HTTPS + redirect, or plain HTTP). */
   server: net.Server;
   close(): void;
 }
 
 /**
- * Sobe a porta remota. Com HTTPS, um servidor TCP olha o primeiro byte de cada conexão: 0x16 (TLS ClientHello) vai para
- * o HTTPS; qualquer outra coisa é HTTP digitado sem "s" e recebe 308 para https://. O certificado é recarregado sozinho
- * quando o arquivo muda (npm run remote:setup ou a renovação do docker:up), sem derrubar quem está conectado.
+ * Brings up the remote port. With HTTPS, a TCP server looks at the first byte of each connection: 0x16 (TLS
+ * ClientHello) goes to HTTPS; anything else is HTTP typed without the "s" and gets a 308 to https://. The certificate
+ * is reloaded on its own when the file changes (npm run remote:setup or the docker:up renewal), without dropping
+ * whoever is connected.
  */
 export function startRemoteListener(
   cfg: Pick<RemoteConfig, 'port' | 'host' | 'tls'>,
@@ -543,7 +547,7 @@ export function startRemoteListener(
   const read = () => ({ key: readFileSync(tls.keyFile), cert: readFileSync(tls.certFile) });
   const secure = https.createServer(read(), onRequest);
   secure.on('tlsClientError', () => {
-    // Celular que ainda não confia na CA fecha o aperto de mão: normal até instalar o certificado.
+    // A phone that does not trust the CA yet closes the handshake: normal until the certificate is installed.
   });
   const reload = () => {
     try {
@@ -568,7 +572,7 @@ export function startRemoteListener(
     res.end();
   });
   const tcp = net.createServer((socket) => {
-    // Conexão que não manda nada não fica pendurada para sempre.
+    // A connection that sends nothing does not stay hanging forever.
     socket.setTimeout(FIRST_BYTE_MS, () => socket.destroy());
     socket.once('data', (first: Buffer) => {
       socket.setTimeout(0);

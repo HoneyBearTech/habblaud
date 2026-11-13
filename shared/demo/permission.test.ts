@@ -1,5 +1,5 @@
-// Pedidos de permissão fictícios do demo: aparecem na espera, respondem pelo escritório (aprovar, recusar,
-// responder a pergunta, devolver ao terminal) e somem quando a espera acaba sozinha.
+// Fictional permission requests of the demo: they show up in the wait, answer from the office (approve, deny,
+// answer the question, hand back to the terminal) and disappear when the wait ends on its own.
 import { describe, expect, it } from 'vitest';
 import { mulberry32 } from '../hash';
 import { DEMO_CODEX_PERMISSION_MS, demoCodexPermission, demoPermission } from './permission';
@@ -87,7 +87,7 @@ describe('DemoSimulator: permission requests', () => {
     expect(p.tool).toBe('AskUserQuestion');
     const [single, multi] = p.questions!;
     expect(sim.decidePermission(p.id, { behavior: 'allow' }, start + 1)).toBe(false);
-    // Falta a segunda pergunta; escolha única com duas opções.
+    // The second question is missing; single choice with two options.
     expect(sim.decidePermission(p.id, { behavior: 'answer', answers: [{ question: single!.index, options: [0] }] }, start + 1)).toBe(false);
     expect(
       sim.decidePermission(p.id, { behavior: 'answer', answers: [{ question: single!.index, options: [0, 1] }, { question: multi!.index, options: [0] }] }, start + 1),

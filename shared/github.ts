@@ -1,33 +1,33 @@
-// GitHub no escritório: PR aberto ou mergeado, push, CI e release viram avisos e efeitos na sala do
-// projeto (festa ou alarme). Código puro, usado pelo servidor (eventos detectados nos transcripts, ver
-// server/sources/github.ts) e pelo simulador de demonstração.
+// GitHub in the office: PR opened or merged, push, CI and release become notices and effects in the project's
+// room (party or alarm). Pure code, used by the server (events detected in the transcripts, see
+// server/sources/github.ts) and by the demo simulator.
 import { maskSecrets, truncate, type MarkedDescription } from './activity';
 import type { NoticeLevel, RoomEffect } from './types';
 import { tr } from './i18n';
 
 export type GitHubEventKind = 'pr_opened' | 'pr_merged' | 'push' | 'ci_failed' | 'ci_passed' | 'release';
 
-/** Um evento do GitHub visto num transcript (ou inventado pelo demo). */
+/** A GitHub event seen in a transcript (or made up by the demo). */
 export interface GitHubEvent {
   kind: GitHubEventKind;
-  /** Número do PR (aberto, mergeado ou cujas checagens rodaram). */
+  /** Number of the PR (opened, merged or whose checks ran). */
   number?: number;
-  /** "dono/repo", quando aparece na URL ou nos argumentos. */
+  /** "owner/repo", when it appears in the URL or in the arguments. */
   repo?: string;
-  /** Branch do push ou do CI. */
+  /** Branch of the push or of the CI. */
   branch?: string;
-  /** Tag da release. */
+  /** Tag of the release. */
   tag?: string;
-  /** Workflow ou checagem do CI (ex.: "CI", "build-test"). */
+  /** CI workflow or check (e.g. "CI", "build-test"). */
   workflow?: string;
   url?: string;
 }
 
-/** Marcador (Activity.tool) das atividades sintetizadas a partir de eventos do GitHub. */
+/** Marker (Activity.tool) of the activities synthesized from GitHub events. */
 export const GITHUB_TOOL = 'GitHub';
-/** Duração da festa (PR, merge, release). */
+/** Duration of the party (PR, merge, release). */
 export const PARTY_MS = 12_000;
-/** O alarme de CI vermelho acaba com um CI verde na sala ou depois disto. */
+/** The red CI alarm ends with a green CI in the room or after this. */
 export const ALARM_MS = 600_000;
 
 const MAX_TEXT = 46;
@@ -37,19 +37,19 @@ function clean(s: string, max: number): string {
   return truncate(maskSecrets(s.slice(0, max * 4)), max);
 }
 
-/** Onde o CI rodou, para os textos: branch, PR ou workflow. */
+/** Where the CI ran, for the texts: branch, PR or workflow. */
 function ciWhere(ev: GitHubEvent): string | undefined {
   if (ev.branch) return clean(ev.branch, 28);
   if (ev.number !== undefined) return `PR #${ev.number}`;
   return ev.workflow ? clean(ev.workflow, 28) : undefined;
 }
 
-/** O que rodou, para a atividade: o workflow (se não for só "CI"), senão onde. */
+/** What ran, for the activity: the workflow (if it is not just "CI"), otherwise where. */
 function ciWhat(ev: GitHubEvent): string | undefined {
   return ev.workflow && !/^ci$/i.test(ev.workflow.trim()) ? ev.workflow : ciWhere(ev);
 }
 
-/** Faixa curta da festa/alarme na sala (undefined = o evento não mexe na sala, ex.: push). */
+/** Short banner of the party/alarm in the room (undefined = the event doesn't touch the room, e.g. push). */
 export function bannerOf(ev: GitHubEvent): string | undefined {
   const pr = ev.number !== undefined ? `PR #${ev.number}` : 'PR';
   switch (ev.kind) {
@@ -70,20 +70,20 @@ export function bannerOf(ev: GitHubEvent): string | undefined {
   }
 }
 
-/** Chave de deduplicação dos avisos (o mesmo PR/branch visto por dois comandos seguidos). */
+/** Deduplication key of the notices (the same PR/branch seen by two commands in a row). */
 export function githubEventKey(ev: GitHubEvent): string {
   return `${ev.kind}:${ev.number ?? ''}:${ev.branch ?? ''}:${ev.tag ?? ''}`;
 }
 
 export interface GitHubEventText {
-  /** Aviso (toast). Ex.: "🎉 Danilo abriu o PR #12 em habblaud". */
+  /** Notice (toast). E.g. "🎉 Danilo opened PR #12 in habblaud". */
   notice: string;
   level: NoticeLevel;
-  /** Atividade do agente (feed e linha do tempo), com o marcador GITHUB_TOOL. */
+  /** Agent activity (feed and timeline), with the GITHUB_TOOL marker. */
   activity: MarkedDescription;
 }
 
-/** Textos em PT-BR de um evento: aviso e atividade. */
+/** Texts of an event: notice and activity. */
 export function describeGitHubEvent(ev: GitHubEvent, agentName: string, roomName: string): GitHubEventText {
   const pr = ev.number !== undefined ? tr('PR #{0}', [ev.number]) : tr('a PR');
   const act = (icon: string, text: string, detail?: string, error = false): MarkedDescription => {
@@ -135,7 +135,7 @@ export function describeGitHubEvent(ev: GitHubEvent, agentName: string, roomName
   }
 }
 
-// ------------------------------------------------------------------ efeitos das salas
+// ------------------------------------------------------------------ room effects
 
 interface RoomSlots {
   party?: RoomEffect;
@@ -143,15 +143,15 @@ interface RoomSlots {
 }
 
 /**
- * Ciclo de vida dos efeitos das salas: festa (PR aberto/mergeado, release; e CI verde que apaga um
- * alarme) por PARTY_MS; alarme (CI vermelho) até um CI verde na sala ou ALARM_MS. Uma festa passa na
- * frente do alarme enquanto dura (o alarme continua valendo por baixo); um CI vermelho novo encerra
- * a festa. Uma sala que sai e volta antes de o alarme vencer volta com ele (o CI continua vermelho).
+ * Life cycle of the room effects: party (PR opened/merged, release; and green CI that clears an
+ * alarm) for PARTY_MS; alarm (red CI) until a green CI in the room or ALARM_MS. A party goes in
+ * front of the alarm while it lasts (the alarm still holds underneath); a new red CI ends
+ * the party. A room that leaves and comes back before the alarm expires comes back with it (the CI is still red).
  */
 export class RoomEffects {
   private rooms = new Map<string, RoomSlots>();
 
-  /** Aplica um evento à sala; true se o efeito visível mudou. */
+  /** Applies an event to the room; true if the visible effect changed. */
   apply(roomId: string, ev: GitHubEvent, now: number, agentId?: string): boolean {
     const slots = this.rooms.get(roomId) ?? {};
     const make = (kind: RoomEffect['kind'], text: string, ms: number): RoomEffect => {
@@ -166,12 +166,12 @@ export class RoomEffects {
         slots.party = make('party', bannerOf(ev)!, PARTY_MS);
         break;
       case 'ci_failed':
-        // o vermelho mais novo vale na hora (encerra uma festa em andamento)
+        // the newest red takes effect right away (ends a party in progress)
         slots.alarm = make('alarm', bannerOf(ev)!, ALARM_MS);
         delete slots.party;
         break;
       case 'ci_passed':
-        // CI verde só muda a sala se apagar um alarme (aí vira festa).
+        // Green CI only changes the room if it clears an alarm (then it becomes a party).
         if (!slots.alarm || slots.alarm.until <= now) return false;
         delete slots.alarm;
         slots.party = make('party', bannerOf(ev)!, PARTY_MS);
@@ -183,7 +183,7 @@ export class RoomEffects {
     return true;
   }
 
-  /** Efeito visível da sala agora (a festa na frente do alarme), ou undefined. */
+  /** Visible effect of the room now (the party in front of the alarm), or undefined. */
   get(roomId: string, now: number): RoomEffect | undefined {
     const slots = this.rooms.get(roomId);
     if (!slots) return undefined;
@@ -192,7 +192,7 @@ export class RoomEffects {
     return undefined;
   }
 
-  /** Esquece os efeitos vencidos; true se algum saiu (o snapshot precisa ser refeito). */
+  /** Forgets the expired effects; true if any left (the snapshot has to be rebuilt). */
   prune(now: number): boolean {
     let changed = false;
     for (const [id, slots] of this.rooms) {

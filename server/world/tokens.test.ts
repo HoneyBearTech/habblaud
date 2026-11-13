@@ -1,5 +1,5 @@
-// Tokens do prédio (server/world/tokens.ts): soma de entrada + saída de hoje e dos 7 dias corridos, só da fonte real
-// (o demo nunca entra), arredondada a 2 algarismos.
+// Building tokens (server/world/tokens.ts): sum of input + output of today and of the 7 calendar days, only from the
+// real source (the demo never goes in), rounded to 2 digits.
 import { describe, expect, it } from 'vitest';
 import { zeroCounts, type DayStatsResponse, type StatsSource } from '../../shared/daystats';
 import type { AgentInfo, OfficeSnapshot } from '../../shared/types';
@@ -35,7 +35,7 @@ describe('BuildingTokens', () => {
       '2026-10-15': [1_000_000, 234_567],
       '2026-10-14': [5_000_000, 1_000],
       '2026-10-09': [1_000, 1_000],
-      '2026-10-08': [9_999_999_999, 0], // fora da semana
+      '2026-10-08': [9_999_999_999, 0], // outside the week
     });
     const t = new BuildingTokens({ stats, now: () => T0 });
     expect(t.read()).toEqual({ day: 1_200_000, week: 6_200_000 });
@@ -79,14 +79,14 @@ describe('BuildingTokens', () => {
         svc.sample(now);
       }
     };
-    step(T0 + 120 * S); // passa o assentamento do boot
+    step(T0 + 120 * S); // gets past the boot settling
     agents = [
       { ...real, stats: { ...real.stats, tokensIn: 40_000, tokensOut: 2_000 } },
       { ...demo, stats: { ...demo.stats, tokensIn: 7_000_000, tokensOut: 900_000 } },
     ];
     step(T0 + 130 * S);
     expect(svc.isDemo()).toBe(true);
-    // Sem `source`, hoje com o demo ligado viria o balde do demo: aqui não.
+    // Without `source`, today with the demo on would bring the demo bucket: not here.
     expect(svc.day('2026-10-15', 'UTC')?.source).toBe('demo');
     const t = new BuildingTokens({ stats: svc, now: () => now });
     expect(t.read()).toEqual({ day: 42_000, week: 42_000 });

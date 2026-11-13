@@ -1,12 +1,12 @@
-// Ordem dos agentes de cada projeto escolhida pelo usuário (arrastando as linhas da lista lateral): uma ordem só por
-// projeto, guardada no navegador pela sessão do Claude Code (não pelo processo, que muda ao retomar uma sessão).
+// Order of each project's agents chosen by the user (by dragging the rows of the side list): a single order per
+// project, kept in the browser by the Claude Code session (not by the process, which changes when a session resumes).
 const ORDER_KEY = 'habblaud.tabs.order';
-/** Projetos lembrados (os mais recentes). */
+/** Remembered projects (the most recent). */
 const MAX_ROOMS = 50;
 
 type OrderMap = Record<string, string[]>;
 
-/** Ordem guardada primeiro (pela sessão); quem não está nela vai para o fim, na ordem em que veio. */
+/** Stored order first (by session); whoever is not in it goes to the end, in the order they came. */
 export function orderAgents<T>(roomId: string, items: readonly T[], sessionOf: (item: T) => string): T[] {
   const saved = loadOrder()[roomId];
   if (!saved?.length) return items.slice();
@@ -17,7 +17,7 @@ export function orderAgents<T>(roomId: string, items: readonly T[], sessionOf: (
     .map((x) => x.item);
 }
 
-/** Põe `from` antes (ou depois) de `to` em `items` (já na ordem mostrada) e guarda a ordem do projeto. */
+/** Puts `from` before (or after) `to` in `items` (already in the order shown) and saves the project's order. */
 export function moveAgent<T>(roomId: string, items: readonly T[], idOf: (item: T) => string, sessionOf: (item: T) => string, from: string, to: string, after: boolean): boolean {
   const moved = items.find((a) => idOf(a) === from);
   const rest = items.filter((a) => idOf(a) !== from);
@@ -32,7 +32,7 @@ function loadOrder(): OrderMap {
   try {
     const v = JSON.parse(localStorage.getItem(ORDER_KEY) ?? '{}') as unknown;
     if (!v || typeof v !== 'object' || Array.isArray(v)) return {};
-    // Só listas de sessões: um valor de outro formato (editado à mão, outra versão) não pode quebrar a lista lateral.
+    // Only lists of sessions: a value in another format (edited by hand, another version) cannot break the side list.
     const map: OrderMap = {};
     for (const [room, ids] of Object.entries(v)) {
       if (Array.isArray(ids)) map[room] = ids.filter((x): x is string => typeof x === 'string');
@@ -52,6 +52,6 @@ function saveOrder(roomId: string, sessions: string[]): void {
     for (const k of keys.slice(0, Math.max(0, keys.length - MAX_ROOMS))) delete map[k];
     localStorage.setItem(ORDER_KEY, JSON.stringify(map));
   } catch {
-    // sem armazenamento: a ordem vale só até recarregar
+    // no storage: the order lasts only until reload
   }
 }

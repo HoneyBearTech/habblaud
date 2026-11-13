@@ -107,7 +107,7 @@ describe('TerminalLog', () => {
     expect(log.trim(2)).toEqual(['user:u1', 'tool:t1']);
     expect(log.size).toBe(2);
     expect(log.trim(2)).toEqual([]);
-    // Um resultado atrasado da ferramenta descartada aparece sozinho.
+    // A late result of the discarded tool shows up on its own.
     expect(log.push([result('r9', 't1')]).added.map((i) => i.type)).toEqual(['orphan']);
   });
 });

@@ -104,7 +104,7 @@ describe('deliveries: requests from the transcript', () => {
     expect(idx.attachment(d.attachments[0].id)).toMatchObject({ kind: 'file', path: '/Users/ana/proj/print.png', type: 'image/png' });
     expect(idx.attachment(d.attachments[2].id)).toMatchObject({ kind: 'capture', type: 'image/png' });
     expect(idx.attachment('does-not-exist')).toBeUndefined();
-    // "De nada!" sem ferramentas não é entrega; o último pedido conta só quando o agente para.
+    // "De nada!" without tools is not a delivery; the last request counts only when the agent stops.
     busy = false;
     expect((await idx.list()).map((x) => x.request)).toEqual(['Fix the sales report']);
   });

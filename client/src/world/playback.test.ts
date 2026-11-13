@@ -29,7 +29,7 @@ describe('timelapse in the world', () => {
     expect(out.serverTime).toBe(12_000);
     expect(out.agents[0].statusSince).toBe(11_000);
     expect(out.agents[0].shells![0].startedAt).toBe(10_800);
-    // Atividades e o snapshot original ficam como estão.
+    // Activities and the original snapshot stay as they are.
     expect(out.agents[0].activity!.at).toBe(900);
     expect(out.agents[0].startedAt).toBe(500);
     expect(agent.statusSince).toBe(1_000);

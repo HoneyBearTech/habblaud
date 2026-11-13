@@ -1,5 +1,5 @@
-// Configurações (popover): opções do escritório, avisos, modo demonstração e Sobre (versão). O Habblaud World tem a
-// janela própria (ui/world/world-dialog.ts); daqui só sai a dica do tema em Aparência, que também vai para o prédio.
+// Settings (popover): office options, alerts, demo mode and About (version). Habblaud World has its own window
+// (ui/world/world-dialog.ts); from here comes only the theme hint in Appearance, which also goes to the building.
 import { access, remoteLogout } from '../net/access';
 import type { UiComponent, UiContext } from './context';
 import { h, iconButton, setAttr, setHidden, setText } from './dom';
@@ -14,7 +14,7 @@ import { LOCALE_STORAGE_KEY, LOCALES, normalizeLocale, tr, type Locale } from '.
 
 type LanguageChoice = 'auto' | Locale;
 
-/** Idioma escolhido nas Configurações ("auto" = o do navegador). */
+/** Language chosen in Settings ("auto" = the browser's). */
 function savedLanguage(): LanguageChoice {
   try {
     return normalizeLocale(localStorage.getItem(LOCALE_STORAGE_KEY)) ?? 'auto';
@@ -23,7 +23,7 @@ function savedLanguage(): LanguageChoice {
   }
 }
 
-/** Salva a escolha e recarrega: os textos são montados uma vez, ao carregar a página. */
+/** Saves the choice and reloads: the texts are built once, when the page loads. */
 function pickLanguage(v: LanguageChoice): void {
   if (v === savedLanguage()) return;
   try {
@@ -57,7 +57,7 @@ export function segmented<T extends string>(label: string, options: readonly [T,
     const b = h('button', { class: 'ui-seg__opt', type: 'button', role: 'radio', text, attrs: { 'aria-checked': 'false' } });
     b.addEventListener('click', () => onPick(value));
     b.addEventListener('keydown', (e) => {
-      // Setas navegam entre as opções (padrão de radiogroup).
+      // Arrows move between the options (radiogroup pattern).
       if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
       e.preventDefault();
       e.stopPropagation();
@@ -92,7 +92,7 @@ export class SettingsPopover implements UiComponent {
   private language: ReturnType<typeof segmented<LanguageChoice>>;
   private soundGroup: SoundSettingsGroup;
   private demoGroup: HTMLElement;
-  /** Só na página do celular (porta remota com login): sair deste aparelho. */
+  /** Only on the phone page (remote port with login): sign out of this device. */
   private remoteGroup: HTMLElement;
   private logoutBtn: HTMLButtonElement;
   private about: AboutGroup;
@@ -103,7 +103,7 @@ export class SettingsPopover implements UiComponent {
     private ctx: UiContext,
     private notifier: Notifier,
     sound: SoundControl,
-    /** A janela do Habblaud World: a dica do tema em Aparência e o envio do tema ao prédio. */
+    /** The Habblaud World window: the theme hint in Appearance and sending the theme to the building. */
     private readonly world: WorldThemeLink,
   ) {
     const sw = (key: BoolPref | 'demo', label: string, hint: string, onToggle: () => void) => {
@@ -146,14 +146,14 @@ export class SettingsPopover implements UiComponent {
       [['auto', tr('Automatic')], ['none', tr('None')], ['christmas', tr('Christmas')], ['halloween', tr('Halloween')]],
       (v) => {
         ctx.updatePrefs({ theme: v });
-        // Com o World ligado e a conta aprovada, o tema também vai para o prédio (clicar de novo reenvia).
+        // With World on and the account approved, the theme also goes to the building (clicking again resends).
         void this.world.onThemePicked(v);
       },
     );
     this.theme.row.append(h('span', { class: 'ui-set__hint', text: tr('Automatic: Halloween in October and Christmas from November 1 to December 26; the rest of the year, the original look. None: always the original.') }));
     this.soundGroup = new SoundSettingsGroup(ctx, sound);
 
-    // Nomes dos idiomas sempre na própria língua, para quem não entende o idioma atual achar o seu.
+    // Language names always in their own language, so whoever doesn't understand the current language finds theirs.
     this.language = segmented<LanguageChoice>(
       tr('Interface language'),
       [['auto', tr('Automatic')], ...LOCALES.map((l): [LanguageChoice, string] => [l.id, l.name])],
@@ -243,11 +243,11 @@ export class SettingsPopover implements UiComponent {
     else this.el.classList.add('is-open');
     anchor.setAttribute('aria-expanded', 'true');
     this.syncRootClass();
-    // Leva o foco para dentro do popover (sem anel de foco num controle específico).
+    // Moves the focus inside the popover (without a focus ring on a specific control).
     this.el.focus();
   }
 
-  /** Abre (se fechado) e leva até a seção "Sobre". */
+  /** Opens (if closed) and goes to the "About" section. */
   showAbout(anchor: HTMLElement): void {
     if (!this.isOpen) this.toggle(anchor);
     this.render();
@@ -261,7 +261,7 @@ export class SettingsPopover implements UiComponent {
     this.syncRootClass();
   }
 
-  /** Com o popover aberto, os avisos recolhem (não aparecem por trás nem ao lado dele). */
+  /** With the popover open, the notices collapse (they don't show behind it or beside it). */
   private syncRootClass(): void {
     this.ctx.root.classList.toggle('has-popover', this.isOpen);
   }

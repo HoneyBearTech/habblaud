@@ -23,7 +23,7 @@ describe('A* 4 directions', () => {
     const p = pairs(out);
     expect(p[p.length - 1]).toEqual([4, 3]);
     expect(p.length).toBe(7);
-    // passos adjacentes em 4 direções e só por células livres
+    // adjacent steps in 4 directions and only through free cells
     let prev: [number, number] = [0, 0];
     for (const [x, y] of p) {
       expect(Math.abs(x - prev[0]) + Math.abs(y - prev[1])).toBe(1);

@@ -1,4 +1,4 @@
-// Funções puras de scripts/docker-up.ts (importar o módulo não sobe nada).
+// Pure functions of scripts/docker-up.ts (importing the module doesn't start anything).
 import { describe, expect, it } from 'vitest';
 import type { DetectedAccount } from '../accounts/detect';
 import { legacyEnvWarning } from '../legacy';
@@ -30,22 +30,22 @@ const acc = (id: string, extra: Partial<DetectedAccount> = {}): DetectedAccount 
   ...extra,
 });
 
-/** Os caminhos do host aqui são escritos com `/`; no Windows, o join do planMounts os devolve com `\`. */
+/** The host paths here are written with `/`; on Windows, planMounts' join returns them with `\`. */
 const slash = (p: string) => p.replaceAll('\\', '/');
 
 describe('docker-up', () => {
   it('the Habblaud World line: the default without URL; on with the checked address; the environment counts more than the .env', () => {
     expect(worldLine({})).toBe('Habblaud World: on: https://server.habblaud.com (default)');
     expect(worldLine({ HABBLAUD_WORLD_URL: 'wss://server.habblaud.com/' })).toBe('Habblaud World: on: https://server.habblaud.com');
-    // Do .env (o Compose lê sozinho), com aspas.
+    // From .env (Compose reads it on its own), with quotes.
     const file = 'HABBLAUD_WORLD_URL="http://host.docker.internal:4848"\nHABBLAUD_WORLD_DEV=1\n';
     expect(worldLine({}, file)).toBe('Habblaud World: on: http://host.docker.internal:4848');
-    // Sem o modo de desenvolvimento, http:// é recusado (e o motivo aparece); no container não há --dev.
+    // Without development mode, http:// is refused (and the reason shows); in the container there is no --dev.
     expect(worldLine({ HABBLAUD_WORLD_URL: 'http://host.docker.internal:4848' })).toMatch(/^Habblaud World: off \(HABBLAUD_WORLD_URL with http:\/\/.*development/);
-    // O ambiente ganha do .env, até vazio.
+    // The environment wins over .env, even when empty.
     expect(worldLine({ HABBLAUD_WORLD_URL: '' }, file)).toBe('Habblaud World: on: https://server.habblaud.com (default)');
     expect(worldLine({ HABBLAUD_WORLD: '0' }, file)).toBe('Habblaud World: off (HABBLAUD_WORLD=0).');
-    // Nunca repete a URL crua (pode ter usuário e senha).
+    // Never repeats the raw URL (it may have a user and password).
     expect(worldLine({ HABBLAUD_WORLD_URL: 'https://ana:secret@server.habblaud.com' })).not.toContain('secret');
   });
 
@@ -90,9 +90,9 @@ describe('docker-up', () => {
     expect(binds).toBe(3);
     expect(yml.match(/read_only: true/g)).toHaveLength(3);
     expect(yml.match(/create_host_path: false/g)).toHaveLength(3);
-    // Payload das contas: sem cache vazio, sem campos que não existem.
+    // Accounts payload: no empty cache, no fields that don't exist.
     expect(accountsPayload(mounts)).toEqual([{ id: '.claude', configDir: '/Users/fulano/.claude', mountDir: '/claude/.claude', short: 'C', name: 'Account C', color: '#000000', email: 'a@b.c' }]);
-    // Sem a pasta do statusline: nada de /usage.
+    // Without the statusline folder: no /usage.
     expect(renderOverride(mounts)).not.toContain('/usage');
     expect(yamlString('a"b$c')).toBe('"a\\"b$$c"');
   });
@@ -100,7 +100,7 @@ describe('docker-up', () => {
   it('Codex: mounts ONLY sessions/, archived_sessions/ and thread-writer-locks/ (read-only) and passes the accounts with the host folder', () => {
     expect([...CODEX_MOUNTED_SUBDIRS]).toEqual(['sessions', 'archived_sessions', 'thread-writer-locks']);
     const host = '/Users/fulano/.codex';
-    // Existem no host também auth.json, config.toml, history.jsonl, shell_snapshots/, logs e SQLite: nada disso entra.
+    // The host also has auth.json, config.toml, history.jsonl, shell_snapshots/, logs and SQLite: none of that goes in.
     const exists = new Set([`${host}/sessions`, `${host}/thread-writer-locks`, `${host}/auth.json`, `${host}/config.toml`, `${host}/shell_snapshots`, `${host}/history.jsonl`]);
     const codexAcc: DetectedAccount = { id: '.codex', provider: 'codex', configDir: host, short: 'CX', name: 'Codex', color: '#5cc97b', plan: 'Plus' };
     const codex = planCodexMounts([host, '/Users/fulano/.codex-empty'], [codexAcc, { ...codexAcc, id: '.codex-empty' }], (p) => (exists.has(slash(p)) ? `/real${slash(p)}` : undefined));
@@ -124,7 +124,7 @@ describe('docker-up', () => {
       ['.claude', undefined, '/Users/fulano/.claude'],
       ['.codex', 'codex', host],
     ]);
-    // Sem Codex: nada de HABBLAUD_CODEX_DIRS.
+    // Without Codex: no HABBLAUD_CODEX_DIRS.
     expect(renderOverride(claude)).not.toContain('HABBLAUD_CODEX_DIRS');
     expect(codexDisabled({ HABBLAUD_CODEX: '0' })).toBe(true);
     expect(codexDisabled({ HABBLAUD_CODEX: 'off' })).toBe(true);
@@ -161,7 +161,7 @@ describe('docker-up: migration from the old name (CodeTown)', () => {
       { kind: 'copy-volume', from: 'codetown_codetown-data', to: 'habblaud_habblaud-data' },
       { kind: 'compose', args: ['up', '-d'] },
     ]);
-    // O volume antigo nunca é apagado: só vira dica no fim, junto com a imagem.
+    // The old volume is never deleted: it only becomes a hint at the end, along with the image.
     expect(plan.cleanup).toEqual(['docker volume rm codetown_codetown-data', 'docker image rm codetown:local']);
   });
 
@@ -177,9 +177,9 @@ describe('docker-up: migration from the old name (CodeTown)', () => {
   });
 
   it('new volume already exists: does not copy over it', () => {
-    // Já migrado antes: o volume antigo ficou, mas não há o que fazer nem lembrar.
+    // Already migrated before: the old volume stayed, but there is nothing to do or to remind.
     expect(planUp({ ...none, legacyVolume: true, legacyImage: true, dataVolume: true }, true)).toEqual({ steps: [upBuild], cleanup: [] });
-    // Container antigo de pé com os dois volumes: sai o container, sem cópia.
+    // Old container up with both volumes: the container goes, with no copy.
     expect(planUp({ ...none, legacyContainer: true, legacyVolume: true, dataVolume: true }, true)).toEqual({
       steps: [{ kind: 'remove-container', name: 'codetown' }, upBuild],
       cleanup: ['docker volume rm codetown_codetown-data'],

@@ -1,12 +1,12 @@
-// Cartões de USO POR CONTA na barra superior: sessão de 5 horas e semanal, com reinício e origem dos números.
-// Regras de apresentação:
-// - número velho nunca passa por atual: janela que já renovou depois da leitura mostra "—" e "renovada";
-//   números antigos ficam acinzentados com a idade ("há 6 d") no cabeçalho ou, no celular, um selo no chip;
-// - o reinício vem com verbo implícito no ícone ↻ e contagem regressiva quando falta menos de um dia;
-// - conta sem números diz "sem dados de uso" e oferece "Como ativar" (mod do Habblaud, recomendado).
-// Conta do Codex: os números vêm dos arquivos de sessão dele, que só se renovam enquanto alguma sessão roda; por isso
-// a idade ("há 12 min") fica sempre à mostra. Sem cota nem créditos ("sem cota") nunca vira 0%. Não há o que
-// instalar para o uso: "Como funciona" abre a ajuda na seção do Codex. Sem Opus/Sonnet nem e-mail (só o plano).
+// USAGE PER ACCOUNT cards in the top bar: 5-hour session and weekly, with the reset and the source of the numbers.
+// Presentation rules:
+// - an old number never passes for a current one: a window that already renewed after the reading shows "—" and
+//   "renewed"; old numbers are grayed out with the age ("6 d ago") in the header or, on the phone, a badge on the chip;
+// - the reset comes with the verb implied in the ↻ icon and a countdown when less than a day is left;
+// - an account with no numbers says "no usage data" and offers "How to enable" (Habblaud mod, recommended).
+// Codex account: the numbers come from its session files, which only renew while some session is running; that is why
+// the age ("12 min ago") is always on display. No quota or credits ("no quota") never becomes 0%. There is nothing to
+// install for the usage: "How it works" opens the help at the Codex section. No Opus/Sonnet or e-mail (only the plan).
 import type { AccountInfo } from '../../../shared/types';
 import type { UiContext } from './context';
 import { h, KeyedList, setAttr, setHidden, setStyleVar, setText, setTitle, setVariant } from './dom';
@@ -23,15 +23,15 @@ export const SOURCE_LABEL: Record<NonNullable<AccountInfo['usage']>['source'], s
   codex: tr('Codex files'),
 };
 
-/** Origem para mostrar: o arquivo ao vivo pode ter sido gravado pelo mod do Habblaud ou pelo tap. */
+/** Source to show: the live file may have been written by the Habblaud mod or by the tap. */
 export function sourceLabel(u: NonNullable<AccountInfo['usage']>): string {
   if (u.source === 'statusline' && u.via === 'mod') return tr('live (Habblaud mod)');
   return SOURCE_LABEL[u.source] ?? u.source;
 }
 
 /**
- * Como ligar o uso de uma conta, em ordem de preferência (dica do cartão e ajuda).
- * Trechos entre crases viram código (sem quebra de linha no meio do comando).
+ * How to turn on the usage of an account, in order of preference (card tooltip and help).
+ * Parts between backticks become code (no line break in the middle of the command).
  */
 export const USAGE_SETUP_STEPS: readonly [string, string][] = [
   [
@@ -45,7 +45,7 @@ export const USAGE_SETUP_STEPS: readonly [string, string][] = [
   ['/usage', tr('Without installing anything: run `/usage` in Claude Code on this account to refresh the cache (the numbers go stale until the next time).')],
 ];
 
-/** Texto com trechos `assim` como código. */
+/** Text with parts `assim` as code. */
 export function richText(text: string): Node[] {
   return text.split('`').map((part, i) => (i % 2 ? h('code', { class: 'ui-usage-setup__inline', text: part }) : document.createTextNode(part)));
 }
@@ -142,7 +142,7 @@ function syncRows(dl: HTMLElement, rows: [string, string][]): void {
   });
 }
 
-/** Passo a passo para ligar o uso (dica do cartão e ajuda). */
+/** Step by step to turn on the usage (card tooltip and help). */
 export function createUsageSetup(): HTMLElement {
   return h(
     'ol',
@@ -151,37 +151,37 @@ export function createUsageSetup(): HTMLElement {
   );
 }
 
-/** ok/stale: números recentes/antigos; empty: sem números; noquota: Codex sem cota nem créditos (nunca 0%). */
+/** ok/stale: recent/old numbers; empty: no numbers; noquota: Codex with no quota or credits (never 0%). */
 export type CardState = 'ok' | 'stale' | 'empty' | 'noquota';
 
 function hasWindows(a: Pick<AccountInfo, 'usage'>): boolean {
   return !!a.usage && !!(a.usage.fiveHour || a.usage.sevenDay);
 }
 
-/** Estado efetivo do cartão. */
+/** Effective state of the card. */
 export function cardState(a: Pick<AccountInfo, 'usage' | 'usageStatus'>): CardState {
-  // "Sem cota" vem antes: a leitura não traz janelas, mas não é "sem dados".
+  // "No quota" comes first: the reading brings no windows, but it isn't "no data".
   if (a.usage?.noQuota) return 'noquota';
-  // Leitura sem nenhuma das janelas (ex.: cache do /usage sem números) vale como "sem dados".
+  // A reading with none of the windows (e.g. /usage cache with no numbers) counts as "no data".
   if (!hasWindows(a)) return 'empty';
   return a.usageStatus === 'ok' ? 'ok' : 'stale';
 }
 
-/** A idade dos números fica sempre à mostra? (Codex: só se renovam enquanto alguma sessão roda.) */
+/** Is the age of the numbers always on display? (Codex: they only renew while some session is running.) */
 export function showsUsageAge(a: Pick<AccountInfo, 'usage' | 'usageStatus' | 'provider'>): boolean {
   if (!a.usage) return false;
   const state = cardState(a);
   return state === 'stale' || (isCodex(a) && state !== 'empty');
 }
 
-/** Linha embaixo do nome: e-mail; no Codex (sem e-mail), o plano; nas outras, a pasta. */
+/** Line under the name: e-mail; on Codex (no e-mail), the plan; on the others, the folder. */
 export function usageSubtitle(a: Pick<AccountInfo, 'email' | 'plan' | 'configDir' | 'provider'>): string {
   if (a.email) return a.email;
   if (isCodex(a)) return a.plan ? tr('{0} plan', [a.plan]) : 'Codex';
   return a.configDir;
 }
 
-/** Mensagem no lugar das barras (estados sem números): [longa, curta]. */
+/** Message in place of the bars (states with no numbers): [long, short]. */
 export function usageMessage(a: Pick<AccountInfo, 'usage' | 'usageStatus' | 'provider'>): [string, string] {
   const state = cardState(a);
   if (state === 'noquota') return [tr('no quota'), tr('no quota')];
@@ -189,7 +189,7 @@ export function usageMessage(a: Pick<AccountInfo, 'usage' | 'usageStatus' | 'pro
   return [tr('no usage data'), tr('no data')];
 }
 
-/** Explicação do cartão de uma conta do Codex (dica); '' nas outras. */
+/** Explanation of the card of a Codex account (tooltip); '' on the others. */
 export function codexUsageNote(a: Pick<AccountInfo, 'usage' | 'usageStatus' | 'provider'>, now: number): string {
   if (!isCodex(a)) return '';
   const u = a.usage;
@@ -213,7 +213,7 @@ export class UsageCards {
       create: () => this.createCard(),
       update: (el, a) => this.updateCard(el, a),
     });
-    // A largura da janela mudou: refaz a conta de cabem-ou-não (ver fit()).
+    // The window width changed: redoes the fit-or-not calculation (see fit()).
     if (typeof ResizeObserver === 'function') new ResizeObserver(() => this.fit()).observe(ctx.root);
   }
 
@@ -222,8 +222,8 @@ export class UsageCards {
     this.list.sync(accounts);
     this.el.classList.toggle('is-empty', accounts.length === 0);
     setStyleVar(this.el, '--count', String(accounts.length));
-    // Medir força o layout da página, e o render roda a cada quadro no replay: só quando as contas mudam (a largura da
-    // janela fica com o ResizeObserver do construtor).
+    // Measuring forces the page layout, and the render runs every frame in the replay: only when the accounts change (the
+    // window width is left to the constructor's ResizeObserver).
     const key = accounts.map((a) => a.id).join('|');
     if (key !== this.fitKey) {
       this.fitKey = key;
@@ -231,13 +231,14 @@ export class UsageCards {
     }
   }
 
-  /** Contas da última medida em fit() (ver render). */
+  /** Accounts of the last measurement in fit() (see render). */
   private fitKey = '';
 
   /**
-   * Os cartões não cabem na linha da barra (muitas contas ou janela estreita)? Então vão para uma segunda linha
-   * (`has-usage-row` na raiz, regras em styles.css). Só conta os tamanhos mínimos, que não dependem de a fila estar
-   * numa linha ou na outra, então o resultado não oscila. No celular a barra já tem duas linhas (bloco próprio do CSS).
+   * Do the cards not fit on the bar's line (many accounts or a narrow window)? Then they go to a second line
+   * (`has-usage-row` on the root, rules in styles.css). It only counts the minimum sizes, which don't depend on the row
+   * being on one line or the other, so the result doesn't oscillate. On the phone the bar already has two lines (its own
+   * CSS block).
    */
   private fit(): void {
     const bar = this.el.parentElement;
@@ -248,8 +249,8 @@ export class UsageCards {
     }
     const barStyle = getComputedStyle(bar);
     const px = (v: string) => Number.parseFloat(v) || 0;
-    // Largura natural dos outros itens (scrollWidth): na linha única eles encolhem, na linha de baixo não, e a
-    // decisão não pode depender de em qual dos dois estados a barra está.
+    // Natural width of the other items (scrollWidth): on the single line they shrink, on the bottom line they don't, and
+    // the decision can't depend on which of the two states the bar is in.
     const others = [...bar.children]
       .filter((c) => c !== this.el && getComputedStyle(c).display !== 'none')
       .map((c) => Math.max((c as HTMLElement).offsetWidth, c.scrollWidth));
@@ -357,8 +358,8 @@ export class UsageCards {
     }
     r.meters.classList.toggle('is-dim', state !== 'ok');
 
-    // Idade dos números antigos no cabeçalho (no celular, um selo no chip faz esse papel). No Codex a idade fica
-    // sempre à mostra (os números só se renovam enquanto alguma sessão roda), discreta enquanto são recentes.
+    // Age of the old numbers in the header (on the phone, a badge on the chip plays that role). On Codex the age is
+    // always on display (the numbers only renew while some session is running), discreet while they are recent.
     const stale = state === 'stale';
     const showAge = showsUsageAge(a);
     setHidden(r.state, !showAge);
@@ -375,8 +376,8 @@ export class UsageCards {
       );
     }
 
-    // Sem números: "sem dados de uso" + "Como ativar" (no Codex, "Como funciona": não há o que instalar). Sem cota:
-    // a mensagem, sem botão.
+    // No numbers: "no usage data" + "How to enable" (on Codex, "How it works": there is nothing to install). No quota:
+    // the message, with no button.
     const [msgLong, msgShort] = usageMessage(a);
     setText(r.msgLong, msgLong);
     setText(r.msgShort, msgShort);
@@ -405,7 +406,7 @@ export class UsageCards {
     if (u && (u.fiveHour || u.sevenDay)) {
       rows.push([tr('5 h session'), five?.summary ?? '—']);
       rows.push([tr('Week'), week?.summary ?? '—']);
-      // Opus e Sonnet são janelas do Claude: no Codex não existem.
+      // Opus and Sonnet are Claude windows: on Codex they don't exist.
       const opus = codex ? null : usageWindowView(u.sevenDayOpus, u.fetchedAt, now, WEEK_MS);
       const sonnet = codex ? null : usageWindowView(u.sevenDaySonnet, u.fetchedAt, now, WEEK_MS);
       if (opus) rows.push([tr('Opus (week)'), opus.summary]);
@@ -418,7 +419,7 @@ export class UsageCards {
     }
     syncRows(r.tipRows, rows);
 
-    // Codex: a explicação dele, sem o passo a passo do Claude Code (não há o que instalar para o uso).
+    // Codex: its own explanation, without the Claude Code step by step (there is nothing to install for the usage).
     if (codex) {
       const note = codexUsageNote(a, now);
       setText(r.tipNote, note);
@@ -435,7 +436,7 @@ export class UsageCards {
     else if (five?.renewed || week?.renewed) note = tr('One of the windows has reset since the last reading.');
     setText(r.tipNote, note);
     setHidden(r.tipNote, !note);
-    // O passo a passo aparece sempre que os números não são ao vivo.
+    // The step by step shows whenever the numbers aren't live.
     const live = u?.source === 'statusline' && state === 'ok';
     setHidden(r.tipSetup, live);
   }

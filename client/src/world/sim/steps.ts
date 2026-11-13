@@ -1,29 +1,29 @@
-// Passos da fila de ações de um personagem. Criados no planejamento (nunca por frame).
+// Steps of a character's action queue. Created in planning (never per frame).
 import type { Dir, HeldItem, IconName, Pose } from '../../art/api';
 import type { Gathering } from '../social/gathering';
 
 export type Step =
-  /** Anda (ou corre) até o tile (tx, ty); depois, opcionalmente, até a posição fina (fx, fy) e vira para `dir`. */
+  /** Walks (or runs) to the tile (tx, ty); then, optionally, to the fine position (fx, fy) and turns to `dir`. */
   | { t: 'go'; tx: number; ty: number; run?: boolean; fx?: number; fy?: number; dir?: Dir; held?: HeldItem; path?: number[]; i?: number; fine?: boolean }
-  /** Encaixa no spot (assento ou ponto de uso). Exige estar no tile de aproximação. */
+  /** Snaps into the spot (seat or use point). Requires being on the approach tile. */
   | { t: 'enter'; spot: string }
-  /** Sai do spot atual de volta ao tile de aproximação (levantar). */
+  /** Leaves the current spot back to the approach tile (getting up). */
   | { t: 'exit' }
-  /** Fica numa pose por um tempo. */
+  /** Stays in a pose for a while. */
   | { t: 'act'; pose: Pose; ms: number; held?: HeldItem; dir?: Dir; icon?: IconName; machine?: string; seated?: boolean }
-  /** Espera uma condição (ou o tempo máximo), numa pose. */
+  /** Waits for a condition (or the maximum time), in a pose. */
   | { t: 'until'; cond: () => boolean; minMs: number; maxMs: number; pose?: Pose; held?: HeldItem; dir?: Dir }
-  /** Surge dentro do elevador e sai para o tile da frente. */
+  /** Appears inside the elevator and leaves to the tile in front. */
   | { t: 'elevOut'; elev: number; phase: number }
-  /** Entra no elevador e some. */
+  /** Enters the elevator and disappears. */
   | { t: 'elevIn'; elev: number; phase: number }
-  /** Usa a cabine do banheiro: entra, some, porta fecha; depois sai. */
+  /** Uses the bathroom stall: goes in, disappears, door closes; then comes out. */
   | { t: 'stall'; spot: string; ms: number; phase: number }
-  /** Liga/desliga a luz da sala no interruptor (precisa estar no spot do interruptor). */
+  /** Turns the room light on/off at the switch (needs to be at the switch's spot). */
   | { t: 'switch'; room: string; on: boolean; phase: number; onlyIfLast?: boolean }
-  /** Participa de uma roda (TV, jogo, papo...) até ela acabar; a pose vem do diretor (social/social.ts). */
+  /** Takes part in a hangout (TV, game, chat...) until it ends; the pose comes from the director (social/social.ts). */
   | { t: 'gather'; g: Gathering }
-  /** Efeito colateral imediato. */
+  /** Immediate side effect. */
   | { t: 'do'; fn: () => void }
-  /** Remove o personagem do mundo. */
+  /** Removes the character from the world. */
   | { t: 'remove' };

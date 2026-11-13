@@ -1,4 +1,4 @@
-// Modo demonstração: eventos do GitHub fictícios (PR, merge, CI, release) com festa e alarme nas salas.
+// Demo mode: fictional GitHub events (PR, merge, CI, release) with party and alarm in the rooms.
 import { describe, expect, it } from 'vitest';
 import { GITHUB_TOOL, PARTY_MS } from '../github';
 import { mulberry32 } from '../hash';

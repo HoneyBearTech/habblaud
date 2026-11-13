@@ -1,10 +1,10 @@
-// Agendador dos sons (puro): decide se um som toca agora e com que volume, conforme a preferência
-// (liga/desliga geral, volume mestre, categorias), a aba visível e os limites de frequência.
+// Sound scheduler (pure): decides whether a sound plays now and at what volume, according to the preference
+// (general on/off, master volume, categories), the visible tab and the rate limits.
 import type { SoundCueKind } from '../world/api';
 
-/** Categorias que o usuário liga/desliga nas configurações. */
+/** Categories the user turns on/off in the settings. */
 export type SoundCategory = 'alerts' | 'keys' | 'elevator' | 'social';
-/** Sons: o sino de "precisa de você", o estalo de tarefa concluída e os do ambiente. */
+/** Sounds: the "needs you" bell, the task-done click and the ambient ones. */
 export type SoundKind = 'chime' | 'pop' | SoundCueKind;
 
 export const SOUND_CATEGORIES: readonly SoundCategory[] = ['alerts', 'keys', 'elevator', 'social'];
@@ -19,7 +19,7 @@ export const CATEGORY_OF: Readonly<Record<SoundKind, SoundCategory>> = {
   arcade: 'social',
 };
 
-/** Intervalo mínimo (ms) entre dois sons do mesmo canal. */
+/** Minimum interval (ms) between two sounds on the same channel. */
 export const MIN_GAP_MS: Readonly<Record<SoundKind, number>> = {
   chime: 1_200,
   pop: 1_200,
@@ -30,7 +30,7 @@ export const MIN_GAP_MS: Readonly<Record<SoundKind, number>> = {
   arcade: 450,
 };
 
-/** O sino e o estalo dividem o mesmo canal (um não atropela o outro). */
+/** The bell and the click share the same channel (one does not run over the other). */
 const CHANNEL: Readonly<Record<SoundKind, string>> = {
   chime: 'alerts',
   pop: 'alerts',
@@ -41,11 +41,11 @@ const CHANNEL: Readonly<Record<SoundKind, string>> = {
   arcade: 'arcade',
 };
 
-/** Teto global: no máximo isto de sons por segundo (o sino de alerta sempre passa). */
+/** Global cap: at most this many sounds per second (the alert bell always gets through). */
 export const MAX_PER_SECOND = 7;
 
 export interface SoundSettings {
-  /** Volume mestre (0–1). */
+  /** Master volume (0–1). */
   volume: number;
   alerts: boolean;
   keys: boolean;
@@ -55,7 +55,7 @@ export interface SoundSettings {
 
 export const DEFAULT_SOUND_SETTINGS: SoundSettings = { volume: 0.6, alerts: true, keys: true, elevator: true, social: true };
 
-/** Valida campo a campo (preferência corrompida cai no padrão). */
+/** Validates field by field (a corrupted preference falls back to the default). */
 export function sanitizeSoundSettings(raw: unknown): SoundSettings {
   const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
   const d = DEFAULT_SOUND_SETTINGS;
@@ -64,7 +64,7 @@ export function sanitizeSoundSettings(raw: unknown): SoundSettings {
   return { volume: vol, alerts: bool(o.alerts, d.alerts), keys: bool(o.keys, d.keys), elevator: bool(o.elevator, d.elevator), social: bool(o.social, d.social) };
 }
 
-/** Curva do volume mestre: o controle deslizante fica perceptualmente linear. */
+/** Master volume curve: the slider ends up perceptually linear. */
 export function masterGain(volume: number): number {
   const v = Math.min(1, Math.max(0, volume));
   return v * v;
@@ -81,14 +81,14 @@ export class SoundScheduler {
     this.settings = settings;
   }
 
-  /** O som está liberado pela preferência (geral, categoria e volume)? */
+  /** Is the sound allowed by the preference (general, category and volume)? */
   allowed(kind: SoundKind): boolean {
     return this.enabled && this.settings.volume > 0 && this.settings[CATEGORY_OF[kind]];
   }
 
   /**
-   * Ganho final (0–1) para tocar `kind` agora, ou null se não deve tocar. Com a aba oculta só o
-   * sino de "precisa de você" toca. `gain` é a proximidade sugerida pelo mundo.
+   * Final gain (0–1) to play `kind` now, or null if it should not play. With the tab hidden only the
+   * "needs you" bell plays. `gain` is the proximity suggested by the world.
    */
   decide(kind: SoundKind, now: number, opts: { hidden?: boolean; gain?: number } = {}): number | null {
     if (!this.allowed(kind)) return null;

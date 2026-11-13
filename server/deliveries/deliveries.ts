@@ -1,10 +1,12 @@
-// Entregas: o fim de cada pedido em que um agente trabalhou, do jeito que um BA receberia. Lidas dos transcripts das
-// sessões recentes (o histórico do terminal): um pedido começa num prompt seu e termina no prompt seguinte (ou no fim
-// do arquivo, se o agente não está mais trabalhando). Vira entrega quando o agente usou ferramentas e respondeu.
-// - manchete: a primeira frase da resposta; resumo: o último parágrafo em texto corrido (o "em linguagem simples");
-// - anexos: os arquivos do SendUserFile (com a legenda) e os links para imagem/PDF/vídeo/página na resposta, mais as
-//   duas últimas telas capturadas no pedido (as imagens que já vêm dentro do transcript).
-// Cada transcript é relido só quando muda (mtime/tamanho). Os anexos ganham ids opacos: o navegador nunca vê caminhos.
+// Deliveries: the end of each request an agent worked on, the way a BA would receive it. Read from the transcripts
+// of the recent sessions (the terminal history): a request starts at one of your prompts and ends at the next prompt
+// (or at the end of the file, if the agent is no longer working). It becomes a delivery when the agent used tools and
+// replied.
+// - headline: the first sentence of the reply; summary: the last paragraph in running text (the "in plain language");
+// - attachments: the SendUserFile files (with the caption) and the links to image/PDF/video/page in the reply, plus
+//   the last two screens captured in the request (the images that already come inside the transcript).
+// Each transcript is reread only when it changes (mtime/size). Attachments get opaque ids: the browser never sees
+// paths.
 import { createHash } from 'node:crypto';
 import { statSync } from 'node:fs';
 import { isAbsolute, join, normalize } from 'node:path';
@@ -14,19 +16,19 @@ import type { TerminalParser } from '../sources/terminal';
 import { FileTail } from '../sources/tail';
 import { fileType, pathProblem } from './files';
 
-/** Quanto do fim de cada transcript entra (os pedidos mais antigos de uma sessão longa ficam de fora). */
+/** How much of the end of each transcript goes in (the oldest requests of a long session are left out). */
 export const TAIL_BYTES = 6 * 1024 * 1024;
 export const MAX_SESSIONS = 30;
 export const MAX_DELIVERIES = 60;
 const CAPTURES_PER_DELIVERY = 2;
-/** Só os últimos pedidos de cada conversa guardam as telas capturadas (base64): o resto da memória fica de fora. */
+/** Only the last requests of each conversation keep the captured screens (base64): the rest stays out of memory. */
 const TURNS_WITH_CAPTURES = 4;
 const HEADLINE_MAX = 180;
 const SUMMARY_MAX = 600;
 const REQUEST_MAX = 240;
 const MIN_TEXT = 30;
 const EDIT_TOOLS = new Set(['Edit', 'Write', 'MultiEdit', 'NotebookEdit', 'apply_patch']);
-/** Caminhos de arquivo de ver citados na resposta: em links markdown ou soltos. */
+/** Paths of viewable files cited in the reply: in markdown links or loose. */
 const LINK_RE = /\]\(\s*<?([^)\s>]+?\.(?:png|jpe?g|gif|webp|svg|pdf|mp4|mov|webm|html?))(?::\d+)?>?\s*\)/gi;
 const BARE_RE = /(?:^|[\s(`"'])(\/[^\s`"'()<>]+?\.(?:png|jpe?g|gif|webp|svg|pdf|mp4|mov|webm|html?))(?=$|[\s`"'),.;:!?])/gim;
 
@@ -38,7 +40,7 @@ export interface SessionSource {
 export interface DeliveryIndexOptions {
   sessions: () => Promise<RecentSession[]>;
   resolve: (account: string, sessionId: string) => SessionSource | undefined;
-  /** O agente está no meio de um pedido (o último pedido ainda não é entrega). */
+  /** The agent is in the middle of a request (the last request is not a delivery yet). */
   isBusy: (agentId: string) => boolean;
   agentName?: (agentId: string) => string | undefined;
 }
@@ -55,7 +57,7 @@ interface Turn {
   textAt: number;
   files: Array<{ path: string; caption?: string }>;
   captures: Array<{ type: string; data: string }>;
-  /** O transcript marca o motivo de parada (Claude Code): só vale entrega o texto que encerrou a vez (end_turn). */
+  /** The transcript marks the stop reason (Claude Code): only the text that ended the turn (end_turn) is a delivery. */
   marksStop: boolean;
   ended: boolean;
 }
@@ -63,9 +65,9 @@ interface Turn {
 interface Parsed {
   mtimeMs: number;
   size: number;
-  /** Pedidos terminados (o último também, se o arquivo acabou depois dele). */
+  /** Finished requests (the last one too, if the file ended after it). */
   turns: Turn[];
-  /** O último pedido do arquivo (pode estar em andamento). */
+  /** The last request in the file (may be in progress). */
   last?: Turn;
 }
 
@@ -102,7 +104,7 @@ function paragraphs(text: string): string[] {
 
 const isProse = (p: string) => !/^(\||#|>|[-*+]\s|\d+[.)]\s|`{3})/.test(p) && !/^[A-Z_ ]+:\s/.test(p);
 
-/** Primeira frase da resposta (a manchete), sem markdown. */
+/** First sentence of the reply (the headline), without markdown. */
 export function headlineOf(text: string): string {
   const first = paragraphs(text).find(isProse) ?? paragraphs(text)[0] ?? '';
   const plain = stripMarkdown(first);
@@ -110,7 +112,7 @@ export function headlineOf(text: string): string {
   return cut(m ? m[1] : plain, HEADLINE_MAX);
 }
 
-/** Último parágrafo em texto corrido (o resumo em linguagem simples), se for diferente da manchete. */
+/** Last paragraph in running text (the summary in plain language), if it is different from the headline. */
 export function summaryOf(text: string, headline: string): string | undefined {
   const paras = paragraphs(text).filter(isProse);
   const last = paras[paras.length - 1];
@@ -120,7 +122,7 @@ export function summaryOf(text: string, headline: string): string | undefined {
   return cut(plain, SUMMARY_MAX);
 }
 
-/** Caminhos de arquivos de ver citados na resposta (absolutos, ou relativos à pasta do projeto). */
+/** Paths of viewable files cited in the reply (absolute, or relative to the project folder). */
 export function linkedFiles(text: string, project?: string): string[] {
   const out = new Set<string>();
   const add = (raw: string) => {
@@ -128,7 +130,7 @@ export function linkedFiles(text: string, project?: string): string[] {
     try {
       p = decodeURIComponent(p);
     } catch {
-      // fica como veio
+      // stays as it came
     }
     if (p.startsWith('file://')) p = p.slice(7);
     if (/^[a-z]+:/i.test(p)) return;
@@ -148,7 +150,7 @@ function newTurn(start: TerminalEntry & { kind: 'user' }): Turn {
   return { start, tools: 0, edited: new Set(), text: '', textAt: start.at, files: [], captures: [], marksStop: false, ended: false };
 }
 
-/** Imagens dentro de resultados de ferramenta (capturas de tela), em ordem. */
+/** Images inside tool results (screenshots), in order. */
 function capturesIn(line: string): Array<{ type: string; data: string }> {
   if (!line.includes('"image"')) return [];
   let d: Rec | undefined;
@@ -172,7 +174,7 @@ function capturesIn(line: string): Array<{ type: string; data: string }> {
   return out;
 }
 
-/** Arquivos mandados com SendUserFile (caminho e legenda). */
+/** Files sent with SendUserFile (path and caption). */
 function sentFilesIn(line: string): Array<{ path: string; caption?: string }> {
   if (!line.includes('"SendUserFile"')) return [];
   let d: Rec | undefined;
@@ -194,14 +196,14 @@ function sentFilesIn(line: string): Array<{ path: string; caption?: string }> {
   return out;
 }
 
-/** Motivo de parada de uma linha de resposta do Claude Code ('end_turn', 'tool_use'...), se houver. */
+/** Stop reason of a Claude Code reply line ('end_turn', 'tool_use'...), if any. */
 function stopReasonOf(line: string): string | null | undefined {
   if (!line.includes('"stop_reason"')) return undefined;
   const m = /"stop_reason"\s*:\s*(null|"([a-z_]+)")/.exec(line);
   return m ? (m[2] ?? null) : undefined;
 }
 
-/** Lê o fim de um transcript e separa os pedidos. */
+/** Reads the end of a transcript and splits the requests. */
 export function parseTurns(lines: Iterable<string>, parser: TerminalParser): { turns: Turn[]; last?: Turn } {
   const turns: Turn[] = [];
   let cur: Turn | undefined;
@@ -241,7 +243,7 @@ export class DeliveryIndex {
 
   constructor(private readonly opts: DeliveryIndexOptions) {}
 
-  /** Anexo pelo id opaco (só os das entregas da última listagem). */
+  /** Attachment by its opaque id (only those of the deliveries in the last listing). */
   attachment(id: string): StoredAttachment | undefined {
     return this.files.get(id);
   }

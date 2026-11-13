@@ -1,6 +1,7 @@
-// O que a cena Visita mostra, sem DOM (testável): a faixa do topo, o painel lateral (salas e agentes, só leitura), o
-// cartão de um agente e as luzes do prédio. Tudo sai do `WorldBuildingDetail` que desceu do mundo: nomes fictícios de
-// sala, nome, papel, ferramenta e status de cada agente, e nada de tempo ("há quanto tempo" não existe na visita).
+// What the Visit scene shows, without DOM (testable): the top banner, the sidebar (rooms and agents, read-only), an
+// agent's card and the building's lights. Everything comes from the `WorldBuildingDetail` that came down from the
+// world: fictional room names, name, role, tool and status of each agent, and nothing about time ("how long ago"
+// does not exist in the visit).
 import { tr } from '../../../../shared/i18n';
 import { floorLabel } from '../../../../shared/world/floor-labels';
 import { hidesAgents, WORLD_TOOL_ACCOUNTS, worldId } from '../../../../shared/world/office-from-world';
@@ -8,38 +9,38 @@ import type { WorldAgent, WorldBuildingDetail, WorldBuildingPublic } from '../..
 import { floorsLabel } from '../city/cards';
 import type { VisitLight } from '../sim/sim';
 
-/** As luzes do prédio na visita: apagado (pausado, longe), discreto (salas vazias acesas) ou ao vivo. */
+/** The building's lights in the visit: off (paused, away), discreet (empty rooms lit) or live. */
 export function visitLightOf(b: Pick<WorldBuildingPublic, 'state' | 'discreet'>): VisitLight {
   if (b.state === 'away') return 'away';
   return b.discreet === true ? 'discreet' : 'live';
 }
 
-/** "1 agente", "6 agentes". */
+/** "1 agent", "6 agents". */
 export function agentsLabel(n: number): string {
   return n === 1 ? tr('1 agent') : tr('{0} agents', [n]);
 }
 
-/** "1 visitante agora", "3 visitantes agora". */
+/** "1 visitor now", "3 visitors now". */
 export function visitorsLabel(n: number): string {
   return n === 1 ? tr('1 visitor now') : tr('{0} visitors now', [n]);
 }
 
-/** Agentes que aparecem (no modo discreto e apagado, nenhum, mesmo que algum venha no pacote por engano). */
+/** Agents that show (in discreet and off mode, none, even if one comes in the packet by mistake). */
 function shownAgents(d: WorldBuildingDetail): number {
   if (hidesAgents(d.building)) return 0;
   return d.floors.reduce((n, f) => n + (Array.isArray(f.agents) ? f.agents.length : 0), 0);
 }
 
 export interface VisitBanner {
-  /** "Prédio de Helena" (ou "Seu prédio, como os outros veem"). */
+  /** "Helena's building" (or "Your building, as others see it"). */
   title: string;
-  /** "3 andares · 6 agentes · modo discreto". */
+  /** "3 floors · 6 agents · discreet mode". */
   details: string[];
-  /** Selo do estado: null ao vivo. */
+  /** State badge: null when live. */
   mode: 'discreet' | 'away' | null;
 }
 
-/** A faixa do topo: de quem é, quantos andares e agentes, e se está discreto ou apagado. */
+/** The top banner: whose it is, how many floors and agents, and whether it is discreet or off. */
 export function visitBanner(d: WorldBuildingDetail, mine: boolean): VisitBanner {
   const b = d.building;
   const light = visitLightOf(b);
@@ -56,7 +57,7 @@ export function visitBanner(d: WorldBuildingDetail, mine: boolean): VisitBanner 
 export type VisitStatus = 'working' | 'waiting' | 'idle' | 'shell';
 
 export interface VisitAgentRow {
-  /** Id do agente no escritório da visita (`world:` + id do mundo): o mesmo do personagem desenhado. */
+  /** Id of the agent in the visit's office (`world:` + world id): the same as the drawn character's. */
   id: string;
   name: string;
   role: string;
@@ -73,13 +74,13 @@ export interface VisitRoomRow {
 
 export interface VisitPanel {
   rooms: VisitRoomRow[];
-  /** Por que as salas estão vazias (discreto, apagado), ou null. */
+  /** Why the rooms are empty (discreet, off), or null. */
   empty: string | null;
 }
 
 const STATUS: readonly VisitStatus[] = ['working', 'waiting', 'idle', 'shell'];
 
-/** "trabalhando", "esperando o dono", "à toa", "de olho no terminal". */
+/** "working", "waiting for the owner", "idle", "watching the terminal". */
 export function statusText(s: VisitStatus): string {
   switch (s) {
     case 'working':
@@ -93,7 +94,7 @@ export function statusText(s: VisitStatus): string {
   }
 }
 
-/** Uma linha do painel (nome, papel, ferramenta e status: nada mais existe na visita). */
+/** A panel row (name, role, tool and status: nothing else exists in the visit). */
 export function agentRow(a: WorldAgent): VisitAgentRow {
   const status: VisitStatus = STATUS.includes(a.status) ? a.status : 'idle';
   const provider = a.provider === 'codex' ? 'codex' : 'claude';
@@ -107,7 +108,7 @@ export function agentRow(a: WorldAgent): VisitAgentRow {
   };
 }
 
-/** O painel lateral: cada sala (o nome fictício traduzido) com os agentes dela. */
+/** The sidebar: each room (the translated fictional name) with its agents. */
 export function visitPanel(d: WorldBuildingDetail): VisitPanel {
   const hidden = hidesAgents(d.building);
   const rooms = d.floors.map((f) => ({
@@ -125,7 +126,7 @@ export function visitPanel(d: WorldBuildingDetail): VisitPanel {
   return { rooms, empty };
 }
 
-/** O agente do painel pelo id do escritório da visita (`world:...`), para o cartão. */
+/** The panel's agent by the id of the visit's office (`world:...`), for the card. */
 export function findAgent(d: WorldBuildingDetail, id: string): (VisitAgentRow & { room: string }) | null {
   if (hidesAgents(d.building)) return null;
   for (const f of d.floors) {

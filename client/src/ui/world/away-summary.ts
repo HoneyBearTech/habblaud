@@ -1,11 +1,13 @@
-// O social leve do Habblaud World no escritório (Fase 5):
-// - "Enquanto você estava fora": quem passou pelo prédio enquanto o dono não estava (visitas, likes e os carimbos que
-//   deixaram na portaria, sem quem). Aparece no cartão "Seu prédio" (a janela do Habblaud World) e, ao conectar,
-//   num cartão flutuante no canto do escritório; fechar ou "Ok, vi" manda o `summary.seen` (POST /api/world/summary/seen).
-// - O código do prédio ("HB-4F2K"), para mandar a um amigo, com "Copiar".
-// - Batidas na porta: com "Avisar quando baterem na porta" ligado, um aviso "Alguém bateu na porta do seu prédio" (sem
-//   nome) quando `meta.world.building.knocks` sobe.
-// Só pelo próprio computador (as mesmas travas da seção do World) e nunca no timelapse. Os modelos são puros (testados).
+// The light social side of Habblaud World in the office (Phase 5):
+// - "While you were away": who came by the building while the owner wasn't there (visits, likes and the stamps they
+//   left at the front desk, without who). It shows in the "Your building" card (the Habblaud World window) and, on
+//   connecting, in a floating card in the corner of the office; closing or "Got it" sends the `summary.seen`
+//   (POST /api/world/summary/seen).
+// - The building's code ("HB-4F2K"), to send to a friend, with "Copy".
+// - Knocks on the door: with "Let me know when someone knocks" on, a notice "Someone knocked on your building's door"
+//   (no name) when `meta.world.building.knocks` goes up.
+// Only from the computer itself (the same locks as the World section) and never in the timelapse. The models are pure
+// (tested).
 import { intlLocale, tr } from '../../../../shared/i18n';
 import type { Notice } from '../../../../shared/types';
 import type { AwaySummary } from '../../../../shared/world/protocol';
@@ -16,18 +18,18 @@ import { copyText, h, prefersReducedMotion, setHidden, setText } from '../dom';
 import { worldErrorText } from './world-model';
 import './social.css';
 
-// ------------------------------------------------------------------ modelos (puros)
+// ------------------------------------------------------------------ models (pure)
 
 export interface AwaySummaryView {
-  /** "desde 14 de outubro" (o dia em que o dono viu o último resumo). */
+  /** "since October 14" (the day the owner saw the last summary). */
   since: string;
   stats: Array<{ key: 'visits' | 'likes' | 'stamps'; icon: string; value: string; label: string }>;
   stamps: Array<{ id: string; icon: string; label: string; count: number }>;
-  /** Uma frase para leitores de tela e para o aviso. */
+  /** One sentence for screen readers and for the notice. */
   sentence: string;
 }
 
-/** "2026-10-14" → "14 de outubro" (dia UTC, mostrado como dia do calendário). */
+/** "2026-10-14" → "October 14" (UTC day, shown as a calendar day). */
 export function dayLabel(day: string): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day);
   if (!m) return '';
@@ -40,7 +42,7 @@ export function dayLabel(day: string): string {
 
 const n = (v: number) => v.toLocaleString(intlLocale());
 
-/** O que o cartão mostra de um resumo: as três contagens, os carimbos (mais recebidos primeiro) e a frase. */
+/** What the card shows of a summary: the three counts, the stamps (most received first) and the sentence. */
 export function awaySummaryView(s: AwaySummary): AwaySummaryView {
   const stampsTotal = s.stamps.reduce((t, x) => t + x.count, 0);
   const since = dayLabel(s.since);
@@ -62,30 +64,30 @@ export function awaySummaryView(s: AwaySummary): AwaySummaryView {
   };
 }
 
-/** "❤️ 3 hoje" no chip da barra (null = nada: sem likes hoje ou o prédio não está aceso). */
+/** "❤️ 3 today" on the bar chip (null = nothing: no likes today or the building isn't lit). */
 export function likesTodayChip(state: string | null, likes: number | undefined): { text: string; title: string } | null {
   if (state !== 'live' || !likes || likes < 1) return null;
   return { text: tr('❤️ {0} today', [likes]), title: likes === 1 ? tr('Your building got 1 like today.') : tr('Your building got {0} likes today.', [likes]) };
 }
 
-/** Chave de um resumo (o mesmo resumo não aparece duas vezes no canto). */
+/** Key of a summary (the same summary doesn't show twice in the corner). */
 export function summaryKey(s: AwaySummary | undefined): string {
   return s ? `${s.since}|${s.visits}|${s.likes}|${s.stamps.map((x) => `${x.stampId}:${x.count}`).join(',')}` : '';
 }
 
 /**
- * Batidas novas desde a última olhada: `last` = o que esta página já viu (null = ainda não viu nada: a primeira leitura
- * só marca, sem avisar, para uma batida antiga não virar aviso ao abrir a página).
+ * New knocks since the last look: `last` = what this page has already seen (null = hasn't seen anything yet: the first
+ * reading only marks, without notifying, so an old knock doesn't become a notice when the page opens).
  */
 export function newKnocks(last: number | null, now: number | undefined): { last: number; fresh: number } {
   const cur = now ?? 0;
   if (last === null) return { last: cur, fresh: 0 };
-  // o Habblaud reiniciou (a contagem voltou): marca de novo
+  // Habblaud restarted (the count went back): marks again
   if (cur < last) return { last: cur, fresh: 0 };
   return { last: cur, fresh: cur - last };
 }
 
-// ------------------------------------------------------------------ DOM: o resumo (usado nos dois lugares)
+// ------------------------------------------------------------------ DOM: the summary (used in both places)
 
 function summaryBody(v: AwaySummaryView, compact: boolean): HTMLElement {
   const stats = h(
@@ -111,16 +113,16 @@ function summaryBody(v: AwaySummaryView, compact: boolean): HTMLElement {
   return h('div', { class: 'ui-away__body' }, stats, wall);
 }
 
-// ------------------------------------------------------------------ dentro de "Seu prédio"
+// ------------------------------------------------------------------ inside "Your building"
 
 export interface BuildingSocialHost {
   readonly client: WorldClient | null;
   building(): WorldBuildingStatus | undefined;
-  /** Relê o status (depois do "Ok, vi"). */
+  /** Rereads the status (after "Got it"). */
   refresh(): void;
 }
 
-/** O código do prédio e o "Enquanto você estava fora", no cartão "Seu prédio" (atualizados no lugar). */
+/** The building's code and the "While you were away", in the "Your building" card (updated in place). */
 export class BuildingSocial {
   readonly el: HTMLElement;
   private readonly codeRow: HTMLElement;
@@ -205,20 +207,21 @@ export class BuildingSocial {
   }
 }
 
-// ------------------------------------------------------------------ no escritório: o cartão ao conectar e as batidas
+// ------------------------------------------------------------------ in the office: the card on connecting and the knocks
 
 export interface WorldSocialHooks {
-  /** A seção do World está ativa nesta página (próprio computador, travas) e a conta, liberada. */
+  /** The World section is active on this page (own computer, locks) and the account, approved. */
   active(): boolean;
-  /** Um aviso rápido (os toasts do escritório). */
+  /** A quick notice (the office toasts). */
   toast(n: Notice): void;
-  /** Abre a janela do Habblaud World (onde está o cartão "Seu prédio"). */
+  /** Opens the Habblaud World window (where the "Your building" card is). */
   openWorld(): void;
 }
 
 /**
- * O "Enquanto você estava fora" ao conectar (um cartão no canto do escritório, até "Ok, vi" ou fechar) e o aviso de
- * cada batida na porta. Lê só o meta (likes, batidas e se há resumo) e pede o status (local) para mostrar o resumo.
+ * The "While you were away" on connecting (a card in the corner of the office, until "Got it" or closing) and the notice
+ * for each knock on the door. Reads only the meta (likes, knocks and whether there is a summary) and asks for the
+ * status (local) to show the summary.
  */
 export class WorldSocialNotifier implements UiComponent {
   readonly el: HTMLElement;
@@ -227,7 +230,7 @@ export class WorldSocialNotifier implements UiComponent {
   private readonly error: HTMLElement;
   private readonly seenBtn: HTMLButtonElement;
   private knocksSeen: number | null = null;
-  /** O resumo que está no cartão (ou que esta página já mostrou e a pessoa fechou). */
+  /** The summary that is in the card (or that this page already showed and the person closed). */
   private shownKey = '';
   private dismissedKey = '';
   private loading = false;
@@ -281,7 +284,7 @@ export class WorldSocialNotifier implements UiComponent {
       return;
     }
     const b = this.src.meta()?.building;
-    // batidas: só as novas desde a última olhada desta página
+    // knocks: only the new ones since this page's last look
     const k = newKnocks(this.knocksSeen, b?.knocks);
     this.knocksSeen = k.last;
     if (k.fresh > 0) {
@@ -289,7 +292,7 @@ export class WorldSocialNotifier implements UiComponent {
       this.hooks.toast({ id: `world-knock-${Date.now()}`, level: 'info', text: `🚪 ${text}`, at: Date.now() });
       this.ctx.announce(text);
     }
-    // o resumo: quando o meta diz que há um, pede o status (só ele traz as contagens)
+    // the summary: when the meta says there is one, asks for the status (only it brings the counts)
     if (!b?.awaySummary) {
       if (this.shownKey) this.hide();
       return;
@@ -321,7 +324,7 @@ export class WorldSocialNotifier implements UiComponent {
     setHidden(this.el, true);
   }
 
-  /** "Ok, vi" ou fechar: some daqui e o servidor local avisa o mundo (sem conexão, assim que ela abrir). */
+  /** "Got it" or closing: it goes away here and the local server tells the world (no connection: as soon as one opens). */
   private async dismiss(): Promise<void> {
     const client = this.src.client;
     if (!client || this.busy) return;
@@ -332,7 +335,7 @@ export class WorldSocialNotifier implements UiComponent {
     this.busy = false;
     this.seenBtn.disabled = false;
     if (!r.ok) {
-      // não deu: o cartão fica, com o motivo (outra tentativa fecha de novo)
+      // it didn't work: the card stays, with the reason (another try closes it again)
       setText(this.error, worldErrorText(r.code, 'summary'));
       setHidden(this.error, false);
       return;

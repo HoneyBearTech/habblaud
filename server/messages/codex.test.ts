@@ -1,7 +1,7 @@
-// Mensagens ao Codex: o `codex queue` (binário falso que imita as saídas reais; nunca o Codex de verdade), o binário
-// pelo HABBLAUD_CODEX_BIN ou PATH, e o registro com o entregador do Codex — modo Node (o servidor roda o comando, uma
-// mensagem por vez por agente) e o auxiliar do host (rodada/confirmação), canMessage, prazos e a separação da caixa de
-// entrada do plugin do Claude Code. Relógio injetado; dados sintéticos.
+// Messages to Codex: `codex queue` (fake binary that imitates the real outputs; never the real Codex), the binary
+// by HABBLAUD_CODEX_BIN or PATH, and the registry with the Codex deliverer — Node mode (the server runs the command,
+// one message at a time per agent) and the host helper (round/confirmation), canMessage, deadlines and the separation
+// from the inbox of the Claude Code plugin. Injected clock; synthetic data.
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { delimiter, join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -92,7 +92,7 @@ describe('codex queue (fake binary)', () => {
   });
 });
 
-/** Runner controlado pelo teste: cada chamada fica pendente até `finish`. */
+/** Runner controlled by the test: each call stays pending until `finish`. */
 function manualRunner(): { run: CodexQueueRunner; jobs: CodexQueueJob[]; finish: (i: number, r: CodexQueueResult) => Promise<void> } {
   const jobs: CodexQueueJob[] = [];
   const done: Array<(r: CodexQueueResult) => void> = [];
@@ -151,7 +151,7 @@ describe('MessageRegistry: Codex in Node mode (the server runs codex queue)', ()
   it.runIf(FAKE_CODEX_RUNS)('canMessage on the Codex main agents; delivery by codex queue with the thread and the account folder; activity in the feed', async () => {
     const { office, registry } = setup({ run: runner() });
     expect(snapAgent(office, MAIN)!.canMessage).toBe(true);
-    // O do Claude Code (mesmo id de sessão, por acaso) segue dependendo do plugin.
+    // The Claude Code one (same session id, by chance) still depends on the plugin.
     expect(snapAgent(office, CLAUDE)!.canMessage).toBeUndefined();
     const r = registry.send({ agentId: MAIN, text: 'run the tests' });
     expect(r).toMatchObject({ message: { status: 'queued' } });
@@ -160,7 +160,7 @@ describe('MessageRegistry: Codex in Node mode (the server runs codex queue)', ()
     expect(await settle(registry, id)).toMatchObject({ status: 'delivered' });
     expect(fakeCodexCalls(log)).toEqual([{ args: ['queue', `--thread=${THREAD}`, '--message=run the tests'], codexHome }]);
     expect(snapAgent(office, MAIN)!.recent.some((a) => a.text === 'Message via Habblaud' && a.detail === 'run the tests')).toBe(true);
-    // A caixa de entrada do plugin nunca entrega mensagens do Codex (nem conhece o agente do Codex).
+    // The plugin's inbox never delivers Codex messages (nor does it know the Codex agent).
     expect(registry.inbox({ session: THREAD, account: '.codex' })).toEqual([]);
   });
 
@@ -185,13 +185,13 @@ describe('MessageRegistry: Codex in Node mode (the server runs codex queue)', ()
     expect(m.jobs.map((j) => j.text)).toEqual(['one', 'other', 'two']);
     await m.finish(2, { ok: false, error: 'Error: refused' });
     expect(registry.get(a2)).toMatchObject({ status: 'failed', error: 'Error: refused' });
-    // Fila parada atrás de uma entrega lenta: falha no prazo com o motivo do Codex.
+    // Queue stuck behind a slow delivery: fails at the deadline with Codex's reason.
     const b2 = sent(registry.send({ agentId: OTHER, text: 'behind' }));
     clock.advance(QUEUED_TIMEOUT_MS);
     registry.tick();
     expect(registry.get(b2)).toMatchObject({ status: 'failed', error: ERR_CODEX_SLOW });
     expect(registry.get(b1)!.status).toBe('failed');
-    // A resposta atrasada ainda corrige a situação (o Codex é quem sabe se entrou).
+    // The late answer still corrects the status (Codex is the one that knows whether it went in).
     await m.finish(1, { ok: true });
     expect(registry.get(b1)!.status).toBe('delivered');
   });
@@ -258,7 +258,7 @@ describe('MessageRegistry: Codex through the host helper (Docker)', () => {
     ]);
     expect(registry.get(a)!.status).toBe('sent');
     expect(registry.get(b)!.status).toBe('queued');
-    // A caixa de entrada do plugin e a confirmação dele não mexem nas mensagens do Codex.
+    // The plugin's inbox and its confirmation don't touch the Codex messages.
     expect(registry.inbox({ session: THREAD })).toEqual([]);
     registry.ack({ session: THREAD, results: [{ id: a, ok: true }] });
     expect(registry.get(a)!.status).toBe('sent');
@@ -267,7 +267,7 @@ describe('MessageRegistry: Codex through the host helper (Docker)', () => {
     expect(registry.codexPoll({})).toEqual([{ id: b, account: '.codex', codexHome, thread: THREAD, text: 'two' }]);
     registry.codexAck({ results: [{ id: b, ok: false, error: 'Error: no rollout found' }] });
     expect(registry.get(b)).toMatchObject({ status: 'failed', error: 'Error: no rollout found' });
-    // Sem confirmação no prazo: falha; a confirmação atrasada corrige.
+    // No confirmation by the deadline: fails; the late confirmation corrects it.
     clock.advance(SENT_TIMEOUT_MS);
     registry.tick();
     expect(registry.get(c)!.status).toBe('failed');

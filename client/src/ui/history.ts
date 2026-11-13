@@ -1,9 +1,9 @@
-// Histórico de sessões (popover aberto pelo botão da barra superior): as sessões dos últimos 7 dias de todas as
-// contas (GET /api/sessions/recent), agrupadas por dia, com busca por título, projeto ou conta. Clicar abre a
-// conversa no terminal (modo "sessão encerrada"); uma sessão ainda aberta abre o terminal ao vivo
-// do agente. Só existe com o terminal ligado (acesso local). O agrupamento, a busca e a validação da resposta são
-// puros e testados em ui/history.test.ts; a montagem usa só textContent. Sessões do Codex vêm com o selo "Codex" e a
-// busca acha "codex".
+// Session history (popover opened by the top bar button): the sessions of the last 7 days from all
+// accounts (GET /api/sessions/recent), grouped by day, with search by title, project or account. Clicking opens the
+// conversation in the terminal ("session ended" mode); a session that is still open opens the agent's live
+// terminal. It only exists with the terminal on (local access). The grouping, the search and the validation of the
+// response are pure and tested in ui/history.test.ts; the assembly uses only textContent. Codex sessions come with
+// the "Codex" badge and the search finds "codex".
 import { access } from '../net/access';
 import type { RecentSession } from '../../../shared/types';
 import type { UiComponent, UiContext } from './context';
@@ -16,12 +16,12 @@ import { createAccountChip, updateAccountChip } from './widgets';
 import { intlLocale, tr } from '../../../shared/i18n';
 
 export const HISTORY_URL = '/api/sessions/recent';
-/** Fechou (clique fora) há tão pouco que o mesmo clique no botão não deve reabrir. */
+/** Closed (click outside) so recently that the same click on the button must not reopen it. */
 const REOPEN_GUARD_MS = 250;
 
 const weekdayDateFmt = new Intl.DateTimeFormat(intlLocale(), { weekday: 'short', day: '2-digit', month: 'short' });
 
-// ---------------------------------------------------------------- modelo (puro)
+// ---------------------------------------------------------------- model (pure)
 
 function str(v: unknown): string | undefined {
   return typeof v === 'string' && v.trim() ? v : undefined;
@@ -31,7 +31,7 @@ function num(v: unknown): number | undefined {
   return typeof v === 'number' && Number.isFinite(v) ? v : undefined;
 }
 
-/** Sessões válidas da resposta de /api/sessions/recent (o resto é ignorado), da mais recente para a mais antiga. */
+/** Valid sessions from the /api/sessions/recent response (the rest is ignored), from most recent to oldest. */
 export function parseRecentSessions(raw: unknown): RecentSession[] {
   const list = raw && typeof raw === 'object' ? (raw as { sessions?: unknown }).sessions : undefined;
   if (!Array.isArray(list)) return [];
@@ -48,7 +48,7 @@ export function parseRecentSessions(raw: unknown): RecentSession[] {
     const title = str(o.title);
     const firstAt = num(o.firstAt);
     const agentId = str(o.agentId);
-    // Ausente = Claude Code (nunca grava 'claude').
+    // Absent = Claude Code (it never writes 'claude').
     if (o.provider === 'codex') s.provider = 'codex';
     if (project) s.project = project;
     if (title) s.title = title;
@@ -60,8 +60,8 @@ export function parseRecentSessions(raw: unknown): RecentSession[] {
 }
 
 /**
- * Busca no histórico: título, projeto (nome ou caminho), nome/letra da conta e a ferramenta ("codex"), sem diferenciar
- * maiúsculas nem acentos.
+ * History search: title, project (name or path), account name/letter and the tool ("codex"), ignoring
+ * case and accents.
  */
 export function filterSessions(list: readonly RecentSession[], query: string, accountLabel: (id: string) => string = (id) => id): RecentSession[] {
   const terms = normalizeSearch(query).split(/\s+/).filter(Boolean);
@@ -72,7 +72,7 @@ export function filterSessions(list: readonly RecentSession[], query: string, ac
   });
 }
 
-/** Rótulo do dia: "Hoje", "Ontem" ou "seg., 05 de out.". */
+/** Day label: "Today", "Yesterday" or "Mon, Oct 05". */
 export function dayLabel(at: number, now: number): string {
   const diff = calendarDayDiff(at, now);
   if (diff === 0) return tr('Today');
@@ -82,13 +82,13 @@ export function dayLabel(at: number, now: number): string {
 }
 
 export interface SessionDay {
-  /** Início do dia (hora local), estável para a lista. */
+  /** Start of the day (local time), stable for the list. */
   key: number;
   label: string;
   sessions: RecentSession[];
 }
 
-/** Agrupa por dia da última atividade (hora local), do dia mais recente para o mais antigo. */
+/** Groups by day of the last activity (local time), from the most recent day to the oldest. */
 export function groupSessionsByDay(list: readonly RecentSession[], now: number): SessionDay[] {
   const days = new Map<number, SessionDay>();
   for (const s of [...list].sort((a, b) => b.lastAt - a.lastAt)) {
@@ -105,7 +105,7 @@ export function groupSessionsByDay(list: readonly RecentSession[], now: number):
   return [...days.values()].sort((a, b) => b.key - a.key);
 }
 
-/** Tamanho do transcript para a dica: "820 KB", "3,4 MB". */
+/** Transcript size for the tooltip: "820 KB", "3,4 MB". */
 export function formatSize(bytes: number): string {
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1).replace('.', ',')} MB`;
@@ -117,7 +117,7 @@ type LoadState = 'idle' | 'loading' | 'ready' | 'error';
 
 export class HistoryPopover implements UiComponent {
   readonly el: HTMLElement;
-  /** Botão da barra superior (index.ts o coloca no grupo dos painéis). */
+  /** Top bar button (index.ts puts it in the panels group). */
   readonly button: HTMLButtonElement;
   private input: HTMLInputElement;
   private listEl: HTMLElement;
@@ -131,7 +131,7 @@ export class HistoryPopover implements UiComponent {
   private query = '';
   private request = 0;
   private closedAt = -Infinity;
-  /** O que está desenhado na lista (evita refazer o DOM a cada quadro). */
+  /** What is drawn in the list (avoids redoing the DOM every frame). */
   private drawn = '';
 
   constructor(
@@ -161,7 +161,7 @@ export class HistoryPopover implements UiComponent {
         e.preventDefault();
         this.items()[0]?.click();
       } else if (e.key === 'Escape' && this.input.value) {
-        // Primeiro Esc limpa a busca; o seguinte fecha o popover (light dismiss do navegador).
+        // The first Esc clears the search; the next one closes the popover (the browser's light dismiss).
         e.preventDefault();
         e.stopPropagation();
         this.input.value = '';
@@ -204,7 +204,7 @@ export class HistoryPopover implements UiComponent {
     }
   }
 
-  /** Recurso disponível (terminal ligado: acesso local e servidor real). */
+  /** Feature available (terminal on: local access and real server). */
   private get available(): boolean {
     return !!this.ctx.store.snapshot?.meta.terminal && access().terminal && !this.ctx.store.mock;
   }
@@ -215,7 +215,7 @@ export class HistoryPopover implements UiComponent {
       this.ctx.announce(`${TERMINAL_UNAVAILABLE_HINT}.`);
       return;
     }
-    // O clique que fechou o popover (fora dele, no próprio botão) não o reabre.
+    // The click that closed the popover (outside it, on the button itself) does not reopen it.
     if (performance.now() - this.closedAt < REOPEN_GUARD_MS) return;
     const r = this.button.getBoundingClientRect();
     this.el.style.top = `${Math.round(r.bottom + 8)}px`;
@@ -241,7 +241,7 @@ export class HistoryPopover implements UiComponent {
 
   render(): void {
     const available = this.available;
-    // aria-disabled (e não disabled): o botão continua focável e a dica do porquê aparece no hover.
+    // aria-disabled (and not disabled): the button stays focusable and the hint with the reason shows on hover.
     setAttr(this.button, 'aria-disabled', available ? null : 'true');
     this.button.classList.toggle('is-disabled', !available);
     setTitle(this.button, available ? tr('Session history (last 7 days)') : TERMINAL_UNAVAILABLE_HINT);
@@ -251,7 +251,7 @@ export class HistoryPopover implements UiComponent {
     this.renderList();
   }
 
-  /** Busca a lista no servidor a cada abertura (a anterior continua na tela enquanto isso). */
+  /** Fetches the list from the server on every open (the previous one stays on screen meanwhile). */
   private async load(): Promise<void> {
     const id = ++this.request;
     this.error = '';
@@ -295,7 +295,7 @@ export class HistoryPopover implements UiComponent {
     );
     setHidden(this.footEl, !this.sessions.length);
 
-    // Refaz o DOM só quando o conteúdo muda (a lista é pequena: no máximo ~150 sessões).
+    // Redoes the DOM only when the content changes (the list is small: at most ~150 sessions).
     const sig = JSON.stringify([days.map((d) => [d.key, d.label]), shown.map((s) => [s.account, s.sessionId, s.title, s.lastAt, s.open, s.agentId && !!this.ctx.agent(s.agentId)])]);
     if (sig === this.drawn) return;
     const focusedKey = (document.activeElement as HTMLElement | null)?.dataset?.session;
@@ -345,7 +345,7 @@ export class HistoryPopover implements UiComponent {
     return [...this.listEl.querySelectorAll<HTMLButtonElement>('.ui-hist__item')];
   }
 
-  /** Setas, Home e End entre as sessões; seta para cima no primeiro volta à busca. */
+  /** Arrows, Home and End between the sessions; up arrow on the first one goes back to the search. */
   private onListKey(e: KeyboardEvent): void {
     if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) return;
     const items = this.items();

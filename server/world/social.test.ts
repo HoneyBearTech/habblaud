@@ -1,6 +1,6 @@
-// O social leve do dono no servidor local (server/world/social.ts): likes do dia, batidas, o resumo "enquanto você
-// estava fora" (com a sobra de um resumo já visto), o /v1/me, a troca de sessão, desbloquear e as rotas locais pela
-// conexão do prédio, contra o servidor do mundo de mentira.
+// The owner's light social on the local server (server/world/social.ts): likes of the day, knocks, the "while you
+// were away" summary (with the leftover of a summary already seen), the /v1/me, the session change, unblock and the
+// local routes through the building connection, against the fake world server.
 import { randomBytes } from 'node:crypto';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
@@ -78,14 +78,14 @@ describe('OwnerSocial: what arrives through the building connection', () => {
     expect(social.summarySeen()).toEqual({ ok: true });
     expect(sent).toEqual([{ t: 'summary.seen' }]);
     expect(social.status().summary).toBeUndefined();
-    // o mundo leu antes do summary.seen: o mesmo resumo chega de novo
+    // the world read before the summary.seen: the same summary arrives again
     social.message({ t: 'away.summary', ...SUMMARY });
     expect(social.status().summary).toBeUndefined();
-    // mais um like de lá para cá: é novidade
+    // one more like from there to here: it is something new
     social.message({ t: 'away.summary', ...SUMMARY, likes: 13 });
     expect(social.status().summary?.likes).toBe(13);
     social.summarySeen();
-    // passado o prazo, um resumo igual é de verdade (o dono dispensou hoje e voltou a receber)
+    // past the time limit, an identical summary is real (the owner dismissed it today and started receiving again)
     clock.t += SUMMARY_SEEN_GRACE_MS + 1;
     social.message({ t: 'away.summary', ...SUMMARY });
     expect(social.status().summary).toEqual(SUMMARY);
@@ -98,7 +98,7 @@ describe('OwnerSocial: what arrives through the building connection', () => {
     expect(sent).toEqual([]);
     expect(social.meta()).toEqual({});
     link.connected = true;
-    // o mundo manda o resumo ao conectar, antes de saber que foi visto: não volta
+    // the world sends the summary on connect, before knowing it was seen: it does not come back
     social.message({ t: 'away.summary', ...SUMMARY });
     social.opened();
     expect(sent).toEqual([{ t: 'summary.seen' }]);
@@ -117,7 +117,7 @@ describe('OwnerSocial: what arrives through the building connection', () => {
     social.summarySeen();
     social.fromMe(me({ building: building({ likesToday: 7, summary: SUMMARY }) }), before);
     expect(social.status().summary).toBeUndefined();
-    // sem resumo no /v1/me: não há o que mostrar
+    // no summary in the /v1/me: there is nothing to show
     clock.t += SUMMARY_SEEN_GRACE_MS + 1;
     social.fromMe(me({ building: building({ likesToday: 8 }) }), clock.t);
     expect(social.status()).toEqual({ likesToday: 8, code: 'HB-4F2K' });
@@ -147,7 +147,7 @@ describe('OwnerSocial: what arrives through the building connection', () => {
     expect(social.blocked()).toEqual([{ id: 'p_3', name: 'Caio' }]);
     social.fromMe(me({ blocked: [{ id: 'p_2', name: 'Bia' }, { id: 'p_3', name: 'Caio' }] }), before);
     expect(social.blocked()?.map((p) => p.id)).toEqual(['p_3']);
-    // bloqueado de novo depois (pela cena), o /v1/me novo traz de volta
+    // blocked again later (through the scene), the new /v1/me brings it back
     clock.t += UNBLOCK_GRACE_MS + 10;
     social.fromMe(me({ blocked: [{ id: 'p_2', name: 'Bia' }, { id: 'p_3', name: 'Caio' }] }), clock.t);
     expect(social.blocked()?.map((p) => p.id)).toEqual(['p_2', 'p_3']);

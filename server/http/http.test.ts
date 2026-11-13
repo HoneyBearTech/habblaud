@@ -77,7 +77,7 @@ async function snapshotOf(base: string): Promise<OfficeSnapshot> {
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
-/** Requisição crua (o fetch não deixa trocar o cabeçalho Host). */
+/** Raw request (fetch does not let you change the Host header). */
 function raw(base: string, path: string, opts: { method?: string; headers?: Record<string, string>; body?: string } = {}): Promise<{ status: number; body: string }> {
   const u = new URL(base);
   return new Promise((ok, fail) => {
@@ -208,7 +208,7 @@ describe('HTTP API', () => {
 
   it('CSRF: POST requires JSON and a local origin', async () => {
     const demoOn = JSON.stringify({ enabled: true });
-    // Formulário/fetch "simples" de outro site: text/plain, sem preflight.
+    // Form/"simple" fetch from another site: text/plain, no preflight.
     const plain = await fetch(`${env.base}/api/demo`, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: demoOn });
     expect(plain.status).toBe(415);
     const form = await raw(env.base, '/api/demo', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'enabled=true' });
@@ -245,7 +245,7 @@ describe('HTTP API', () => {
     const bundle = await fetch(`${env.base}/bundle/main-abc12345.js`);
     expect(bundle.headers.get('cache-control')).toBe(IMMUTABLE);
     expect(bundle.headers.get('content-type')).toMatch(/javascript/);
-    // client/public: nome fixo, pode mudar a cada build.
+    // client/public: fixed name, may change on every build.
     for (const path of ['/assets/brand/logo-mark.png', '/assets/manifest.json']) {
       const res = await fetch(`${env.base}${path}`);
       expect(res.status).toBe(200);
@@ -262,7 +262,7 @@ describe('HTTP API', () => {
     }
     expect((await fetch(`${env.base}/assets/does-not-exist.js`)).status).toBe(404);
     expect((await fetch(`${env.base}/bundle/does-not-exist.js`)).status).toBe(404);
-    // Tentativa de sair da pasta cai no index.html, nunca em arquivos de fora.
+    // An attempt to leave the folder falls to index.html, never to outside files.
     const escape = await fetch(`${env.base}/..%2F..%2Fetc%2Fpasswd`);
     expect(await escape.text()).toContain('<title>Habblaud</title>');
   });
@@ -347,10 +347,10 @@ describe('GET /api/mod/summary (Claude Code mod)', () => {
     perms.clear();
     env = await start({}, { permissions: () => perms });
     const now = Date.now();
-    // .claude:1 (sessão s1, /p/loja, trabalhando) vem do start(); um subagente dela espera em segundo plano.
+    // .claude:1 (session s1, /p/loja, working) comes from start(); one of its subagents waits in the background.
     env.office.addSub({ id: 's1:a1', parentId: '.claude:1', sessionId: 's1', role: 'Explore', background: true, startedAt: now });
     env.office.setStatus('s1:a1', 'waiting', 'approve a permission');
-    // Outra sessão da mesma conta, esperando há mais tempo, e uma da outra conta com o mesmo id de sessão.
+    // Another session of the same account, waiting for longer, and one from the other account with the same session id.
     env.office.addMain({ id: '.claude:2', account: '.claude', sessionId: 's2', cwd: '/p/app', role: 'Main agent', startedAt: now, status: 'waiting', waitingFor: 'answer in the terminal' });
     env.office.addMain({ id: '.claude-conta2:3', account: '.claude-conta2', sessionId: 's1', cwd: '/p/site', role: 'Main agent', startedAt: now, status: 'idle' });
   });
@@ -373,7 +373,7 @@ describe('GET /api/mod/summary (Claude Code mod)', () => {
     const s = await summary('?account=.claude&session=s1');
     expect(s).toMatchObject({ agents: 2, working: 0 });
     expect(s.waiting.map((w) => w.id)).toEqual(['.claude:2']);
-    // Só a sessão (sem conta) também basta; só a conta não exclui nada.
+    // The session alone (without account) is also enough; the account alone excludes nothing.
     expect((await summary('?session=s1')).agents).toBe(1);
     expect((await summary('?account=.claude')).agents).toBe(4);
   });
@@ -430,7 +430,7 @@ describe('Host/Origin guard', () => {
   it('Origin: missing, same origin or local', () => {
     expect(originAllowed(undefined, 'localhost:4747', allowed)).toBe(true);
     expect(originAllowed('http://localhost:4747', 'localhost:4747', allowed)).toBe(true);
-    expect(originAllowed('http://localhost:5173', '127.0.0.1:4747', allowed)).toBe(true); // Vite dev com proxy
+    expect(originAllowed('http://localhost:5173', '127.0.0.1:4747', allowed)).toBe(true); // Vite dev with proxy
     expect(originAllowed('http://192.168.0.10:4747', '192.168.0.10:4747', allowed)).toBe(true);
     expect(originAllowed('http://attacker.example', 'localhost:4747', allowed)).toBe(false);
     expect(originAllowed('http://1.2.3.4', 'localhost:4747', allowed)).toBe(false);

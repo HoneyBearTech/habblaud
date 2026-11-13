@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-// Caminho antigo do hook de permissão. Até a 0.2.0, o `npm run hooks:install` gravava este arquivo no settings.json
-// das contas; o script passou para mod/habblaud-permissoes/hooks/permission-hook.mjs (o plugin habblaud-permissoes).
-// Este atalho mantém essas instalações funcionando depois do `git pull`, até o `npm run mod:install` (que tira o
-// hook antigo) ou um novo `npm run hooks:install` trocá-las. Node puro, sem dependências.
+// Old path of the permission hook. Up to 0.2.0, `npm run hooks:install` wrote this file into the settings.json
+// of the accounts; the script moved to mod/habblaud-permissoes/hooks/permission-hook.mjs (the habblaud-permissoes
+// plugin). This shortcut keeps those installs working after `git pull`, until `npm run mod:install` (which removes
+// the old hook) or a new `npm run hooks:install` replaces them. Plain Node, no dependencies.
 import { main } from '../mod/habblaud-permissoes/hooks/permission-hook.mjs';
 
 main().catch(() => process.exit(0));

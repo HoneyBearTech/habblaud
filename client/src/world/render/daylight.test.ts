@@ -1,5 +1,5 @@
-// Ciclo dia/noite (puro): fases, nível de luz e cores por hora e minuto, virada da meia-noite,
-// faixas de sol, hora efetiva e leitura do ?hora= da URL.
+// Day/night cycle (pure): phases, light level and colors by hour and minute, midnight rollover,
+// sunbeams, effective time and reading of the URL's ?hora=.
 import { describe, expect, it } from 'vitest';
 import {
   ambientAt,
@@ -54,12 +54,12 @@ describe('light level and colors', () => {
     expect(late.night).toBe(1);
     expect(isNeutral(late)).toBe(false);
     expect(lum(late.outside)).toBeLessThan(110);
-    // azulado: o azul domina o vermelho no exterior noturno
+    // bluish: blue dominates red in the exterior at night
     expect(late.outside[2]).toBeGreaterThan(late.outside[0] + 40);
-    // interiores acesos continuam claros (e quentes: o vermelho domina o azul)
+    // lit interiors stay light (and warm: red dominates blue)
     expect(lum(late.inside)).toBeGreaterThan(200);
     expect(late.inside[0]).toBeGreaterThan(late.inside[2]);
-    // áreas comuns vazias ficam na penumbra, entre a sala acesa e o exterior
+    // empty common areas stay in half-light, between the lit room and the exterior
     expect(lum(late.dim)).toBeLessThan(lum(late.inside));
     expect(lum(late.dim)).toBeGreaterThan(lum(late.outside));
   });
@@ -79,12 +79,12 @@ describe('light level and colors', () => {
     for (let m = 1; m <= 180; m++) {
       const a = ambientAt(17 + m / 60);
       expect(a.night).toBeGreaterThanOrEqual(prev - 1e-9);
-      // sem saltos entre minutos vizinhos
+      // no jumps between neighboring minutes
       expect(a.night - prev).toBeLessThan(0.02);
       prev = a.night;
     }
     expect(prev).toBe(1);
-    // meio caminho entre duas chaves: valores intermediários
+    // halfway between two keys: intermediate values
     const mid = ambientAt(18.3);
     expect(mid.night).toBeGreaterThan(ambientAt(18).night);
     expect(mid.night).toBeLessThan(ambientAt(18.6).night);
@@ -107,7 +107,7 @@ describe('light level and colors', () => {
     expect(ambientDistance(before, after)).toBeLessThan(3);
     expect(ambientDistance(after, next)).toBeLessThan(3);
     expect(ambientAt(24)).toEqual(ambientAt(0));
-    // a madrugada é um pouco mais fechada que o começo da noite
+    // late night is a little darker than early night
     expect(lum(ambientAt(2).outside)).toBeLessThan(lum(ambientAt(20).outside));
   });
 
@@ -139,7 +139,7 @@ describe('sun through the windows', () => {
     expect(sunbeamAt(8)!.skew).toBeLessThan(0);
     expect(sunbeamAt(16)!.skew).toBeGreaterThan(0);
     expect(sunbeamAt(17.2)!.alpha).toBeGreaterThan(sunbeamAt(12)!.alpha);
-    // aparece e some suave perto do nascer/pôr
+    // appears and fades smoothly near sunrise/sunset
     expect(sunbeamAt(6.2)!.alpha).toBeLessThan(sunbeamAt(7.2)!.alpha);
   });
 });

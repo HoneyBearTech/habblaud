@@ -1,7 +1,7 @@
-/* Interface do Habblaud: painéis escuros translúcidos sobre o escritório em pixel art.
-   Tipografia: logotipo em pixels (SVG); Pixelify Sans só em rótulos fixos de painel sem "C" maiúsculo nem
-   dígitos (na Pixelify o "C" parece "O" e o "5" parece "S"); system-ui para o corpo, nomes, letras de conta e números.
-   Identidade: detalhes "em pixel" (pontos de status quadrados, barras segmentadas de uso, ícones em pixels). */
+/* Habblaud interface: translucent dark panels over the pixel-art office.
+   Typography: logo in pixels (SVG); Pixelify Sans only in fixed panel labels without a capital "C" or digits (in
+   Pixelify the "C" looks like "O" and the "5" looks like "S"); system-ui for body, names, account letters and numbers.
+   Identity: "pixel" details (square status dots, segmented usage bars, pixel icons). */
 
 .ui-root {
   --ui-bg: rgba(18, 21, 29, 0.85);
@@ -12,14 +12,14 @@
   --ui-line-strong: rgba(160, 176, 210, 0.24);
   --ui-text: #e8ecf5;
   --ui-muted: #9aa4b8;
-  /* 5,4:1 sobre o painel (#161a23) e 4,8:1 sobre linhas em destaque: AA para texto pequeno. */
+  /* 5.4:1 on the panel (#161a23) and 4.8:1 on highlighted rows: AA for small text. */
   --ui-faint: #8790a6;
   --ui-accent: #7cc8ff;
   --ui-accent-soft: rgba(124, 200, 255, 0.13);
 
   --st-working: #4fd18b;
   --st-waiting: #ffb547;
-  /* Esperando o shell: turquesa (distinto do verde de "trabalhando" e do azul de "concluído"). */
+  /* Waiting on shell: turquoise (distinct from the green of "working" and the blue of "done"). */
   --st-shell: #3cd8d2;
   --st-idle: #8b98b3;
   --st-done: #6aa8ff;
@@ -43,7 +43,7 @@
   --feed-head: 38px;
   --feed-max: 700px;
   --ease: cubic-bezier(0.22, 0.8, 0.24, 1);
-  /* Área livre do escritório (fora dos painéis), mantida pelo JS (ui/viewport.ts). */
+  /* Free area of the office (outside the panels), kept by the JS (ui/viewport.ts). */
   --free-top: calc(var(--top-h) + var(--gap));
   --free-right: var(--gap);
   --free-bottom: calc(var(--feed-head) + var(--gap) * 2);
@@ -61,8 +61,8 @@
   box-sizing: border-box;
 }
 
-/* A Pixelify Sans junta "fi" numa ligadura que parece um "A" ("ConAgurações").
-   O atalho `font` zera as ligaduras a cada regra, por isso a desativação precisa vencer a cascata. */
+/* Pixelify Sans joins "fi" into a ligature that looks like an "A" ("ConAgurações").
+   The `font` shorthand resets the ligatures on every rule, so the disabling has to win the cascade. */
 .ui-root,
 .ui-root * {
   font-variant-ligatures: no-common-ligatures !important;
@@ -102,7 +102,7 @@
   border-radius: 6px;
 }
 
-/* Elementos que não devem capturar o mouse (o #ui libera ponteiro só para filhos diretos). */
+/* Elements that must not capture the mouse (#ui releases the pointer only to direct children). */
 #ui > .ui-toasts,
 #ui > .ui-tip,
 #ui > .ui-sr,
@@ -110,12 +110,12 @@
   pointer-events: none;
 }
 
-/* Gaveta recém-aberta por um clique no canvas: deixa o 2º clique do duplo clique chegar ao escritório. */
+/* Drawer just opened by a click on the canvas: lets the 2nd click of the double click reach the office. */
 #ui > .ui-drawer.is-opening {
   pointer-events: none;
 }
 
-/* Sonda invisível que resolve as variáveis de tamanho dos painéis em px (ui/viewport.ts). */
+/* Invisible probe that resolves the panel size variables to px (ui/viewport.ts). */
 .ui-probe {
   position: fixed;
   left: 0;
@@ -175,7 +175,7 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
-/* ------------------------------------------------------------------ ícones e botões */
+/* ------------------------------------------------------------------ icons and buttons */
 
 .ui-px-icon {
   display: block;
@@ -302,7 +302,7 @@
   color: var(--ui-muted);
 }
 
-/* ------------------------------------------------------------------ peças: chip de conta, status, papel, progresso */
+/* ------------------------------------------------------------------ pieces: account chip, status, role, progress */
 
 .ui-acc-chip {
   --acc: #8b98b3;
@@ -314,7 +314,7 @@
   border-radius: 4px;
   background: var(--acc);
   color: #12151d;
-  /* Fonte do sistema: a letra da conta precisa ser lida sem ambiguidade ("C" vs "O"). */
+  /* System font: the account letter must be read without ambiguity ("C" vs "O"). */
   font: 800 10.5px/1 var(--font-ui);
   letter-spacing: 0;
   box-shadow:
@@ -590,12 +590,12 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* ------------------------------------------------------------------ barra superior */
+/* ------------------------------------------------------------------ top bar */
 
 .ui-topbar {
   position: fixed;
   inset: 0 0 auto 0;
-  /* Acima dos avisos: a dica de uso por conta abre sobre eles. */
+  /* Above the notices: the per-account usage tooltip opens over them. */
   z-index: 55;
   display: flex;
   align-items: center;
@@ -648,7 +648,7 @@
   gap: 4px;
 }
 
-/* Logotipo em pixels: 47×8 px da placa da marca, em escala inteira (3×) para ficar nítido. */
+/* Pixel logo: 47×8 px from the brand sign, at an integer scale (3×) to stay sharp. */
 .ui-brand__name {
   display: block;
   line-height: 0;
@@ -724,7 +724,7 @@
   padding-left: 2px;
 }
 
-/* Versão na barra superior: o número ou, com release mais nova no GitHub, o selo "Nova versão". */
+/* Version in the top bar: the number or, with a newer release on GitHub, the "New version" badge. */
 .ui-version {
   display: inline-flex;
   align-items: center;
@@ -779,13 +779,13 @@
   }
 }
 
-/* Com o selo "Demonstração" não sobra espaço para o número (ele continua em Configurações › Sobre). */
+/* With the "Demo" badge there is no room left for the number (it is still in Settings › About). */
 .ui-topbar__status:has(.ui-demo-badge:not([hidden])) .ui-version:not(.is-new) {
   display: none;
 }
 
-/* Barra apertada (ou com o selo "Demonstração"): o selo fica só com a seta; a dica, o aviso e o ponto nas
-   configurações explicam. */
+/* Tight bar (or with the "Demo" badge): the badge keeps only the arrow; the tooltip, the notice and the dot on the
+   settings explain. */
 .ui-topbar__status:has(.ui-demo-badge:not([hidden])) .ui-version.is-new {
   padding: 0 6px;
 }
@@ -804,7 +804,7 @@
   }
 }
 
-/* Ponto no botão de configurações enquanto há versão nova (vale também em telas estreitas). */
+/* Dot on the settings button while there is a new version (also applies on narrow screens). */
 .ui-icon-btn.has-update {
   position: relative;
 }
@@ -823,7 +823,7 @@
     0 0 6px var(--st-working);
 }
 
-/* Contadores */
+/* Counters */
 .ui-counters {
   display: flex;
   align-items: stretch;
@@ -912,7 +912,7 @@
   }
 }
 
-/* Uso por conta */
+/* Usage per account */
 .ui-usage {
   display: flex;
   align-items: center;
@@ -930,7 +930,7 @@
   gap: 9px;
   width: 310px;
   flex: 0 1 auto;
-  /* Abaixo disso o cartão perderia o reinício; o e-mail some antes (consulta de contêiner abaixo). */
+  /* Below this the card would lose the reset; the email goes away first (container query below). */
   min-width: 188px;
   padding: 5px 10px 5px 6px;
   border-radius: 9px;
@@ -955,7 +955,7 @@
   min-height: 30px;
 }
 
-/* Selo de "números antigos" sobre o chip: só no celular, onde o cabeçalho do cartão some. */
+/* "Old numbers" badge over the chip: only on the phone, where the card header goes away. */
 .ui-usage-card__flag {
   position: absolute;
   left: 1px;
@@ -978,7 +978,7 @@
 }
 
 .ui-usage-card__body {
-  /* Contêiner: o conteúdo se adapta à largura do cartão (3 contas, telas médias). */
+  /* Container: the content adapts to the card width (3 accounts, medium screens). */
   container: usage-card / inline-size;
   display: flex;
   flex-direction: column;
@@ -1042,8 +1042,8 @@
   color: inherit;
 }
 
-/* As duas linhas (5h e Semana) dividem as mesmas colunas (subgrid): barras alinhadas e a coluna do
-   reinício do tamanho do texto mais longo; quem cede espaço é a barra. */
+/* The two rows (5h and Week) share the same columns (subgrid): aligned bars and the reset
+   column the size of the longest text; the bar is the one that gives up space. */
 .ui-usage-card__meters {
   display: grid;
   grid-template-columns: 38px minmax(16px, 1fr) 32px auto;
@@ -1051,7 +1051,7 @@
   row-gap: 1px;
 }
 
-/* Números antigos: barras e percentuais em cinza (legíveis), sem apagar o bloco inteiro. */
+/* Old numbers: bars and percentages in gray (legible), without dimming the whole block. */
 .ui-usage-card__meters.is-dim .ui-meter {
   --lv: #a3abbd;
 }
@@ -1093,7 +1093,7 @@
   display: none;
 }
 
-/* Barra segmentada (segmentos de 4 px + 1 px de vão). O preenchimento é arredondado para segmentos inteiros. */
+/* Segmented bar (4 px segments + 1 px gap). The fill is rounded to whole segments. */
 .ui-meter__bar {
   position: relative;
   display: block;
@@ -1143,7 +1143,7 @@
   font-style: italic;
 }
 
-/* Cartão estreito (3 contas, telas médias): some o e-mail (fica na dica), depois rótulos e reinício encurtam. */
+/* Narrow card (3 accounts, medium screens): the email goes (it stays in the tooltip), then labels and reset shorten. */
 @container usage-card (max-width: 236px) {
   .ui-usage-card__email {
     display: none;
@@ -1167,7 +1167,7 @@
   }
 }
 
-/* Cartão minúsculo (4 ou mais contas em telas médias): sem a coluna do reinício (fica na dica). */
+/* Tiny card (4 or more accounts on medium screens): without the reset column (it stays in the tooltip). */
 @container usage-card (max-width: 123px) {
   .ui-usage-card__meters {
     grid-template-columns: 24px minmax(8px, 1fr) 30px;
@@ -1178,7 +1178,7 @@
     display: none;
   }
 
-  /* A idade vira só o relógio (o texto continua na dica). */
+  /* The age becomes just the clock (the text stays in the tooltip). */
   .ui-usage-card__state > span:last-child {
     display: none;
   }
@@ -1249,7 +1249,7 @@
   }
 }
 
-/* Cartão minúsculo (3 contas no celular): fica só o botão, que já diz que falta ativar. */
+/* Tiny card (3 accounts on the phone): only the button stays, which already says it still has to be enabled. */
 @container usage-card (max-width: 112px) {
   .ui-usage-card__msg-text {
     display: none;
@@ -1319,7 +1319,7 @@
   font-weight: 650;
 }
 
-/* Passo a passo para ligar o uso (dica do cartão e ajuda). */
+/* Step by step to turn usage on (card tooltip and help). */
 .ui-usage-setup {
   display: flex;
   flex-direction: column;
@@ -1393,7 +1393,7 @@
   border: 1px solid var(--ui-line);
 }
 
-/* ------------------------------------------------------------------ barra lateral */
+/* ------------------------------------------------------------------ sidebar */
 
 .ui-sidebar {
   position: fixed;
@@ -1713,7 +1713,7 @@
   font-weight: 650;
 }
 
-/* O nome tem prioridade: o selo de papel encolhe com reticências. */
+/* The name has priority: the role badge shrinks with an ellipsis. */
 .ui-agent .ui-role {
   display: block;
   flex: 0 1 auto;
@@ -1732,7 +1732,7 @@
   color: #ffd08f;
 }
 
-/* Subagentes aninhados com linha conectora */
+/* Nested subagents with a connector line */
 .ui-subs {
   position: relative;
   margin: 0 0 4px 24px;
@@ -1802,7 +1802,7 @@
   font-size: 12.5px;
 }
 
-/* Entradas e saídas de itens */
+/* Items entering and leaving */
 .is-entering {
   animation: ui-enter 0.32s var(--ease) both;
 }
@@ -1984,7 +1984,7 @@
   color: #ff9b8f;
 }
 
-/* ------------------------------------------------------------------ gaveta de detalhes */
+/* ------------------------------------------------------------------ details drawer */
 
 .ui-drawer {
   position: fixed;
@@ -2456,7 +2456,7 @@
   white-space: nowrap;
 }
 
-/* Visão da sala */
+/* Room view */
 .ui-room-hero {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
@@ -2477,7 +2477,7 @@
     0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
-/* Nome da sala com o lápis de renomear ao lado. */
+/* Room name with the rename pencil next to it. */
 .ui-room-hero__title {
   display: flex;
   align-items: center;
@@ -2516,11 +2516,11 @@
   color: #c9d1e2;
 }
 
-/* ------------------------------------------------------------------ avisos (toasts) */
+/* ------------------------------------------------------------------ notices (toasts) */
 
-/* Canto inferior direito, à esquerda da gaveta: ao lado do feed quando sobra espaço (fora do prédio
-   enquadrado), senão logo acima dele. Não cobre a placa da sala em foco nem o popover de configurações.
-   Posição e largura calculadas em ui/viewport.ts. O mais novo fica embaixo, perto da borda. */
+/* Bottom right corner, to the left of the drawer: next to the feed when there is room left (outside the framed
+   building), otherwise right above it. It does not cover the sign of the focused room or the settings popover.
+   Position and width computed in ui/viewport.ts. The newest stays at the bottom, near the edge. */
 .ui-toasts {
   position: fixed;
   z-index: 50;
@@ -2543,8 +2543,8 @@
     visibility 0s linear 0.15s;
 }
 
-/* Durante o replay os avisos ficam acima da barra de reprodução (a altura dela vem de ui/timelapse.ts), em vez de
-   cobrir a linha do tempo e os botões. */
+/* During the replay the notices stay above the playback bar (its height comes from ui/timelapse.ts), instead of
+   covering the timeline and the buttons. */
 .ui-root.is-replay .ui-toasts {
   bottom: calc(var(--free-bottom) + var(--lapse-h, 0px) + 10px);
 }
@@ -2637,7 +2637,7 @@
   }
 }
 
-/* ------------------------------------------------------------------ popover de configurações */
+/* ------------------------------------------------------------------ settings popover */
 
 .ui-popover {
   position: fixed;
@@ -2716,7 +2716,7 @@
   color: var(--ui-muted);
 }
 
-/* Sobre: versão em uso, estado da verificação no GitHub e a versão nova (com o jeito de atualizar). */
+/* About: version in use, state of the check on GitHub and the new version (with the way to update). */
 .ui-about {
   scroll-margin: 8px;
 }
@@ -2891,7 +2891,7 @@
   box-shadow: inset 0 0 0 1px rgba(124, 200, 255, 0.35);
 }
 
-/* ------------------------------------------------------------------ ajuda */
+/* ------------------------------------------------------------------ help */
 
 .ui-dialog {
   width: min(760px, calc(100vw - 32px));
@@ -3022,7 +3022,7 @@
   background: var(--ui-accent);
 }
 
-/* Contas e uso: ocupa a largura toda (passo a passo) e pisca ao ser aberta por "Como ativar". */
+/* Accounts and usage: takes the full width (step by step) and blinks when opened by "How to enable". */
 .ui-help__usage {
   grid-column: 1 / -1;
   scroll-margin-top: 12px;
@@ -3077,9 +3077,9 @@
   gap: 3px;
 }
 
-/* ------------------------------------------------------------------ estados: vazio, splash, conexão */
+/* ------------------------------------------------------------------ states: empty, splash, connection */
 
-/* Centralizado na área livre (fora da barra lateral, da gaveta e do feed). */
+/* Centered in the free area (outside the sidebar, the drawer and the feed). */
 .ui-empty {
   position: fixed;
   z-index: 10;
@@ -3112,7 +3112,7 @@
   }
 }
 
-/* Ilustração do escritório vazio (960×540, exibida em escala exata de 1/2 quando cabe). */
+/* Illustration of the empty office (960×540, shown at an exact 1/2 scale when it fits). */
 .ui-empty__art {
   position: relative;
   flex: none;
@@ -3135,7 +3135,7 @@
   object-fit: cover;
 }
 
-/* Ilustração em CSS (pixels grandes): mesa, monitor apagado, cadeira, planta e luminária. */
+/* CSS illustration (big pixels): desk, monitor turned off, chair, plant and lamp. */
 .ui-empty__art.is-css {
   width: 200px;
   aspect-ratio: auto;
@@ -3383,7 +3383,7 @@
   animation: ui-blink 1s steps(2, jump-none) infinite;
 }
 
-/* Aviso de versão nova (página aberta antes de uma atualização do Habblaud). */
+/* New version notice (page opened before a Habblaud update). */
 .ui-banner--update {
   z-index: 46;
   border-color: rgba(74, 168, 232, 0.55);
@@ -3393,7 +3393,7 @@
   background: #4aa8e8;
 }
 
-/* ------------------------------------------------------------------ dica do personagem */
+/* ------------------------------------------------------------------ character tooltip */
 
 .ui-tip {
   position: fixed;
@@ -3465,7 +3465,7 @@
   height: 7px;
 }
 
-/* ------------------------------------------------------------------ fundo das gavetas (telas estreitas) */
+/* ------------------------------------------------------------------ drawer backdrop (narrow screens) */
 
 .ui-scrim {
   position: fixed;
@@ -3479,10 +3479,10 @@
     visibility 0s linear 0.25s;
 }
 
-/* ------------------------------------------------------------------ esperando o shell */
+/* ------------------------------------------------------------------ waiting on shell */
 
-/* Ponto de status em ampulheta: a areia (::before em cima, ::after embaixo) escorre em 4 passos de pixel
-   e o ponto vira; o fim de um ciclo é idêntico ao começo do próximo (sem salto). */
+/* Hourglass status dot: the sand (::before on top, ::after at the bottom) runs down in 4 pixel steps
+   and the dot flips; the end of one cycle is identical to the start of the next (no jump). */
 .ui-status-dot.is-shell {
   --st: var(--st-shell);
   position: relative;
@@ -3490,7 +3490,7 @@
   height: 10px;
   border-radius: 0;
   background: color-mix(in srgb, var(--st) 40%, #223038);
-  /* Silhueta de ampulheta (o recorte some com o brilho; a forma já distingue o estado). */
+  /* Hourglass silhouette (the cutout goes away with the glow; the shape already distinguishes the state). */
   clip-path: polygon(0 0, 100% 0, 100% 16%, 62% 50%, 100% 84%, 100% 100%, 0 100%, 0 84%, 38% 50%, 0 16%);
   animation: ui-dot-flip 2.4s cubic-bezier(0.6, 0, 0.3, 1) infinite;
 }
@@ -3546,7 +3546,7 @@
   }
 }
 
-/* Ampulheta (ícone em pixels ou ⏳) virando a cada 1,2 s, como a do escritório. */
+/* Hourglass (pixel icon or ⏳) flipping every 1.2 s, like the one in the office. */
 .ui-hourglass .ui-px-icon,
 .ui-activity.is-shell .ui-activity__icon {
   animation: ui-hourglass-turn 2.4s cubic-bezier(0.5, 0, 0.3, 1.3) infinite;
@@ -3566,7 +3566,7 @@
   }
 }
 
-/* Linha de atividade "⏳ <label> · 12:31 ×2": o cronômetro e o contador nunca entram nas reticências. */
+/* Activity line "⏳ <label> · 12:31 ×2": the timer and the counter never go into the ellipsis. */
 .ui-activity__time {
   flex: none;
   font-variant-numeric: tabular-nums;
@@ -3594,7 +3594,7 @@
   color: #bdeeea;
 }
 
-/* Fim de um shell (atividade ShellDone do servidor). */
+/* End of a shell (ShellDone activity from the server). */
 .ui-activity.is-shell-ok .ui-activity__text {
   color: #9fe8c0;
 }
@@ -3612,7 +3612,7 @@
   box-shadow: inset 2px 0 0 var(--st-shell);
 }
 
-/* Contador "⏳ N shells" na barra superior (só aparece com shells rodando). */
+/* "⏳ N shells" counter in the top bar (only shows with shells running). */
 .ui-counter.ui-counter--shells {
   flex-direction: row;
   align-items: center;
@@ -3655,7 +3655,7 @@
   }
 }
 
-/* Caixa de status da gaveta. */
+/* Drawer status box. */
 .ui-alert--shell {
   background: color-mix(in srgb, var(--st-shell) 10%, transparent);
   border-color: color-mix(in srgb, var(--st-shell) 42%, transparent);
@@ -3690,7 +3690,7 @@
   color: color-mix(in srgb, var(--st-shell) 45%, var(--ui-muted));
 }
 
-/* Seção "Shells rodando". */
+/* "Running shells" section. */
 .ui-shells {
   display: flex;
   flex-direction: column;
@@ -3799,7 +3799,7 @@
   word-break: break-word;
 }
 
-/* Linha do tempo e feed: fim de um shell. */
+/* Timeline and feed: end of a shell. */
 .ui-tl.is-shell-ok .ui-tl__text,
 .ui-feed__item.is-shell-ok .ui-feed__text {
   color: #9fe8c0;
@@ -3824,7 +3824,7 @@
   background-color: var(--ui-bg-hover);
 }
 
-/* Dica do personagem. */
+/* Character tooltip. */
 .ui-tip.is-shell {
   border-color: color-mix(in srgb, var(--st-shell) 55%, transparent);
 }
@@ -3835,7 +3835,7 @@
   color: color-mix(in srgb, var(--st-shell) 55%, #fff);
 }
 
-/* Ajuda: legenda da espera. */
+/* Help: legend for the wait. */
 .ui-help__shell {
   grid-column: 1 / -1;
 }
@@ -3875,7 +3875,7 @@
   }
 }
 
-/* ------------------------------------------------------------------ responsivo */
+/* ------------------------------------------------------------------ responsive */
 
 @media (max-width: 1380px) {
   .ui-counter--rooms,
@@ -3883,7 +3883,7 @@
     display: none;
   }
 
-  /* 3 ou mais contas: os cartões de uso precisam do espaço dos contadores (o escritório mostra os números). */
+  /* 3 or more accounts: the usage cards need the counters' space (the office shows the numbers). */
   .ui-topbar:has(.ui-usage-card:nth-child(3)) :is(.ui-counter--agents, .ui-counter--working) {
     display: none;
   }
@@ -3923,8 +3923,8 @@
   }
 }
 
-/* Os cartões de uso não cabem na linha da barra (muitas contas ou janela estreita; ui/usage.ts decide): vão para uma
-   segunda linha, como já acontece no celular, e rolam na horizontal se ainda assim não couberem. */
+/* The usage cards don't fit on the bar's row (many accounts or a narrow window; ui/usage.ts decides): they go to a
+   second row, as already happens on the phone, and scroll horizontally if they still don't fit. */
 @media (min-width: 601px) {
   .ui-root.has-usage-row {
     --top-h: 124px;
@@ -3951,7 +3951,7 @@
     scrollbar-width: none;
   }
 
-  /* Sem ficar presa à rolagem da fila: a dica se ancora na barra (o backdrop-filter dela é o bloco de contenção). */
+  /* Not tied to the row's scrolling: the tooltip anchors to the bar (its backdrop-filter is the containing block). */
   .ui-root.has-usage-row .ui-usage-tip {
     position: fixed;
     top: calc(var(--top-h) + 6px);
@@ -3975,7 +3975,7 @@
     display: none;
   }
 
-  /* Zoom continua na rolagem do mouse e nos atalhos + / −. */
+  /* Zoom stays on the mouse scroll and the + / − shortcuts. */
   .ui-topbar__right .ui-btn-group:first-child .ui-icon-btn:not(:first-child) {
     display: none;
   }
@@ -3989,7 +3989,7 @@
     display: none;
   }
 
-  /* A pílula de conexão vira um selo no canto do logo. */
+  /* The connection pill becomes a badge on the corner of the logo. */
   .ui-brand {
     position: relative;
   }
@@ -4094,7 +4094,8 @@
     padding: 6px 8px;
   }
 
-  /* O feed tem a barra "Atividade" embaixo: o botão dele sai e deixa lugar para os do celular (Entregas, Novo agente). */
+  /* The feed has the "Activity" bar at the bottom: its button goes and makes room for the phone's (Deliveries,
+     New agent). */
   .ui-btn-feed {
     display: none;
   }
@@ -4143,7 +4144,8 @@
     order: 10;
     flex: 1 0 100%;
     margin-left: 0;
-    /* Com 4 ou mais contas os cartões mantêm o mínimo de 128 px e não cabem: a fila rola (a dica já é fixa aqui). */
+    /* With 4 or more accounts the cards keep the 128 px minimum and don't fit: the row scrolls (the tooltip is
+       already fixed here). */
     overflow-x: auto;
     scrollbar-width: none;
   }
@@ -4161,7 +4163,7 @@
     font-size: 14px;
   }
 
-  /* Sem cabeçalho: a idade dos números vira um selo no chip; o reinício fica na forma curta (↻1h29). */
+  /* No header: the age of the numbers becomes a badge on the chip; the reset stays in the short form (↻1h29). */
   .ui-usage-card__head {
     display: none;
   }
@@ -4182,7 +4184,7 @@
     width: auto;
   }
 
-  /* Folha inferior: deixa uma faixa do escritório visível acima dela para o agente/sala em foco. */
+  /* Bottom sheet: leaves a strip of the office visible above it for the focused agent/room. */
   .ui-drawer {
     top: auto;
     left: var(--gap);
@@ -4198,7 +4200,7 @@
     width: auto;
   }
 
-  /* Com a folha de detalhes aberta sobra uma faixa curta do escritório: só o aviso mais novo aparece. */
+  /* With the details sheet open a short strip of the office is left: only the newest notice shows. */
   .has-drawer .ui-toast:not(:first-child) {
     display: none;
   }
@@ -4218,23 +4220,24 @@
   }
 
   .ui-popover {
-    /* Sobrepõe a posição calculada pelo JS (estilo inline). */
+    /* Overrides the position computed by the JS (inline style). */
     left: var(--gap) !important;
     right: var(--gap) !important;
     width: auto;
   }
 }
 
-/* Celular com Entregas e Novo agente: um ícone a mais que no computador não cabe numa linha; o timelapse sai (tecla L). */
+/* Phone with Deliveries and New agent: one icon more than on the computer doesn't fit in a row; the timelapse goes
+   (L key). */
 @media (max-width: 480px) {
   .ui-topbar:has(.ui-btn-deliv:not([hidden])):has(.ui-btn-spawn:not([hidden])) .ui-btn-timelapse {
     display: none;
   }
 }
 
-/* Celulares (até 480 px): marca + 7 botões ocupam a primeira linha inteira, então os contadores descem para a linha dos
-   cartões. Sem isso, com dois contadores acesos, os botões da direita pulam para uma linha própria e a barra passa da
-   altura fixa. */
+/* Phones (up to 480 px): brand + 7 buttons take up the whole first row, so the counters go down to the cards'
+   row. Without this, with two counters lit, the buttons on the right jump to a row of their own and the bar goes past
+   the fixed height. */
 @media (max-width: 480px) {
   .ui-counters {
     order: 9;
@@ -4251,7 +4254,7 @@
   }
 }
 
-/* Celulares de 320 px: com os botões de 32 px a primeira linha (marca + 7 botões) não cabe. */
+/* 320 px phones: with the 32 px buttons the first row (brand + 7 buttons) doesn't fit. */
 @media (max-width: 340px) {
   .ui-topbar__right .ui-icon-btn {
     width: 28px;
@@ -4259,7 +4262,7 @@
   }
 }
 
-/* ------------------------------------------------------------------ movimento reduzido */
+/* ------------------------------------------------------------------ reduced motion */
 
 @media (prefers-reduced-motion: reduce) {
   .ui-root *,
@@ -4276,7 +4279,7 @@
   outline: none;
 }
 
-/* ---------------------------------------------------------------- vida social (gaveta do agente) */
+/* ---------------------------------------------------------------- social life (agent drawer) */
 
 .ui-social__balance {
   color: #ffd34d;
@@ -4453,14 +4456,14 @@
   white-space: nowrap;
 }
 
-/* Partidas e apostas no feed: tom dourado discreto. */
+/* Matches and bets in the feed: discreet golden tone. */
 .ui-feed__item.is-social .ui-feed__text {
   color: #ffe6a3;
 }
 
 /* ---------------------------------------------------------------- terminal */
 
-/* Botão na gaveta do agente: uma "linha de terminal" com o prompt em pixels. */
+/* Button in the agent drawer: a "terminal line" with the prompt in pixels. */
 .ui-term-cta {
   width: 100%;
   height: 34px;
@@ -4509,8 +4512,8 @@
   border-color: var(--ui-line-strong);
 }
 
-/* Janela flutuante: centralizada na área livre (entre a barra lateral e a gaveta) quando cabe; o escritório
-   continua visível e animando em volta. Largura ≈ min(920px, 72vw), sem ficar estreita demais. */
+/* Floating window: centered in the free area (between the sidebar and the drawer) when it fits; the office
+   stays visible and animating around it. Width ≈ min(920px, 72vw), without getting too narrow. */
 .ui-term {
   --term-w: min(920px, 72vw, max(560px, calc(100vw - var(--free-left) - var(--free-right) - 16px)));
   --term-h: min(72vh, calc(100vh - var(--top-h) - var(--gap) * 2));
@@ -4552,7 +4555,7 @@
   }
 }
 
-/* Cromo da janela: Pixelify nos rótulos fixos; nome, papel e sala na fonte do sistema (legíveis). */
+/* Window chrome: Pixelify in the fixed labels; name, role and room in the system font (legible). */
 .ui-term__bar {
   position: relative;
   display: flex;
@@ -4564,7 +4567,7 @@
   background: rgba(255, 255, 255, 0.035);
 }
 
-/* Fio segmentado em pixels sob a barra, como as barras de uso. */
+/* Segmented pixel line under the bar, like the usage bars. */
 .ui-term__bar::after {
   content: '';
   position: absolute;
@@ -4652,7 +4655,7 @@
   flex: none;
 }
 
-/* Conversa */
+/* Conversation */
 .ui-term__body {
   position: relative;
   display: flex;
@@ -4668,7 +4671,7 @@
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
-  /* A compensação ao descartar linhas antigas é feita no JS: sem a ancoragem automática do navegador. */
+  /* The compensation when discarding old lines is done in the JS: without the browser's automatic anchoring. */
   overflow-anchor: none;
   padding: 14px 16px 18px;
   font: 12.5px/1.55 var(--font-mono);
@@ -4699,7 +4702,7 @@
   user-select: none;
 }
 
-/* "⏺" sempre como texto (nunca emoji colorido): a cor indica o estado da ferramenta. */
+/* "⏺" always as text (never a colored emoji): the color indicates the tool's state. */
 .ui-term__dot {
   font-family: var(--font-mono), 'Apple Symbols', 'Segoe UI Symbol', 'Noto Sans Symbols 2', sans-serif;
   font-variant-emoji: text;
@@ -4728,7 +4731,7 @@
   color: var(--ui-accent);
 }
 
-/* Prompt do usuário: "> texto" sobre fundo levemente destacado (alinhado às colunas das outras linhas). */
+/* User prompt: "> text" over a slightly highlighted background (aligned to the columns of the other lines). */
 .ui-term__row--user {
   margin-inline: -8px;
   padding: 4px 8px;
@@ -4744,7 +4747,7 @@
   color: #f0f3fa;
 }
 
-/* Ferramenta: ⏺ verde (ok), vermelho (erro) ou apagado (ainda sem resultado). */
+/* Tool: ⏺ green (ok), red (error) or dimmed (no result yet). */
 .ui-term__row--tool .ui-term__dot {
   color: var(--st-working);
 }
@@ -4823,7 +4826,7 @@
   color: #8fb8ff;
 }
 
-/* "  ⎿  resultado" */
+/* "  ⎿  result" */
 .ui-term__result {
   display: grid;
   grid-template-columns: 3ch minmax(0, 1fr);
@@ -4859,7 +4862,7 @@
   margin-top: 0;
 }
 
-/* Raciocínio e eventos da sessão: apagados. */
+/* Reasoning and session events: dimmed. */
 .ui-term__think {
   font-style: italic;
   color: var(--term-dim);
@@ -4917,7 +4920,7 @@ button.ui-term__think:hover,
   opacity: 0.85;
 }
 
-/* Estados: conversa anterior cortada, carregando/vazio, erro, reconexão. */
+/* States: earlier conversation cut, loading/empty, error, reconnection. */
 .ui-term__note {
   display: flex;
   align-items: center;
@@ -5095,7 +5098,7 @@ button.ui-term__think:hover,
   display: block;
   width: 100%;
   min-width: 0;
-  /* ~6 linhas; depois rola (a altura acompanha o texto: ui/composer.ts). */
+  /* ~6 lines; then it scrolls (the height follows the text: ui/composer.ts). */
   max-height: calc(1.5em * 6);
   margin: 0;
   padding: 0;
@@ -5121,7 +5124,7 @@ button.ui-term__think:hover,
   opacity: 1;
 }
 
-/* Caixa de mensagem (ui/composer.ts): na gaveta do agente e no rodapé do terminal (lá, a linha é o prompt acima). */
+/* Message box (ui/composer.ts): in the agent drawer and in the terminal footer (there, the line is the prompt above). */
 .ui-msg--drawer .ui-msg__row {
   display: flex;
   align-items: flex-end;
@@ -5169,7 +5172,7 @@ button.ui-term__think:hover,
   opacity: 0.45;
 }
 
-/* Microfone da caixa de mensagem: só o ícone; gravando, mostra o tempo. */
+/* Message box microphone: only the icon; while recording, it shows the time. */
 .ui-dictate--compact {
   flex: none;
   gap: 4px;
@@ -5205,7 +5208,7 @@ button.ui-term__think:hover,
   color: var(--ui-danger, #ff8a8a);
 }
 
-/* No terminal: o botão fica na ponta da linha do prompt, discreto como o resto. */
+/* In the terminal: the button sits at the end of the prompt line, discreet like the rest. */
 .ui-msg--terminal .ui-msg__send {
   align-self: end;
   min-width: 26px;
@@ -5255,7 +5258,7 @@ button.ui-term__think:hover,
   color: #ffb3aa;
 }
 
-/* Markdown das respostas (ui/markdown.ts). */
+/* Markdown of the replies (ui/markdown.ts). */
 .ui-md > * + * {
   margin-top: 8px;
 }
@@ -5318,7 +5321,7 @@ button.ui-term__think:hover,
   pointer-events: none;
 }
 
-/* Blocos de código e tabelas rolam por dentro (a página nunca ganha rolagem horizontal). */
+/* Code blocks and tables scroll inside (the page never gets horizontal scrolling). */
 .ui-md__pre,
 .ui-md__table {
   margin: 0;
@@ -5381,7 +5384,7 @@ button.ui-term__think:hover,
   background: repeating-linear-gradient(90deg, var(--ui-line-strong) 0 4px, transparent 4px 6px);
 }
 
-/* Telas estreitas: ocupa a área abaixo da barra superior, sobre a gaveta. Celular: tela cheia. */
+/* Narrow screens: takes the area below the top bar, over the drawer. Phone: full screen. */
 @media (max-width: 900px) {
   .ui-term {
     z-index: 42;
@@ -5417,9 +5420,9 @@ button.ui-term__think:hover,
   }
 }
 
-/* ---------------------------------------------------------------- terminal v2: busca, filtro, copiar e histórico */
+/* ---------------------------------------------------------------- terminal v2: search, filter, copy and history */
 
-/* Barra de ferramentas sob o cabeçalho: filtro à esquerda, busca (quando aberta) à direita. */
+/* Toolbar under the header: filter on the left, search (when open) on the right. */
 .ui-term__tools {
   display: flex;
   align-items: center;
@@ -5542,7 +5545,7 @@ button.ui-term__think:hover,
   height: 11px;
 }
 
-/* Resultados da busca: âmbar; o atual, laranja com contorno (o mesmo par do "precisa de você"). */
+/* Search results: amber; the current one, orange with an outline (the same pair as "needs you"). */
 .ui-term__hit {
   border-radius: 2px;
   background: rgba(255, 181, 71, 0.3);
@@ -5556,17 +5559,17 @@ button.ui-term__think:hover,
   color: #12151d;
 }
 
-/* Filtro: as linhas que não entram somem (a busca também não as conta). */
+/* Filter: the lines that don't match disappear (the search doesn't count them either). */
 .ui-term__row.is-filtered {
   display: none;
 }
 
-/* Corte no meio de uma linha comprida (o resto fica no DOM, escondido, para a busca). */
+/* Cut in the middle of a long line (the rest stays in the DOM, hidden, for the search). */
 .ui-term__dots {
   color: var(--term-dim);
 }
 
-/* Copiar: botão discreto no canto da entrada, que aparece no hover ou no foco e confirma com "Copiado". */
+/* Copy: discreet button in the corner of the entry, which appears on hover or on focus and confirms with "Copied". */
 .ui-term__row,
 .ui-term__call,
 .ui-term__result {
@@ -5646,7 +5649,7 @@ button.ui-term__think:hover,
   display: inline;
 }
 
-/* Telas de toque (sem hover): o botão fica sempre à vista, mais apagado. */
+/* Touch screens (no hover): the button is always visible, more dimmed. */
 @media (hover: none) {
   .ui-term__copy {
     opacity: 0.7;
@@ -5654,7 +5657,7 @@ button.ui-term__think:hover,
   }
 }
 
-/* Sessão do histórico: chip da conta antes do título e o rótulo "histórico" em âmbar. */
+/* History session: account chip before the title and the "history" label in amber. */
 .ui-term__who .ui-acc-chip {
   margin-right: -1px;
 }
@@ -5667,7 +5670,7 @@ button.ui-term__think:hover,
   font-weight: 600;
 }
 
-/* Botão "Histórico" da barra superior (desligado sem acesso local, com a dica do porquê). */
+/* "History" button of the top bar (disabled without local access, with the hint of why). */
 .ui-hist-btn.is-disabled {
   opacity: 0.45;
   cursor: not-allowed;
@@ -5678,7 +5681,7 @@ button.ui-term__think:hover,
   color: var(--ui-muted);
 }
 
-/* Popover do histórico: cabeçalho e busca fixos, a lista rola por dentro. */
+/* History popover: header and search fixed, the list scrolls inside. */
 .ui-hist {
   display: flex;
   flex-direction: column;
@@ -5726,7 +5729,7 @@ button.ui-term__think:hover,
   top: 0;
   padding: 8px 10px 4px;
   background: var(--ui-bg-solid);
-  /* Fonte do sistema: a data tem dígitos (na Pixelify o "5" parece "S"). */
+  /* System font: the date has digits (in Pixelify the "5" looks like "S"). */
   font: 600 11.5px/1.2 var(--font-ui);
   letter-spacing: 0.02em;
   color: var(--ui-muted);
@@ -5838,7 +5841,7 @@ button.ui-term__think:hover,
 
 /* ------------------------------------------------------------------ timelapse (ui/timelapse.ts) */
 
-/* Escritório reproduzido: leve tom sépia e vinheta, para não confundir com o ao vivo (o selo diz a hora). */
+/* Replayed office: light sepia tone and vignette, so it isn't mistaken for the live one (the badge says the time). */
 html.is-replay #world {
   filter: sepia(0.3) saturate(0.9) contrast(1.03);
 }
@@ -5855,7 +5858,7 @@ html.is-replay #world {
   pointer-events: none;
 }
 
-/* Selo "REPLAY 14:32": no alto da área livre, sempre visível. */
+/* "REPLAY 14:32" badge: at the top of the free area, always visible. */
 .ui-lapse-badge {
   position: fixed;
   z-index: 14;
@@ -5910,7 +5913,7 @@ html.is-replay #world {
   display: none;
 }
 
-/* Barra de reprodução: embaixo, centralizada na área livre, logo acima do feed. */
+/* Playback bar: at the bottom, centered in the free area, right above the feed. */
 .ui-lapse {
   position: fixed;
   z-index: 16;
@@ -6040,7 +6043,7 @@ html.is-replay #world {
   border-radius: 6px;
 }
 
-/* Trecho já reproduzido e a agulha (com o "botão" quadrado em cima). */
+/* Stretch already played and the needle (with the square "button" on top). */
 .ui-lapse__track::before {
   content: '';
   position: absolute;
@@ -6117,7 +6120,7 @@ html.is-replay #world {
   pointer-events: none;
 }
 
-/* Marca de pico: bandeirinha âmbar acima do gráfico (clique pula para lá). */
+/* Peak mark: small amber flag above the chart (a click jumps there). */
 .ui-lapse__peak {
   position: absolute;
   top: -11px;
@@ -6151,7 +6154,7 @@ html.is-replay #world {
   font-variant-numeric: tabular-nums;
 }
 
-/* O feed segue ao vivo durante o replay: deixa isso claro no título. */
+/* The feed stays live during the replay: makes that clear in the title. */
 .ui-root.is-replay .ui-feed__title h2::after {
   content: ' · live';
   font: 600 11px var(--font-ui);
@@ -6173,7 +6176,7 @@ html.is-replay #world {
     display: none;
   }
 
-  /* Segunda linha: "Voltar ao vivo" e o dia, com a largura que sobrar. */
+  /* Second line: "Back to live" and the day, with whatever width is left. */
   .ui-lapse__demo,
   .ui-lapse__live {
     order: 1;
@@ -6198,9 +6201,9 @@ html.is-replay #world {
   }
 }
 /* ------------------------------------------------------------------------------------------------
-   Responder pelo escritório: cartão "Pede permissão" na gaveta do agente (ui/permission.ts), o atalho
-   "Responder" nos avisos e o destaque do contador "precisam de você". A prévia (comando/diff) reaproveita
-   as classes do terminal (ui-term__in, ui-term__dl...).
+   Respond from the office: "Asks for permission" card in the agent's drawer (ui/permission.ts), the "Reply"
+   shortcut in the notices and the highlight of the "need you" counter. The preview (command/diff) reuses
+   the terminal's classes (ui-term__in, ui-term__dl...).
    ------------------------------------------------------------------------------------------------ */
 
 .ui-perm {
@@ -6399,9 +6402,9 @@ html.is-replay #world {
   color: #ffb3aa;
 }
 
-/* Perguntas do AskUserQuestion no cartão: rádios (escolha única) ou caixas (várias), com a descrição, e o
-   "Outro" com o campo de texto. Cabeçalho, pergunta, dica e descrição reaproveitam as classes ui-ask__* do
-   alerta "Precisa de você". */
+/* AskUserQuestion questions on the card: radios (single choice) or checkboxes (several), with the description, and
+   the "Other" with the text field. Header, question, hint and description reuse the ui-ask__* classes of the
+   "Needs you" alert. */
 .ui-perm-ask {
   display: grid;
   gap: 12px;
@@ -6420,7 +6423,7 @@ html.is-replay #world {
   box-shadow: inset 0 1px 0 rgba(255, 181, 71, 0.25);
 }
 
-/* Legenda flutuando: fica no fluxo normal (sem o recorte que o fieldset faz na borda). */
+/* Floating legend: stays in the normal flow (without the cutout the fieldset makes in the border). */
 .ui-perm-ask__legend {
   float: left;
   width: 100%;
@@ -6517,7 +6520,7 @@ html.is-replay #world {
   opacity: 0.5;
 }
 
-/* Sem pedido no escritório, a lista do alerta é só leitura: a dica de como responder por aqui. */
+/* With no request in the office, the alert's list is read-only: the hint on how to respond from here. */
 .ui-ask__answer-hint {
   margin-top: 8px;
   font-size: 11px;
@@ -6544,7 +6547,7 @@ html.is-replay #world {
   white-space: normal;
 }
 
-/* "Responder" no aviso de quem tem pedido para responder pelo escritório. */
+/* "Reply" in the notice of whoever has a request to respond to from the office. */
 .ui-toast__answer {
   flex: none;
   margin: 0 2px;
@@ -6561,11 +6564,11 @@ html.is-replay #world {
   background: rgba(255, 181, 71, 0.28);
 }
 
-/* Contador "precisam de você" com pedido para responder por aqui: um cadeado discreto. */
+/* "need you" counter with a request to respond to from here: a discreet padlock. */
 .ui-counter--waiting.has-answer .ui-counter__label::after {
   content: ' · 🔐';
 }
-/* ------------------------------------------------------------------ ambiente: sons nas configurações */
+/* ------------------------------------------------------------------ ambience: sounds in the settings */
 
 .ui-snd__details {
   transition: opacity 0.2s;
@@ -6682,11 +6685,11 @@ html.is-replay #world {
 }
 
 
-/* ---------------------------------------------------------------- meu dia (painel de métricas) */
+/* ---------------------------------------------------------------- my day (metrics panel) */
 
-/* Cores dos status nos gráficos: os mesmos tons do escritório, escurecidos para áreas grandes de barra (OKLCH L entre
-   0,48 e 0,67 sobre o painel #141821, contraste de 3:1 ou mais). A ordem de empilhamento foi validada para daltonismo
-   (vizinhos distinguíveis): esperando você | trabalhando | ocioso (cinza de contexto) | esperando o shell. */
+/* Status colors in the charts: the same tones as the office, darkened for large bar areas (OKLCH L between
+   0.48 and 0.67 over the #141821 panel, contrast of 3:1 or more). The stacking order was validated for color
+   blindness (distinguishable neighbors): waiting on you | working | idle (context gray) | waiting on the shell. */
 .ui-dialog.ui-day {
   --day-waiting: #c98300;
   --day-working: #1bad69;
@@ -6799,7 +6802,7 @@ html.is-replay #world {
   transition: opacity 0.2s;
 }
 
-/* Recarregando: o gráfico anterior fica, mais apagado (sem esqueleto nem salto de layout). */
+/* Reloading: the previous chart stays, more dimmed (no skeleton and no layout jump). */
 .ui-day.is-loading .ui-day__content {
   opacity: 0.6;
 }
@@ -6817,7 +6820,7 @@ html.is-replay #world {
   background: var(--sw);
 }
 
-/* Destaques */
+/* Highlights */
 .ui-day__kpis {
   grid-column: 1 / -1;
   display: grid;
@@ -6874,7 +6877,7 @@ html.is-replay #world {
   font-weight: 600;
 }
 
-/* Legenda (liga e desliga cada status nos gráficos) */
+/* Legend (turns each status on and off in the charts) */
 .ui-day__legend {
   grid-column: 1 / -1;
   display: flex;
@@ -6910,7 +6913,7 @@ html.is-replay #world {
   box-shadow: inset 0 0 0 1.5px var(--sw);
 }
 
-/* Cartões */
+/* Cards */
 .ui-day__card {
   grid-column: 1 / -1;
   min-width: 0;
@@ -6959,7 +6962,7 @@ html.is-replay #world {
   background: var(--sw);
 }
 
-/* Por projeto: barras horizontais finas, empilhadas a partir de uma base comum (2 px de folga entre pedaços). */
+/* By project: thin horizontal bars, stacked from a common baseline (2 px of gap between pieces). */
 .ui-day__bars {
   display: flex;
   flex-direction: column;
@@ -7017,7 +7020,7 @@ html.is-replay #world {
   border-radius: 0 4px 4px 0;
 }
 
-/* Por hora: colunas empilhadas (base embaixo), eixo com marcas redondas e linhas de grade discretas. */
+/* By hour: stacked columns (baseline at the bottom), axis with round ticks and discreet grid lines. */
 .ui-day__plot {
   position: relative;
   height: 170px;
@@ -7117,7 +7120,7 @@ html.is-replay #world {
   font-weight: 700;
 }
 
-/* Maiores esperas */
+/* Longest waits */
 .ui-day__waits {
   display: flex;
   flex-direction: column;
@@ -7198,7 +7201,7 @@ html.is-replay #world {
   white-space: nowrap;
 }
 
-/* Por conta: cada conta na própria cor (chip, fio no topo e a fatia do trabalho do dia). */
+/* By account: each account in its own color (chip, thin line at the top and the slice of the day's work). */
 .ui-day__accounts {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
@@ -7270,7 +7273,7 @@ html.is-replay #world {
   font-variant-numeric: tabular-nums;
 }
 
-/* Tabelas (o equivalente acessível de cada gráfico) */
+/* Tables (the accessible equivalent of each chart) */
 .ui-day__table-wrap {
   overflow-x: auto;
 }
@@ -7306,7 +7309,7 @@ html.is-replay #world {
   font-variant-numeric: tabular-nums;
 }
 
-/* Dica: o valor primeiro, o status depois, com um traço da cor do status. */
+/* Tooltip: the value first, the status after, with a dash in the status color. */
 .ui-day__tip {
   position: absolute;
   z-index: 5;
@@ -7389,7 +7392,7 @@ html.is-replay #world {
   }
 }
 
-/* Celular: tela cheia, controles numa linha própria, gráficos mais baixos (sem rolagem horizontal). */
+/* Phone: full screen, controls on a line of their own, shorter charts (no horizontal scrolling). */
 @media (max-width: 600px) {
   .ui-dialog.ui-day {
     width: 100vw;
@@ -7424,7 +7427,7 @@ html.is-replay #world {
     min-width: 0;
   }
 
-  /* O seletor Demonstração | Dados reais fica com a largura do conteúdo (196 px); o seletor de dia, com o que sobra. */
+  /* The Demo | Real data selector gets the width of the content (196 px); the day selector, what is left. */
   .ui-day__source {
     flex: 0 0 auto;
     min-width: 0;
@@ -7451,7 +7454,7 @@ html.is-replay #world {
     padding: 12px;
   }
 
-  /* O total do projeto continua na dica e na tabela; o nome ganha espaço. */
+  /* The project's total is still in the tooltip and in the table; the name gets more room. */
   .ui-day__bar-value .ui-day__muted {
     display: none;
   }
@@ -7466,14 +7469,14 @@ html.is-replay #world {
   }
 }
 
-/* Entre o celular e o tablet a barra superior fica apertada com o botão "Meu dia": a visão geral segue no atalho O. */
+/* Between phone and tablet the top bar gets tight with the "My day" button: the overview stays on the O shortcut. */
 @media (min-width: 601px) and (max-width: 760px) {
   .ui-topbar__right .ui-btn-group:first-child {
     display: none;
   }
 }
 
-/* Linha do tempo do agente: "Mostrar mais" / "Mostrar menos" (15 itens por vez). */
+/* Agent timeline: "Show more" / "Show less" (15 items at a time). */
 .ui-timeline__more {
   display: flex;
   gap: 6px;
@@ -7484,7 +7487,7 @@ html.is-replay #world {
   display: none;
 }
 
-/* Título da sessão na lista de agentes (o mesmo do hover do personagem). */
+/* Session title in the agent list (the same as in the character's hover). */
 .ui-agent__task {
   display: block;
   margin-top: 1px;
@@ -7496,7 +7499,7 @@ html.is-replay #world {
   text-overflow: ellipsis;
 }
 
-/* Há quanto tempo o agente está ocioso, na linha do nome (no lugar do "Principal"). */
+/* How long the agent has been idle, on the name line (in place of "Main"). */
 .ui-agent__since {
   flex: none;
   margin-left: auto;
@@ -7505,7 +7508,7 @@ html.is-replay #world {
   white-space: nowrap;
 }
 
-/* ------------------------------------------------------------------ janelas móveis (ui/movable.ts) */
+/* ------------------------------------------------------------------ movable windows (ui/movable.ts) */
 
 .ui-move-handle {
   cursor: grab;
@@ -7541,7 +7544,7 @@ html.is-replay #world {
   opacity: 0.94;
 }
 
-/* Terminal expandido na tela toda do Habblaud (botão ao lado do fechar). */
+/* Terminal expanded to the whole Habblaud screen (button next to the close one). */
 .ui-term.is-max {
   z-index: 46;
   inset: calc(var(--top-h) + var(--gap)) var(--gap) var(--gap) !important;
@@ -7556,7 +7559,7 @@ html.is-replay #world {
   cursor: default;
 }
 
-/* Alças de redimensionar nas bordas e quinas das janelas móveis (ui/movable.ts). */
+/* Resize handles on the edges and corners of the movable windows (ui/movable.ts). */
 .ui-resize {
   position: absolute;
   z-index: 5;
@@ -7627,7 +7630,7 @@ html.is-replay #world {
   cursor: nwse-resize;
 }
 
-/* Expandida, em tela estreita ou fechada: sem alças. */
+/* Expanded, on a narrow screen or closed: no handles. */
 .is-max > .ui-resize,
 .is-narrow .ui-resize {
   display: none;
@@ -7642,7 +7645,7 @@ html.is-replay #world {
   position: relative;
 }
 
-/* Arrastar agentes na lista lateral para reordenar (mesma ordem das abas do terminal). */
+/* Drag agents in the side list to reorder (same order as the terminal tabs). */
 .ui-node__head.is-dragging {
   opacity: 0.45;
 }
@@ -7667,7 +7670,7 @@ html.is-replay #world {
   bottom: -1px;
 }
 
-/* Arrastar salas na lista lateral para reordenar (ui/roomorder.ts). */
+/* Drag rooms in the side list to reorder (ui/roomorder.ts). */
 .ui-room__head.is-dragging {
   opacity: 0.45;
 }
@@ -7692,7 +7695,7 @@ html.is-replay #world {
   bottom: -2px;
 }
 
-/* Renomear sala: campo flutuante do botão direito (ui/roomrename.ts). */
+/* Rename room: floating field from the right-click (ui/roomrename.ts). */
 .ui-rename {
   position: fixed;
   z-index: 60;
@@ -7914,8 +7917,8 @@ html.is-replay #world {
   }
 }
 
-/* Celular: o Safari do iPhone dá zoom ao focar um campo com letra menor que 16 px; com 16 px ele não dá (e o
-   pinça para ampliar continua funcionando). Vale para todos os campos do app. */
+/* Phone: Safari on the iPhone zooms in when focusing a field with text smaller than 16 px; with 16 px it doesn't
+   (and pinch to zoom keeps working). Applies to all the fields of the app. */
 @media (pointer: coarse) {
   input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']),
   textarea,
@@ -7951,7 +7954,7 @@ html.is-replay #world {
   color: #ff9a8a;
 }
 
-/* Editor do personagem (gaveta do agente): lápis ao lado do nome e painel com prévia, nome e peças. */
+/* Character editor (agent's drawer): pencil next to the name and panel with preview, name and pieces. */
 .ui-char-edit {
   align-self: center;
 }
@@ -8011,7 +8014,7 @@ html.is-replay #world {
   outline-offset: 1px;
 }
 
-/* Criando com o nome reservado no cadastro: o campo só mostra o nome. */
+/* Creating with the name reserved at sign-up: the field only shows the name. */
 .ui-char__name.is-fixed {
   border-style: dashed;
   background: rgba(0, 0, 0, 0.12);
@@ -8125,7 +8128,7 @@ html.is-replay #world {
   margin-left: auto;
 }
 
-/* ------------------------------------------------------------------ terminal interativo (ui/pty.ts) */
+/* ------------------------------------------------------------------ interactive terminal (ui/pty.ts) */
 
 .ui-actions {
   display: grid;
@@ -8201,7 +8204,7 @@ html.is-replay #world {
   height: 100%;
 }
 
-/* Atalho para o terminal do agente na lista lateral: no lugar do status, só com o mouse em cima (ou aberto). */
+/* Shortcut to the agent's terminal in the side list: in place of the status, only with the mouse over (or open). */
 .ui-node__head {
   position: relative;
 }
@@ -8254,14 +8257,14 @@ html.is-replay #world {
   box-shadow: inset 0 0 0 1px var(--ui-accent);
 }
 
-/* O botão fica por cima do status: esconde o quadradinho enquanto ele aparece. */
+/* The button sits on top of the status: hides the little square while it shows. */
 .ui-node__head:hover > .ui-agent > .ui-status-dot,
 .ui-node__head:has(.ui-node__term:focus-visible) > .ui-agent > .ui-status-dot,
 .ui-node__head:has(.ui-node__term.is-on) > .ui-agent > .ui-status-dot {
   visibility: hidden;
 }
 
-/* Abas da janela de terminal: os agentes do mesmo projeto. */
+/* Tabs of the terminal window: the agents of the same project. */
 .ui-ttabs {
   display: flex;
   flex: none;
@@ -8316,7 +8319,7 @@ html.is-replay #world {
   max-width: 110px;
 }
 
-/* Começo do que o agente está fazendo, ao lado do nome. */
+/* Start of what the agent is doing, next to the name. */
 .ui-ttab__doing {
   min-width: 0;
   max-width: 150px;
@@ -8331,7 +8334,7 @@ html.is-replay #world {
   color: var(--ui-muted);
 }
 
-/* X da aba: encerra a sessão (segundo clique confirma). */
+/* The tab's X: ends the session (second click confirms). */
 .ui-ttab__close {
   flex: none;
   display: grid;
@@ -8370,7 +8373,7 @@ html.is-replay #world {
   color: color-mix(in srgb, var(--st-working) 75%, #fff);
 }
 
-/* Botões do topo da janela (Assumir daqui, Encerrar). */
+/* Buttons at the top of the window (Take over here, End). */
 .ui-termact {
   display: flex;
   align-items: center;
@@ -8391,7 +8394,7 @@ html.is-replay #world {
   color: #ff8a80;
 }
 
-/* Sessão aberta noutro terminal: aviso no lugar da tela. */
+/* Session open in another terminal: notice in place of the screen. */
 .ui-pty__away {
   display: grid;
   align-content: center;
@@ -8421,7 +8424,7 @@ html.is-replay #world {
   display: none;
 }
 
-/* Arrastar abas do terminal para reordenar (ui/termtabs.ts). */
+/* Drag terminal tabs to reorder (ui/termtabs.ts). */
 .ui-ttab {
   position: relative;
 }
@@ -8449,7 +8452,7 @@ html.is-replay #world {
   right: -2px;
 }
 
-/* ------------------------------------------------------------------ entregas */
+/* ------------------------------------------------------------------ deliveries */
 
 .ui-btn-deliv {
   position: relative;
@@ -8658,7 +8661,7 @@ html.is-replay #world {
 .ui-deliv-initial--sm { width: 22px; height: 22px; }
 .ui-deliv-initial--md { width: 40px; height: 40px; font-size: 18px; }
 
-/* Modal da entrega: folha inteira no celular, cartão central no computador. */
+/* Delivery modal: full sheet on the phone, centered card on the computer. */
 .ui-deliv-modal,
 .ui-deliv-viewer {
   padding: 0;
@@ -8825,7 +8828,7 @@ html.is-replay #world {
   min-height: 44px;
 }
 
-/* Visualizador: tela cheia, fundo escuro. */
+/* Viewer: full screen, dark background. */
 .ui-deliv-viewer {
   width: 100vw;
   height: 100dvh;
@@ -8895,7 +8898,7 @@ html.is-replay #world {
   cursor: zoom-in;
 }
 
-/* Toque na imagem: tamanho real, arrastar para ver o resto; outro toque volta a caber na tela. */
+/* Tap on the image: actual size, drag to see the rest; another tap makes it fit the screen again. */
 .ui-deliv-viewer__body.is-zoomed {
   display: block;
   place-items: initial;
@@ -8933,7 +8936,7 @@ html.is-replay #world {
   color: var(--ui-muted);
 }
 
-/* Aviso de entrega nova: cartão no rodapé, toque abre. */
+/* New delivery notice: card at the bottom, a tap opens it. */
 .ui-deliv-toast {
   position: fixed;
   left: 50%;
@@ -9007,7 +9010,7 @@ html.is-replay #world {
   }
 }
 
-/* App na Tela de Início (viewport-fit=cover): o que encosta no rodapé sobe acima da barra de gestos do iPhone. */
+/* App on the Home Screen (viewport-fit=cover): what touches the bottom moves up above the iPhone's gesture bar. */
 .ui-feed {
   bottom: calc(var(--gap) + env(safe-area-inset-bottom, 0px));
 }
@@ -9018,7 +9021,7 @@ html.is-replay #world {
   }
 }
 
-/* Celular: atalhos de teclado não servem para nada; a caixa de mensagem fica sempre à mão no rodapé da gaveta. */
+/* Phone: keyboard shortcuts are of no use; the message box is always at hand at the bottom of the drawer. */
 @media (pointer: coarse) {
   .ui-kbd {
     display: none !important;
@@ -9039,11 +9042,11 @@ html.is-replay #world {
 }
 
 /* ------------------------------------------------------------------ Habblaud World (ui/world/)
-   Seção em Configurações (conta, lista de espera, personagem, visibilidade, dispositivos) e o cartão de convite.
-   Mesmas cores do resto do painel (tokens do .ui-root); o popover já ocupa a largura do celular com as margens. */
+   Section in Settings (account, waitlist, character, visibility, devices) and the invitation card. Same colors
+   as the rest of the panel (.ui-root tokens); the popover already takes the phone's width with the margins. */
 
-/* A janela do Habblaud World (ui/world/world-dialog.ts): um <dialog> modal com o botão próprio na barra do topo; o
-   conteúdo (.ui-world) é o de settings-world.ts, e o chip do estado da conta fica no cabeçalho. */
+/* The Habblaud World window (ui/world/world-dialog.ts): a modal <dialog> with its own button in the top bar; the
+   content (.ui-world) is the one from settings-world.ts, and the account state chip goes in the header. */
 .ui-world-dialog {
   width: min(560px, calc(100vw - 32px));
   max-height: calc(100vh - 32px);
@@ -9290,7 +9293,7 @@ html.is-replay #world {
   gap: 8px;
 }
 
-/* Campos */
+/* Fields */
 .ui-world__field {
   display: flex;
   flex-direction: column;
@@ -9365,7 +9368,7 @@ html.is-replay #world {
   accent-color: #2f7fd1;
 }
 
-/* Resumo de privacidade (tela do cadastro) */
+/* Privacy summary (sign-up screen) */
 .ui-world__summary {
   display: flex;
   flex-direction: column;
@@ -9419,7 +9422,7 @@ html.is-replay #world {
   line-height: 1.45;
 }
 
-/* Conta: lote do prédio, personagem, navegação */
+/* Account: building lot, character, navigation */
 .ui-world__lot {
   display: flex;
   align-items: center;
@@ -9435,7 +9438,7 @@ html.is-replay #world {
   flex: none;
   width: 30px;
   height: 40px;
-  /* Prédio apagado em pixels: corpo, janelas e porta. */
+  /* Unlit building in pixels: body, windows and door. */
   background:
     linear-gradient(var(--ui-faint), var(--ui-faint)) 12px 32px / 6px 8px no-repeat,
     linear-gradient(rgba(124, 200, 255, 0.35), rgba(124, 200, 255, 0.35)) 6px 8px / 6px 4px no-repeat,
@@ -9470,7 +9473,7 @@ html.is-replay #world {
   overflow-wrap: anywhere;
 }
 
-/* "Seu nome de jogador: X (reservado)", na lista de espera. */
+/* "Your player name: X (reserved)", on the waitlist. */
 .ui-world__reserved {
   font-size: 12.5px;
   color: var(--ui-muted);
@@ -9543,7 +9546,7 @@ html.is-replay #world {
   gap: 4px 14px;
 }
 
-/* Personagem */
+/* Character */
 .ui-world__character .ui-char__top {
   align-items: center;
 }
@@ -9596,7 +9599,7 @@ html.is-replay #world {
   cursor: not-allowed;
 }
 
-/* Dispositivos */
+/* Devices */
 .ui-world__devices {
   display: flex;
   flex-direction: column;
@@ -9624,15 +9627,15 @@ html.is-replay #world {
   color: var(--ui-accent);
 }
 
-/* Textos do World com "C" maiúsculo e dígitos ("Criar conta", "Confirmar e-mail"): na Pixelify o "C" parece "O",
-   então os botões principais e o título do popup usam a fonte do corpo. */
+/* World texts with a capital "C" and digits ("Create account", "Confirm email"): in Pixelify the "C" looks like "O",
+   so the main buttons and the popup title use the body font. */
 .ui-world .ui-btn--primary,
 .ui-world-popup .ui-btn--primary {
   font: 600 13px/1 var(--font-ui);
   letter-spacing: 0;
 }
 
-/* Botões: confirmação em dois cliques e "enviando" */
+/* Buttons: two-click confirmation and "sending" */
 .ui-btn.is-danger {
   border-color: color-mix(in srgb, var(--lv-crit) 55%, transparent);
   background: color-mix(in srgb, var(--lv-crit) 14%, transparent);
@@ -9653,8 +9656,8 @@ html.is-replay #world {
   animation: ui-blink 0.8s steps(2, jump-none) infinite;
 }
 
-/* Os popups de lançamento do Habblaud World ("Novidade", "Você está na lista de espera", "Acesso liberado!"): um
-   <dialog> modal no top layer (acima de Configurações), centralizado, com o fundo escurecido e rolagem interna. */
+/* The Habblaud World launch popups ("New", "You're on the waitlist", "Access granted!"): a
+   modal <dialog> in the top layer (above Settings), centered, with the background darkened and inner scrolling. */
 .ui-world-popup {
   width: min(480px, calc(100vw - 32px));
   max-height: calc(100vh - 32px);
@@ -9824,9 +9827,9 @@ html.is-replay #world {
   }
 }
 
-/* ------------------------------------------------------------------ Habblaud World: prédio no mundo (Fase 2)
-   Cartão "Seu prédio" na seção (conta aprovada), a janela "Ver o que foi enviado", a dica do tema em Aparência e o
-   chip da barra do topo. A interface só tem o tema escuro: as cores saem dos tokens do .ui-root. */
+/* ------------------------------------------------------------------ Habblaud World: building in the world (Phase 2)
+   "Your building" card in the section (approved account), the "See what was sent" window, the theme hint in Appearance
+   and the top bar chip. The interface only has the dark theme: the colors come from the .ui-root tokens. */
 
 .ui-world__building {
   --bld: var(--st-working);
@@ -9854,7 +9857,7 @@ html.is-replay #world {
   border-style: dashed;
 }
 
-/* Parado pelo servidor do mundo (atualize, outro computador, conta suspensa...): vermelho; fora do mundo: cinza. */
+/* Stopped by the world server (update, another computer, suspended account...): red; out of the world: gray. */
 .ui-world__building.is-stopped {
   --bld: var(--lv-crit);
 }
@@ -9864,7 +9867,7 @@ html.is-replay #world {
   border-style: dashed;
 }
 
-/* "Sair do mundo": separado das ações do dia a dia por uma linha, com a explicação em cima do botão. */
+/* "Leave the world": separated from the day-to-day actions by a line, with the explanation above the button. */
 .ui-world__leave {
   display: flex;
   flex-direction: column;
@@ -9878,7 +9881,7 @@ html.is-replay #world {
   line-height: 1.45;
 }
 
-/* Fase 6: recurso por e-mail (conta suspensa ou banida, prédio "não verificado") e o selo no cartão. */
+/* Phase 6: appeal by email (suspended or banned account, "unverified" building) and the badge on the card. */
 .ui-world__appeal {
   display: flex;
   flex-direction: column;
@@ -9902,7 +9905,7 @@ html.is-replay #world {
   line-height: 1.45;
 }
 
-/* O mundo em manutenção: aviso âmbar no topo da seção (o prédio tenta de novo sozinho). */
+/* The world under maintenance: amber notice at the top of the section (the building tries again on its own). */
 .ui-world__maint {
   padding: 9px 11px;
   border-radius: 8px;
@@ -9913,7 +9916,7 @@ html.is-replay #world {
   line-height: 1.45;
 }
 
-/* "Conta e dados": blocos separados por uma linha; excluir a conta, com a borda vermelha à esquerda. */
+/* "Account and data": blocks separated by a line; delete the account, with the red border on the left. */
 .ui-world__acct {
   display: flex;
   flex-direction: column;
@@ -9944,7 +9947,7 @@ html.is-replay #world {
   min-width: 0;
 }
 
-/* Prédio em pixels: aceso (janelas amarelas) só com a conexão aberta. */
+/* Building in pixels: lit (yellow windows) only with the connection open. */
 .ui-world__bart {
   --win: rgba(124, 200, 255, 0.22);
   flex: none;
@@ -10048,7 +10051,7 @@ html.is-replay #world {
   line-height: 1.45;
 }
 
-/* Dica do tema em Aparência (o tema também vai para o prédio). */
+/* Theme hint in Appearance (the theme also goes to the building). */
 .ui-world-theme {
   display: block;
   margin-top: 2px;
@@ -10058,7 +10061,7 @@ html.is-replay #world {
   font-size: inherit;
 }
 
-/* Janela "Ver o que foi enviado": cartão central no computador, quase a tela toda no celular. */
+/* "See what was sent" window: centered card on the computer, almost the whole screen on the phone. */
 .ui-world-sent {
   width: min(620px, calc(100vw - 32px));
   max-width: none;
@@ -10175,7 +10178,7 @@ html.is-replay #world {
   outline-offset: 1px;
 }
 
-/* Chip da barra do topo: discreto como o número da versão; verde aceso, cinza pausado, âmbar reconectando. */
+/* Top bar chip: discreet like the version number; green lit, gray paused, amber reconnecting. */
 .ui-world-chip {
   --chip: var(--st-working);
   display: inline-flex;
@@ -10217,8 +10220,8 @@ html.is-replay #world {
   font-size: 9px;
 }
 
-/* Barra apertada: a linha de status vira um selo no canto do logo (sem versão nem "Demonstração"); o chip sai também
-   (o prédio continua em Configurações › Habblaud World). */
+/* Tight bar: the status line becomes a badge in the corner of the logo (no version and no "Demo"); the chip goes too
+   (the building is still in Settings › Habblaud World). */
 @media (max-width: 1040px) {
   .ui-world-chip {
     display: none;
@@ -10243,9 +10246,9 @@ html.is-replay #world {
   }
 }
 
-/* ------------------------------------------------------------------ Habblaud World: a cidade (botão Mundo) */
+/* ------------------------------------------------------------------ Habblaud World: the city (World button) */
 
-/* Botão Mundo / Escritório, ao lado do Timelapse: com rótulo (é a troca de cena), em azul quando na cidade. */
+/* World / Office button, next to the Timelapse: with a label (it is the scene switch), in blue when in the city. */
 .ui-scene-btn {
   display: inline-flex;
   align-items: center;
@@ -10288,7 +10291,7 @@ html.is-replay #world {
   }
 }
 
-/* Na cidade, o que é do escritório sai da frente (Configurações, ajuda e os avisos continuam). */
+/* In the city, what belongs to the office gets out of the way (Settings, help and the notices stay). */
 .ui-root.is-city > .ui-sidebar,
 .ui-root.is-city > .ui-feed,
 .ui-root.is-city > .ui-drawer,
@@ -10309,7 +10312,7 @@ html.is-replay #world {
   position: fixed;
   inset: 0;
   z-index: 40;
-  /* a camada cobre a tela, mas os cliques passam para o canvas da cidade (só o cartão e o minimapa recebem) */
+  /* the layer covers the screen, but clicks pass through to the city canvas (only the card and minimap get them) */
   pointer-events: none;
 }
 
@@ -10321,13 +10324,13 @@ html.is-replay #world {
   display: none;
 }
 
-/* Os avisos do escritório continuam na cidade, acima do minimapa. */
+/* The office notices stay in the city, above the minimap. */
 .ui-root.is-city .ui-toasts {
   right: calc(12px + env(safe-area-inset-right));
   bottom: calc(150px + env(safe-area-inset-bottom));
 }
 
-/* Cartões do prédio e do jogador */
+/* Building and player cards */
 .ui-city-card {
   position: fixed;
   left: 0;
@@ -10543,7 +10546,7 @@ html.is-replay #world {
   text-decoration: underline;
 }
 
-/* Minimapa */
+/* Minimap */
 .ui-city-minimap {
   position: fixed;
   right: calc(12px + env(safe-area-inset-right));
@@ -10566,7 +10569,7 @@ html.is-replay #world {
   image-rendering: pixelated;
 }
 
-/* Dica das teclas, aviso rápido e "entrando" */
+/* Key hint, quick notice and "entering" */
 .ui-city-help {
   position: fixed;
   left: calc(12px + env(safe-area-inset-left));
@@ -10649,9 +10652,9 @@ html.is-replay #world {
   }
 }
 
-/* ===================================================================== Visita (Habblaud World, Fase 4) */
+/* ===================================================================== Visit (Habblaud World, Phase 4) */
 
-/* Dentro de um prédio: a cidade fica parada por baixo; dela, só os avisos continuam. */
+/* Inside a building: the city stays still underneath; of it, only the notices stay. */
 .ui-city.is-visiting > :not(.ui-city-toast) {
   display: none !important;
 }
@@ -10660,7 +10663,7 @@ html.is-replay #world {
   position: fixed;
   inset: 0;
   z-index: 41;
-  /* os cliques passam para o canvas da visita (só a faixa, o painel e os botões recebem) */
+  /* the clicks pass through to the visit canvas (only the banner, the panel and the buttons get them) */
   pointer-events: none;
 }
 
@@ -10760,7 +10763,7 @@ html.is-replay #world {
   padding: 0 14px;
 }
 
-/* Painel lateral: salas e agentes, só leitura */
+/* Sidebar: rooms and agents, read-only */
 .ui-visit-panel {
   position: fixed;
   top: calc(var(--ui-visit-top, 76px));
@@ -10926,7 +10929,7 @@ html.is-replay #world {
   white-space: nowrap;
 }
 
-/* Cartão de um agente: nome, papel, ferramenta e status (nada mais) */
+/* Card of an agent: name, role, tool and status (nothing else) */
 .ui-visit-card {
   padding: 10px;
   border-radius: var(--radius-sm);
@@ -10999,7 +11002,7 @@ html.is-replay #world {
   background: #8790a6;
 }
 
-/* "Sair pelo elevador (E)" sobre o visitante */
+/* "Leave by the elevator (E)" over the visitor */
 .ui-visit-exit {
   position: fixed;
   left: 0;
@@ -11070,7 +11073,7 @@ html.is-replay #world {
   display: none;
 }
 
-/* Celular: a faixa ocupa a largura; o painel vira uma folha embaixo, aberta pelo botão "Salas" */
+/* Phone: the banner takes the width; the panel becomes a sheet at the bottom, opened by the "Rooms" button */
 @media (max-width: 760px) {
   .ui-visit-bar,
   .ui-visit.has-panel .ui-visit-bar {
@@ -11115,14 +11118,14 @@ html.is-replay #world {
   }
 }
 
-/* Na visita, os avisos do escritório desta máquina ficam ao lado do painel (e acima da folha, no celular). */
+/* In the visit, the notices of this machine's office go next to the panel (and above the sheet, on the phone). */
 .ui-root.is-visit .ui-toasts {
   right: calc(300px + env(safe-area-inset-right));
   bottom: calc(56px + env(safe-area-inset-bottom));
 }
 
 @media (max-width: 760px) {
-  /* no celular, embaixo (a folha das salas, aberta, fica por cima) */
+  /* on the phone, at the bottom (the rooms sheet, open, goes on top) */
   .ui-root.is-visit .ui-toasts {
     right: calc(8px + env(safe-area-inset-right));
     bottom: calc(8px + env(safe-area-inset-bottom));
@@ -11133,7 +11136,7 @@ html.is-replay #world {
   }
 }
 
-/* "👀 N" no chip do mundo: gente visitando o seu prédio agora */
+/* "👀 N" on the world chip: people visiting your building now */
 .ui-world-chip__visitors {
   margin-left: 4px;
   padding: 0 5px;

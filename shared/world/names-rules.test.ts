@@ -34,27 +34,27 @@ describe('parsePlayerName', () => {
     expect(ok('a'.repeat(20)).name).toHaveLength(20);
     expect(problem('a'.repeat(21))).toBe('length');
     expect(problem('a'.repeat(10_000))).toBe('length');
-    // Letras fora do BMP contam como uma (não como dois code units).
+    // Letters outside the BMP count as one (not as two code units).
     expect(ok('𝒜𝒷𝒸').name).toBe('𝒜𝒷𝒸');
   });
 
   it('rejects invisibles, control, direction marks and special spaces', () => {
     const cases = [
-      'Ana​', // espaço de largura zero
+      'Ana​', // zero-width space
       'A‍na', // ZWJ
       'A‌na', // ZWNJ
-      'Ana‮txt', // inverte a direção
-      'Ana‏txt', // marca RTL
-      'ㅤㅤㅤ', // preenchimento do Hangul (letra que não desenha nada)
-      'Anaﾠ', // preenchimento do Hangul de meia largura
-      'An a', // espaço sem quebra
-      'An　a', // espaço ideográfico
+      'Ana‮txt', // reverses the direction
+      'Ana‏txt', // RTL mark
+      'ㅤㅤㅤ', // Hangul filler (a letter that draws nothing)
+      'Anaﾠ', // halfwidth Hangul filler
+      'An a', // no-break space
+      'An　a', // ideographic space
       'An\ta', // tab
-      'An\na', // quebra de linha
-      'Ana️', // seletor de variação
-      'Ana­', // hífen suave
-      'Ana\u0007', // controle
-      'Ana', // uso privado
+      'An\na', // line break
+      'Ana️', // variation selector
+      'Ana­', // soft hyphen
+      'Ana\u0007', // control
+      'Ana', // private use
     ];
     for (const c of cases) expect(problem(c), JSON.stringify(c)).toBe('invisible');
   });
@@ -63,21 +63,21 @@ describe('parsePlayerName', () => {
     for (const c of ['Ana!', 'Ana😀', 'ana@x', 'a/b/c', 'Ana٣', 'Ana４', '<b>hi</b>', '⠀⠀⠀']) {
       expect(problem(c), c).toBe('chars');
     }
-    // Acento solto no começo e "zalgo".
+    // Loose accent at the start and "zalgo".
     expect(problem('́Ana')).toBe('chars');
-    expect(problem('Aná̂̃̄̅')).toBe('chars'); // o NFC junta o primeiro; sobram 4
-    expect(ok('Aná̂̃̄').name).toHaveLength(6); // 3 sobrando ainda passam
-    expect(ok('กี้ไทย').name).toBe('กี้ไทย'); // tailandês: 2 marcas seguidas é normal
+    expect(problem('Aná̂̃̄̅')).toBe('chars'); // NFC joins the first one; 4 are left
+    expect(ok('Aná̂̃̄').name).toHaveLength(6); // 3 left over still pass
+    expect(ok('กี้ไทย').name).toBe('กี้ไทย'); // Thai: 2 marks in a row is normal
   });
 
   it('only one writing system (Japanese, Korean and Chinese count as one)', () => {
-    expect(problem('Pаulo')).toBe('scripts'); // "а" cirílico no meio do latino
+    expect(problem('Pаulo')).toBe('scripts'); // Cyrillic "а" in the middle of Latin
     expect(problem('Ana山')).toBe('scripts');
     expect(problem('Иван Smith')).toBe('scripts');
     for (const name of ['Παύλος', 'Иван', 'محمد', 'דוד', 'राहुल', '山田たろう', 'カタカナー', '김민수', '한국漢字', '王小明']) {
       expect(ok(name).name, name).toBe(name);
     }
-    // Dígitos e separadores não contam como sistema.
+    // Digits and separators do not count as a system.
     expect(ok('Иван_2000').name).toBe('Иван_2000');
   });
 
@@ -117,6 +117,6 @@ describe('playerNameKey', () => {
 
   it('names that are really different stay different', () => {
     expect(playerNameKey('Ana')).not.toBe(playerNameKey('Anna'));
-    expect(playerNameKey('Pаulo')).not.toBe(playerNameKey('Paulo')); // cirílico "а" (recusado antes, de todo modo)
+    expect(playerNameKey('Pаulo')).not.toBe(playerNameKey('Paulo')); // Cyrillic "а" (refused earlier, anyway)
   });
 });

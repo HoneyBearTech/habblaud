@@ -1,6 +1,6 @@
-// Auxiliar das mensagens ao Codex no Docker (scripts/codex-bridge.ts) contra as rotas de verdade (guard, app e
-// /api/codex/bridge/*): a trava das mensagens (recurso ligado + Host local), a rodada completa página → auxiliar →
-// codex queue (binário falso) → confirmação, e a conferência de cada mensagem antes de rodar o comando.
+// Helper for the messages to Codex in Docker (scripts/codex-bridge.ts) against the real routes (guard, app and
+// /api/codex/bridge/*): the messages lock (feature on + local Host), the full round page → helper →
+// codex queue (fake binary) → confirmation, and the check of each message before running the command.
 import http from 'node:http';
 import { mkdirSync } from 'node:fs';
 import type { AddressInfo } from 'node:net';
@@ -41,7 +41,7 @@ afterEach(async () => {
   tmp.cleanup();
 });
 
-/** Office + Hub + rotas de verdade, com um agente do Codex e o registro das mensagens SEM o modo Node (como no Docker). */
+/** Office + Hub + real routes, with a Codex agent and the message registry WITHOUT Node mode (as in Docker). */
 async function serve(enabled = true): Promise<{ base: string; port: number; office: Office; registry?: MessageRegistry }> {
   const late: { registry?: MessageRegistry } = {};
   const office = new Office({
@@ -97,7 +97,7 @@ describe('Codex helper routes', () => {
     const log = join(tmp.dir, 'calls.log');
     const run = createCodexQueueRunner(bin, { env: { PATH: process.env.PATH, FAKE_CODEX_LOG: log } });
     const post = httpPost(s.port);
-    // Antes do auxiliar: o Codex não recebe.
+    // Before the helper: Codex does not receive.
     expect((await request(s.base, '/api/messages', { method: 'POST', body: { agentId: MAIN, text: 'hi' } })).status).toBe(409);
     expect(await round(post, run)).toEqual({ state: 'ok', results: [] });
     expect(s.office.commit().snapshot.agents.find((a) => a.id === MAIN)!.canMessage).toBe(true);
@@ -108,7 +108,7 @@ describe('Codex helper routes', () => {
     expect(await round(post, run, (l) => lines.push(l))).toEqual({ state: 'ok', results: [{ id, ok: true }] });
     expect(fakeCodexCalls(log)).toEqual([{ args: ['queue', `--thread=${THREAD}`, '--message=--message=x and the rest'], codexHome }]);
     expect((await request(s.base, `/api/messages/${id}`)).json).toMatchObject({ status: 'delivered' });
-    // O texto nunca vai para a tela do auxiliar.
+    // The text never goes to the helper's screen.
     expect(lines.join('\n')).not.toContain('the rest');
   });
 

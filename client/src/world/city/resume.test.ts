@@ -1,5 +1,5 @@
-// De volta à cidade: o `pos` inicial igual ao último deixa tudo como estava; outro lugar vai direto; sem nada
-// guardado, o nascimento de sempre.
+// Back to the city: the initial `pos` equal to the last one leaves everything as it was; another place goes straight
+// there; with nothing saved, the usual spawn.
 import { describe, expect, it } from 'vitest';
 import { RESUME_SAME_TILES, resumePlacement, type CityResume } from './resume';
 

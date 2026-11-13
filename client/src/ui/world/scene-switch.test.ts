@@ -1,6 +1,6 @@
-// O botão Mundo: só com `meta.world.scene.available` e pela página do próprio computador (o snapshot também vai ao
-// celular, mas as rotas da cena não); no modo demonstração, sem as travas. E a volta ao escritório quando a interface
-// escolhe um agente ou sala com a cidade aberta (aviso, Responder).
+// The World button: only with `meta.world.scene.available` and from the page on the computer itself (the snapshot also
+// goes to the phone, but the scene's routes don't); in demo mode, without the locks. And the return to the office when
+// the interface picks an agent or room with the city open (notice, Reply).
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { WorldMeta, WorldSource } from '../../net/world';
 import type { Selection } from '../../world/api';
@@ -29,7 +29,7 @@ describe('citySceneAvailable', () => {
   });
 });
 
-/** Elemento mínimo para o botão Mundo no ambiente Node (só o que `h()` e `render()` tocam). */
+/** Minimal element for the World button in the Node environment (only what `h()` and `render()` touch). */
 class ElementStub {
   className = '';
   textContent = '';
@@ -45,7 +45,7 @@ class ElementStub {
 describe('SceneSwitch.leaveFor', () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  /** A cena (host falso) e a interface como em ui/index.ts: `ctx.select` passa pela guarda antes de selecionar. */
+  /** The scene (fake host) and the interface as in ui/index.ts: `ctx.select` goes through the guard before selecting. */
   function setup() {
     vi.stubGlobal('document', { createElement: () => new ElementStub() });
     const host = {

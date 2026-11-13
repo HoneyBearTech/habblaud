@@ -1,4 +1,4 @@
-// Nomes fictícios dos andares (shared/world/floor-names.ts, copiado igual no servidor do mundo) e os rótulos traduzidos.
+// Fictional names of the floors (shared/world/floor-names.ts, copied as is in the world server) and the translated labels.
 import { afterEach, describe, expect, it } from 'vitest';
 import { setLocale } from '../i18n';
 import { floorLabel, isFloorNameId } from './floor-labels';

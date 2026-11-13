@@ -1,14 +1,14 @@
-// Gera uma linha do tempo SÓ com dados fictícios para o timelapse (ex.: gravar o GIF do README).
-// Roda o simulador do modo demonstração (shared/demo/simulator.ts) offline, com relógio próprio, por
-// N horas simuladas, e grava com o mesmo gravador do servidor (server/history/timeline.ts) em
-// <pasta>/timeline/AAAA-MM-DD.jsonl. Nenhum dado real entra no arquivo.
+// Generates a timeline with ONLY fictional data for the timelapse (e.g. recording the README GIF).
+// Runs the demo mode simulator (shared/demo/simulator.ts) offline, with its own clock, for
+// N simulated hours, and writes with the same recorder as the server (server/history/timeline.ts) to
+// <folder>/timeline/YYYY-MM-DD.jsonl. No real data goes into the file.
 //
-//   npm run demo:timeline                                   # ontem, das 9h às 19h, em <tmp>/habblaud-demo
+//   npm run demo:timeline                                   # yesterday, from 9 a.m. to 7 p.m., in <tmp>/habblaud-demo
 //   npm run demo:timeline -- --date 2026-10-07 --start 8:30 --hours 11 --sessions 7
 //
-// Para assistir: HABBLAUD_DATA_DIR=<pasta> HABBLAUD_TIMELINE=0 npm start (ou npm run dev) e o botão
-// Timelapse da barra superior. Ao longo do dia o número de sessões sobe de manhã, cai no almoço, volta
-// a subir à tarde e zera no fim (sessionsAt), para o timelapse ter cara de dia de trabalho.
+// To watch: HABBLAUD_DATA_DIR=<folder> HABBLAUD_TIMELINE=0 npm start (or npm run dev) and the
+// Timelapse button in the top bar. Over the day the number of sessions rises in the morning, drops at lunch,
+// rises again in the afternoon and goes to zero at the end (sessionsAt), so the timelapse looks like a workday.
 import { existsSync, unlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -39,7 +39,7 @@ To watch: HABBLAUD_DATA_DIR=FOLDER HABBLAUD_TIMELINE=0 npm start and open the Ti
 
 export interface DemoTimelineOptions {
   date: string;
-  /** Minutos depois da meia-noite. */
+  /** Minutes after midnight. */
   startMin: number;
   hours: number;
   sessions: number;
@@ -51,7 +51,7 @@ export interface DemoTimelineOptions {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Funções puras (testadas em server/test/demo-timeline.test.ts)
+// Pure functions (tested in server/test/demo-timeline.test.ts)
 // ---------------------------------------------------------------------------------------------
 
 export function parseArgs(argv: string[], now = Date.now()): DemoTimelineOptions {
@@ -119,7 +119,7 @@ export function parseArgs(argv: string[], now = Date.now()): DemoTimelineOptions
   return o;
 }
 
-/** Fração do pico de sessões ao longo do dia (0 = início, 1 = fim): manhã, almoço, tarde e saída. */
+/** Fraction of the session peak over the day (0 = start, 1 = end): morning, lunch, afternoon and leaving. */
 const DAY_CURVE: readonly [number, number][] = [
   [0, 0.2],
   [0.08, 0.6],
@@ -133,7 +133,7 @@ const DAY_CURVE: readonly [number, number][] = [
   [1, 0],
 ];
 
-/** Sessões a manter abertas na fração `p` do dia simulado, com pico `peak`. */
+/** Sessions to keep open at fraction `p` of the simulated day, with peak `peak`. */
 export function sessionsAt(p: number, peak: number): number {
   const x = Math.min(1, Math.max(0, p));
   for (let i = 1; i < DAY_CURVE.length; i++) {
@@ -147,20 +147,20 @@ export function sessionsAt(p: number, peak: number): number {
 }
 
 export interface DemoTimelineResult {
-  /** Arquivos gravados (mais de um se o período atravessar a meia-noite). */
+  /** Files written (more than one if the period crosses midnight). */
   files: string[];
   from: number;
   to: number;
 }
 
-/** Arquivos que um período ocupa (um por dia local). */
+/** Files a period takes up (one per local day). */
 function filesFor(dir: string, from: number, to: number): string[] {
   const out: string[] = [];
   for (let day = dayKey(from); day <= dayKey(to); day = shiftDay(day, 1)) out.push(join(dir, `${day}.jsonl`));
   return out;
 }
 
-/** Simula e grava. `stepMs` = passo do relógio simulado (o servidor avança o demo a cada 250 ms). */
+/** Simulates and writes. `stepMs` = step of the simulated clock (the server advances the demo every 250 ms). */
 export function generateDemoTimeline(o: Omit<DemoTimelineOptions, 'help'>, stepMs = 500): DemoTimelineResult {
   const [y, mo, d] = o.date.split('-').map(Number);
   const from = new Date(y, mo - 1, d, Math.floor(o.startMin / 60), o.startMin % 60).getTime();
@@ -173,9 +173,9 @@ export function generateDemoTimeline(o: Omit<DemoTimelineOptions, 'help'>, stepM
     unlinkSync(f);
   }
   let now = from;
-  // Começa com uma sessão no máximo (o escritório vai enchendo pelo elevador ao longo da manhã).
+  // Starts with one session at most (the office fills up through the elevator over the morning).
   const sim = new DemoSimulator({ seed: o.seed, speed: o.pace, sessions: 1 }, from);
-  // Tudo aqui é fictício: todos os agentes saem marcados como demonstração.
+  // Everything here is fictional: all the agents come out marked as demo.
   const rec = new TimelineRecorder({ dir, now: () => now, isDemo: () => true, retentionDays: 0 });
   rec.ingest(sim.snapshot(now));
   for (; now <= to; now += stepMs) {

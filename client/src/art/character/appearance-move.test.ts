@@ -1,5 +1,5 @@
-// O sorteio da aparência mora em shared/world/appearance-flat.ts; o módulo antigo só re-exporta (a regressão das 20
-// sementes fica em shared/world/appearance-flat.test.ts).
+// The appearance draw lives in shared/world/appearance-flat.ts; the old module only re-exports (the regression of
+// the 20 seeds is in shared/world/appearance-flat.test.ts).
 import { describe, expect, it } from 'vitest';
 import * as shared from '../../../../shared/world/appearance-flat';
 import { appearanceFromSeed, SKINS } from './appearance';

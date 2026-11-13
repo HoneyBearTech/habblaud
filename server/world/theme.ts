@@ -1,7 +1,7 @@
-// Tema do prédio no World: a escolha de Configurações › Aparência (world.json) resolvida para o que vai no pacote. O
-// automático segue o calendário do escritório (seasonalThemeFor, client/src/world/api.ts; um teste confere que não se
-// separam): Halloween de 1º a 31 de outubro, Natal de 1º de novembro a 26 de dezembro e, no resto do ano, nenhum. A
-// data é a local do servidor (no Docker, UTC).
+// Theme of the building in World: the choice from Settings › Appearance (world.json) resolved to what goes in the
+// packet. Automatic follows the office calendar (seasonalThemeFor, client/src/world/api.ts; a test checks that they do
+// not drift apart): Halloween from October 1 to 31, Christmas from November 1 to December 26 and, the rest of the
+// year, none. The date is the server's local one (in Docker, UTC).
 import type { WorldThemeChoice } from '../../shared/world/api';
 import type { WorldTheme } from '../../shared/world/protocol';
 

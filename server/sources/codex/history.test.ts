@@ -1,4 +1,4 @@
-// Histórico do terminal do Codex: listagem dos rollouts recentes e a sessão resolvida com segurança.
+// Codex terminal history: listing of the recent rollouts and the session resolved safely.
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -71,7 +71,7 @@ describe('Codex history', () => {
     mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, `rollout-2026-10-01T09-00-00-${B}.jsonl.zst`), 'zst');
     expect(history.resolve('.codex', B)).toMatchObject({ status: 404, error: expect.stringContaining('.zst') });
-    // Link para fora da pasta da conta: não serve.
+    // Link to outside the account's folder: it won't do.
     const outside = tempDir();
     cleanups.push(outside.cleanup);
     writeFileSync(join(outside.dir, 'x.jsonl'), R.meta(SUB));

@@ -28,7 +28,7 @@ describe('delivery files', () => {
     expect(insideKnownFolder('/Users/ana/x-y/a.pdf', opts)).toBe(true);
     expect(insideKnownFolder('/tmp/claude/scratch/screen.png', opts)).toBe(true);
     expect(insideKnownFolder('/h/.habblaud/attachments/20261013-ab/photo.jpg', opts)).toBe(true);
-    // Fora dos projetos: o resto da pasta pessoal, outra pasta de projeto que ninguém usou e o próprio "/Users".
+    // Outside the projects: the rest of the home folder, another project folder nobody used and "/Users" itself.
     expect(insideKnownFolder('/Users/ana/Documents/statement.pdf', opts)).toBe(false);
     expect(insideKnownFolder('/Users/ana/stores/a.png', opts)).toBe(false);
     expect(insideKnownFolder('/tmpx/a.png', opts)).toBe(false);

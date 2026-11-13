@@ -1,4 +1,4 @@
-// Contas do Codex: descoberta das pastas, letra (alias de shell ou derivada), cor, nome e os metadados vindos do host.
+// Codex accounts: folder discovery, letter (shell alias or derived), color, name and the metadata coming from the host.
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -35,7 +35,7 @@ describe('Codex accounts', () => {
     expect(discoverCodexDirs({}, h.dir)).toEqual([main, work]);
     const other = h.codex('other-folder');
     expect(discoverCodexDirs({ CODEX_HOME: other }, h.dir)).toEqual([other, main, work]);
-    // A lista explícita vale como veio (só precisa existir).
+    // The explicit list is used as given (it only needs to exist).
     expect(discoverCodexDirs({ HABBLAUD_CODEX_DIRS: `~/.codex-empty, ${other}, /does/not/exist` }, h.dir)).toEqual([join(h.dir, '.codex-empty'), other]);
   });
 
@@ -46,7 +46,7 @@ describe('Codex accounts', () => {
     const third = h.codex('.codex-x');
     writeFileSync(
       join(h.dir, '.zshrc'),
-      // Caminho com `/`, como no .bashrc do Git Bash (entre aspas duplas, a `\` do Windows seria um escape).
+      // Path with `/`, as in Git Bash's .bashrc (inside double quotes, the Windows `\` would be an escape).
       ["alias cx='codex'", `alias cw="CODEX_HOME=${work.replaceAll('\\', '/')} codex --search"`, "alias c='claude'", 'export CODEX_HOME=/x # not an alias'].join('\n'),
     );
     expect(parseToolAliases("alias cx='codex'\nalias c='claude'", h.dir, 'codex')).toEqual([{ name: 'cx' }]);
@@ -54,11 +54,11 @@ describe('Codex accounts', () => {
     expect(accs.map((a) => [a.id, a.provider, a.short, a.name, a.configDir])).toEqual([
       ['.codex', 'codex', 'CX', 'Codex CX', main],
       ['.codex-work', 'codex', 'CW', 'Codex CW', work],
-      // Sem alias: a inicial do sufixo (X) já é do Claude Code: a próxima livre.
+      // No alias: the suffix's initial (X) already belongs to Claude Code: the next free one.
       ['.codex-x', 'codex', 'Y', 'Codex Y', third],
     ]);
     expect(accs.map((a) => a.color)).toEqual([ACCOUNT_COLORS[1], ACCOUNT_COLORS[2], ACCOUNT_COLORS[3]]);
-    // Uma conta só: "Codex".
+    // Only one account: "Codex".
     expect(detectCodexAccounts([main], { home: h.dir, env: {} })[0]).toMatchObject({ short: 'CX', name: 'Codex' });
     expect(detectCodexAccounts([third], { home: h.dir, env: {} })[0]).toMatchObject({ short: 'X', name: 'Codex' });
   });
@@ -75,7 +75,7 @@ describe('Codex accounts', () => {
     expect(detectCodexAccounts([mounted], { home: '/does/not/exist', env })).toEqual([
       { id: '.codex', provider: 'codex', configDir: '/Users/fulano/.codex', short: 'CX', name: 'Codex', color: '#222222', plan: 'Plus' },
     ]);
-    // As contas do Claude Code não pegam o override do Codex (nem pela pasta montada).
+    // Claude Code accounts don't get the Codex override (not even through the mounted folder).
     expect(discoverClaudeDirs(env, h.dir)).not.toContain(mounted);
     expect(detectAccounts([join(h.dir, '.codex-claude')], { home: h.dir, env: { HABBLAUD_ACCOUNTS: JSON.stringify([{ id: '.codex-claude', provider: 'codex', name: 'Codex' }]) } })[0].name).toBe('Account A');
   });

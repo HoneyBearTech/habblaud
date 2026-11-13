@@ -1,5 +1,5 @@
-// Testes das partes puras do módulo de arte (sem DOM): aparência, templates, personagens, móveis,
-// pisos, paredes, ícones, temas e os desenhos por quadro (com um contexto falso).
+// Tests of the pure parts of the art module (no DOM): appearance, templates, characters, furniture,
+// floors, walls, icons, themes and the per-frame drawings (with a fake context).
 import { describe, expect, it } from 'vitest';
 import { ACCESSORIES, BOTTOM_STYLES, FACIAL_HAIR, HAIR_STYLES, PART_KEYS, TOP_STYLES } from '../../../shared/appearance';
 import { FURNITURE, TILE, type Accessory, type Appearance, type Dir, type FloorKind, type FurnitureKind, type HairStyle, type HeldItem, type Pose, type ScreenMode, type TopStyle, type WallPattern } from './api';
@@ -17,7 +17,7 @@ import { THEME_COUNT, roomTheme } from './theme';
 
 const DIRS: Dir[] = ['down', 'left', 'up', 'right'];
 
-/** Resumo FNV-1a dos bytes (para comparar imagens sem depender de Buffer/Node). */
+/** FNV-1a digest of the bytes (to compare images without depending on Buffer/Node). */
 function digest(data: Uint8ClampedArray): string {
   let h = 0x811c9dc5;
   let g = 0x01000193;
@@ -27,7 +27,7 @@ function digest(data: Uint8ClampedArray): string {
   }
   return `${h >>> 0}:${g >>> 0}`;
 }
-/** Quantos pixels opacos do buffer têm exatamente a cor `hex` (#rrggbb). */
+/** How many opaque pixels of the buffer have exactly the color `hex` (#rrggbb). */
 function countColor(buf: PixelBuf, hex: string): number {
   const n = parseInt(hex.slice(1), 16);
   const r = n >> 16;
@@ -38,7 +38,7 @@ function countColor(buf: PixelBuf, hex: string): number {
   return c;
 }
 
-/** Desenha sprites (âncora no ponto dado) num buffer grande, na ordem — como o mundo compõe. */
+/** Draws sprites (anchor at the given point) into a large buffer, in order — as the world composes them. */
 function compose(...layers: [BufSprite, number, number][]): PixelBuf {
   const out = new PixelBuf(96, 96);
   for (const [s, x, y] of layers) out.draw(s.buf, x - s.ax, y - s.ay);
@@ -164,7 +164,7 @@ describe('characters', () => {
 });
 
 describe("pose 'wait' (waiting for the shell) and the popcorn bucket", () => {
-  /** Listras vermelhas do balde (iluminada e base). */
+  /** Red stripes of the bucket (lit and base). */
   const red = (b: PixelBuf) => countColor(b, '#d8413f') + countColor(b, '#ef6457');
   const KERNEL = '#fff9e6';
   const cast = [
@@ -173,7 +173,7 @@ describe("pose 'wait' (waiting for the shell) and the popcorn bucket", () => {
     appearanceFromSeed(5150, { look: 'f' }),
     { ...appearanceFromSeed(31), topStyle: 'hoodie' as const, hairStyle: 'long' as const },
   ];
-  /** Pés de quem senta ficam 3 px acima da base do assento (igual ao mundo). */
+  /** The feet of whoever sits are 3 px above the base of the seat (same as the world). */
   const FOOT = 3;
   const X = 48;
   const Y = 56;
@@ -206,7 +206,7 @@ describe("pose 'wait' (waiting for the shell) and the popcorn bucket", () => {
     const top = (dir: Dir, pose: Pose) => renderCharacter({ appearance: a, dir, pose, frame: 0, seated: true }).buf.bounds()?.y ?? -1;
     expect(top('down', 'wait')).toBe(top('down', 'sit') - 1);
     expect(top('up', 'wait')).toBe(top('up', 'sit') + 1);
-    // Perfil virado à esquerda: a cabeça (linhas de cima) anda 1 px para a direita.
+    // Profile facing left: the head (top rows) moves 1 px to the right.
     const headX = (pose: Pose) => renderCharacter({ appearance: a, dir: 'left', pose, frame: 0, seated: true }).buf.crop(0, 0, CHAR_W, 20).bounds()?.x ?? -1;
     expect(headX('wait')).toBe(headX('sit') + 1);
   });
@@ -214,7 +214,7 @@ describe("pose 'wait' (waiting for the shell) and the popcorn bucket", () => {
   it('popcorn readable at the desk: from the front above the desk_back and from behind outside the backrest', () => {
     for (const a of cast) {
       for (const frame of [0, 1]) {
-        // De frente: office_chair_front, a pessoa e, 1 tile ao sul, a desk_back por cima (todas as variações).
+        // Facing front: office_chair_front, the person and, 1 tile to the south, the desk_back on top (all variations).
         for (let seed = 0; seed < 4; seed++) {
           const scene = compose(
             [renderFurniture('office_chair_front', 'blue').base, X, Y],
@@ -223,7 +223,7 @@ describe("pose 'wait' (waiting for the shell) and the popcorn bucket", () => {
           );
           expect(red(scene), `front seed ${seed} f${frame}`).toBeGreaterThanOrEqual(6);
         }
-        // De costas: office_chair com o encosto (front) desenhado por cima.
+        // Back to the camera: office_chair with the chair back (front) drawn on top.
         const chair = renderFurniture('office_chair', 'blue');
         const back = compose([chair.base, X, Y], [wait(a, 'up', frame, 'popcorn'), X, Y - FOOT], [chair.front as BufSprite, X, Y]);
         expect(red(back), `back f${frame}`).toBeGreaterThanOrEqual(6);
@@ -245,7 +245,7 @@ describe("pose 'wait' (waiting for the shell) and the popcorn bucket", () => {
   it('eating: in frame 1 the hand brings a piece of popcorn to the mouth (from the front and in profile)', () => {
     for (const a of cast) {
       for (const dir of ['down', 'left'] as const) {
-        // A coroa de pipoca do balde começa na linha 20; acima dela só a pipoca na mão.
+        // The bucket's popcorn crown starts at row 20; above it only the popcorn in the hand.
         const above = (frame: number) => countColor(wait(a, dir, frame, 'popcorn').buf.crop(0, 0, CHAR_W, 20), KERNEL);
         expect(above(1), dir).toBeGreaterThan(0);
         expect(above(0), dir).toBe(0);
@@ -268,7 +268,7 @@ describe("pose 'wait' (waiting for the shell) and the popcorn bucket", () => {
   it('no item: arms crossed above the top of the desk_back, with the hand drumming its fingers', () => {
     for (const a of cast) {
       const skin = (frame: number) => countColor(wait(a, 'down', frame, 'none').buf.crop(5, 20, 3, 6), a.skin);
-      // A mão sobre o braço esquerdo aparece nos dois quadros e muda de altura (dedos batendo).
+      // The hand on the left arm appears in both frames and changes height (fingers tapping).
       expect(skin(0)).toBeGreaterThan(0);
       expect(skin(1)).toBeGreaterThan(0);
       const rowsWithSkin = (frame: number) => {
@@ -276,7 +276,7 @@ describe("pose 'wait' (waiting for the shell) and the popcorn bucket", () => {
         return [20, 21, 22, 23, 24].filter((y) => countColor(b.crop(5, y, 2, 1), a.skin) > 0).join(',');
       };
       expect(rowsWithSkin(0)).not.toBe(rowsWithSkin(1));
-      // Visível com a desk_back na frente: braços (manga ou pele) acima da linha de corte.
+      // Visible with the desk_back in front: arms (sleeve or skin) above the cut line.
       const plain = compose([wait(a, 'down', 0, 'none'), X, Y - FOOT], [renderFurniture('desk_back', 'white', 0, 0).base, X, Y + TILE]);
       const sit = compose([renderCharacter({ appearance: a, dir: 'down', pose: 'sit', frame: 0, seated: true }), X, Y - FOOT], [renderFurniture('desk_back', 'white', 0, 0).base, X, Y + TILE]);
       expect(digest(plain.data)).not.toBe(digest(sit.data));
@@ -285,7 +285,7 @@ describe("pose 'wait' (waiting for the shell) and the popcorn bucket", () => {
 });
 
 describe('social life: poses, items and gestures', () => {
-  /** Aparência fixa (pele clara, sem acessório): cores previsíveis para contar pixels. */
+  /** Fixed appearance (light skin, no accessory): predictable colors for counting pixels. */
   const A: Appearance = {
     skin: '#f6cfb0',
     hair: '#5f3c28',
@@ -306,13 +306,13 @@ describe('social life: poses, items and gestures', () => {
   const SOCIAL: Pose[] = ['cheer', 'laugh', 'game', 'rps', 'groom', 'sulk'];
   const draw = (pose: Pose, dir: Dir, frame: number, held: HeldItem = 'none', seated = false) =>
     renderCharacter({ appearance: A, dir, pose, frame, held, seated }).buf;
-  /** Pixels opacos numa região [x0, x1) × [y0, y1). */
+  /** Opaque pixels in a region [x0, x1) × [y0, y1). */
   const opaqueIn = (b: PixelBuf, x0: number, x1: number, y0: number, y1: number) => {
     let n = 0;
     for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) if (b.alpha(x, y) > 200) n++;
     return n;
   };
-  /** Pixels com cor próxima da pele (luz, base e sombra do ramp). */
+  /** Pixels with a color close to the skin (light, base and shadow of the ramp). */
   const skinIn = (b: PixelBuf, x0: number, x1: number, y0: number, y1: number) => {
     const n = parseInt(A.skin.slice(1), 16);
     const [sr, sg, sb] = [n >> 16, (n >> 8) & 255, n & 255];
@@ -359,7 +359,7 @@ describe('social life: poses, items and gestures', () => {
       expect(opaqueIn(draw('cheer', dir, 0), CHAR_AX - 6, CHAR_AX + 6, CHAR_AY - 1, CHAR_AY), dir).toBeGreaterThan(2);
       expect(opaqueIn(draw('cheer', dir, 1), CHAR_AX - 6, CHAR_AX + 6, CHAR_AY - 1, CHAR_AY), dir).toBe(0);
     }
-    // De perfil, os dois braços sobem (o de trás aparece acima/atrás da cabeça).
+    // In profile, both arms go up (the back one appears above/behind the head).
     expect(skinIn(draw('cheer', 'left', 0), 0, 6, 0, 12)).toBeGreaterThan(0);
     expect(skinIn(draw('cheer', 'left', 0), 17, CHAR_W, 0, 12)).toBeGreaterThan(0);
   });
@@ -378,7 +378,7 @@ describe('social life: poses, items and gestures', () => {
     expect(countColor(draw('game', 'down', 0, 'controller'), red)).toBeGreaterThan(0);
     expect(countColor(draw('game', 'left', 0, 'controller'), red)).toBeGreaterThan(0);
     expect(countColor(draw('game', 'up', 0, 'controller'), red)).toBe(0);
-    // Sentado também (no sofá diante da TV).
+    // Seated too (on the sofa in front of the TV).
     expect(countColor(draw('game', 'down', 1, 'controller', true), red)).toBeGreaterThan(0);
   });
 
@@ -389,9 +389,9 @@ describe('social life: poses, items and gestures', () => {
       expect(d).not.toContain(digest(draw('rps', dir, 0).data));
     }
     expect(skinIn(draw('rps', 'left', 0, 'paper'), 0, 8, 12, 26)).toBeGreaterThan(skinIn(draw('rps', 'left', 0, 'rock'), 0, 8, 12, 26));
-    // De costas o braço abre para o lado: o gesto aparece à direita do corpo.
+    // From the back the arm opens to the side: the gesture appears to the right of the body.
     for (const g of ['rock', 'paper', 'scissors'] as const) expect(skinIn(draw('rps', 'up', 0, g), 20, CHAR_W, 10, 24), g).toBeGreaterThan(0);
-    // Na contagem (sem gesto) o punho sobe acima do ombro no quadro 0 e desce no 1.
+    // On the count (no gesture) the fist goes up above the shoulder on frame 0 and down on frame 1.
     expect(skinIn(draw('rps', 'down', 0), 17, CHAR_W, 8, 15)).toBeGreaterThan(skinIn(draw('rps', 'down', 1), 17, CHAR_W, 8, 15));
   });
 
@@ -428,7 +428,7 @@ describe('furniture', () => {
           for (const s of [f.base, f.front]) {
             if (!s) continue;
             expect(s.buf.countOpaque(), `${kind}/${v}/${st}`).toBeGreaterThan(8);
-            // Âncora horizontal dentro do sprite; regiões dentro do buffer.
+            // Horizontal anchor inside the sprite; regions inside the buffer.
             expect(s.ax).toBeGreaterThanOrEqual(0);
             expect(s.ax).toBeLessThanOrEqual(s.buf.w);
             for (const r of Object.values(s.rects ?? {})) {
@@ -440,14 +440,14 @@ describe('furniture', () => {
             }
           }
           if (def.mount === 'floor') {
-            // O sprite não desce mais que a sombra abaixo da base nem flutua acima do footprint.
+            // The sprite does not go lower than the shadow below the base nor float above the footprint.
             for (const s of [f.base, f.front]) {
               if (!s) continue;
               expect(s.buf.h - s.ay, `${kind}/${v}`).toBeLessThanOrEqual(5);
               expect(s.ay - s.buf.h, `${kind}/${v}`).toBeLessThan(def.footprint.h * TILE);
             }
           } else {
-            // Itens de parede ficam acima do rodapé, dentro da face (2 tiles).
+            // Wall items stay above the baseboard, inside the face (2 tiles).
             expect(f.base.ay).toBeGreaterThan(0);
             expect(f.base.ay - f.base.buf.h).toBeLessThanOrEqual(2 * TILE);
           }
@@ -490,7 +490,7 @@ describe('furniture', () => {
 });
 
 describe('readability of the desks, sofa and eyes', () => {
-  /** Luminância (0–1) do pixel (x, y) do buffer, em coordenadas do footprint do móvel. */
+  /** Luminance (0–1) of pixel (x, y) of the buffer, in coordinates of the furniture footprint. */
   function lumAt(s: { buf: { w: number; data: Uint8ClampedArray }; ax: number; ay: number }, fw: number, fh: number, fx: number, fy: number): number {
     const x = s.ax - (fw * TILE) / 2 + fx;
     const y = s.ay - fh * TILE + fy;
@@ -502,7 +502,7 @@ describe('readability of the desks, sofa and eyes', () => {
     for (const v of ['white', 'wood', 'dark']) {
       for (let seed = 0; seed < 4; seed++) {
         const f = renderFurniture('desk_back', v, 0, seed);
-        // Centro da carcaça do monitor (x 8..23 ou 2..16 na variação 1; y -7..2).
+        // Center of the monitor housing (x 8..23 or 2..16 in variation 1; y -7..2).
         const cx = seed % 4 === 1 ? 6 : 13;
         const l = lumAt(f.base, 2, 1, cx, -4);
         expect(l, `${v}/${seed}`).toBeGreaterThan(v === 'dark' ? 0.45 : 0.7);
@@ -533,7 +533,7 @@ describe('readability of the desks, sofa and eyes', () => {
   });
 
   it('keyboard and papers do not disappear on the white desk', () => {
-    // Variação 0: teclado em x 11..20, y -1..1 sobre o tampo branco.
+    // Variation 0: keyboard at x 11..20, y -1..1 on the white desktop.
     const f = renderFurniture('desk', 'white', 0, 0);
     const top = lumAt(f.base, 2, 1, 4, -3);
     const kb = lumAt(f.base, 2, 1, 15, 1);
@@ -545,11 +545,11 @@ describe('readability of the desks, sofa and eyes', () => {
     const front = f.front;
     expect(front).toBeDefined();
     if (!front) return;
-    // Linha no meio da face traseira: uma cor só de ponta a ponta (fora as bordas).
+    // Row in the middle of the back face: a single color from end to end (except the edges).
     const row = new Set<number>();
     for (let fx = 2; fx <= 45; fx++) row.add(Math.round(lumAt(front, 3, 1, fx, 8) * 1000));
     expect(row.size).toBe(1);
-    // Os braços sobem acima do encosto (lê como "visto de trás").
+    // The arms go up above the chair back (it reads as "seen from behind").
     expect(lumAt(f.base, 3, 1, 2, -4)).toBeGreaterThan(0);
     expect(f.base.buf.alpha(f.base.ax - 24 + 2, f.base.ay - 16 - 4)).toBeGreaterThan(200);
   });
@@ -564,7 +564,7 @@ describe('readability of the desks, sofa and eyes', () => {
         const i = (y * s.buf.w + x) * 4;
         return (0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]) / 255;
       };
-      // Olho esquerdo: coluna 4 da grade da cabeça (x = 9), linhas 10–11 (y = 13–14); pele ao lado (x = 8).
+      // Left eye: column 4 of the head grid (x = 9), rows 10–11 (y = 13–14); skin next to it (x = 8).
       const skinL = lum(8, 13);
       const contrast = Math.max(Math.abs(lum(9, 13) - skinL), Math.abs(lum(9, 14) - skinL));
       expect(contrast, skin).toBeGreaterThan(0.25);
@@ -591,7 +591,7 @@ describe('floors and walls', () => {
       const j = (y * CHUNK_PX) * 4;
       if (left.data[i] !== right.data[j]) differ++;
     }
-    // Só as emendas reais das tábuas (poucas linhas) podem diferir.
+    // Only the real seams of the boards (a few rows) can differ.
     expect(differ).toBeLessThan(CHUNK_PX / 3);
   });
 
@@ -616,14 +616,14 @@ describe('icons and themes', () => {
     for (const n of ICON_NAMES) {
       const s = renderIcon(n);
       expect(s.buf.w, n).toBeGreaterThanOrEqual(8);
-      // A teia de canto tem 12 px + contorno; os demais cabem em 13.
+      // The corner web is 12 px + outline; the others fit in 13.
       expect(s.buf.w, n).toBeLessThanOrEqual(n === 'cobweb' ? 14 : 13);
       expect(s.buf.h, n).toBeLessThanOrEqual(14);
       expect(s.buf.countOpaque(), n).toBeGreaterThan(20);
-      // Âncora no centro inferior.
+      // Anchor at the bottom center.
       expect(s.ay).toBe(s.buf.h);
       expect(Math.abs(s.ax - s.buf.w / 2)).toBeLessThanOrEqual(1);
-      // Templates só com caracteres da paleta e linhas de mesma largura.
+      // Templates only with palette characters and rows of the same width.
       const def = iconTemplates()[n];
       for (const row of def.rows) {
         expect(row.length, n).toBe(def.rows[0].length);
@@ -639,13 +639,13 @@ describe('icons and themes', () => {
   it('hourglass: upright and lying down (to alternate and look like it is spinning), same sand and wood', () => {
     const up = renderIcon('hourglass');
     const flip = renderIcon('hourglass_flip');
-    // Em pé é mais alta que larga; deitada, mais larga que alta.
+    // Standing it is taller than wide; lying down, wider than tall.
     expect(up.buf.h).toBeGreaterThan(up.buf.w);
     expect(flip.buf.w).toBeGreaterThan(flip.buf.h);
     const sand = '#f5c451';
     expect(countColor(up.buf, sand)).toBeGreaterThan(4);
     expect(countColor(flip.buf, sand)).toBeGreaterThan(4);
-    // Areia em cima (bulbo superior) na versão em pé.
+    // Sand on top (upper bulb) in the standing version.
     const top = countColor(up.buf.crop(0, 0, up.buf.w, Math.floor(up.buf.h / 2)), sand);
     expect(top).toBeGreaterThan(countColor(up.buf, sand) / 2);
   });
@@ -684,7 +684,7 @@ describe('icons and themes', () => {
 });
 
 describe('per-frame drawings', () => {
-  /** Contexto falso que registra os fillRect (únicas chamadas permitidas). */
+  /** Fake context that records the fillRect calls (the only calls allowed). */
   function fakeCtx() {
     const rects: [number, number, number, number][] = [];
     const ctx = {
@@ -714,8 +714,8 @@ describe('per-frame drawings', () => {
   });
 
   it('drawScreen has a cost independent of t (the world passes Date.now())', () => {
-    // Regressão: o modo terminal percorria todas as linhas desde t = 0 (~10^9 iterações por
-    // monitor com t ≈ 1,8e12), congelando o app inteiro. Agora cada chamada é O(tamanho da tela).
+    // Regression: the terminal mode went through all the lines since t = 0 (~10^9 iterations per
+    // monitor with t ≈ 1.8e12), freezing the whole app. Now each call is O(screen size).
     const modes = SCREEN_MODES;
     const r = { x: 10, y: 20, w: 14, h: 9 };
     const big = 1.8e12;
@@ -729,7 +729,7 @@ describe('per-frame drawings', () => {
         expect(inside(rects, r), `${m} t=${big + k * 997}`).toBe(true);
       }
     }
-    // 440 chamadas: com o bug levava minutos; o esperado é bem abaixo de 1 s mesmo em CI lento.
+    // 440 calls: with the bug it took minutes; the expected is well under 1 s even on slow CI.
     expect(performance.now() - t0).toBeLessThan(1000);
   });
 
@@ -747,10 +747,10 @@ describe('per-frame drawings', () => {
     };
     drawScreen(ctx as unknown as CanvasRenderingContext2D, { x: 0, y: 0, w: 14, h: 9 }, 'off', 0, 1);
     expect(lum(fills[0])).toBeGreaterThan(0.15);
-    expect(new Set(fills).size).toBeGreaterThan(2); // fundo + reflexos
+    expect(new Set(fills).size).toBeGreaterThan(2); // background + reflections
     fills.length = 0;
     drawScreen(ctx as unknown as CanvasRenderingContext2D, { x: 0, y: 0, w: 14, h: 9 }, 'standby', 0, 1);
-    expect(Math.max(...fills.map(lum))).toBeGreaterThan(0.6); // logo claro
+    expect(Math.max(...fills.map(lum))).toBeGreaterThan(0.6); // light logo
   });
 
   it('terminal: the current line advances with time and types little by little', () => {
@@ -760,7 +760,7 @@ describe('per-frame drawings', () => {
       drawScreen(ctx, r, 'terminal', t, 3);
       return JSON.stringify(rects);
     };
-    // Determinístico e animado (o quadro muda ao longo de alguns segundos), também com t enorme.
+    // Deterministic and animated (the frame changes over a few seconds), also with a huge t.
     for (const base of [0, 1.8e12]) {
       expect(snap(base + 5000)).toBe(snap(base + 5000));
       const frames = new Set([0, 1300, 2600, 3900, 5200, 6500].map((d) => snap(base + d)));
@@ -770,7 +770,7 @@ describe('per-frame drawings', () => {
 
   it("'progress' screen: bar that fills with time, spinner spinning, and starts over (deterministic)", () => {
     const r = { x: 0, y: 0, w: 14, h: 9 };
-    /** Largura da parte cheia da barra (cores do enchimento) num instante. */
+    /** Width of the filled part of the bar (fill colors) at an instant. */
     const snap = (t: number, seed = 2) => {
       const fills: { c: string; x: number; y: number; w: number; h: number }[] = [];
       const ctx = {
@@ -785,7 +785,7 @@ describe('per-frame drawings', () => {
     const filled = (t: number) => Math.max(0, ...snap(t).filter((f) => f.c === '#3ccf63' || f.c === '#b9ffca').map((f) => f.w));
     for (const base of [0, 1.8e12]) {
       expect(JSON.stringify(snap(base + 1234))).toBe(JSON.stringify(snap(base + 1234)));
-      // Ao longo de um ciclo (~3,4–4,6 s) a barra cresce e depois volta a zero.
+      // Over one cycle (~3.4–4.6 s) the bar grows and then goes back to zero.
       const widths = Array.from({ length: 48 }, (_, k) => filled(base + k * 100));
       expect(Math.max(...widths)).toBeGreaterThanOrEqual(r.w - 4);
       expect(Math.min(...widths)).toBeLessThanOrEqual(1);
@@ -793,10 +793,10 @@ describe('per-frame drawings', () => {
       for (let k = 1; k < widths.length; k++) if (widths[k] > widths[k - 1]) grows++;
       expect(grows).toBeGreaterThan(4);
     }
-    // Spinner: a cabeça clara muda de lugar entre quadros próximos.
+    // Spinner: the light head changes place between nearby frames.
     const head = (t: number) => JSON.stringify(snap(t).filter((f) => f.c === '#9ff3ff'));
     expect(head(0)).not.toBe(head(110));
-    // Escuro como um terminal (fundo é o 1º fill e cobre a tela toda).
+    // Dark like a terminal (the background is the 1st fill and covers the whole screen).
     const bg = snap(0)[0];
     expect(bg).toMatchObject({ x: 0, y: 0, w: 14, h: 9 });
   });
@@ -824,7 +824,7 @@ describe('per-frame drawings', () => {
       expect(colors('game', k), `race ${k}`).toContain('#6a7280');
       expect(colors('game', k + 1), `fight ${k + 1}`).toContain('#3b2a6b');
     }
-    // O "GOL" (faixa escura + letras) aparece no fim de cada lance; o "KO", no fim do round.
+    // The "GOL" (dark banner + letters) appears at the end of each play; the "KO", at the end of the round.
     const banner = 'rgba(12,16,28,0.78)';
     const some = (m: ScreenMode, seed: number, span: number) => {
       for (let t = 0; t < span; t += 50) if (colors(m, seed, t).includes(banner)) return true;
@@ -855,7 +855,7 @@ describe('per-frame drawings', () => {
   });
 });
 
-// Deriva entre shared/appearance (o que o servidor aceita) e as uniões da arte: quebra no typecheck.
+// Drift between shared/appearance (what the server accepts) and the art unions: breaks at typecheck.
 type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
 const STYLE_LISTS_MATCH: [
   Same<(typeof HAIR_STYLES)[number], HairStyle>,
@@ -874,7 +874,7 @@ describe('character editor (art)', () => {
     const base = appearanceFromSeed(5, { look: 'f' });
     expect(appearanceFromSeed(5, { look: 'f', parts: { hairStyle: 'mohawk', skin: '#5a3623' } })).toEqual({ ...base, hairStyle: 'mohawk', skin: '#5a3623' });
     expect(appearanceFromSeed(5, { look: 'f', parts: {} })).toEqual(base);
-    // Um undefined explícito não apaga a peça sorteada.
+    // An explicit undefined does not erase the randomly picked piece.
     expect(appearanceFromSeed(5, { look: 'f', parts: { hairStyle: undefined, skin: undefined } })).toEqual(base);
   });
 

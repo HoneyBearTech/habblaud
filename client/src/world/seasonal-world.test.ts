@@ -1,4 +1,4 @@
-// O tema automático do prédio no World (server/world/theme.ts) segue o mesmo calendário do escritório (seasonalThemeFor).
+// The building's automatic theme in World (server/world/theme.ts) follows the same calendar as the office (seasonalThemeFor).
 import { describe, expect, it } from 'vitest';
 import { resolveWorldTheme } from '../../../server/world/theme';
 import { seasonalThemeFor } from './api';

@@ -1,6 +1,6 @@
-// Geometria da cidade (shared/world/city.ts, a fonte; o servidor do mundo guarda a cópia exata em protocol/city.ts).
-// Os vetores daqui são os mesmos do teste de lá: se um lado mudar a conta, o outro quebra. Que o arquivo não importa
-// nada (para ser copiado igual) é conferido em server/world/sources.test.ts, que pode ler o disco.
+// City geometry (shared/world/city.ts, the source; the world server keeps the exact copy in protocol/city.ts).
+// The vectors here are the same as in the test there: if one side changes the math, the other breaks. That the file
+// imports nothing (to be copied as is) is checked in server/world/sources.test.ts, which can read the disk.
 import { describe, expect, it } from 'vitest';
 import {
   BLOCK_STRIDE, BLOCK_TILES, FOUNTAIN, blockAt, blockOf, blockOrigin, blockSpiral, blocksOfChunk, chunkId, chunkOf,
@@ -89,7 +89,7 @@ describe('city.ts: lot, block and door', () => {
       expect(lotAt(d.tiles[0].x, d.tiles[0].y)).toEqual(lot);
       expect(lotAt(d.front.x, d.front.y)).toBeNull();
     }
-    expect(lotAt(21, 15)).toBeNull(); // praça
+    expect(lotAt(21, 15)).toBeNull(); // plaza
   });
 });
 
@@ -126,7 +126,7 @@ describe('city.ts: chunks', () => {
     expect(blockAt(-4.4, -4.4)).toEqual({ x: 0, y: 0 });
     expect(blockAt(-4.6, 5)).toEqual({ x: -1, y: 0 });
     expect(blockAt(5, 28.6)).toEqual({ x: 0, y: 1 });
-    // o lote está sempre no próprio quarteirão
+    // the lot is always in its own block
     for (const lot of take(lotSpiral(), 100)) {
       const o = lotOrigin(lot);
       expect(blockAt(o.x, o.y)).toEqual(blockOf(lot));
@@ -138,24 +138,24 @@ describe('city.ts: walkable', () => {
   const walk = (x: number, y: number, occupied: (l: CityPoint) => boolean = none) => isWalkable(x, y, occupied);
 
   it('sidewalk and roadway yes', () => {
-    expect(walk(42, 5)).toBe(true); // calçada leste da praça
+    expect(walk(42, 5)).toBe(true); // east sidewalk of the plaza
     expect(walk(43, 5)).toBe(true);
-    expect(walk(46, 5)).toBe(true); // pista
-    expect(walk(49, 5)).toBe(true); // calçada oeste do quarteirão (1, 0)
+    expect(walk(46, 5)).toBe(true); // roadway
+    expect(walk(49, 5)).toBe(true); // west sidewalk of block (1, 0)
     expect(walk(50, 5)).toBe(true);
-    expect(walk(60, -1)).toBe(true); // calçada norte
-    expect(walk(60, -5)).toBe(true); // pista
-    expect(walk(46, 28)).toBe(true); // cruzamento
+    expect(walk(60, -1)).toBe(true); // north sidewalk
+    expect(walk(60, -5)).toBe(true); // roadway
+    expect(walk(46, 28)).toBe(true); // intersection
     expect(walk(-1, -1)).toBe(true);
-    expect(walk(-9, 5)).toBe(true); // calçada leste do quarteirão (-1, 0)
+    expect(walk(-9, 5)).toBe(true); // east sidewalk of block (-1, 0)
   });
 
   it('lot no, with or without a building', () => {
     expect(walk(51, 0)).toBe(false);
     expect(walk(60, 5)).toBe(false);
     expect(walk(60, 5, all)).toBe(false);
-    expect(walk(92, 23)).toBe(false); // último tile do quarteirão (1, 0)
-    expect(walk(-10, 5)).toBe(false); // quarteirão (-1, 0)
+    expect(walk(92, 23)).toBe(false); // last tile of block (1, 0)
+    expect(walk(-10, 5)).toBe(false); // block (-1, 0)
     expect(walk(-51, -33)).toBe(false);
   });
 
@@ -169,7 +169,7 @@ describe('city.ts: walkable', () => {
     expect(walk(23, 12)).toBe(true);
     expect(walk(19, 9.9)).toBe(true);
     expect(walk(19, 13)).toBe(true);
-    // a mesma posição relativa num quarteirão comum é lote
+    // the same relative position in an ordinary block is a lot
     expect(walk(51 + 19, 10)).toBe(false);
   });
 
@@ -188,6 +188,6 @@ describe('city.ts: walkable', () => {
     const s = spawnPoint();
     expect(s).toEqual({ x: 21, y: 15 });
     expect(walk(s.x, s.y)).toBe(true);
-    expect(spawnPoint()).not.toBe(spawnPoint()); // cópia: quem mexe não estraga
+    expect(spawnPoint()).not.toBe(spawnPoint()); // copy: whoever changes it breaks nothing
   });
 });

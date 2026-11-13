@@ -26,7 +26,7 @@ describe('tool (Claude Code or Codex)', () => {
   it('id that looks like a Codex folder (only when the account is no longer in the snapshot)', () => {
     for (const id of ['.codex', 'demo:.codex', '.codex-work', '.codex~2', '/Users/ana/.codex', 'codex']) expect(looksLikeCodexId(id), id).toBe(true);
     for (const id of ['.claude', '.claude-conta2', 'demo:.claude', 'mycodex', '.codexy', '']) expect(looksLikeCodexId(id), id).toBe(false);
-    // Com a conta à mão, vale o provider dela; sem ela, a dica de quem chamou e, por fim, o id.
+    // With the account at hand, its provider wins; without it, the caller's hint and, last, the id.
     expect(accountProvider({ provider: 'codex' }, '.claude')).toBe('codex');
     expect(accountProvider({}, '.codex')).toBe('claude');
     expect(accountProvider(undefined, '.claude', 'codex')).toBe('codex');

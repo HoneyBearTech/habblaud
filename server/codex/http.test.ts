@@ -1,6 +1,6 @@
-// Rota dos eventos dos hooks do Codex (POST /api/codex/events) pelas rotas de verdade (guard e app): repassa à fonte
-// do Codex ao vivo (um falso) com a conta certa (pela pasta CODEX_HOME), só com Host local, só POST com JSON, corpo até
-// 256 KB; sem a fonte, {ok: false}. Dados sintéticos.
+// Route of the Codex hook events (POST /api/codex/events) through the real routes (guard and app): passes them on
+// to the live Codex source (a fake one) with the right account (by the CODEX_HOME folder), only with a local Host,
+// only POST with JSON, body up to 256 KB; without the source, {ok: false}. Synthetic data.
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -31,7 +31,7 @@ async function serve(live?: CodexLive): Promise<{ base: string; accounts: Accoun
   const office = new Office({ names: new NameStore(null), version: 't', startedAt: 0, accounts: () => [], sources: () => [], accountName: () => undefined });
   const hub = new Hub(office, { throttleMs: 10 });
   const accounts = new AccountsService({ dirs: [], home: tmp.dir, env: {}, onChange: () => {} });
-  // Conta do Codex desambiguada (".codex~2"): o caminho do host é o que vale.
+  // Disambiguated Codex account (".codex~2"): the host path is the one that counts.
   accounts.setProviderAccounts('codex', [
     { dir: '/mounted/a', detected: { id: '.codex', configDir: '/Users/x/.codex', short: 'X', name: 'Codex X', color: '#000' } },
     { dir: '/mounted/b', detected: { id: '.codex', configDir: '/Volumes/y/.codex', short: 'Y', name: 'Codex Y', color: '#111' } },

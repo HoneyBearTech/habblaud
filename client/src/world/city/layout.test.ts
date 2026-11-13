@@ -1,5 +1,5 @@
-// Geometria da cidade vista pela cena: grade do A* igual ao `isWalkable` do city.ts (o do servidor), portas,
-// decoração determinística e fora das portas, quarteirões visíveis.
+// City geometry as seen by the scene: A* grid equal to the `isWalkable` of city.ts (the server's), doors,
+// deterministic decoration that stays off the doors, visible blocks.
 import { describe, expect, it } from 'vitest';
 import { BLOCK_STRIDE, FOUNTAIN, isWalkable, lotDoor, lotOrigin, lotSpiral, spawnPoint } from '../../../../shared/world/city';
 import { PathFinder } from '../path/astar';
@@ -23,7 +23,7 @@ import {
 
 const anyLot = () => true;
 
-/** Os n primeiros de um gerador (a espiral é infinita). */
+/** The first n of a generator (the spiral is infinite). */
 function take<T>(gen: Iterable<T>, n: number): T[] {
   const out: T[] = [];
   for (const v of gen) {
@@ -92,7 +92,7 @@ describe('cell and visible blocks', () => {
     const r2 = blockRange({ x0: -1, y0: -1, x1: BLOCK_STRIDE.x * TILE * 2, y1: 5 }, 0);
     expect(r2.bx0).toBe(0);
     expect(r2.bx1).toBe(2);
-    // a calçada oeste do quarteirão 0 (x = -2 tiles) já é do quarteirão 0
+    // the west sidewalk of block 0 (x = -2 tiles) already belongs to block 0
     expect(blockRange({ x0: -2 * TILE, y0: 0, x1: -2 * TILE + 1, y1: 1 }, 0).bx0).toBe(0);
     expect(blockRange({ x0: -3 * TILE, y0: 0, x1: -3 * TILE + 1, y1: 1 }, 0).bx0).toBe(-1);
   });
@@ -126,7 +126,7 @@ describe('deterministic decoration', () => {
       const doorsX = [0, 1, 2].map((i) => o.x + i * 14 + 7);
       for (const d of a) {
         const ty = d.y / TILE;
-        // só as calçadas norte e sul têm portas
+        // only the north and south sidewalks have doors
         const onDoorRow = ty < o.y || ty > o.y + 24;
         if (!onDoorRow || d.x / TILE < o.x || d.x / TILE > o.x + 42) continue;
         for (const dx of doorsX) expect(Math.abs(d.x / TILE - dx)).toBeGreaterThanOrEqual(2.5);
@@ -139,7 +139,7 @@ describe('deterministic decoration', () => {
     expect(lotDecor(lot, false)).toEqual(lotDecor(lot, false));
     expect(lotDecor(lot, true)).toEqual(lotDecor(lot, true));
     expect(GARDEN_KINDS).toContain(gardenKind(lot));
-    // tudo dentro do lote
+    // everything inside the lot
     const o = lotOrigin(lot);
     for (const d of [...lotDecor(lot, false), ...lotDecor(lot, true)]) {
       expect(d.x).toBeGreaterThanOrEqual(o.x * TILE);

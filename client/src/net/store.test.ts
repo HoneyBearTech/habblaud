@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { OfficeSnapshot } from '../../../shared/types';
 import { mockOptionsFrom, OfficeStore, pageBuild, reconnectDelay, type EventSourceLike } from './store';
 
-/** EventSource falso: o teste dispara open/error e muda o readyState. */
+/** Fake EventSource: the test fires open/error and changes the readyState. */
 class FakeSource implements EventSourceLike {
   readyState = 0;
   closed = false;
@@ -27,7 +27,7 @@ class FakeSource implements EventSourceLike {
     this.fire('open');
   }
 
-  /** Erro definitivo (ex.: HTTP 502): o navegador desiste e fecha o stream. */
+  /** Permanent error (e.g. HTTP 502): the browser gives up and closes the stream. */
   fail(): void {
     this.readyState = 2;
     this.fire('error');
@@ -107,14 +107,14 @@ describe('OfficeStore: reconnection', () => {
     expect(sources).toHaveLength(2);
     expect(sources[0].closed).toBe(true);
 
-    // Segunda falha seguida: espera 4 s.
+    // Second failure in a row: waits 4 s.
     last().fail();
     vi.advanceTimersByTime(3_999);
     expect(sources).toHaveLength(2);
     vi.advanceTimersByTime(1);
     expect(sources).toHaveLength(3);
 
-    // Conectou: zera a espera.
+    // Connected: resets the wait.
     last().open();
     expect(store.connection).toBe('open');
     last().fail();
@@ -272,7 +272,7 @@ describe('alternate source (timelapse)', () => {
       expect(store.replaying).toBe(true);
       expect(store.snapshot).toBe(replayed);
       expect(store.agent('tl')).toBeDefined();
-      // Ao vivo chegando por baixo: guardado, sem emitir, e o mais antigo continua descartado.
+      // Live arriving underneath: kept, without emitting, and the older one is still discarded.
       apply({ ...snap(6), serverTime: 9_500 });
       apply(snap(4));
       expect(store.snapshot).toBe(replayed);
@@ -283,7 +283,7 @@ describe('alternate source (timelapse)', () => {
       store.stopReplay();
       expect(store.replaying).toBe(false);
       expect(store.snapshot?.rev).toBe(6);
-      // O relógio da interface sai do serverTime: avança o tempo que o snapshot ficou guardado.
+      // The interface clock comes from serverTime: it advances by the time the snapshot was kept.
       expect(store.snapshot?.serverTime).toBe(9_500 + 2_000);
       expect(store.agent('tl')).toBeUndefined();
       expect(seen).toEqual([5, 1, 6]);

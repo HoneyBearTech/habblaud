@@ -1,4 +1,4 @@
-// Camadas de estado: splash de carregamento, escritório vazio e aviso de conexão perdida.
+// State layers: loading splash, empty office and lost connection notice.
 import type { UiComponent, UiContext } from './context';
 import { h, prefersReducedMotion, setHidden, setText } from './dom';
 import { FALLBACK_MARK } from './icons';
@@ -6,7 +6,7 @@ import { emptyOfficeHint } from './provider';
 import { wordmark } from './widgets';
 import { tr } from '../../../shared/i18n';
 
-/** Depois de quanto tempo sem conexão o aviso aparece. */
+/** After how long without a connection the notice shows up. */
 const DISCONNECTED_BANNER_MS = 8_000;
 
 function brandMark(size: number): HTMLElement {
@@ -51,7 +51,7 @@ export class Splash implements UiComponent {
     if (waited > DISCONNECTED_BANNER_MS) text = tr("The Habblaud server isn't responding. Check that it's running (npm run dev or npm start); we'll keep trying.");
     else if (store.connection === 'closed') text = tr("Couldn't connect to the Habblaud server. Retrying…");
     setText(this.text, text);
-    // Reavalia o texto mesmo sem eventos novos.
+    // Reevaluates the text even without new events.
     this.tick ??= setTimeout(() => {
       this.tick = null;
       this.ctx.invalidate();
@@ -59,12 +59,12 @@ export class Splash implements UiComponent {
   }
 }
 
-/** Conectado e sem nenhuma sessão: o cartão "escritório vazio" aparece (e os painéis não repetem o aviso). */
+/** Connected and with no session: the "empty office" card shows up (and the panels do not repeat the notice). */
 export function officeIsEmpty(ctx: UiContext): boolean {
   const { store } = ctx;
   const snap = store.snapshot;
   const connected = store.connection === 'open' || store.connection === 'mock';
-  // No timelapse, um momento sem ninguém não é "abra o Claude Code (ou o Codex)".
+  // In the timelapse, a moment with nobody is not "open Claude Code (or Codex)".
   return connected && !store.replaying && !!snap && snap.agents.length === 0 && snap.rooms.length === 0;
 }
 
@@ -80,7 +80,7 @@ export class EmptyState implements UiComponent {
     img.addEventListener('error', () => {
       img.remove();
       art.classList.add('is-css');
-      // Ilustração em CSS: mesa vazia, monitor apagado, planta e luminária.
+      // CSS illustration: empty desk, monitor off, plant and lamp.
       art.append(
         h('span', { class: 'ui-empty__lamp' }),
         h('span', { class: 'ui-empty__monitor' }),
@@ -138,7 +138,7 @@ export class ConnectionBanner implements UiComponent {
   constructor(private ctx: UiContext) {
     this.text = h('span');
     this.retry = h('span', { class: 'ui-banner__retry' });
-    // A reconexão automática (com espera crescente) mora no store; o botão só antecipa a próxima tentativa.
+    // The automatic reconnection (with a growing wait) lives in the store; the button only brings the next attempt forward.
     const retryBtn = h('button', { class: 'ui-btn ui-btn--sm', type: 'button', text: tr('Try now'), on: { click: () => ctx.store.reconnectNow() } });
     this.el = h(
       'div',
@@ -179,7 +179,7 @@ export class ConnectionBanner implements UiComponent {
     const secs = next === null ? 0 : Math.max(1, Math.ceil((next - Date.now()) / 1000));
     setText(this.retry, next === null ? tr(' Trying to reconnect…') : tr(' Retrying in {0} s.', [secs]));
     setHidden(this.el, false);
-    // Atualiza a contagem regressiva a cada segundo enquanto o aviso estiver aberto.
+    // Updates the countdown every second while the notice is open.
     this.timer ??= setTimeout(() => {
       this.timer = null;
       this.ctx.invalidate();

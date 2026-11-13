@@ -69,7 +69,7 @@ describe('NameStore', () => {
       const b = new NameStore(file);
       b.load();
       expect(b.assign('sess-1', new Set()).name).toBe(first.name);
-      // Se o nome persistido colidir com alguém presente, escolhe outro.
+      // If the persisted name collides with someone present, it picks another.
       expect(b.assign('sess-1', new Set([first.name])).name).not.toBe(first.name);
     } finally {
       tmp.cleanup();
@@ -251,7 +251,7 @@ describe('Office', () => {
     expect(snap.recent.map((a) => a.id)).toEqual(Array.from({ length: SNAPSHOT_RECENT }, (_, i) => `a${20 - SNAPSHOT_RECENT + i}`));
     expect(snap.activity?.id).toBe('a19');
     expect(office.detail('acc:1')!.history).toHaveLength(20);
-    // Atividades antigas (começo do transcript) entram só no histórico, em ordem e sem duplicar.
+    // Old activities (beginning of the transcript) go only into the history, in order and without duplicating.
     office.mergeHistory('acc:1', [act('old-1', 10), act('old-2', 20), act('a0', now())]);
     const h = office.detail('acc:1')!.history;
     expect(h.slice(0, 3).map((a) => a.id)).toEqual(['old-1', 'old-2', 'a0']);
@@ -268,9 +268,9 @@ describe('Office', () => {
     const r = office.commit();
     expect(r.snapshot.agents[0].activity).toMatchObject({ kind: 'wait', text: 'Needs you: answer a question' });
     expect(r.notices).toEqual([]);
-    // O feed do boot vai para quem conectar (recentFeed), sem a espera sintetizada.
+    // The boot feed goes to whoever connects (recentFeed), without the synthesized wait.
     expect(office.recentFeed(10).map((f) => f.id)).toEqual(['w1']);
-    // Respondeu: volta a mostrar o que fazia.
+    // Answered: goes back to showing what it was doing.
     office.setStatus('acc:1', 'working');
     expect(office.get('acc:1')!.activity?.id).toBe('w1');
   });
@@ -278,35 +278,35 @@ describe('Office', () => {
   it('counted boot: several sources booting, the office is only ready when the last one finishes', () => {
     const { office, advance, now } = makeOffice();
     expect(office.isBooting()).toBe(false);
-    office.beginBoot(); // fonte A (ex.: Claude Code)
-    office.beginBoot(); // fonte B (ex.: Codex, assíncrona)
+    office.beginBoot(); // source A (e.g.: Claude Code)
+    office.beginBoot(); // source B (e.g.: Codex, asynchronous)
     office.addMain({ id: 'acc:1', account: 'acc', sessionId: 's1', cwd: '/p/a', role: 'x', startedAt: now(), status: 'working' });
     office.addActivity('acc:1', act('a-late', now() - 1_000), true);
-    office.endBoot(); // A terminou, B ainda não
+    office.endBoot(); // A finished, B not yet
     expect(office.isBooting()).toBe(true);
-    // Ainda bootando: nada de avisos nem de feed ao vivo; o que chega entra no feed do boot.
+    // Still booting: no notices and no live feed; what arrives goes into the boot feed.
     office.addMain({ id: '.codex:t1', provider: 'codex', account: '.codex', sessionId: 't1', cwd: '/p/a', role: 'x', startedAt: now(), status: 'waiting', waitingFor: 'approve a command' });
     office.addActivity('.codex:t1', act('b-early', now() - 5_000), true);
     let r = office.commit();
     expect(r.notices).toEqual([]);
     expect(r.feed).toEqual([]);
     expect(office.recentFeed(10)).toEqual([]);
-    office.endBoot(); // B terminou: pronto
+    office.endBoot(); // B finished: ready
     expect(office.isBooting()).toBe(false);
-    // O feed das duas fontes sai em ordem cronológica; quem espera ganha o balão (sem aviso).
+    // The feed of the two sources goes out in chronological order; whoever is waiting gets the speech bubble (no notice).
     expect(office.recentFeed(10).map((f) => f.id)).toEqual(['b-early', 'a-late']);
     r = office.commit();
     expect(r.notices).toEqual([]);
     expect(r.snapshot.agents.find((a) => a.id === '.codex:t1')?.activity).toMatchObject({ kind: 'wait' });
     expect(r.snapshot.agents.find((a) => a.id === '.codex:t1')?.provider).toBe('codex');
     expect(r.snapshot.agents.find((a) => a.id === 'acc:1')).not.toHaveProperty('provider');
-    // endBoot a mais é ignorado (não deixa o contador negativo).
+    // An extra endBoot is ignored (it doesn't leave the counter negative).
     office.endBoot();
     office.beginBoot();
     expect(office.isBooting()).toBe(true);
     office.endBoot();
     expect(office.isBooting()).toBe(false);
-    // Depois do boot, avisos voltam.
+    // After the boot, notices come back.
     advance(1_000);
     office.setStatus('acc:1', 'waiting', 'approve a permission');
     expect(office.commit().notices.length).toBeGreaterThan(0);
@@ -317,7 +317,7 @@ describe('Office', () => {
     office.addMain({ id: '.codex:t1', provider: 'codex', account: '.codex', sessionId: 't1', cwd: '/p/a', role: 'x', startedAt: now(), status: 'working' });
     expect(office.addSub({ id: '.codex:t2', parentId: '.codex:t1', sessionId: 't2', role: 'worker', background: false, startedAt: now() })).toBe(true);
     expect(office.get('.codex:t2')).toMatchObject({ provider: 'codex', account: '.codex', parentId: '.codex:t1' });
-    // 'claude' explícito fica ausente (ausente = 'claude').
+    // Explicit 'claude' stays absent (absent = 'claude').
     office.addMain({ id: 'acc:9', provider: 'claude', account: 'acc', sessionId: 's9', cwd: '/p/a', role: 'x', startedAt: now(), status: 'working' });
     expect(office.get('acc:9')).not.toHaveProperty('provider');
   });
@@ -383,7 +383,7 @@ describe('Office', () => {
     office.setStatus('acc:1', 'shell');
     office.fillShellActivity('acc:1');
     expect(office.get('acc:1')!.activity).toMatchObject({ text: 'Waiting on 2 shells: Production build', detail: 'npm run build', tool: 'ShellWait' });
-    // O "Concluiu" do transcript chega depois: o balão continua na espera.
+    // The "Done" from the transcript arrives later: the speech bubble stays on the wait.
     advance(500);
     office.addActivity('acc:1', { ...act('end', now(), 'done'), text: 'Done in 3s' }, true);
     office.fillShellActivity('acc:1');
@@ -392,17 +392,17 @@ describe('Office', () => {
     expect(r.notices.map((n) => n.text)).toEqual([`⏳ ${name} is waiting on the shell in store: Production build`]);
     expect(r.feed.map((f) => f.activity.text)).toEqual(['Waiting on 2 shells: Production build', 'Done in 3s']);
     expect(r.notices.some((n) => n.text.includes('finished'))).toBe(false);
-    // Volta a trabalhar e a esperar dentro de 10 min: sem aviso repetido.
+    // Goes back to working and to waiting within 10 min: no repeated notice.
     office.setStatus('acc:1', 'working');
     advance(60_000);
     office.setStatus('acc:1', 'shell');
     expect(office.commit().notices).toEqual([]);
-    // Fim de um dos shells.
+    // End of one of the shells.
     office.shellDone('acc:1', job, 'ok', now() + 1_000);
     r = office.commit();
     expect(r.snapshot.agents[0].activity).toMatchObject({ tool: 'ShellDone', text: 'Shell finished: Production build (1min 3s)' });
     expect(r.notices.map((n) => [n.level, n.text])).toEqual([['success', `✅ ${name}: shell finished in store — Production build`]]);
-    // Releitura não duplica; outro shell no mesmo segundo ainda avisa.
+    // A reread doesn't duplicate; another shell in the same second still notifies.
     office.shellDone('acc:1', job, 'ok', now() + 1_000);
     office.shellDone('acc:1', { ...job, id: 'b2', label: 'Migration' }, 'failed', now() + 1_000);
     r = office.commit();
@@ -482,10 +482,10 @@ describe('Office', () => {
     const snap = office.commit().snapshot;
     expect(snap.meta.messages).toBe(true);
     expect(snap.agents.filter((a) => a.canMessage).map((a) => a.id)).toEqual(['acc:1']);
-    // Quem encerrou a sessão não recebe, mesmo que o registro ainda não tenha notado.
+    // Whoever ended the session doesn't receive, even if the registry hasn't noticed yet.
     office.closeMain('acc:1');
     expect(office.commit().snapshot.agents.filter((a) => a.canMessage)).toEqual([]);
-    // Sem o registro (recurso desligado): meta.messages falso e os principais do demo também não recebem.
+    // Without the registry (feature off): meta.messages false and the demo's main agents don't receive either.
     const off = new Office(deps);
     off.setDemo(true);
     const offSnap = off.commit().snapshot;
@@ -621,7 +621,7 @@ describe('Office: project character', () => {
   });
 
   describe('Habblaud restart (names.json in a file)', () => {
-    /** Grava o names.json e sobe um NameStore e um Office novos lendo o mesmo arquivo. */
+    /** Writes names.json and brings up a new NameStore and a new Office reading the same file. */
     const restart = (before: NameStore, file: string) => {
       before.flush();
       const names = new NameStore(file);
@@ -629,7 +629,7 @@ describe('Office: project character', () => {
       return makeOffice(names);
     };
 
-    /** A (s1) edita o personagem da sala; B (s2), aberta ao mesmo tempo, fica com o nome sorteado. */
+    /** A (s1) edits the room's character; B (s2), open at the same time, keeps the randomly picked name. */
     const ownerAndOther = (file: string) => {
       const env = makeOffice(new NameStore(file));
       env.office.addMain(main('acc:1', 's1', '/p/api', env.now()));

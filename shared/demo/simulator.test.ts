@@ -93,11 +93,11 @@ describe('DemoSimulator: Codex', () => {
       expect(codex).toHaveLength(1);
       const room = codex[0].roomId;
       expect(mains.some((a) => a.roomId === room && a.provider === undefined)).toBe(true);
-      // Agente do Codex: conta própria, modelo gpt-*-codex, papel neutro, aprovação no lugar do modo de permissão, sem custo.
+      // Codex agent: its own account, gpt-*-codex model, neutral role, approval in place of the permission mode, no cost.
       expect(codex[0]).toMatchObject({ account: '.codex', role: 'Main agent', permissionMode: 'on-request', canMessage: true });
       expect(codex[0].model).toMatch(/^gpt-5\.\d-codex/);
       expect(codex[0].stats.costUSD).toBeUndefined();
-      // Nunca grava provider 'claude'.
+      // Never writes provider 'claude'.
       expect(mains.every((a) => a.provider === undefined || a.provider === 'codex')).toBe(true);
     }
   });
@@ -138,11 +138,11 @@ describe('DemoSimulator: Codex', () => {
     expect(acc()).toMatchObject({ id: '.codex', short: 'X', name: 'Codex', plan: 'Team', usageStatus: 'ok' });
     expect(acc().email).toBeUndefined();
     expect(acc().usage).toMatchObject({ source: 'codex' });
-    // Leitura de antes de abrir: a idade aparece.
+    // Reading from before opening: the age shows up.
     expect(acc().usage!.fetchedAt).toBeLessThan(0);
     const before = acc().usage!.fetchedAt;
     for (; t < 120_000; t += 250) sim.tick(t);
-    // Alguma sessão do Codex trabalhou: a leitura é nova (e nunca "agora" por conta própria).
+    // Some Codex session worked: the reading is new (and never "now" on its own).
     expect(acc().usage!.fetchedAt).toBeGreaterThan(before);
     expect(acc().usage!.fetchedAt).toBeLessThanOrEqual(t);
     expect(acc().usage!.fiveHour?.utilization).toBeGreaterThan(0);
@@ -173,7 +173,7 @@ describe('DemoSimulator: Codex', () => {
     const sim = new DemoSimulator({ seed: 6 }, start);
     const codex = sim.snapshot(start).agents.find((a) => a.provider === 'codex')!;
     expect(sim.receiveMessage(codex.id, 'run the lint too', start)).toBe(true);
-    // Na hora, nada aparece (está na fila).
+    // Right away, nothing shows up (it is in the queue).
     expect(sim.snapshot(start).agents.find((a) => a.id === codex.id)!.recent.some((r) => r.text === 'Message via Habblaud')).toBe(false);
     let t = start;
     let deliveredAt = 0;
@@ -190,7 +190,7 @@ describe('DemoSimulator: Codex', () => {
       }
     }
     expect(deliveredAt).toBeGreaterThan(start);
-    // Entrou depois do fim de um turno (o Codex só usa a fila com a sessão ociosa).
+    // It went in after the end of a turn (Codex only uses the queue with the session idle).
     expect(['done', 'communicate']).toContain(statusAtDelivery);
   });
 });

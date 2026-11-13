@@ -60,7 +60,7 @@ function snap(agents: AgentInfo[], rooms: RoomInfo[] = [room('/p/store')], accou
   return { rev: 1, serverTime: T0, rooms, agents, accounts, meta: { demo: false, sources: [], startedAt: T0, version: 't' } };
 }
 
-/** Frame -> objeto comparável (Maps viram listas ordenadas). */
+/** Frame -> comparable object (Maps become sorted lists). */
 const plain = (f: TimelineFrame) => ({
   rooms: [...f.rooms.values()].sort((a, b) => a.id.localeCompare(b.id)),
   agents: [...f.agents.values()].sort((a, b) => a.id.localeCompare(b.id)),
@@ -144,7 +144,7 @@ describe('timeline: deltas', () => {
     );
     const d = diffFrames(before, after)!;
     expect(d).not.toBeNull();
-    // Agente alterado: só o que mudou (waitingFor some com null); o novo vem completo; o que saiu, null.
+    // Changed agent: only what changed (waitingFor disappears with null); the new one comes complete; the one that left, null.
     const byId = new Map(d.agents!);
     expect(byId.get('.claude:1')).toEqual({ status: 'idle', statusSince: T0 + 9, activity: { kind: 'done', icon: '✅', text: 'Done', at: T0 + 9 }, waitingFor: null });
     expect(byId.get('s:sub')).toMatchObject({ id: 's:sub', kind: 'sub', parentId: '.claude:1', name: 'Luan' });
@@ -156,7 +156,7 @@ describe('timeline: deltas', () => {
     const old = frame.agents.get('.claude:1')!;
     applyChanges(frame, JSON.parse(JSON.stringify(d)));
     expect(plain(frame)).toEqual(plain(after));
-    // O objeto antigo não foi alterado (snapshots já entregues continuam valendo).
+    // The old object was not changed (snapshots already delivered still hold).
     expect(old.status).toBe('waiting');
     expect(old.waitingFor).toBe('answer');
   });

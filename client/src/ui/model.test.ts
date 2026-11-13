@@ -161,8 +161,8 @@ describe('utilities', () => {
     expect(mergeHistory(h, r, 2).map((x) => x.id)).toEqual(['c', 'b']);
   });
   it('mergeHistory in the replay discards activities after the instant', () => {
-    // Selecionou o agente em t=2000 (atividade final já no histórico) e voltou para t=1000:
-    // o snapshot só traz a de 1000, mas a de 2000 não pode continuar na gaveta.
+    // Selected the agent at t=2000 (final activity already in the history) and went back to t=1000:
+    // the snapshot only brings the one from 1000, but the one from 2000 cannot stay in the drawer.
     const acumulado = [
       { id: 'a', at: 1000 },
       { id: 'b', at: 2000 },
@@ -170,7 +170,7 @@ describe('utilities', () => {
     const noInstante = [{ id: 'a', at: 1000 }];
     expect(mergeHistory(acumulado, noInstante).map((x) => x.id)).toEqual(['a', 'b']);
     expect(mergeHistory(acumulado, noInstante, 200, 1000).map((x) => x.id)).toEqual(['a']);
-    // Resposta do histórico ao vivo que ainda traz o futuro: no instante do replay ela também sai.
+    // Live history response that still brings the future: at the replay instant it also goes away.
     const respostaAoVivo = [
       { id: 'a', at: 1000 },
       { id: 'c', at: 500 },
@@ -192,7 +192,7 @@ describe('activityFallback', () => {
   });
 });
 
-// ---------------------------------------------------------------- esperando o shell
+// ---------------------------------------------------------------- waiting on shell
 
 const S = 1_000;
 const MIN = 60 * S;

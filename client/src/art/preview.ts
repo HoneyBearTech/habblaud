@@ -1,6 +1,6 @@
-// Página de prévia do módulo de arte (client/art-preview.html): mostra, ampliado e rotulado, tudo
-// o que o módulo desenha — personagens, poses, itens, móveis, pisos, paredes, telas, quadro,
-// janela, relógio, ícones, temas e avatares — além de uma cena de exemplo para checar a coesão.
+// Preview page of the art module (client/art-preview.html): shows, enlarged and labeled, everything
+// the module draws — characters, poses, items, furniture, floors, walls, screens, board,
+// window, clock, icons, themes and avatars — plus a sample scene to check cohesion.
 import '@fontsource/pixelify-sans/400.css';
 import * as art from './index';
 import { pixelText, pixelTextWidth } from './pixelfont';
@@ -31,7 +31,7 @@ const POSE_PT: Record<Pose, string> = {
   use: 'using machine', raise_hand: 'hand raised', talk: 'talking', stretch: 'stretching', read: 'reading', play: 'ping-pong',
   wait: 'waiting', cheer: 'celebrating', laugh: 'laughing hard', game: 'video games', rps: 'rps', groom: 'at the mirror', sulk: 'upset',
 };
-/** Poses que sempre são sentadas (as demais podem ser em pé ou sentadas). */
+/** Poses that are always seated (the others can be standing or seated). */
 const SEATED_POSES: readonly Pose[] = ['sit', 'type', 'sleep', 'wait'];
 const HELD: readonly HeldItem[] = ['coffee', 'water', 'papers', 'laptop', 'book', 'box', 'paddle', 'popcorn', 'controller', 'phone', 'lipstick', 'comb', 'rock', 'paper', 'scissors'];
 const HELD_PT: Record<HeldItem, string> = {
@@ -70,7 +70,7 @@ function section(id: string, title: string, desc: string): HTMLElement {
   return s;
 }
 
-/** Canvas em resolução 1x exibido ampliado; `paint` é chamado a cada quadro. */
+/** Canvas at 1x resolution displayed enlarged; `paint` is called every frame. */
 function canvas(parent: HTMLElement, w: number, h: number, paint: Painter, bg = '#e9ecf1', scale = SCALE): HTMLCanvasElement {
   const c = document.createElement('canvas');
   c.width = w;
@@ -96,7 +96,7 @@ function label(ctx: CanvasRenderingContext2D, text: string, x: number, y: number
   pixelText(ctx, text, x, y, color);
 }
 
-/** Rótulo centralizado numa célula [x0, x0 + w). */
+/** Label centered in a cell [x0, x0 + w). */
 function labelCentered(ctx: CanvasRenderingContext2D, text: string, x0: number, w: number, y: number, color = '#5b6576'): void {
   pixelText(ctx, text, x0 + Math.floor((w - pixelTextWidth(text)) / 2), y, color);
 }
@@ -123,9 +123,9 @@ function dotted(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, 
   }
 }
 
-const SEAT_FOOT_DY = 3; // igual ao mundo: pés de quem senta ficam 3px acima da base do assento
+const SEAT_FOOT_DY = 3; // same as the world: a sitter's feet are 3px above the base of the seat
 
-// ------------------------------------------------------------------ cena de exemplo
+// ------------------------------------------------------------------ sample scene
 
 function sampleScene(): void {
   const s = section('cena', 'Sample scene', 'Project room + lounge built with the art module alone (as the world does): island of face-to-face desks, animated screens, chairs with the backrest over whoever sits, glass, kitchen and people walking around.');
@@ -138,16 +138,16 @@ function sampleScene(): void {
 
   canvas(s, W, H, (ctx, t) => {
     const ds: D[] = [];
-    // Pisos.
+    // Floors.
     art.drawFloor(ctx, 'carpet', 0, 2 * TILE, 15 * TILE, 12 * TILE, { seed: 1, tint: theme.carpet, tint2: theme.carpet2 });
     art.drawFloor(ctx, 'wood', 15 * TILE, 2 * TILE, 7 * TILE, 12 * TILE, { seed: 2 });
     art.drawFloor(ctx, 'tile_check', 22 * TILE, 2 * TILE, 4 * TILE, 12 * TILE, { seed: 3 });
     art.drawRug(ctx, 16 * TILE, 6 * TILE + 4, 5 * TILE, 3 * TILE, '#6fae7a', 4);
-    // Paredes.
+    // Walls.
     art.drawWallFace(ctx, 0, 0, 15 * TILE, theme.wall, { doorways: [{ x: 10 * TILE, w: 2 * TILE }] });
     art.drawWallFace(ctx, 15 * TILE, 0, 7 * TILE, lounge);
     art.drawWallFace(ctx, 22 * TILE, 0, 4 * TILE, { base: '#eceae6', trim: '#9aa2ae', pattern: 'marble' });
-    // Itens de parede (desenhados junto da parede).
+    // Wall items (drawn along with the wall).
     const wall = (kind: FurnitureKind, tx: number, variant?: string, extra?: (sp: Sprite, x: number, y: number) => void, seed = 0) => {
       const sp = art.furnitureSprites(kind, variant, 0, { seed }).base;
       const x = tx * TILE + (FURNITURE[kind].footprint.w * TILE) / 2;
@@ -186,7 +186,7 @@ function sampleScene(): void {
       if (r) art.drawScreen(ctx, { x: ox + r.x, y: oy + r.y, w: r.w, h: r.h }, 'browser', t, 9);
     });
     wall('shelf_wall', 22, undefined, undefined, 2);
-    // Móveis de chão.
+    // Floor furniture.
     const furn = (kind: FurnitureKind, tx: number, ty: number, variant?: string, o: { dx?: number; state?: number; seed?: number; screen?: ScreenMode; sseed?: number } = {}) => {
       const f = art.furnitureSprites(kind, variant, o.state ?? 0, { seed: o.seed });
       const def = FURNITURE[kind];
@@ -244,7 +244,7 @@ function sampleScene(): void {
     person(41, 17 * TILE + 8, 6 * TILE - SEAT_FOOT_DY, 'down', 'read', { seated: true, sortY: 6 * TILE + 0.25 });
     person(42, 18 * TILE + 4, 6 * TILE - SEAT_FOOT_DY, 'down', 'talk', { seated: true, sortY: 6 * TILE + 0.25, held: 'coffee' });
     person(43, 21 * TILE + 8, 8 * TILE - SEAT_FOOT_DY, 'left', 'sit', { seated: true, sortY: 8 * TILE + 0.25 });
-    // Copa.
+    // Kitchen.
     furn('fridge', 22, 2);
     furn('coffee_machine', 23, 2, undefined, { state: Math.floor(t / 2500) % 2 });
     furn('counter_sink', 24, 2);
@@ -257,7 +257,7 @@ function sampleScene(): void {
     person(51, 23 * TILE + 8, 4 * TILE - 5, 'up', 'use');
     person(52, 25 * TILE + 8, 8 * TILE - 5, 'up', 'drink', { held: 'water' });
     person(53, 25 * TILE + 8, 11 * TILE - SEAT_FOOT_DY, 'left', 'drink', { seated: true, sortY: 11 * TILE + 0.25, held: 'coffee' });
-    // Pessoas andando em circuitos.
+    // People walking in loops.
     const loop = (seed: number, pts: readonly [number, number][], speed: number, held?: HeldItem, sub = false) => {
       const segs = pts.map((p, i) => [p, pts[(i + 1) % pts.length]] as const);
       const lens = segs.map(([a, b]) => Math.abs(b[0] - a[0]) + Math.abs(b[1] - a[1]));
@@ -275,25 +275,25 @@ function sampleScene(): void {
     loop(61, [[2 * 16, 10 * 16 + 11], [12 * 16, 10 * 16 + 11], [12 * 16, 13 * 16 + 11], [2 * 16, 13 * 16 + 11]], 40, 'coffee');
     loop(62, [[11 * 16, 3 * 16 + 11], [11 * 16, 9 * 16 + 11], [5 * 16, 9 * 16 + 11], [5 * 16, 8 * 16 + 11]], 32, 'papers', true);
     loop(63, [[16 * 16, 13 * 16 + 11], [24 * 16, 13 * 16 + 11], [24 * 16, 12 * 16 + 11]], 70);
-    // Ordenação por profundidade.
+    // Depth sorting.
     ds.sort((a, b) => a.y - b.y);
     for (const d of ds) d.draw(ctx, t);
-    // Parede sul com passagem e tampas laterais.
+    // South wall with a passage and side caps.
     art.drawSouthWall(ctx, 0, 14 * TILE, W, theme.wall, { doorways: [{ x: 6 * TILE, w: 2 * TILE }, { x: 18 * TILE, w: 2 * TILE }] });
     art.drawWallTop(ctx, 0, 0, 3, H, theme.wall);
     art.drawWallTop(ctx, W - 3, 0, 3, H, theme.wall);
   });
 }
 
-// ------------------------------------------------------------------ esperando o shell
+// ------------------------------------------------------------------ waiting for the shell
 
 /**
- * A piada do estado 'shell' montada só com peças do módulo de arte, em escalada cômica pela idade
- * do shell: pipoca (0–3 min), impaciência com giro na cadeira (3–10), teia crescendo (> 10),
- * cochilo coberto de teia (> 25) e o desfecho (sucesso com confete / falha com nuvem de chuva).
- * Em cima: de frente, atrás da desk_back (o verso do monitor esconde o colo). Embaixo: de costas,
- * diante do monitor em 'progress'. Partículas (pipoca, confete) e giro são simulados aqui só para
- * a prévia — no escritório quem anima é o mundo.
+ * The 'shell' state joke built only with pieces of the art module, in comic escalation by the age
+ * of the shell: popcorn (0–3 min), impatience with a chair spin (3–10), web growing (> 10),
+ * nap covered in web (> 25) and the ending (success with confetti / failure with a rain cloud).
+ * Top: facing front, behind the desk_back (the back of the monitor hides the lap). Bottom: facing away,
+ * in front of the monitor in 'progress'. Particles (popcorn, confetti) and spin are simulated here only
+ * for the preview — in the office the world does the animating.
  */
 function shellWait(): void {
   const s = section(
@@ -328,7 +328,7 @@ function shellWait(): void {
       for (const row of [0, 1] as const) {
         const front = row === 0;
         const cy = front ? 60 : 60 + rowH;
-        // Giro na cadeira: a cada 5 s, quatro direções em 0,8 s.
+        // Chair spin: every 5 s, four directions in 0.8 s.
         let dir: Dir = front ? 'down' : 'up';
         const ph = (t + i * 700) % 5000;
         if (st.spin && ph < 800) dir = (front ? SPIN_DOWN : SPIN_UP)[Math.floor(ph / 200) % 4];
@@ -349,13 +349,13 @@ function shellWait(): void {
           if (chair.front) blit(ctx, chair.front, cx, cy);
         }
         const headTop = cy - SEAT_FOOT_DY - 23;
-        // Teia: 1× no canto ao lado da cadeira; 2× já cobrindo quem cochila.
+        // Web: 1× in the corner next to the chair; 2× already covering the napper.
         if (st.web) {
           const web = art.iconSprite('cobweb').canvas;
           if (st.web === 1) ctx.drawImage(web, cx - 21, headTop + 6);
           else ctx.drawImage(web, cx - 22, headTop - 4, web.width * 2, web.height * 2);
         }
-        // Pipoca pulando do balde (de frente ele fica sob o queixo; de costas, ao lado do quadril).
+        // Popcorn jumping out of the bucket (facing front it sits under the chin; facing away, next to the hip).
         if (st.fx === 'popcorn') {
           const u = ((t + row * 900) % 2300) / 650;
           if (u < 1) {
@@ -378,7 +378,7 @@ function shellWait(): void {
             ctx.fillRect(px, py, k % 3 === 0 ? 2 : 1, 1);
           }
         }
-        // Ícone acima da cabeça (a ampulheta alterna com a versão deitada a cada 1,2 s).
+        // Icon above the head (the hourglass alternates with the lying-down version every 1.2 s).
         if (st.icon) {
           const name: IconName = st.icon === 'hourglass' ? (Math.floor(t / 1200) % 2 ? 'hourglass_flip' : 'hourglass') : st.icon;
           const bob = st.icon === 'zzz' ? Math.round(Math.sin(t / 500) * 1.5) : 0;
@@ -389,13 +389,14 @@ function shellWait(): void {
   }, '#e9ecf1', 4);
 }
 
-// ------------------------------------------------------------------ vida social
+// ------------------------------------------------------------------ social life
 
 /**
- * Vida social montada só com peças do módulo de arte: torcida diante da TV (programa mudando),
- * dupla no videogame com plateia, jokenpô valendo moedas (contagem, revelação com o gesto sobre a
- * cabeça, vencedor comemorando com a moeda e perdedor chateado) e o espelho do banheiro com o
- * reflexo de quem se arruma (o reflexo é recortado no rects.glass — sugestão para o mundo).
+ * Social life built only with pieces of the art module: fans in front of the TV (show changing),
+ * a pair at the video game with an audience, rock-paper-scissors for coins (count, reveal with the
+ * gesture above the head, winner celebrating with the coin and loser upset) and the restroom mirror
+ * with the reflection of whoever is getting ready (the reflection is clipped to rects.glass — a
+ * suggestion for the world).
  */
 function socialLife(): void {
   const s = section(
@@ -435,7 +436,7 @@ function socialLife(): void {
       const r = sp.rects?.tv;
       if (r) art.drawScreen(ctx, { x: ox + r.x, y: oy + r.y, w: r.w, h: r.h }, 'game', t, Math.floor(t / 8000) % 2);
     });
-    // Espelhos com o reflexo de quem está diante da pia.
+    // Mirrors with the reflection of whoever is in front of the sink.
     const groomers = [
       { seed: 404, tx: 27, held: 'lipstick' as HeldItem },
       { seed: 505, tx: 29, held: 'comb' as HeldItem },
@@ -450,7 +451,7 @@ function socialLife(): void {
         ctx.rect(ox + r.x, oy + r.y, r.w, r.h);
         ctx.clip();
         ctx.globalAlpha = 0.8;
-        // Rosto centrado no vidro: a franja no topo, olhos e boca no meio (o corpo fica abaixo da moldura).
+        // Face centered in the glass: bangs at the top, eyes and mouth in the middle (the body is below the frame).
         ctx.drawImage(who.canvas, Math.round(ox + r.x + r.w / 2 - who.ax), Math.round(oy + r.y - 6));
         ctx.globalAlpha = 0.28;
         ctx.fillStyle = '#cfe6f2';
@@ -475,7 +476,7 @@ function socialLife(): void {
       });
       if (o.icon) icons.push({ name: o.icon, x, y: y - (o.seated ? 26 : 30) });
     };
-    // TV: três no sofá (de costas) trocando de reação; poltrona com alguém no celular.
+    // TV: three on the couch (facing away) changing reactions; armchair with someone on their phone.
     const sofa = furn('sofa', 3, 6, 'up');
     const react: { pose: Pose; held?: HeldItem }[] = [{ pose: 'wait', held: 'popcorn' }, { pose: 'laugh' }, { pose: 'cheer' }, { pose: 'sit' }];
     for (let i = 0; i < 3; i++) {
@@ -484,13 +485,13 @@ function socialLife(): void {
     }
     const chair = furn('armchair', 7, 4, 'left');
     person(710, chair.x, chair.y - SEAT_FOOT_DY, 'left', 'read', { seated: true, held: 'phone', sortY: chair.y + 0.25 });
-    // Videogame: dois jogando no sofá, uma pessoa torcendo atrás e outra de frente, de pé.
+    // Video game: two playing on the couch, one person cheering behind and another facing front, standing.
     const sofa2 = furn('sofa', 11, 6, 'up');
     person(720, sofa2.x - TILE, sofa2.y - SEAT_FOOT_DY, 'up', 'game', { seated: true, held: 'controller', sortY: sofa2.y + 0.25 });
     person(721, sofa2.x, sofa2.y - SEAT_FOOT_DY, 'up', 'game', { seated: true, held: 'controller', sortY: sofa2.y + 0.25 });
     person(722, sofa2.x + 2 * TILE, sofa2.y + TILE + 11, 'up', Math.floor(t / 3000) % 2 ? 'cheer' : 'laugh');
     person(723, 15 * TILE + 8, 5 * TILE + 11, 'left', 'game', { held: 'controller' });
-    // Jokenpô: rodadas de 4 s — contagem, revelação (gesto sobre a cabeça), vitória/derrota.
+    // Rock-paper-scissors: 4 s rounds — count, reveal (gesture over the head), win/loss.
     const duel = (k: number, ax: number, ay: number, adir: Dir, bx: number, by: number, bdir: Dir) => {
       const round = Math.floor((t + k * 900) / 4000);
       const ph = ((t + k * 900) % 4000) / 4000;
@@ -509,7 +510,7 @@ function socialLife(): void {
     };
     duel(0, 19 * TILE + 8, 5 * TILE + 11, 'right', 22 * TILE + 8, 5 * TILE + 11, 'left');
     duel(1, 21 * TILE + 8, 8 * TILE + 11, 'down', 21 * TILE + 8, 10 * TILE + 11, 'up');
-    // Banheiro: pias diante dos espelhos.
+    // Bathroom: sinks in front of the mirrors.
     for (const g of groomers) {
       furn('sink', g.tx, 2);
       person(g.seed, g.tx * TILE + 8, 3 * TILE + 8, 'up', 'groom', { held: g.held, icon: Math.floor(t / 2200) % 2 ? 'sparkle' : undefined });
@@ -526,7 +527,7 @@ function socialLife(): void {
       labelCentered(ctx, txt, Math.round(cx * TILE - w / 2), w, H - 8, '#f5f7fb');
     }
   }, '#e9ecf1', 3);
-  // Programas por semente (o mundo usa o mesmo mapeamento fixo).
+  // Programs by seed (the world uses the same fixed mapping).
   const progs: { mode: ScreenMode; seed: number; name: string }[] = [
     { mode: 'show', seed: 0, name: 'soccer' },
     { mode: 'show', seed: 1, name: 'soap opera' },
@@ -546,7 +547,7 @@ function socialLife(): void {
       labelCentered(ctx, `${p.mode} ${p.seed}`, i * cw, cw, 40, '#2b3142');
       labelCentered(ctx, p.name, i * cw, cw, 48);
     });
-    // Fliperama com as duas partidas.
+    // Arcade with the two matches.
     [0, 1].forEach((seed, j) => {
       const ax = progs.length * cw + 18 + j * 36;
       blit(ctx, arcade, ax, 56);
@@ -556,7 +557,7 @@ function socialLife(): void {
   }, '#dfe3e8', 4);
 }
 
-// ------------------------------------------------------------------ personagens
+// ------------------------------------------------------------------ characters
 
 function characters(): void {
   const s = section('personagens', 'Characters — 40 seeds', 'Assorted seeds (every 5th one, a subagent with a badge) walking in the 4 directions. Variety of skin, hair, clothes and accessories.');
@@ -647,7 +648,7 @@ function heldItems(): void {
   });
 }
 
-// ------------------------------------------------------------------ móveis
+// ------------------------------------------------------------------ furniture
 
 function furniture(): void {
   const s = section('moveis', 'Furniture', 'All the kinds, variants and states in the catalog, with anchor (magenta) and footprint (dotted). Dynamic rectangles filled in (screen, board, glass, clock, TV).');
@@ -693,7 +694,7 @@ function furniture(): void {
   });
 }
 
-// ------------------------------------------------------------------ superfícies
+// ------------------------------------------------------------------ surfaces
 
 function floors(): void {
   const s = section('pisos', 'Floors', 'Every FloorKind with per-tile variation; carpet in three theme tints; rugs.');
@@ -708,7 +709,7 @@ function floors(): void {
       const x = (i % 6) * cw;
       const y = Math.floor(i / 6) * (4 * TILE + 14);
       art.drawFloor(ctx, it.kind, x, y, 5 * TILE, 4 * TILE, { seed: i + 1, tint: it.tint, tint2: it.tint2 });
-      // +4: espaço para os acentos (ficam 3 px acima da linha do texto).
+      // +4: room for the accents (they sit 3 px above the text line).
       label(ctx, it.name, x + 1, y + 4 * TILE + 4);
     });
     const ry = 2 * (4 * TILE + 14);
@@ -745,7 +746,7 @@ function walls(): void {
   });
 }
 
-// ------------------------------------------------------------------ telas, quadro, janela, relógio
+// ------------------------------------------------------------------ screens, board, window, clock
 
 function screens(): void {
   const s = section('telas', 'Animated screens', 'Every ScreenMode on the desk monitor (14×9) and on a TV (28×15). Below, the desks with a 2nd monitor/laptop (fixed, dimmed content) and the back of the monitors (desk_back) in the 3 variants.');
@@ -753,7 +754,7 @@ function screens(): void {
   const tv = art.furnitureSprites('tv');
   const cw = 44;
   canvas(s, cw * SCREENS.length, 168, (ctx, t) => {
-    // Linha de baixo: mesas com tela secundária e versos de monitor em cada variante.
+    // Bottom row: desks with a secondary screen and monitor backs in each variant.
     ctx.fillStyle = '#d3d9e2';
     ctx.fillRect(0, 112, cw * SCREENS.length, 56);
     (['white', 'wood', 'dark'] as const).forEach((v, k) => {
@@ -807,7 +808,7 @@ function windows(): void {
   const win = art.furnitureSprites('window');
   const hours = [1, 6, 9.5, 14, 18.2, 20.5];
   const names = ['late night', 'dawn', 'morning', 'afternoon', 'dusk', 'night'];
-  // Célula fixa mais larga que o maior rótulo ("entardecer" = 39 px) + rótulo centralizado sob a janela.
+  // Fixed cell wider than the longest label ("dusk" = 39 px) + label centered under the window.
   const cw = 48;
   canvas(s, cw * hours.length, 50, (ctx, t) => {
     hours.forEach((h, i) => {
@@ -837,8 +838,8 @@ function clockAndIcons(): void {
   canvas(row, ICONS.length * 16, 16, (ctx) => {
     ICONS.forEach((n, i) => blit(ctx, art.iconSprite(n), i * 16 + 8, 14));
   }, '#5b6b85');
-  // Ampulheta girando (alterna as duas a cada 1,2 s, como o mundo faz) e a teia em 1× e 2× sobre
-  // fundos claro e escuro.
+  // Hourglass spinning (alternates the two every 1.2 s, as the world does) and the cobweb at 1× and 2× over
+  // light and dark backgrounds.
   canvas(row, 82, 30, (ctx, t) => {
     ctx.fillStyle = '#e9ecf1';
     ctx.fillRect(16, 0, 66, 30);
@@ -886,7 +887,7 @@ function avatars(): void {
   }
 }
 
-// ------------------------------------------------------------------ laço de animação
+// ------------------------------------------------------------------ animation loop
 
 sampleScene();
 shellWait();

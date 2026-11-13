@@ -1,16 +1,16 @@
-// Ditado pelo escritório (microfone no "Novo agente"): o navegador grava, manda o áudio em POST /api/dictation (JSON
-// base64: o guard exige JSON em todo POST) e consulta GET /api/dictation/:id até o texto chegar. Quem transcreve é o
-// Whisper local (dictation/whisper.ts):
-// - modo Node: o próprio servidor, se achou o whisper-cli, o ffmpeg e um modelo;
-// - Docker: o auxiliar do host (scripts/codex-bridge.ts) busca em POST /api/host/dictation/poll e devolve o texto em
-//   POST /api/host/dictation/ack. Ele só busca quando tem o Whisper, então "disponível" = auxiliar visto há pouco.
-// O áudio fica só na memória e some assim que é entregue; o texto, até ser lido (ou 5 min).
+// Dictation through the office (microphone in "New agent"): the browser records, sends the audio in POST
+// /api/dictation (base64 JSON: the guard requires JSON in every POST) and queries GET /api/dictation/:id until the
+// text arrives. The transcriber is the local Whisper (dictation/whisper.ts):
+// - Node mode: the server itself, if it found whisper-cli, ffmpeg and a model;
+// - Docker: the host helper (scripts/codex-bridge.ts) fetches in POST /api/host/dictation/poll and returns the text
+//   in POST /api/host/dictation/ack. It only fetches when it has Whisper, so "available" = helper seen a moment ago.
+// The audio stays only in memory and is gone as soon as it is handed over; the text, until it is read (or 5 min).
 import { randomUUID } from 'node:crypto';
 import { tr } from '../../shared/i18n';
 import { HostWait, pollWithWait } from '../host-wait';
 import type { Transcriber } from './whisper';
 
-/** Áudio de até ~3 min (o celular grava AAC/Opus, bem menos que isso por minuto). */
+/** Audio of up to ~3 min (the phone records AAC/Opus, much less than that per minute). */
 export const AUDIO_MAX_BYTES = 12 * 1024 * 1024;
 export const AUDIO_BODY_MAX = Math.ceil((AUDIO_MAX_BYTES * 4) / 3) + 16 * 1024;
 export const HOST_PRESENCE_MS = 10_000;
@@ -39,7 +39,7 @@ interface Entry {
 }
 
 export interface DictationServiceOptions {
-  /** Modo Node com Whisper: transcreve aqui. Ausente: fila para o auxiliar do host. */
+  /** Node mode with Whisper: transcribes here. Absent: queue for the host helper. */
   transcriber?: Transcriber;
   now?: () => number;
   newId?: () => string;
@@ -47,7 +47,7 @@ export interface DictationServiceOptions {
 
 export type DictationSubmit = { dictation: DictationInfo } | { error: 'invalid' | 'unavailable' | 'too-many'; reason: string };
 
-/** Confere o corpo de POST /api/dictation: {type, data (base64)}. */
+/** Checks the body of POST /api/dictation: {type, data (base64)}. */
 export function parseAudio(raw: unknown): { type: string; data: Buffer } | { error: string } {
   const r = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
   const type = typeof r.type === 'string' && /^audio\/[\w.+-]+(;\s*codecs=[\w.,"' -]+)?$/i.test(r.type) ? r.type : '';
@@ -97,7 +97,7 @@ export class DictationService {
     return e && { ...e.info };
   }
 
-  /** Rodada do auxiliar: marca presença e entrega o áudio da fila (base64), que sai da memória aqui. */
+  /** Helper round: marks presence and hands over the queued audio (base64), which leaves memory here. */
   poll(): Array<{ id: string; type: string; data: string }> {
     this.host.seen();
     this.prune();
@@ -112,7 +112,7 @@ export class DictationService {
     return out;
   }
 
-  /** Rodada com espera (?wait=1): sem áudio na fila, fica parada até chegar um ou passar `ms`. */
+  /** Round with wait (?wait=1): with no audio in the queue, it stays parked until one arrives or `ms` passes. */
   pollWait(ms: number, signal?: AbortSignal): Promise<Array<{ id: string; type: string; data: string }>> {
     return pollWithWait(this.host, () => this.poll(), ms, signal);
   }

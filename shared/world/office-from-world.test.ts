@@ -1,5 +1,5 @@
-// O interior de um prédio do mundo como escritório: salas por andar, agentes com ids `world:`, contas fictícias,
-// modo discreto e apagado, patches e o teste de canários invertido (só sai o que veio do mundo, traduzido).
+// The interior of a world building as an office: rooms per floor, agents with `world:` ids, fictional accounts,
+// discreet mode and off, patches and the inverted canary test (only what came from the world goes out, translated).
 import { afterEach, describe, expect, it } from 'vitest';
 import { hash32 } from '../hash';
 import { setLocale, tr } from '../i18n';
@@ -66,7 +66,7 @@ describe('officeFromBuilding', () => {
       seed: hash32('a_1f2e3d4c'),
       parts: src.parts,
     });
-    // subagente com o pai no prédio: parentId prefixado; o órfão vai sem
+    // subagent with the parent in the building: prefixed parentId; the orphan goes without
     expect(byName(s, 'Rafael')).toMatchObject({ kind: 'sub', role: 'Subagent', parentId: 'world:a_1f2e3d4c', roomId: 'f_0a1b2c3d4e' });
     const orphan = byName(s, 'Thiago');
     expect(orphan).toMatchObject({ kind: 'sub', provider: 'codex', status: 'shell', account: 'world:codex' });
@@ -116,7 +116,7 @@ describe('officeFromBuilding', () => {
       const s = officeFromBuilding(d, T0, OPTS);
       expect(s.rooms.map((r) => r.id)).toEqual(['f_0a1b2c3d4e', 'f_1b2c3d4e5f', 'f_2c3d4e5f60']);
       expect(s.agents).toEqual([]);
-      // o servidor mandou agentes mesmo assim: não aparecem
+      // the server sent agents anyway: they do not show
       const leaky = { ...d, floors: sampleBuildingDetail().floors };
       expect(officeFromBuilding(leaky, T0, OPTS).agents).toEqual([]);
       expect(officeFromBuilding(leaky, T0, OPTS).accounts.every((a) => a.sessions === 0)).toBe(true);
@@ -127,19 +127,19 @@ describe('officeFromBuilding', () => {
   it('defensive: parent that is not in the building, repeated ids, new status/tool/look, invalid name and parts', () => {
     const d = sampleBuildingDetail();
     d.floors[0].agents.push(
-      newAgent('a_99999999', 'working', { kind: 'sub', parentId: 'a_00000000' }), // pai fora do prédio
-      newAgent('a_1f2e3d4c', 'idle', { name: 'Ana' }), // id repetido: fica o primeiro
+      newAgent('a_99999999', 'working', { kind: 'sub', parentId: 'a_00000000' }), // parent outside the building
+      newAgent('a_1f2e3d4c', 'idle', { name: 'Ana' }), // repeated id: the first one stays
       { ...newAgent('a_88888888', 'working'), status: 'dancing', provider: 'gemini', look: 'x', kind: 'boss', name: '‮evil' } as unknown as WorldAgent,
       newAgent('a_77777777', 'idle', { parts: { skin: 'red', hair: '#ABCDEF', hairStyle: 'moicano', topStyle: 'polo', novo: 'x' } as never }),
     );
-    d.floors.push({ ...d.floors[1], agents: [] }); // andar repetido
+    d.floors.push({ ...d.floors[1], agents: [] }); // repeated floor
     const s = officeFromBuilding(d, T0, OPTS);
     expect(s.rooms).toHaveLength(3);
     expect(s.agents.filter((a) => a.id === 'world:a_1f2e3d4c')).toHaveLength(1);
     expect(byName(s, 'Marina').status).toBe('working');
     expect(s.agents.find((a) => a.id === 'world:a_99999999')!.parentId).toBeUndefined();
     expect(s.agents.find((a) => a.id === 'world:a_88888888')).toMatchObject({ status: 'idle', provider: 'claude', look: 'm', kind: 'main', name: 'Agent', account: 'world:claude' });
-    // peça fora do formato cai sozinha; as outras ficam (cor em minúsculas)
+    // a malformed part drops on its own; the others stay (color in lowercase)
     expect(s.agents.find((a) => a.id === 'world:a_77777777')!.parts).toEqual({ hair: '#abcdef', topStyle: 'polo' });
   });
 
@@ -191,7 +191,7 @@ describe('applyBuildingPatch', () => {
     expect(snapshot.rooms[0].name).toBe('Project Orion');
     expect(snapshot.agents.map((a) => a.name).sort()).toEqual(['Camila', 'Gustavo', 'Larissa', 'Marina', 'Rafael']);
     expect(byName(snapshot, 'Camila')).toMatchObject({ id: 'world:a_0badf00d', roomId: 'f_3d4e5f6071', statusSince: T1, startedAt: T1 });
-    expect(snapshot.accounts.map((a) => a.sessions)).toEqual([3, 1]); // Marina, Larissa e Camila; Gustavo
+    expect(snapshot.accounts.map((a) => a.sessions)).toEqual([3, 1]); // Marina, Larissa and Camila; Gustavo
   });
 
   it('only visitors (or nothing that changes the office): the same snapshot', () => {
@@ -210,11 +210,11 @@ describe('applyBuildingPatch', () => {
       expect(snapshot.agents).toEqual([]);
       expect(snapshot.rev).toBe(base.rev + 1);
     }
-    // discreto já conhecido pela cena: andares novos chegam sem ninguém, mesmo com agentes por engano
+    // discreet already known by the scene: new floors arrive with nobody, even with agents by mistake
     const discreet = officeFromBuilding(sampleBuildingDetail('discreet'), T0, OPTS);
     const { snapshot } = applyBuildingPatch(discreet, { rev: 13, floors: sampleBuildingDetail().floors }, T1, sampleBuildingDetail('discreet').building);
     expect(snapshot.agents).toEqual([]);
-    // e voltou ao vivo: o patch traz o prédio e os andares
+    // and it went back to live: the patch brings the building and the floors
     const live = applyBuildingPatch(snapshot, { rev: 14, building: sampleBuildingDetail().building, floors: sampleBuildingDetail().floors }, T1);
     expect(live.snapshot.agents).toHaveLength(6);
   });
@@ -227,7 +227,7 @@ describe('applyBuildingPatch', () => {
   });
 });
 
-/** Todas as strings (valores, não chaves) de um valor JSON. */
+/** All the strings (values, not keys) of a JSON value. */
 function strings(v: unknown, out: string[] = []): string[] {
   if (typeof v === 'string') out.push(v);
   else if (Array.isArray(v)) for (const x of v) strings(x, out);
@@ -236,7 +236,7 @@ function strings(v: unknown, out: string[] = []): string[] {
 }
 
 describe('inverted canaries: the visit office only has what came from the world', () => {
-  /** O permitido: as strings do detail (e os ids com `world:`), os rótulos traduzidos, os papéis e as ferramentas. */
+  /** What is allowed: the detail's strings (and the ids with `world:`), the translated labels, the roles and the tools. */
   function allowed(d: WorldBuildingDetail): Set<string> {
     const fromDetail = strings(d);
     return new Set([

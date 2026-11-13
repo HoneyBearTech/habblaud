@@ -1,15 +1,16 @@
-// "Ir para HB-XXXX" e "Visitar um prédio aleatório" (Fase 5): o único teletransporte da cidade. O campo e o botão
-// ficam no minimapa; o código vai como foi digitado (só no formato) no ↑ `teleport {code}` e o servidor do mundo
-// responde com `pos` na calçada da porta (ou `notice` not_found). A cena escurece num fade enquanto isso.
-// Modelo puro (testado): o código digitado e as fases do fade. A parte DOM usa `ui-city-tp*` de city/social.css.
+// "Go to HB-XXXX" and "Visit a random building" (Phase 5): the city's only teleport. The field and the button
+// are on the minimap; the code goes as it was typed (only in the format) in the ↑ `teleport {code}` and the world
+// server replies with `pos` on the sidewalk at the door (or `notice` not_found). The scene darkens in a fade
+// meanwhile.
+// Pure model (tested): the typed code and the fade phases. The DOM part uses `ui-city-tp*` from city/social.css.
 import { tr } from '../../../../shared/i18n';
 import { h, setHidden, setText } from '../../ui/dom';
 
-/** Os 30 símbolos do código (sem 0/O, 1/I/L e U, que se confundem). */
+/** The code's 30 symbols (without 0/O, 1/I/L and U, which get confused). */
 export const CODE_ALPHABET = '23456789ABCDEFGHJKMNPQRSTVWXYZ';
 const CODE_RE = /^HB-[2-9A-HJKMNP-TV-Z]{4}$/;
 
-/** O código como alguém digitou ("hb-4f2k", "HB 4F2K", "4f2k") no formato canônico, ou null se não é um código. */
+/** The code as someone typed it ("hb-4f2k", "HB 4F2K", "4f2k") in the canonical format, or null if it is not one. */
 export function normalizeBuildingCode(raw: string): string | null {
   const s = raw.trim().toUpperCase().replace(/[\s_]+/g, '');
   const body = s.startsWith('HB-') ? s.slice(3) : s.startsWith('HB') && s.length === 6 ? s.slice(2) : s;
@@ -17,14 +18,14 @@ export function normalizeBuildingCode(raw: string): string | null {
   return CODE_RE.test(code) ? code : null;
 }
 
-/** Quanto dura cada parte do fade (ms): escurecer, esperar a resposta (no máximo) e clarear. */
+/** How long each part of the fade lasts (ms): darken, wait for the reply (at most) and lighten. */
 export const FADE = { out: 320, wait: 5_000, in: 520 } as const;
 
 export type FadePhase = 'idle' | 'out' | 'wait' | 'in';
 
 /**
- * O fade do teletransporte: escurece, espera o `pos` (ou desiste em FADE.wait) e clareia. `arrived` vem do `pos`;
- * `failed` de um `notice` (o código não existe): clareia no mesmo lugar.
+ * The teleport fade: darkens, waits for the `pos` (or gives up at FADE.wait) and lightens. `arrived` comes from the
+ * `pos`; `failed` from a `notice` (the code does not exist): lightens in the same place.
  */
 export class TeleportFade {
   private phase: FadePhase = 'idle';
@@ -41,7 +42,7 @@ export class TeleportFade {
     this.landed = false;
   }
 
-  /** Chegou o `pos` (ou deu errado): clareia assim que terminar de escurecer. */
+  /** The `pos` arrived (or it went wrong): lightens as soon as it finishes darkening. */
   arrived(): void {
     if (this.phase === 'out' || this.phase === 'wait') this.landed = true;
   }
@@ -50,7 +51,7 @@ export class TeleportFade {
     this.arrived();
   }
 
-  /** A fase agora e a escuridão (0..1). Desiste da espera depois de FADE.wait. */
+  /** The phase now and the darkness (0..1). Gives up waiting after FADE.wait. */
   tick(now: number): { phase: FadePhase; dark: number; timedOut: boolean } {
     let timedOut = false;
     if (this.phase === 'out' && now - this.since >= FADE.out) {
@@ -72,13 +73,13 @@ export class TeleportFade {
 // ====================================================================== DOM
 
 export interface TeleportActions {
-  /** "Ir para" com um código já no formato canônico. */
+  /** "Go to" with a code already in the canonical format. */
   go(code: string): void;
-  /** "Visitar um prédio aleatório". */
+  /** "Visit a random building". */
   random(): void;
 }
 
-/** O campo "Ir para HB-XXXX" e o botão "Visitar um prédio aleatório", em cima do minimapa. */
+/** The "Go to HB-XXXX" field and the "Visit a random building" button, on top of the minimap. */
 export class TeleportPanel {
   readonly el: HTMLElement;
   private readonly input: HTMLInputElement;
@@ -113,14 +114,14 @@ export class TeleportPanel {
     });
     this.input.addEventListener('input', () => setHidden(this.error, true));
     this.input.addEventListener('keydown', (e) => {
-      // as teclas da cidade não valem com o campo em foco; Esc sai do campo
+      // the city keys do not work with the field in focus; Esc leaves the field
       e.stopPropagation();
       if (e.key === 'Escape') this.input.blur();
     });
     this.el = h('div', { class: 'ui-city-tp' }, form, this.diceBtn, this.error);
   }
 
-  /** Erro embaixo do campo (código fora do formato, nenhum prédio com ele). */
+  /** Error below the field (code out of format, no building with it). */
   showError(text: string): void {
     setText(this.error, text);
     setHidden(this.error, false);

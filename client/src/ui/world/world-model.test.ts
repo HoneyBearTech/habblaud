@@ -120,7 +120,7 @@ describe('launch popups', () => {
     expect(nextWorldPopup(meta('logged_out'), gate, d.memory!, NOW + 10 * DAY).show).toBeNull();
     const a = nextWorldPopup(meta('approved', { scene: { available: true } }), gate, mem({ launch: { shown: 1, last: 0 } }), NOW);
     expect(a).toEqual({ show: null, memory: mem({ launch: 'never' }) });
-    // já gravado: nada muda
+    // already saved: nothing changes
     expect(nextWorldPopup(meta('approved', { scene: { available: true } }), gate, mem({ launch: 'never' }), NOW)).toEqual({ show: null, memory: null });
   });
 
@@ -133,7 +133,7 @@ describe('launch popups', () => {
     expect(nextWorldPopup(meta('approved'), gate, none, NOW)).toEqual({ show: 'approved', memory: mem({ launch: 'never', approvedSeen: true }) });
     expect(nextWorldPopup(meta('approved'), gate, mem({ launch: 'never', approvedSeen: true }), NOW)).toEqual({ show: null, memory: null });
     expect(nextWorldPopup(meta('approved', { scene: { available: false } }), gate, none, NOW).show).toBeNull();
-    // saiu da espera com a página aberta: a mesma regra (a memória da espera não atrapalha)
+    // left the waitlist with the page open: the same rule (the memory of the wait doesn't get in the way)
     expect(nextWorldPopup(meta('approved'), gate, mem({ launch: 'never', waitlistSeen: true }), NOW).show).toBe('approved');
   });
 
@@ -184,7 +184,7 @@ describe('state machine of the section', () => {
     const sent = worldReduce(at('logged_out', 'register'), { type: 'code_sent', email: 'ana@example.com', name: 'Ana Pixel' });
     expect(sent).toMatchObject({ screen: 'verify', email: 'ana@example.com', name: 'Ana Pixel', flash: 'code_sent' });
     expect(worldReduce(sent, { type: 'go', screen: 'register' })).toMatchObject({ screen: 'register', email: 'ana@example.com', name: 'Ana Pixel' });
-    // O login com e-mail sem confirmar manda o código sem nome: o nome digitado antes fica.
+    // The login with an unconfirmed email sends the code without a name: the name typed before stays.
     expect(worldReduce(sent, { type: 'code_sent', email: 'other@example.com' })).toMatchObject({ email: 'other@example.com', name: 'Ana Pixel' });
     expect(screensFor('off')).toEqual([]);
   });
@@ -262,11 +262,11 @@ describe('email, code and password', () => {
 });
 
 describe('player name', () => {
-  // As regras ficam em shared/world/names-rules.ts (e no teste de lá); aqui, só o texto de cada motivo.
+  // The rules are in shared/world/names-rules.ts (and in the test there); here, only the text of each reason.
   it('each refusal reason has a text', () => {
     const problems = ['type', 'length', 'invisible', 'chars', 'scripts', 'no_letter', 'reserved'] as const;
     for (const p of problems) expect(nameProblemText(p), p).toBeTruthy();
-    expect(new Set(problems.map(nameProblemText)).size).toBe(problems.length - 1); // type e length dizem o mesmo
+    expect(new Set(problems.map(nameProblemText)).size).toBe(problems.length - 1); // type and length say the same
   });
 });
 
@@ -351,7 +351,7 @@ describe('errors', () => {
   });
 });
 
-// ------------------------------------------------------------------ Fase 2: prédio no mundo
+// ------------------------------------------------------------------ Phase 2: building in the world
 
 describe('"Your building" card', () => {
   const NOW = 1_760_000_000_000;
@@ -411,7 +411,7 @@ describe('"Your building" card', () => {
     const reasons: WorldBuildingStop[] = ['banned', 'suspended', 'update', 'other-device', 'waiting', 'no_player', 'unauthorized', 'deleted'];
     const descs = reasons.map((r) => buildingStopView(r).desc);
     expect(new Set(descs).size).toBe(reasons.length);
-    // As contagens da última remessa continuam.
+    // The counts of the last upload remain.
     expect(stopped('update').stats).toEqual(['2 floors', '3 agents', 'Last upload: 12 s ago']);
   });
 
@@ -427,7 +427,7 @@ describe('"Your building" card', () => {
     expect(buildingView({ ...live, connected: false }, true, NOW).leave).toBe(true);
     expect(buildingView({ ...live, paused: true }, true, NOW).leave).toBe(true);
     expect(buildingView(live, false, NOW).leave).toBe(false);
-    // A explicação diz a diferença entre pausar e sair (PLANO.md, 2.6).
+    // The explanation tells the difference between pausing and leaving (PLANO.md, 2.6).
     expect(leaveHint()).toMatch(/^Pausing turns the building off and keeps the lot.*Leaving the world removes the building right away and frees the lot/);
   });
 });
@@ -444,7 +444,7 @@ describe('refusal reasons for an upload', () => {
 
   it('"See what was sent" window: accepted, refused with a reason or no response', () => {
     expect(ackView({ ok: true, at: 1 })).toEqual({ kind: 'accepted', label: 'Accepted by the world.', reason: null });
-    // Com os bytes que o mundo contou: iguais aos enviados, ou o número dele.
+    // With the bytes the world counted: equal to the ones sent, or its number.
     expect(ackView({ ok: true, at: 1, bytes: 1174 }, 1174).reason).toBe('The world received the same 1,174 bytes.');
     expect(ackView({ ok: true, at: 1, bytes: 1 }, 2).reason).toBe('The world counted 1 byte.');
     expect(bytesText(0)).toBe('0 bytes');
@@ -477,14 +477,15 @@ describe('theme and top chip', () => {
     expect(worldChipState(meta('approved', { building }), LOCAL)).toBe('live');
     expect(worldChipState(meta('approved', { building: { ...building, paused: true, connected: false } }), LOCAL)).toBe('paused');
     expect(worldChipState(meta('approved', { building: { ...building, connected: false } }), LOCAL)).toBe('reconnecting');
-    // Parado pelo servidor do mundo: "parado" (o motivo fica no cartão); fora do mundo: nada.
+    // Stopped by the world server: "stopped" (the reason is on the card); out of the world: nothing.
     expect(worldChipState(meta('approved', { building: { ...building, connected: false, stopped: true } }), LOCAL)).toBe('stopped');
     expect(worldChipState(meta('approved', { building: { ...building, connected: false, paused: true, left: true } }), LOCAL)).toBeNull();
-    // Sem conexão e sem remessa nenhuma, o prédio ainda não está no mundo.
+    // With no connection and no upload at all, the building is not in the world yet.
     expect(worldChipState(meta('approved', { building: { ...building, connected: false, lastUplinkAt: undefined } }), LOCAL)).toBeNull();
     expect(worldChipState(meta('approved', { building }), { ...LOCAL, remote: true })).toBeNull();
     expect(worldChipState(meta('waiting', { building }), LOCAL)).toBeNull();
-    // Aberto por outro endereço (sem a trava), o chip informa; a seção explica que a conta só mexe pelo computador.
+    // Opened from another address (without the lock), the chip informs; the section explains that the account is only
+    // handled from the computer.
     expect(worldChipState(meta('approved', { building }), { ...LOCAL, local: false })).toBe('live');
   });
 });
@@ -505,23 +506,23 @@ describe('visitors in your building (Phase 4)', () => {
       s = r.state;
       return r.notify;
     };
-    // a página abriu com gente lá dentro: sem aviso
+    // the page opened with people inside: no notice
     expect(step(2)).toBe(false);
     expect(step(0)).toBe(false);
-    // o primeiro desta conexão já foi (estava lá ao abrir): o próximo não avisa
+    // the first of this connection already went by (was there on opening): the next one doesn't notify
     expect(step(1)).toBe(false);
-    // a conexão caiu e voltou: rearma
+    // the connection dropped and came back: rearms
     expect(step(undefined)).toBe(false);
     expect(step(0)).toBe(false);
     expect(step(1)).toBe(true);
     expect(step(2)).toBe(false);
     expect(step(0)).toBe(false);
     expect(step(1)).toBe(false);
-    // desligado em Configurações
+    // turned off in Settings
     s = VISITOR_ALERT_START;
     expect(step(0, false)).toBe(false);
     expect(step(1, false)).toBe(false);
-    // página aberta sem ninguém, depois alguém entra
+    // page opened with nobody, then someone enters
     s = VISITOR_ALERT_START;
     expect(step(undefined)).toBe(false);
     expect(step(0)).toBe(false);
@@ -560,7 +561,7 @@ describe('account and data (Phase 6)', () => {
     expect(v.appeal).toMatchObject({ text: 'Dispute by e-mail' });
     expect(buildingView({ ...live, unverified: true, paused: true }, true, NOW).appeal?.text).toBe('Dispute by e-mail');
     expect(buildingView({ ...live, unverified: true, left: true }, true, NOW)).toMatchObject({ unverified: null, appeal: null });
-    // Suspensa vale mais que o selo: o recurso é da suspensão.
+    // Suspended outweighs the badge: the appeal is for the suspension.
     expect(buildingView({ ...live, connected: false, unverified: true, stopped: 'suspended' }, true, NOW)).toMatchObject({ unverified: null, appeal: { text: 'Appeal by e-mail' } });
     expect(unverifiedLabel()).toBe('Unverified');
     expect(unverifiedHint()).toMatch(/review/);

@@ -1,10 +1,10 @@
-// Timelapse do dia (botão "Timelapse" da barra superior ou tecla L): barra de reprodução com o dia,
-// play/pausa, velocidade, linha do tempo arrastável (com o gráfico de agentes presentes/trabalhando e as
-// marcas dos picos) e "Voltar ao vivo"; selo "REPLAY 14:32" e tom sépia no escritório.
-// Durante o replay o store recebe os snapshots reconstruídos (net/timeline.ts) no lugar dos do SSE, que
-// segue conectado por baixo, e o mundo roda no relógio da reprodução, com as animações aceleradas
-// (world/playback.ts). Pular para outro ponto (arrastar, picos, trocar de dia) recomeça o mundo: todos já
-// aparecem no lugar, sem andar até a mesa.
+// Day timelapse ("Timelapse" button in the top bar or the L key): playback bar with the day,
+// play/pause, speed, draggable timeline (with the chart of agents present/working and the
+// peak marks) and "Back to live"; "REPLAY 14:32" badge and sepia tone in the office.
+// During the replay the store gets the rebuilt snapshots (net/timeline.ts) in place of the ones from the SSE,
+// which stays connected underneath, and the world runs on the playback clock, with the animations sped up
+// (world/playback.ts). Jumping to another point (dragging, peaks, changing day) restarts the world: everyone
+// already shows up in place, without walking to the desk.
 import { dayKey, dayStart, shiftDay } from '../../../shared/timeline';
 import { BUCKET_MS, fetchTimelineDay, fetchTimelineDays, TimelineReplay, type TimelineDayInfo } from '../net/timeline';
 import type { WorldPlayback } from '../world/api';
@@ -18,15 +18,15 @@ import { intlLocale, tr } from '../../../shared/i18n';
 export const SPEEDS = [60, 180, 600] as const;
 export type Speed = (typeof SPEEDS)[number];
 const DEFAULT_SPEED: Speed = 180;
-/** Snapshot reconstruído para o store (e a interface) no máximo a cada 200 ms, como o hub do servidor. */
+/** Rebuilt snapshot for the store (and the interface) at most every 200 ms, like the server's hub. */
 const PUSH_MS = 200;
-/** Arrastando a linha do tempo, o mundo recomeça no máximo a cada 120 ms. */
+/** While dragging the timeline, the world restarts at most every 120 ms. */
 const SEEK_MS = 120;
-/** Passo do teclado na linha do tempo (setas): 1 min. */
+/** Keyboard step on the timeline (arrows): 1 min. */
 const STEP_S = 60;
 
 export const TIMELAPSE_ICONS = {
-  // Relógio com a seta de voltar no tempo.
+  // Clock with the arrow for going back in time.
   timelapse: pixelIcon([
     '....#####..',
     '..##.....#.',
@@ -46,14 +46,14 @@ export const TIMELAPSE_ICONS = {
 const dayFmt = new Intl.DateTimeFormat(intlLocale(), { weekday: 'short', day: 'numeric', month: 'short' });
 const hhmm = (at: number) => formatClock(at, false);
 
-/** "Hoje", "Ontem" ou "ter., 6 de out.". */
+/** "Today", "Yesterday" or "Tue, Oct 6". */
 export function dayLabel(day: string, today: string): string {
   if (day === today) return tr('Today');
   if (day === shiftDay(today, -1)) return tr('Yesterday');
   return dayFmt.format(dayStart(day));
 }
 
-/** Horas cheias para as marcas da régua: no máximo ~6, de 1, 2, 3, 4 ou 6 em 6 horas. */
+/** Full hours for the ruler marks: at most ~6, every 1, 2, 3, 4 or 6 hours. */
 export function hourTicks(from: number, to: number): number[] {
   const span = (to - from) / 3_600_000;
   const step = [1, 2, 3, 4, 6].find((s) => span / s <= 6) ?? 12;
@@ -76,17 +76,17 @@ export class TimelapsePlayer implements UiComponent {
   readonly vignette: HTMLElement;
 
   private open = false;
-  /** Último valor gravado em --lapse-h (-1 = ainda nenhum). */
+  /** Last value written to --lapse-h (-1 = none yet). */
   private lapseH = -1;
   private status: Status = 'idle';
   private message = '';
   private days: TimelineDayInfo[] = [];
-  /** Carga de dia mais recente (trocas rápidas de dia: só a última vale). */
+  /** Most recent day load (quick day changes: only the last one counts). */
   private loadSeq = 0;
   private replay: TimelineReplay | null = null;
-  /** Dias já carregados nesta abertura (o de hoje é buscado de novo a cada abertura: ainda está crescendo). */
+  /** Days already loaded in this opening (today's is fetched again on each opening: it is still growing). */
   private cache = new Map<string, TimelineReplay>();
-  /** Store e mundo no modo replay. */
+  /** Store and world in replay mode. */
   private active = false;
   private t = 0;
   private playing = false;
@@ -134,7 +134,7 @@ export class TimelapsePlayer implements UiComponent {
         this.ctx.invalidate();
       });
       b.addEventListener('keydown', (e) => {
-        // Setas navegam entre as opções (padrão de radiogroup) e não seguem para a câmera.
+        // Arrows move between the options (radiogroup pattern) and don't go on to the camera.
         const dir = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
         if (!dir) return;
         e.preventDefault();
@@ -219,9 +219,9 @@ export class TimelapsePlayer implements UiComponent {
   }
 
   /**
-   * Altura da barra para os avisos (.ui-toasts) ficarem acima dela durante o replay; 0 com a barra fechada. Chamada pelo
-   * ResizeObserver (abrir e fechar também mudam o tamanho), não a cada render: no replay o render roda a todo quadro, e
-   * medir forçaria o layout da página. A variável só é regravada quando muda.
+   * Height of the bar so the notices (.ui-toasts) stay above it during the replay; 0 with the bar closed. Called by the
+   * ResizeObserver (opening and closing also change the size), not on every render: in the replay the render runs every
+   * frame, and measuring would force the page layout. The variable is only rewritten when it changes.
    */
   private syncHeight(): void {
     const h = this.open ? Math.round(this.el.getBoundingClientRect().height) : 0;
@@ -234,7 +234,7 @@ export class TimelapsePlayer implements UiComponent {
     return this.open;
   }
 
-  /** Instante reproduzido (o mesmo do selo e do mundo), ou null ao vivo. */
+  /** Replayed instant (the same as the badge's and the world's), or null when live. */
   get replayTime(): number | null {
     return this.active ? this.t : null;
   }
@@ -244,7 +244,7 @@ export class TimelapsePlayer implements UiComponent {
     else void this.show();
   }
 
-  /** Abre a barra, busca os dias gravados e começa a reproduzir o mais recente (hoje, se houver). */
+  /** Opens the bar, fetches the recorded days and starts playing the most recent one (today, if there is one). */
   async show(): Promise<void> {
     if (this.open) return;
     this.open = true;
@@ -277,7 +277,7 @@ export class TimelapsePlayer implements UiComponent {
     }
   }
 
-  /** Fecha a barra e volta ao vivo. */
+  /** Closes the bar and goes back to live. */
   close(): void {
     if (!this.open) return;
     this.open = false;
@@ -289,7 +289,7 @@ export class TimelapsePlayer implements UiComponent {
     this.ctx.announce(tr('Back to the live office.'));
   }
 
-  /** Marca a velocidade atual e deixa só ela na ordem do Tab; com `focus`, move o foco para ela. */
+  /** Marks the current speed and leaves only it in the Tab order; with `focus`, moves the focus to it. */
   private syncSpeed(focus?: Speed): void {
     for (const [s, b] of this.speedBtns) {
       const on = s === this.speed;
@@ -336,7 +336,7 @@ export class TimelapsePlayer implements UiComponent {
     this.renderClock();
   }
 
-  // ---------------------------------------------------------------- dias e carga
+  // ---------------------------------------------------------------- days and loading
 
   private renderDays(): void {
     const today = dayKey(Date.now());
@@ -381,7 +381,7 @@ export class TimelapsePlayer implements UiComponent {
       return;
     }
     this.replay = replay;
-    // Só demonstração no dia (ex.: o gerador do GIF): mostra; com agentes de verdade, eles primeiro.
+    // Only demo in the day (e.g. the GIF generator): shows it; with real agents, they come first.
     this.includeDemo = !replay.hasReal;
     this.status = 'ready';
     this.message = '';
@@ -391,7 +391,7 @@ export class TimelapsePlayer implements UiComponent {
     this.ctx.invalidate();
   }
 
-  // ---------------------------------------------------------------- reprodução
+  // ---------------------------------------------------------------- playback
 
   private togglePlay(): void {
     if (this.playing) this.pause();
@@ -413,11 +413,11 @@ export class TimelapsePlayer implements UiComponent {
     this.playing = false;
     if (this.raf) cancelAnimationFrame(this.raf);
     this.raf = 0;
-    // Último ponto exato para a interface (a pausa congela o mundo nele).
+    // Last exact point for the interface (the pause freezes the world on it).
     if (this.active) this.push();
   }
 
-  /** Relógio da reprodução: com a aba oculta o rAF para e a reprodução espera junto. */
+  /** Playback clock: with the tab hidden the rAF stops and the playback waits along with it. */
   private loop = (): void => {
     this.raf = 0;
     const r = this.replay;
@@ -441,7 +441,7 @@ export class TimelapsePlayer implements UiComponent {
     this.raf = requestAnimationFrame(this.loop);
   };
 
-  /** Snapshot do instante atual para o store (o primeiro liga o modo replay; o mundo aplica na hora). */
+  /** Snapshot of the current instant for the store (the first one turns on replay mode; the world applies it at once). */
   private push(): void {
     const r = this.replay;
     if (!r) return;
@@ -449,7 +449,7 @@ export class TimelapsePlayer implements UiComponent {
     this.ctx.store.pushReplay(r.snapshot(this.t, { includeDemo: this.includeDemo }));
   }
 
-  /** Pula para `t`: recomeça o mundo (todos já no lugar) e publica o estado daquele instante. */
+  /** Jumps to `t`: restarts the world (everyone already in place) and publishes the state of that instant. */
   private seek(t: number): void {
     const r = this.replay;
     if (!r) return;
@@ -461,7 +461,7 @@ export class TimelapsePlayer implements UiComponent {
     this.renderClock();
   }
 
-  /** Arrastando a linha do tempo: segue o dedo com o relógio e recomeça o mundo com throttle. */
+  /** Dragging the timeline: follows the finger with the clock and restarts the world with throttle. */
   private scrub(t: number, final: boolean): void {
     if (!this.replay) return;
     this.t = t;
@@ -481,7 +481,7 @@ export class TimelapsePlayer implements UiComponent {
     }, wait);
   }
 
-  /** Sai do modo replay: mundo recomeçado ao vivo e o store de volta ao SSE. */
+  /** Leaves replay mode: world restarted live and the store back on the SSE. */
   private exit(): void {
     this.pause();
     if (this.seekTimer) clearTimeout(this.seekTimer);
@@ -497,9 +497,9 @@ export class TimelapsePlayer implements UiComponent {
     return (this.replay?.from ?? 0) + Number(this.range.value) * 1000;
   }
 
-  // ---------------------------------------------------------------- desenho
+  // ---------------------------------------------------------------- drawing
 
-  /** Hora atual (barra e selo) e posição da linha do tempo: barato, roda a cada quadro da reprodução. */
+  /** Current time (bar and badge) and timeline position: cheap, runs on every playback frame. */
   private renderClock(): void {
     const r = this.replay;
     if (!r) {
@@ -520,7 +520,7 @@ export class TimelapsePlayer implements UiComponent {
     setAttr(this.range, 'aria-valuetext', `${time}${r.day === today ? '' : `, ${dayLabel(r.day, today)}`}`);
   }
 
-  /** Gráfico de agentes presentes (cinza) e trabalhando (verde) por minuto, picos e régua de horas. */
+  /** Chart of agents present (gray) and working (green) per minute, peaks and hour ruler. */
   private drawChart(force: boolean): void {
     const r = this.replay;
     const w = this.chart.clientWidth;
@@ -582,7 +582,7 @@ export class TimelapsePlayer implements UiComponent {
   }
 }
 
-/** "180× — 1 min de reprodução = 3 h do dia". */
+/** "180× — 1 min of playback = 3 h of the day". */
 function speedHint(s: Speed): string {
   return tr('{0}× — 1 min of playback = {1} h of the day', [s, s / 60]);
 }
