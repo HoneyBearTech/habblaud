@@ -524,7 +524,7 @@ y el feed sigue mostrando lo que pasa ahora.
 El servidor graba la línea de tiempo **a partir del momento en que está encendido** (no se puede reconstruir el
 pasado): resúmenes de lo que muestra la oficina, sin conversaciones, en `~/.habblaud/timeline/` (en Docker, en el
 volumen de datos), con un límite de tamaño por día y los últimos **7 días** guardados. Para no grabar:
-`HABBLAUD_TIMELINE=0`. Detalles en [`server/README.md`](server/README.md#linha-do-tempo-timelapse).
+`HABBLAUD_TIMELINE=0`. Detalles en [`server/README.md`](server/README.md#timeline-timelapse).
 
 Los personajes caminan más rápido en el replay, pero a velocidades altas quien pasa poco tiempo en la oficina casi no
 llega a su escritorio; saltar a otro punto los muestra a todos ya en su lugar.

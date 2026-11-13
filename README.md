@@ -501,7 +501,7 @@ feed keeps showing what's happening now.
 The server records the timeline **from the moment it's turned on** (the past can't be rebuilt):
 summaries of what the office shows, without conversations, in `~/.habblaud/timeline/` (in Docker, in the data volume), with
 a size limit per day and the last **7 days** kept. To not record: `HABBLAUD_TIMELINE=0`. Details in
-[`server/README.md`](server/README.md#linha-do-tempo-timelapse).
+[`server/README.md`](server/README.md#timeline-timelapse).
 
 The characters walk faster in the replay, but at high speeds anyone who stays only briefly in the office barely
 reaches their desk; jumping to another point shows everyone already in place.

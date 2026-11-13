@@ -525,7 +525,7 @@ légère teinte sépia, avec le badge **REPLAY 14:32**, et le fil d'activité co
 Le serveur enregistre la chronologie **à partir du moment où il est allumé** (impossible de reconstituer le passé) :
 des résumés de ce que le bureau affiche, sans les conversations, dans `~/.habblaud/timeline/` (dans Docker, dans le
 volume de données), avec une taille limite par jour et les **7 derniers jours** conservés. Pour ne pas enregistrer :
-`HABBLAUD_TIMELINE=0`. Détails dans [`server/README.md`](server/README.md#linha-do-tempo-timelapse).
+`HABBLAUD_TIMELINE=0`. Détails dans [`server/README.md`](server/README.md#timeline-timelapse).
 
 Les personnages marchent plus vite pendant le replay, mais aux vitesses élevées, ceux qui restent peu de temps au
 bureau atteignent à peine leur poste ; sauter à un autre moment montre tout le monde déjà en place.
