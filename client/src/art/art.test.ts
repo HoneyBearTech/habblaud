@@ -824,7 +824,7 @@ describe('per-frame drawings', () => {
       expect(colors('game', k), `race ${k}`).toContain('#6a7280');
       expect(colors('game', k + 1), `fight ${k + 1}`).toContain('#3b2a6b');
     }
-    // The "GOL" (dark banner + letters) appears at the end of each play; the "KO", at the end of the round.
+    // The "GOAL" (dark banner + letters) appears at the end of each play; the "KO", at the end of the round.
     const banner = 'rgba(12,16,28,0.78)';
     const some = (m: ScreenMode, seed: number, span: number) => {
       for (let t = 0; t < span; t += 50) if (colors(m, seed, t).includes(banner)) return true;

@@ -399,7 +399,7 @@ export class Sim {
     }
   }
 
-  /** Play of the TV soccer game right now (so the fans celebrate along with the screen's "GOL"). */
+  /** Play of the TV soccer game right now (so the fans celebrate along with the screen's "GOAL"). */
   footballLance(t: number): { lance: number; progress: number; right: boolean; period: number; goalAt: number } | null {
     try {
       return this.art.footballLance?.(t, PROGRAM_SEED.futebol) ?? null;

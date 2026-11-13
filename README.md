@@ -1224,7 +1224,7 @@ a new request to someone — it lets the group know ("Oops, they're calling me! 
 
 | | Hangout | What happens |
 | --- | --- | --- |
-| 📺 | **TV in the lounge** | Soccer, a soap opera or cartoons, with popcorn on the couch. During soccer the fans cheer along with the "GOL" flashing on the screen (or groan at the other team's goal); during the soap opera, little hearts and "No way! 😱". Nap lovers end up falling asleep on the couch. |
+| 📺 | **TV in the lounge** | Soccer, a soap opera or cartoons, with popcorn on the couch. During soccer the fans cheer along with the "GOAL" flashing on the screen (or groan at the other team's goal); during the soap opera, little hearts and "No way! 😱". Nap lovers end up falling asleep on the couch. |
 | 🎮 | **Video games** | Two on the couch with controllers, the TV in split screen (racing or fighting), best of 3, trash talk ("What's with this lag?!") and fans. |
 | 👾 | **Arcade** | A duel at the lounge's two machines, a single match. |
 | 🏓 | **Ping-pong** | Up to 5 points, with the ball going back and forth, the score in the bubbles ("3 × 2 🏓") and fans behind the table. |

@@ -315,10 +315,11 @@ export function drawScreen(ctx: Ctx, r: Rect, mode: ScreenMode, t: number, seed:
 
 // ------------------------------------------------------------------ TV and video game (social life)
 
-/** 3x5 letters for the TV bumpers ("GOL", "KO"): each row becomes a few fills (continuous runs). */
+/** 3x5 letters for the TV bumpers ("GOAL", "KO"): each row becomes a few fills (continuous runs). */
 const GLYPHS: Readonly<Record<string, readonly string[]>> = {
   G: ['###', '#..', '#.#', '#.#', '###'],
   O: ['###', '#.#', '#.#', '#.#', '###'],
+  A: ['.#.', '#.#', '###', '#.#', '#.#'],
   L: ['#..', '#..', '#..', '#..', '###'],
   K: ['#.#', '##.', '#..', '##.', '#.#'],
 };
@@ -356,17 +357,17 @@ function banner(ctx: Ctx, word: string, x: number, y: number, w: number, h: numb
 /**
  * Soccer: striped grass, midfield line, goals, two teams of dots that follow the ball and a
  * scoreboard in the corner. On each play (7 s) the ball runs to one of the goals; at the end of the play
- * it goes in and the screen flashes "GOL" (yellow border).
+ * it goes in and the screen flashes "GOAL" (yellow border).
  */
 /** Duration of one play of the TV soccer (the ball leaves the middle and ends in the goal). */
 export const FOOTBALL_LANCE_MS = 7000;
-/** From this fraction of the play on, the ball is in the goal and the screen flashes "GOL". */
+/** From this fraction of the play on, the ball is in the goal and the screen flashes "GOAL". */
 export const FOOTBALL_GOAL_AT = 0.8;
 
 /**
  * Play of the TV soccer at instant `t` (same `t`/`seed` as drawScreen('show')): play number,
  * progress (0..1) and whether the ball goes to the right goal. Exported so the world can sync the
- * fans with the "GOL" on the screen.
+ * fans with the "GOAL" on the screen.
  */
 export function footballLance(t: number, s: number): { lance: number; progress: number; right: boolean; period: number; goalAt: number } {
   const k = Math.floor((t + (s % 997) * 13) / FOOTBALL_LANCE_MS);
@@ -429,7 +430,7 @@ function drawFootball(ctx: Ctx, x: number, y: number, w: number, h: number, t: n
     fill(ctx, x, y + h - 1, w, 1, c);
     fill(ctx, x, y, 1, h, c);
     fill(ctx, x + w - 1, y, 1, h, c);
-    if (w >= 15 && h >= 9) banner(ctx, 'GOL', x, y, w, h, c);
+    if (w >= 19 && h >= 9) banner(ctx, 'GOAL', x, y, w, h, c);
   }
 }
 

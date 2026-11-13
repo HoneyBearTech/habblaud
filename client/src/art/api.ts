@@ -308,7 +308,7 @@ export type ScreenMode =
   | 'alert' // screen blinking in amber (needs attention)
   | 'progress' // dark terminal with a moving progress bar/spinner (waiting for a command to finish)
   // --- social life (additive; meant for the lounge TV and the arcade machine, but good for any screen)
-  | 'show' // animated TV show; FIXED mapping by `seed`: seed % 3 === 0 soccer (field, players, ball; from time to time the ball goes into the goal and the screen flashes "GOL"), 1 soap opera (two faces in close-up, hearts), 2 cartoon (bright colors)
+  | 'show' // animated TV show; FIXED mapping by `seed`: seed % 3 === 0 soccer (field, players, ball; from time to time the ball goes into the goal and the screen flashes "GOAL"), 1 soap opera (two faces in close-up, hearts), 2 cartoon (bright colors)
   | 'game'; // video game (two players); FIXED mapping by `seed`: seed % 2 === 0 split-screen race (two little cars on the track), 1 fight (two figures and health bars)
 
 export interface RoomTheme {
@@ -368,7 +368,7 @@ export interface ArtModule {
   iconSprite(name: IconName): Sprite;
   /**
    * (Optional, additive) Soccer play of drawScreen('show') with seed % 3 === 0, at instant `t`:
-   * from `progress >= goalAt` on the screen flashes "GOL" (ball in the right goal if `right`). The world
+   * from `progress >= goalAt` on the screen flashes "GOAL" (ball in the right goal if `right`). The world
    * uses it so the fans celebrate along with the TV.
    */
   footballLance?(t: number, seed: number): { lance: number; progress: number; right: boolean; period: number; goalAt: number };
