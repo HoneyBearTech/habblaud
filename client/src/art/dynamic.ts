@@ -45,6 +45,17 @@ const SYNTAX = ['#ff79c6', '#8be9fd', '#f1fa8c', '#50fa7b', '#bd93f9', '#ffb86c'
 
 // ------------------------------------------------------------------ screens
 
+/**
+ * Screen of a "waiting on the shell" stage of the preview page, picked by the stage's label: the task
+ * list once it finished, the alert once it failed, the progress screen until then. Recognizes the English
+ * labels and the Portuguese ones the page had before ("terminou", "falhou").
+ */
+export function shellStageScreen(label: string): ScreenMode {
+  if (label === 'finished' || label === 'terminou') return 'tasks';
+  if (label === 'failed' || label === 'falhou') return 'alert';
+  return 'progress';
+}
+
 export function drawScreen(ctx: Ctx, r: Rect, mode: ScreenMode, t: number, seed: number): void {
   const x = Math.round(r.x);
   const y = Math.round(r.y);

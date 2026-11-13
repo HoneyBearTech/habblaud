@@ -3,6 +3,7 @@
 // window, clock, icons, themes and avatars — plus a sample scene to check cohesion.
 import '@fontsource/pixelify-sans/400.css';
 import * as art from './index';
+import { shellStageScreen } from './dynamic';
 import { pixelText, pixelTextWidth } from './pixelfont';
 import {
   FURNITURE,
@@ -341,7 +342,7 @@ function shellWait(): void {
           const desk = art.furnitureSprites('desk', theme.deskVariant, 0, { seed: 0 }).base;
           blit(ctx, desk, cx, cy - TILE);
           const r = desk.rects?.screen;
-          const mode: ScreenMode = st.name === 'finished' ? 'tasks' : st.name === 'failed' ? 'alert' : 'progress';
+          const mode: ScreenMode = shellStageScreen(st.name);
           if (r) art.drawScreen(ctx, { x: cx - desk.ax + r.x, y: cy - TILE - desk.ay + r.y, w: r.w, h: r.h }, mode, t, 4);
           const chair = art.furnitureSprites('office_chair', theme.chairVariant);
           blit(ctx, chair.base, cx, cy);

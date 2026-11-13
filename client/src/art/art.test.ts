@@ -8,7 +8,7 @@ import { HAIR, HEAD_BASE } from './character/hair';
 import { CHAR_AX, CHAR_AY, CHAR_H, CHAR_W, POSE_DURATION, POSE_FRAMES, isSeated, renderCharacter } from './character/render';
 import { PixelBuf } from './core/pixbuf';
 import type { BufSprite } from './core/sprite';
-import { drawBoard, drawClock, drawScreen, drawWindowView } from './dynamic';
+import { drawBoard, drawClock, drawScreen, drawWindowView, shellStageScreen } from './dynamic';
 import { normalizeFurniture, renderFurniture } from './furniture/index';
 import { ICON_NAMES, iconTemplates, renderIcon } from './icons';
 import { CHUNK_PX, floorChunk } from './surfaces/floor';
@@ -833,6 +833,14 @@ describe('per-frame drawings', () => {
     expect(some('show', 0, 7000)).toBe(true);
     expect(some('game', 1, 9000)).toBe(true);
     expect(some('show', 1, 7000)).toBe(false);
+  });
+
+  it('shellStageScreen: the outcome labels of the preview page pick the screen, in English and in Portuguese', () => {
+    expect(shellStageScreen('finished')).toBe('tasks');
+    expect(shellStageScreen('terminou')).toBe('tasks');
+    expect(shellStageScreen('failed')).toBe('alert');
+    expect(shellStageScreen('falhou')).toBe('alert');
+    for (const label of ['0-3 min', '3-10 min', '> 10 min', '> 25 min']) expect(shellStageScreen(label)).toBe('progress');
   });
 
   it('drawWindowView, drawBoard and drawClock stay inside the rectangle', () => {
