@@ -240,7 +240,7 @@ def build_og(detailed: Image.Image | None, illustration: Image.Image | None, out
     tx, ty = mx + mark.width + 20, panel_top + 12
     og.alpha_composite(art.text_image("Hab", "#f4f1ea", 4, shadow="#05070c"), (tx, ty))
     og.alpha_composite(art.text_image("blaud", "#fac665", 4, shadow="#05070c"), (tx + (art.text_width("Hab") + 1) * 4, ty))
-    lines = ["Seus agentes do Claude Code, ao vivo,", "num escritório em pixel art."]
+    lines = ["Your Claude Code agents, live,", "in a pixel-art office."]
     for i, line in enumerate(lines):
         img = art.text_image(line, "#c9d3e3", 2)
         if tx + img.width > w - 12:
