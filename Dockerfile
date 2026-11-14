@@ -9,8 +9,8 @@
 # ---------------------------------------------------------------------------------------------
 # Stage 1: builds the client (Vite) and bundles the server (esbuild) into dist/.
 # ---------------------------------------------------------------------------------------------
-# The base image is pinned by digest (the same in both stages), so the build is reproducible; Dependabot
-# (.github/dependabot.yml, docker ecosystem) changes the tag and the digest together when a new version comes out.
+# The base image is pinned by digest (the same in both stages), so the build is reproducible; Renovate
+# (renovate.json, dockerfile manager) changes the tag and the digest together when a new version comes out.
 FROM node:24-alpine@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1 AS builder
 WORKDIR /app
 
