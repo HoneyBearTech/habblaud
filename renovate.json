@@ -1,0 +1,67 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "timezone": "America/Chicago",
+  "schedule": [
+    "before 6am on monday"
+  ],
+  "labels": [
+    "dependencies"
+  ],
+  "osvVulnerabilityAlerts": true,
+  "vulnerabilityAlerts": {
+    "labels": [
+      "security"
+    ]
+  },
+  "packageRules": [
+    {
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "groupName": "GitHub Actions minor and patch updates"
+    },
+    {
+      "description": "The types follow the lowest Node version Habblaud supports (engines: >=22.12). Majors are bumped by hand, together with engines and CI.",
+      "matchManagers": [
+        "npm"
+      ],
+      "matchPackageNames": [
+        "@types/node"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "The image stays on an LTS version of Node. Changing the major version (e.g. 24 -> 26) is done by hand.",
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchPackageNames": [
+        "node"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "CI runs on the lowest supported Node version (node-version: '22.12' in ci.yml, same as engines). It is bumped by hand, together with engines.",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchDepNames": [
+        "node"
+      ],
+      "enabled": false
+    }
+  ]
+}
