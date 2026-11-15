@@ -9,6 +9,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { hash32 } from '../../shared/hash';
 import { SPECIAL } from '../../shared/activity';
 import type { Activity, AgentInfo } from '../../shared/types';
+import type { WorldThemeChoice } from '../../shared/world/api';
 import { VISIBILITY_DEFAULTS, type GoodbyeReason, type Player, type WorldUplink } from '../../shared/world/protocol';
 import schemaJson from '../../shared/world/schema.json';
 import { compileValidator } from '../../shared/world/schema-validator';
@@ -135,6 +136,8 @@ async function start(
     /** The uplink time on a manual clock (with `timing` on top of FAST). */
     clock?: ManualClock;
     timing?: Partial<UplinkTiming>;
+    /** Theme chosen before the first upload (an explicit one keeps the test off the calendar). */
+    theme?: WorldThemeChoice;
   } = {},
 ): Promise<Harness> {
   const world = await startFakeWorld();
@@ -147,6 +150,7 @@ async function start(
   const file = join(tmp.dir, 'world.json');
   const lastFile = join(tmp.dir, 'world-last-uplink.json');
   const store = new WorldSettingsStore(file);
+  if (opts.theme) store.setTheme(opts.theme);
   const mode = opts.session ?? 'approved';
   const player = { ...PLAYER, visibility: { ...PLAYER.visibility, tokensVisible: opts.tokensVisible ?? true, compactions: opts.compactions ?? false } };
   if (mode !== 'none') {
@@ -403,9 +407,12 @@ describe('BuildingUplink: connection and uploads', () => {
   });
 
   it('the theme and the player options: changed theme sends again; tokens only with tokensVisible', async () => {
-    const h = await start({ tokensVisible: false });
+    // Starts from an explicit theme: on 'auto', the date decides (Christmas from November 1 to December 26), and
+    // choosing Christmas then would change nothing.
+    const h = await start({ tokensVisible: false, theme: 'halloween' });
     await waitFor(() => h.world.ws.uplinks.length === 1, 'first');
     expect(h.world.ws.uplinks[0].uplink.tokens).toBeUndefined();
+    expect(h.world.ws.uplinks[0].uplink.theme).toBe('halloween');
     h.store.setTheme('christmas');
     h.uplink.themeChanged();
     await waitFor(() => h.world.ws.uplinks.length === 2, 'theme');
