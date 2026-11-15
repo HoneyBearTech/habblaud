@@ -90,7 +90,7 @@ describe('usage card of a Copilot account', () => {
   it('without an allowance: the month and today in a line, and the hint to get a bar', () => {
     const a = cop({ month: 1234.56, today: 35.04 });
     expect(cardState(a)).toBe('ok');
-    expect(usageMessage(a)).toEqual(['1,234.6 AI credits this month · 35 today', '1,234.6 credits']);
+    expect(usageMessage(a)).toEqual(['1,234.6 AI credits this month · 35 today (UTC)', '1,234.6 credits']);
     expect(creditsBar(copilotCredits(a)!)).toBeUndefined();
     expect(copilotUsageNote(a)).toMatch(/1 unit = 1 credit; the month starts on the 1st, UTC/);
     expect(copilotUsageNote(a)).toMatch(/Set HABBLAUD_COPILOT_CREDIT_LIMIT to show a bar/);

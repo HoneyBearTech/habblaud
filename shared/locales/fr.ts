@@ -3290,7 +3290,7 @@ export const FR: Readonly<Record<string, string>> = {
   "counting…": "comptage…",
   "No Copilot AI credits used this month": "Aucun crédit IA Copilot utilisé ce mois-ci",
   "no credits": "aucun crédit",
-  "{0} AI credits this month · {1} today": "{0} crédits IA ce mois-ci · {1} aujourd'hui",
+  "{0} AI credits this month · {1} today (UTC)": "{0} crédits IA ce mois-ci · {1} aujourd'hui (UTC)",
   "{0} credits": "{0} crédits",
   "resets in 1 day": "renouvelé dans 1 jour",
   "resets in {0} days": "renouvelé dans {0} jours",

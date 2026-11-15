@@ -204,7 +204,7 @@ export function usageMessage(a: Pick<AccountInfo, 'usage' | 'usageStatus' | 'pro
     if (copilotCounting(a)) return [tr('Counting Copilot AI credits…'), tr('counting…')];
     const c = copilotCredits(a);
     if (!c) return [tr('No Copilot AI credits used this month'), tr('no credits')];
-    return [tr('{0} AI credits this month · {1} today', [formatCredits(c.month), formatCredits(c.today)]), tr('{0} credits', [formatCredits(c.month)])];
+    return [tr('{0} AI credits this month · {1} today (UTC)', [formatCredits(c.month), formatCredits(c.today)]), tr('{0} credits', [formatCredits(c.month)])];
   }
   return [tr('no usage data'), tr('no data')];
 }
