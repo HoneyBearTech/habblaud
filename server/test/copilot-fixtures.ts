@@ -59,8 +59,19 @@ export const E = {
   abort(at: number): string {
     return ev('abort', { reason: 'user' }, at);
   },
-  shutdown(at: number): string {
-    return ev('session.shutdown', { shutdownType: 'routine' }, at);
+  /** session.shutdown; with `totalNanoAiu`, the session's running AI-unit total (billionths of a unit). */
+  shutdown(at: number, totalNanoAiu?: number): string {
+    const data: Record<string, unknown> = { shutdownType: 'routine' };
+    if (totalNanoAiu !== undefined) data.totalNanoAiu = totalNanoAiu;
+    return ev('session.shutdown', data, at);
+  },
+  /** session.usage_checkpoint with the session's running AI-unit total (billionths of a unit; 1e9 = 1 credit). */
+  checkpoint(totalNanoAiu: unknown, at: number): string {
+    return ev('session.usage_checkpoint', { totalNanoAiu, accountingSnapshot: { aiCreditsStatus: 'complete' } }, at);
+  },
+  /** A premium-request record (`cost`, `initiator`): never counted as AI credits. */
+  premium(at: number): string {
+    return ev('session.usage_record', { cost: 1, initiator: 'user', totalNanoAiu: 999_000_000_000 }, at);
   },
 };
 

@@ -213,6 +213,15 @@ describe('usage (5h and weekly)', () => {
     expect(store.view('x', NOW)).toMatchObject({ status: 'stale', usage: { source: 'cache' } });
   });
 
+  it('Copilot AI credits are a running count: never "stale" with age, and no windows to roll over', () => {
+    const store = new UsageStore();
+    const credits = { month: 140, today: 35, limit: 1500, resetsAt: NOW + 86_400_000 };
+    store.set('cop', { source: 'copilot', credits, fetchedAt: NOW - 10 * STALE_AFTER_MS });
+    expect(store.view('cop', NOW)).toEqual({ status: 'ok', usage: { source: 'copilot', credits, fetchedAt: NOW - 10 * STALE_AFTER_MS } });
+    expect(store.clear('cop', 'copilot')).toBe(true);
+    expect(store.view('cop', NOW)).toEqual({ status: 'disabled' });
+  });
+
   it('AccountsService: accounts from another tool (list coming from outside), unique ids and pushed usage', () => {
     const tmp = tempDir();
     try {

@@ -8,6 +8,9 @@
 // accounts' ones. Name: "Copilot" (or "Copilot X" with more than one account). No plan and no email (Copilot writes
 // neither to the session files).
 //
+// AI-credit allowance (for the usage bar): HABBLAUD_COPILOT_CREDIT_LIMIT for every Copilot account, or `creditLimit`
+// of the account's HABBLAUD_ACCOUNTS entry (it wins). A positive number; anything else is ignored (the source warns once).
+//
 // Privacy: only `session-state/` is checked here (by existence); from the shell files, only the
 // `alias X='... copilot ...'` lines. In Docker the host sends everything ready in HABBLAUD_ACCOUNTS
 // (`provider: 'copilot'`, with the host's `configDir`).
@@ -60,6 +63,19 @@ export function discoverCopilotDirs(env: NodeJS.ProcessEnv = process.env, home: 
   if (override.length) return [...new Set(override.map((p) => expandHome(p, home)))].filter(isDir);
   const main = defaultCopilotHome(env, home);
   return isCopilotHome(main) ? [main] : [];
+}
+
+/** Environment variable with the monthly AI-credit allowance of every Copilot account. */
+export const CREDIT_LIMIT_ENV = 'HABBLAUD_COPILOT_CREDIT_LIMIT';
+
+/**
+ * A monthly AI-credit allowance: a positive finite number (or a string with one). `limit` undefined with `invalid`
+ * false = not set (absent or blank); `invalid` true = set to something else, to be ignored with a warning.
+ */
+export function parseCreditLimit(raw: unknown): { limit?: number; invalid: boolean } {
+  if (raw === undefined || raw === null || (typeof raw === 'string' && !raw.trim())) return { invalid: false };
+  const n = typeof raw === 'number' ? raw : typeof raw === 'string' ? Number(raw.trim()) : NaN;
+  return Number.isFinite(n) && n > 0 ? { limit: n, invalid: false } : { invalid: true };
 }
 
 /** Overrides of the Copilot accounts in HABBLAUD_ACCOUNTS (coming from the host, in Docker). */
@@ -116,7 +132,7 @@ export function detectCopilotAccounts(dirs: string[], opts: CopilotDetectOptions
       color = ACCOUNT_COLORS.find((c) => !usedColors.has(c)) ?? ACCOUNT_COLORS[usedColors.size % ACCOUNT_COLORS.length];
       usedColors.add(color);
     }
-    return {
+    const account: DetectedAccount = {
       id: p.id,
       provider: 'copilot',
       configDir: str(p.ov?.configDir) ?? p.dir,
@@ -124,5 +140,8 @@ export function detectCopilotAccounts(dirs: string[], opts: CopilotDetectOptions
       name: str(p.ov?.name) ?? (dirs.length > 1 ? `Copilot ${short}` : 'Copilot'),
       color,
     };
+    const limit = parseCreditLimit(p.ov?.creditLimit).limit;
+    if (limit !== undefined) account.creditLimit = limit;
+    return account;
   });
 }

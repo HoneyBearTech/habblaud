@@ -14,7 +14,7 @@ export type AgentKind = 'main' | 'sub';
  * `provider` field is optional and ABSENT means 'claude' (everything that existed before Codex stays the same).
  * - claude: Claude Code;
  * - codex: OpenAI Codex (the `codex` CLI and the desktop app, which write to the same CODEX_HOME).
- * - copilot: GitHub Copilot CLI (read from its COPILOT_HOME, ~/.copilot; no messages, approvals or usage bar).
+ * - copilot: GitHub Copilot CLI (read from its COPILOT_HOME, ~/.copilot; no messages or approvals; AI credits from its session files).
  */
 export type Provider = 'claude' | 'codex' | 'copilot';
 
@@ -276,6 +276,21 @@ export interface UsageWindow {
   resetsAt?: number;
 }
 
+/**
+ * AI credits of a Copilot account, counted from the running `totalNanoAiu` of its session files on this computer
+ * (1 unit = 1 credit). Months and days are UTC.
+ */
+export interface CreditUsage {
+  /** Credits used in the current UTC month. */
+  month: number;
+  /** Credits used in the current UTC day. */
+  today: number;
+  /** Monthly allowance (HABBLAUD_COPILOT_CREDIT_LIMIT or the account's `creditLimit`); absent = no bar. */
+  limit?: number;
+  /** When the count starts again: the 1st of next month, 00:00 UTC (epoch ms). */
+  resetsAt: number;
+}
+
 export interface AccountUsage {
   /** 5-hour session. */
   fiveHour?: UsageWindow;
@@ -288,9 +303,10 @@ export interface AccountUsage {
    * - 'statusline': captured live and written to ~/.habblaud/usage/<conta>.json by the Habblaud mod
    *   (mod/habblaud, recommended) or by scripts/statusline-tap.mjs (rate_limits field of the statusline);
    * - 'cache': `cachedUsageUtilization` written by Claude Code itself (updates when someone runs /usage);
-   * - 'codex': `rate_limits` from the Codex session files (they only refresh while some session is running).
+   * - 'codex': `rate_limits` from the Codex session files (they only refresh while some session is running);
+   * - 'copilot': AI credits counted from the Copilot CLI session files on this computer (`credits`, no windows).
    */
-  source: 'cache' | 'statusline' | 'codex';
+  source: 'cache' | 'statusline' | 'codex' | 'copilot';
   /** Who wrote the file live ('statusline'): the Habblaud mod in Claude Code or the statusline tap. */
   via?: 'mod' | 'tap';
   /**
@@ -298,6 +314,8 @@ export interface AccountUsage {
    * used up). It is not "0% used": the windows are absent.
    */
   noQuota?: boolean;
+  /** Copilot ('copilot' source): AI credits used this month on this computer. */
+  credits?: CreditUsage;
   /** When the numbers were obtained at the origin (epoch ms). */
   fetchedAt: number;
 }

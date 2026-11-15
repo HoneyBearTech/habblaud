@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { tempDir } from '../../test/fixtures';
-import { copilotOverrides, defaultCopilotHome, detectCopilotAccounts, discoverCopilotDirs } from './accounts';
+import { copilotOverrides, defaultCopilotHome, detectCopilotAccounts, discoverCopilotDirs, parseCreditLimit } from './accounts';
 
 let cleanups: Array<() => void> = [];
 afterEach(() => {
@@ -67,5 +67,27 @@ describe('Copilot accounts: metadata', () => {
     expect(copilotOverrides(raw)).toHaveLength(1);
     const [a] = detectCopilotAccounts(['/copilot/.copilot'], { home: '/root', env: { HABBLAUD_ACCOUNTS: raw } });
     expect(a).toMatchObject({ id: '.copilot', configDir: '/Users/x/.copilot', short: 'P', color: '#5cc97b' });
+  });
+});
+
+describe('Copilot accounts: AI-credit allowance', () => {
+  it('a positive number (or a string with one); blank = not set; anything else is invalid', () => {
+    expect(parseCreditLimit('1500')).toEqual({ limit: 1500, invalid: false });
+    expect(parseCreditLimit(' 1500.5 ')).toEqual({ limit: 1500.5, invalid: false });
+    expect(parseCreditLimit(300)).toEqual({ limit: 300, invalid: false });
+    expect(parseCreditLimit(undefined)).toEqual({ invalid: false });
+    expect(parseCreditLimit('  ')).toEqual({ invalid: false });
+    for (const bad of ['0', '-5', 'lots', 'Infinity', '1e999', 0, -1, Number.NaN, true, {}, []]) expect(parseCreditLimit(bad)).toEqual({ invalid: true });
+  });
+
+  it('creditLimit of the HABBLAUD_ACCOUNTS entry goes into the account; an invalid one is left out', () => {
+    const raw = JSON.stringify([
+      { id: '.copilot', provider: 'copilot', mountDir: '/copilot/.copilot', creditLimit: 1500 },
+      { id: '.copilot-work', provider: 'copilot', mountDir: '/copilot/.copilot-work', creditLimit: 'lots' },
+    ]);
+    const [a, b] = detectCopilotAccounts(['/copilot/.copilot', '/copilot/.copilot-work'], { home: '/root', env: { HABBLAUD_ACCOUNTS: raw } });
+    expect(a.creditLimit).toBe(1500);
+    expect(b.creditLimit).toBeUndefined();
+    expect('creditLimit' in b).toBe(false);
   });
 });

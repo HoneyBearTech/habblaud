@@ -2,7 +2,9 @@
 // - 'statusline': rate_limits that Claude Code sends to the statusline, written by
 //   scripts/statusline-tap.mjs (recommended: live);
 // - 'cache': cachedUsageUtilization written by Claude Code itself (when someone runs /usage);
-// - 'codex': rate_limits from the Codex session files, pushed by the Codex source (AccountsService.setUsage).
+// - 'codex': rate_limits from the Codex session files, pushed by the Codex source (AccountsService.setUsage);
+// - 'copilot': AI credits counted from the Copilot session files, pushed by the Copilot source. It is a running count
+//   kept up to date by the source (not a reading that ages), so it never goes "stale".
 // The source with the most recent numbers always counts (highest fetchedAt). None of them reads credentials
 // or makes network calls: they are only files that Claude Code already writes on the machine.
 import type { AccountInfo, AccountUsage, UsageWindow } from '../../shared/types';
@@ -117,6 +119,7 @@ export class UsageStore {
     const all = [...(this.entries.get(accountId)?.values() ?? [])];
     const best = all.reduce<AccountUsage | undefined>((acc, u) => (!acc || u.fetchedAt > acc.fetchedAt ? u : acc), undefined);
     if (!best) return { status: 'disabled' };
-    return { usage: rollover(best, now), status: now - best.fetchedAt > STALE_AFTER_MS ? 'stale' : 'ok' };
+    const stale = best.source !== 'copilot' && now - best.fetchedAt > STALE_AFTER_MS;
+    return { usage: rollover(best, now), status: stale ? 'stale' : 'ok' };
   }
 }

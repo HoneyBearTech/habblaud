@@ -14,12 +14,14 @@
 // 'idle'; 'working' with no write for WORKING_QUIET_MS (a dead turn) becomes 'idle', and so does 'waiting' with no
 // write for WAITING_QUIET_MS (a process killed on a permission prompt: no "needs you" for hours). The open-sessions
 // `refreshedAt` counts as activity there only when newer than the last write; it is no heartbeat. Messages and
-// approvals from the office are not supported for Copilot, and Copilot writes no usage limits: there is no usage bar.
+// approvals from the office are not supported for Copilot. Copilot writes no usage limits; the account's usage is the
+// AI credits counted from every session file of this month (credits.ts), pushed as the 'copilot' usage source at each
+// rescan (with the allowance of HABBLAUD_COPILOT_CREDIT_LIMIT or the account's `creditLimit`, when set).
 // Subagents are not shown (they stay inside the main session's events). Short and synchronous boot (only the end
 // window of large files; the start is read later, in the background), with endBoot in a `finally`.
 import { createReadStream, statSync, watch, type FSWatcher } from 'node:fs';
 import { join } from 'node:path';
-import type { Activity, AgentStatus, SourceInfo } from '../../../shared/types';
+import type { Activity, AgentStatus, CreditUsage, SourceInfo } from '../../../shared/types';
 import type { DetectedAccount } from '../../accounts/detect';
 import type { AccountEntry, AccountsService } from '../../accounts/service';
 import { errMsg, log } from '../../log';
@@ -27,7 +29,8 @@ import type { Office, TranscriptSummary } from '../../model/office';
 import type { AgentSource } from '../source';
 import { FileTail, LineBuffer, warnOversizedLine } from '../tail';
 import type { TerminalParser } from '../terminal';
-import { detectCopilotAccounts } from './accounts';
+import { copilotOverrides, CREDIT_LIMIT_ENV, detectCopilotAccounts, parseCreditLimit } from './accounts';
+import { CopilotCredits, utcNextMonthStart, type CreditFileStat } from './credits';
 import { copilotStatus, createCopilotState, parseEventLine, type CopilotLineResult, type CopilotState } from './events';
 import { EVENTS_FILE, isCopilotHome, listSessionIds, readOpenSessions, readWorkspace, sessionFile, SESSION_STATE_DIR, type WorkspaceInfo } from './files';
 import { createCopilotTerminalParser } from './terminal';
@@ -76,6 +79,10 @@ interface CopilotAccount {
   recent: Map<string, number>;
   scanAt: number;
   error?: string;
+  /** Monthly AI-credit allowance (the account's `creditLimit`, else HABBLAUD_COPILOT_CREDIT_LIMIT). */
+  creditLimit?: number;
+  /** Signature of the last credit usage pushed ('' = none). */
+  creditsSig: string;
 }
 
 interface SessionTracker {
@@ -122,14 +129,16 @@ export class CopilotSource implements AgentSource {
   private readonly tailBytes: number;
   private readonly useWatch: boolean;
   private stopped = false;
+  private readonly credits = new CopilotCredits();
 
   constructor(private readonly opts: CopilotSourceOptions) {
     this.now = opts.now ?? Date.now;
     this.tailBytes = opts.tailBytes ?? 1024 * 1024;
     this.useWatch = opts.watch ?? true;
+    const env = opts.env ?? process.env;
     const others = opts.accounts.allEntries();
     this.detected = detectCopilotAccounts(opts.dirs, {
-      env: opts.env ?? process.env,
+      env,
       home: opts.home,
       taken: { shorts: others.map((e) => e.detected.short), colors: others.map((e) => e.detected.color) },
     });
@@ -137,7 +146,16 @@ export class CopilotSource implements AgentSource {
       'copilot',
       opts.dirs.map((dir, i) => ({ dir, detected: this.detected[i] })),
     );
-    this.accs = this.entries.map((e) => ({ id: e.id, dir: e.dir, configDir: e.detected.configDir, recent: new Map(), scanAt: -Infinity }));
+    const envLimit = parseCreditLimit(env[CREDIT_LIMIT_ENV]);
+    if (envLimit.invalid) log.warnOnce('copilot-credit-limit', tr('{0} must be a positive number (e.g. 1500); ignored.', [CREDIT_LIMIT_ENV]));
+    if (copilotOverrides(env.HABBLAUD_ACCOUNTS).some((o) => parseCreditLimit(o.creditLimit).invalid))
+      log.warnOnce('copilot-credit-limit-account', tr('HABBLAUD_ACCOUNTS: a Copilot creditLimit must be a positive number (e.g. 1500); ignored.'));
+    this.accs = this.entries.map((e) => {
+      const acc: CopilotAccount = { id: e.id, dir: e.dir, configDir: e.detected.configDir, recent: new Map(), scanAt: -Infinity, creditsSig: '' };
+      const limit = e.detected.creditLimit ?? envLimit.limit;
+      if (limit !== undefined) acc.creditLimit = limit;
+      return acc;
+    });
   }
 
   /** Copilot accounts (final ids, in the AccountsService). */
@@ -219,6 +237,8 @@ export class CopilotSource implements AgentSource {
   poll(boot = false): void {
     const now = (this.lastPollAt = this.now());
     const keep = new Set<string>();
+    // A rescan may have left large files halfway (read budget): they go on here, a slice per poll.
+    if (this.credits.hasPending()) this.credits.pump(now);
     for (const acc of this.accs) {
       this.watchDir(join(acc.dir, SESSION_STATE_DIR));
       if (boot || now - acc.scanAt >= RESCAN_MS) this.rescan(acc, now);
@@ -226,6 +246,7 @@ export class CopilotSource implements AgentSource {
       const candidates = new Set(acc.recent.keys());
       if (open) for (const id of open.keys()) candidates.add(id);
       for (const t of this.sessions.values()) if (t.acc === acc) candidates.add(t.sessionId);
+      this.pushCredits(acc, now);
       for (const id of candidates) {
         const key = `${acc.id}:${id}`;
         let t = this.sessions.get(key);
@@ -253,20 +274,45 @@ export class CopilotSource implements AgentSource {
   private rescan(acc: CopilotAccount, now: number): void {
     acc.scanAt = now;
     const recent = new Map<string, number>();
+    const files: CreditFileStat[] = [];
     for (const id of listSessionIds(acc.dir)) {
       // Only the checked path is stat-ed: a link out of the Copilot folder is never followed.
       const path = sessionFile(acc.dir, id, EVENTS_FILE);
       if (!path) continue;
       try {
-        const mtime = statSync(path).mtimeMs;
-        if (now - mtime <= QUIET_WINDOW_MS) recent.set(id, mtime);
+        const st = statSync(path);
+        if (now - st.mtimeMs <= QUIET_WINDOW_MS) recent.set(id, st.mtimeMs);
+        files.push({ sessionId: id, path, size: st.size, mtimeMs: st.mtimeMs });
       } catch {
         // folder without events.jsonl (yet): skipped
       }
     }
     acc.recent = recent;
+    // AI credits: every session folder, not just the open ones (only the new bytes of each file are read).
+    this.credits.update(acc.id, files, now);
     if (isCopilotHome(acc.dir)) delete acc.error;
     else acc.error = tr('session-state/ not found');
+  }
+
+  /**
+   * The account's AI credits as usage ('copilot' source): only once every file was read to the end (before that, the
+   * sum would be too low) and only when something changed (also the UTC day or month: today's and the month's sums
+   * start again on their own). No event with a total this month = no usage ("disabled").
+   */
+  private pushCredits(acc: CopilotAccount, now: number): void {
+    if (!this.credits.ready(acc.id)) return;
+    const t = this.credits.totals(acc.id, now);
+    if (!t.hasData) {
+      if (acc.creditsSig) this.opts.accounts.clearUsage(acc.id, 'copilot');
+      acc.creditsSig = '';
+      return;
+    }
+    const credits: CreditUsage = { month: t.month, today: t.today, resetsAt: utcNextMonthStart(now) };
+    if (acc.creditLimit !== undefined) credits.limit = acc.creditLimit;
+    const sig = JSON.stringify(credits);
+    if (sig === acc.creditsSig) return;
+    acc.creditsSig = sig;
+    this.opts.accounts.setUsage(acc.id, { source: 'copilot', credits, fetchedAt: now });
   }
 
   private newTracker(acc: CopilotAccount, sessionId: string): SessionTracker {
