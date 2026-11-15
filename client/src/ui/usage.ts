@@ -10,6 +10,7 @@
 // Copilot account: the AI credits counted from its session files on this computer ('copilot' usage). With an allowance
 // (HABBLAUD_COPILOT_CREDIT_LIMIT), a bar "140 of 1,500 AI credits" with the percent and "resets in N days"; without
 // one, the month's and today's credits in a line (the tooltip says how to get a bar); with none this month, a message.
+// While the session files are still being read for the first time ('counting'), "Counting Copilot AI credits…", never 0.
 import type { AccountInfo, CreditUsage } from '../../../shared/types';
 import type { UiContext } from './context';
 import { h, KeyedList, setAttr, setHidden, setStyleVar, setText, setTitle, setVariant } from './dom';
@@ -199,6 +200,8 @@ export function usageMessage(a: Pick<AccountInfo, 'usage' | 'usageStatus' | 'pro
   if (state === 'noquota') return [tr('no quota'), tr('no quota')];
   if (isCodex(a)) return [tr('no data yet'), tr('no data')];
   if (isCopilot(a)) {
+    // Still reading the session files for the first time: no numbers yet, but not "none used" either.
+    if (copilotCounting(a)) return [tr('Counting Copilot AI credits…'), tr('counting…')];
     const c = copilotCredits(a);
     if (!c) return [tr('No Copilot AI credits used this month'), tr('no credits')];
     return [tr('{0} AI credits this month · {1} today', [formatCredits(c.month), formatCredits(c.today)]), tr('{0} credits', [formatCredits(c.month)])];
@@ -209,6 +212,11 @@ export function usageMessage(a: Pick<AccountInfo, 'usage' | 'usageStatus' | 'pro
 /** AI credits of a Copilot account (its 'copilot' usage), or undefined. */
 export function copilotCredits(a: Pick<AccountInfo, 'usage'>): CreditUsage | undefined {
   return a.usage?.source === 'copilot' ? a.usage.credits : undefined;
+}
+
+/** Is a Copilot account still counting its AI credits (first read of its session files)? */
+export function copilotCounting(a: Pick<AccountInfo, 'usage'>): boolean {
+  return a.usage?.source === 'copilot' && !!a.usage.counting;
 }
 
 /** "resets in 16 days" (a few hours left = 1 day). */
@@ -229,7 +237,7 @@ export function creditsBar(c: CreditUsage): { line: string; short: string; pct: 
 export function copilotUsageNote(a: Pick<AccountInfo, 'provider' | 'usage'>): string {
   if (!isCopilot(a)) return '';
   const note = tr('AI credits used by the Copilot CLI sessions on this computer, counted from their session files (1 unit = 1 credit; the month starts on the 1st, UTC). Credits used on other computers, in the editor or on the website are not included.');
-  return copilotCredits(a)?.limit === undefined ? `${note} ${tr('Set HABBLAUD_COPILOT_CREDIT_LIMIT to show a bar')}.` : note;
+  return copilotCredits(a)?.limit === undefined && !copilotCounting(a) ? `${note} ${tr('Set HABBLAUD_COPILOT_CREDIT_LIMIT to show a bar')}.` : note;
 }
 
 /** Explanation of the card of a Codex account (tooltip); '' on the others. */

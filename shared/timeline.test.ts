@@ -138,6 +138,12 @@ describe('timeline: Copilot AI credits', () => {
     // A copy, not the same object.
     expect(back.usage!.credits).not.toBe(credits);
   });
+
+  it('the summary keeps the "counting" state (no numbers yet), so the replay does not say "none used"', () => {
+    const acc: AccountInfo = { ...account('.copilot'), provider: 'copilot', usage: { source: 'copilot', fetchedAt: T0, counting: true } };
+    const f = compactSnapshot(snap([], [], [acc]));
+    expect(toAccountInfo(f.accounts.get('.copilot')!, T0).usage).toEqual({ source: 'copilot', fetchedAt: T0, counting: true });
+  });
 });
 
 describe('timeline: deltas', () => {

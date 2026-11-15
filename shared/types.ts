@@ -316,6 +316,11 @@ export interface AccountUsage {
   noQuota?: boolean;
   /** Copilot ('copilot' source): AI credits used this month on this computer. */
   credits?: CreditUsage;
+  /**
+   * Copilot ('copilot' source): the session files are still being read for the first time, so there are no numbers
+   * yet (the card says "counting", never "none used").
+   */
+  counting?: true;
   /** When the numbers were obtained at the origin (epoch ms). */
   fetchedAt: number;
 }

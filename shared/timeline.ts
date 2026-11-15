@@ -85,7 +85,7 @@ export interface TimelineAccount {
   color: string;
   plan?: string;
   sessions: number;
-  usage?: Pick<AccountUsage, 'fiveHour' | 'sevenDay' | 'source' | 'noQuota' | 'credits'>;
+  usage?: Pick<AccountUsage, 'fiveHour' | 'sevenDay' | 'source' | 'noQuota' | 'credits' | 'counting'>;
   usageStatus: AccountInfo['usageStatus'];
   demo?: true;
 }
@@ -224,6 +224,7 @@ export function compactAccount(a: AccountInfo, demo = false): TimelineAccount {
     if (a.usage.sevenDay) u.sevenDay = { ...a.usage.sevenDay };
     if (a.usage.noQuota) u.noQuota = true;
     if (a.usage.credits) u.credits = { ...a.usage.credits };
+    if (a.usage.counting) u.counting = true;
     out.usage = u;
   }
   if (demo) out.demo = true;
@@ -450,6 +451,7 @@ export function toAccountInfo(a: TimelineAccount, at: number): AccountInfo {
     if (a.usage.sevenDay) u.sevenDay = { ...a.usage.sevenDay };
     if (a.usage.noQuota) u.noQuota = true;
     if (a.usage.credits) u.credits = { ...a.usage.credits };
+    if (a.usage.counting) u.counting = true;
     out.usage = u;
   }
   return out;

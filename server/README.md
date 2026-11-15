@@ -406,7 +406,11 @@ Only main agents: no subagents, no 5 h/weekly usage limits, no cost; the account
   changed before this month are not read, and only the per-day sums of the current UTC month are kept. Pushed with
   `accounts.setUsage` as the `'copilot'` usage source (`AccountUsage.credits`: `month`, `today`, optional `limit`,
   `resetsAt` = the 1st of next month 00:00 UTC) once every file was read to the end and whenever a number or the UTC
-  day/month changes; it never turns `stale` (`usage.ts`). No event with a total this month = no usage (`disabled`).
+  day/month changes; it never turns `stale` (`usage.ts`). Until every file of the account was read to the end for the
+  first time, the usage is `{ source: 'copilot', counting: true }` with no numbers (the card says "Counting Copilot AI
+  credits…", never 0); a later re-read that is not finished keeps the last numbers. With an allowance the numbers are
+  always pushed (0 right after the 1st: "0 of 1,500"); without one, no event with a total this month = no usage
+  (`disabled`, "No Copilot AI credits used this month").
   Allowance: `HABBLAUD_COPILOT_CREDIT_LIMIT` (positive number) for every Copilot account, or `creditLimit` of the
   account's `HABBLAUD_ACCOUNTS` entry (wins); anything else is ignored with one warning. Only this computer's CLI
   sessions count (not the editor, the website or other machines), and the reset is taken as the 1st (UTC), not the

@@ -41,8 +41,8 @@ function setup(env: NodeJS.ProcessEnv = {}, name?: string) {
     accountName: (id) => accounts.find(id)?.detected.name,
     now,
   });
-  const make = () => {
-    const source = new CopilotSource({ accounts, office, dirs: [home.dir], env, home: home.home, now, watch: false });
+  const make = (o: { creditBudgetBytes?: number; creditChunkBytes?: number } = {}) => {
+    const source = new CopilotSource({ accounts, office, dirs: [home.dir], env, home: home.home, now, watch: false, ...o });
     cleanups.unshift(() => source.stop());
     return source;
   };
@@ -111,6 +111,53 @@ describe('Copilot source: AI credits as account usage', () => {
     ctx.set(DEC_1 + 30_000);
     source.poll();
     expect(ctx.account()).toMatchObject({ usageStatus: 'disabled' });
+  });
+
+  it('while the files are read for the first time: "counting", never 0; then the numbers', () => {
+    const ctx = setup({ HABBLAUD_COPILOT_CREDIT_LIMIT: '1500' });
+    const filler = Array.from({ length: 200 }, (_, i) => E.user(`prompt ${i} ${'x'.repeat(200)}`, NOW - 2 * HOUR));
+    ctx.home.session(sessionId(1), [E.checkpoint(u(1), NOW - 3 * HOUR), ...filler, E.checkpoint(u(9), NOW - HOUR)], { mtime: NOW - HOUR });
+    const source = ctx.make({ creditBudgetBytes: 8 * 1024, creditChunkBytes: 4 * 1024 });
+    source.boot();
+    expect(ctx.account()).toMatchObject({ usageStatus: 'ok', usage: { source: 'copilot', counting: true } });
+    expect(ctx.account().usage?.credits).toBeUndefined();
+    for (let i = 1; i <= 20 && ctx.account().usage?.counting; i++) {
+      ctx.set(NOW + i * 1_000);
+      source.poll();
+    }
+    expect(ctx.account().usage).not.toHaveProperty('counting');
+    expect(ctx.account().usage?.credits).toMatchObject({ month: 9, limit: 1500 });
+  });
+
+  it('a later re-read that is not finished yet keeps the last numbers (no "counting" again)', () => {
+    const ctx = setup();
+    const path = ctx.home.session(sessionId(1), [E.checkpoint(u(2), NOW - HOUR)], { mtime: NOW - HOUR });
+    const source = ctx.make({ creditBudgetBytes: 8 * 1024, creditChunkBytes: 4 * 1024 });
+    source.boot();
+    expect(ctx.account().usage?.credits?.month).toBe(2);
+    ctx.home.append(path, Array.from({ length: 200 }, (_, i) => E.user(`prompt ${i} ${'x'.repeat(200)}`, NOW)));
+    ctx.set(NOW + 11_000);
+    source.poll();
+    expect(ctx.account().usage).not.toHaveProperty('counting');
+    expect(ctx.account().usage?.credits?.month).toBe(2);
+  });
+
+  it('with an allowance, no credits this month still shows the bar at 0 ("0 of 1,500")', () => {
+    const ctx = setup({ HABBLAUD_COPILOT_CREDIT_LIMIT: '1500' });
+    // Last month only (and no session at all would be the same).
+    ctx.home.session(sessionId(1), [E.checkpoint(u(7), Date.UTC(2026, 9, 31, 20))], { mtime: Date.UTC(2026, 9, 31, 21) });
+    ctx.make().boot();
+    expect(ctx.account()).toMatchObject({ usageStatus: 'ok', usage: { source: 'copilot', credits: { month: 0, today: 0, limit: 1500, resetsAt: DEC_1 } } });
+  });
+
+  it('with an allowance, the new month starts at 0 instead of "disabled"', () => {
+    const ctx = setup({ HABBLAUD_COPILOT_CREDIT_LIMIT: '1500' });
+    ctx.home.session(sessionId(1), [E.checkpoint(u(3), NOW - HOUR)], { mtime: NOW - HOUR });
+    const source = ctx.make();
+    source.boot();
+    ctx.set(DEC_1 + 30_000);
+    source.poll();
+    expect(ctx.account()).toMatchObject({ usageStatus: 'ok', usage: { credits: { month: 0, today: 0, limit: 1500 } } });
   });
 
   it('the count is a running total: it never turns "stale" with age', () => {

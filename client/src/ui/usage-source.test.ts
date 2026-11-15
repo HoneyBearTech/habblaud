@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { AccountInfo, CreditUsage } from '../../../shared/types';
-import { cardState, codexUsageNote, copilotCredits, copilotUsageNote, creditsBar, creditsResetText, showsUsageAge, sourceLabel, usageMessage, usageSubtitle } from './usage';
+import { cardState, codexUsageNote, copilotCounting, copilotCredits, copilotUsageNote, creditsBar, creditsResetText, showsUsageAge, sourceLabel, usageMessage, usageSubtitle } from './usage';
 
 const MIN = 60_000;
 type Acc = Pick<AccountInfo, 'usage' | 'usageStatus' | 'provider' | 'email' | 'plan' | 'configDir'>;
@@ -68,6 +68,23 @@ describe('usage card of a Copilot account', () => {
     expect(codexUsageNote(cop(), 0)).toBe('');
     expect(showsUsageAge(cop())).toBe(false);
     expect(usageSubtitle(cop())).toBe('on this computer');
+  });
+
+  it('while the session files are read for the first time: "counting", never "none used"', () => {
+    const a: Acc = { provider: 'copilot', usageStatus: 'ok', configDir: '~/.copilot', usage: { source: 'copilot', counting: true, fetchedAt: 0 } };
+    expect(copilotCounting(a)).toBe(true);
+    expect(copilotCounting(cop())).toBe(false);
+    expect(copilotCredits(a)).toBeUndefined();
+    expect(cardState(a)).toBe('empty');
+    expect(usageMessage(a)).toEqual(['Counting Copilot AI credits…', 'counting…']);
+    expect(copilotUsageNote(a)).not.toMatch(/HABBLAUD_COPILOT_CREDIT_LIMIT/);
+    expect(showsUsageAge(a)).toBe(false);
+  });
+
+  it('with an allowance and nothing used yet this month: the bar at 0', () => {
+    const a = cop({ month: 0, today: 0, limit: 1500 });
+    expect(cardState(a)).toBe('ok');
+    expect(creditsBar(copilotCredits(a)!)).toEqual({ line: '0 of 1,500 AI credits', short: '0/1,500', pct: 0 });
   });
 
   it('without an allowance: the month and today in a line, and the hint to get a bar', () => {

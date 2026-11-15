@@ -68,7 +68,13 @@ export interface CopilotSourceOptions {
   tailBytes?: number;
   /** Turns off fs.watch (tests). */
   watch?: boolean;
+  /** AI credits: bytes read per poll (default READ_BUDGET_BYTES) and per read (tests). */
+  creditBudgetBytes?: number;
+  creditChunkBytes?: number;
 }
+
+/** creditsSig of the "counting" usage (the first read of the session files is not finished). */
+const COUNTING_SIG = 'counting';
 
 interface CopilotAccount {
   id: string;
@@ -82,8 +88,10 @@ interface CopilotAccount {
   error?: string;
   /** Monthly AI-credit allowance (the account's `creditLimit`, else HABBLAUD_COPILOT_CREDIT_LIMIT). */
   creditLimit?: number;
-  /** Signature of the last credit usage pushed ('' = none). */
+  /** Signature of the last credit usage pushed ('' = none, COUNTING_SIG = the "counting" usage). */
   creditsSig: string;
+  /** Every file of the account was read to the end at least once (the "counting" state is over for good). */
+  creditsCounted: boolean;
 }
 
 interface SessionTracker {
@@ -130,12 +138,13 @@ export class CopilotSource implements AgentSource {
   private readonly tailBytes: number;
   private readonly useWatch: boolean;
   private stopped = false;
-  private readonly credits = new CopilotCredits();
+  private readonly credits: CopilotCredits;
 
   constructor(private readonly opts: CopilotSourceOptions) {
     this.now = opts.now ?? Date.now;
     this.tailBytes = opts.tailBytes ?? 1024 * 1024;
     this.useWatch = opts.watch ?? true;
+    this.credits = new CopilotCredits({ budgetBytes: opts.creditBudgetBytes, chunkBytes: opts.creditChunkBytes });
     const env = opts.env ?? process.env;
     const others = opts.accounts.allEntries();
     this.detected = detectCopilotAccounts(opts.dirs, {
@@ -152,7 +161,7 @@ export class CopilotSource implements AgentSource {
     if (copilotOverrides(env.HABBLAUD_ACCOUNTS).some((o) => parseCreditLimit(o.creditLimit).invalid))
       log.warnOnce('copilot-credit-limit-account', tr('HABBLAUD_ACCOUNTS: a Copilot creditLimit must be a positive number (e.g. 1500); ignored.'));
     this.accs = this.entries.map((e) => {
-      const acc: CopilotAccount = { id: e.id, dir: e.dir, configDir: e.detected.configDir, recent: new Map(), scanAt: -Infinity, creditsSig: '' };
+      const acc: CopilotAccount = { id: e.id, dir: e.dir, configDir: e.detected.configDir, recent: new Map(), scanAt: -Infinity, creditsSig: '', creditsCounted: false };
       const limit = e.detected.creditLimit ?? envLimit.limit;
       if (limit !== undefined) acc.creditLimit = limit;
       return acc;
@@ -298,14 +307,22 @@ export class CopilotSource implements AgentSource {
   }
 
   /**
-   * The account's AI credits as usage ('copilot' source): only once every file was read to the end (before that, the
-   * sum would be too low) and only when something changed (also the UTC day or month: today's and the month's sums
-   * start again on their own). No event with a total this month = no usage ("disabled").
+   * The account's AI credits as usage ('copilot' source). Until every file was read to the end for the first time, a
+   * "counting" usage with no numbers (the sum would be too low, and the card must not say "none used"). Then the numbers,
+   * only when something changed (also the UTC day or month: today's and the month's sums start again on their own);
+   * later re-reads that are not finished yet keep the last numbers. With an allowance, the numbers always go (0 right
+   * after the 1st: "0 of 1,500"); without one, no event with a total this month = no usage ("disabled").
    */
   private pushCredits(acc: CopilotAccount, now: number): void {
-    if (!this.credits.ready(acc.id)) return;
+    if (!this.credits.ready(acc.id)) {
+      if (acc.creditsCounted || acc.creditsSig === COUNTING_SIG) return;
+      acc.creditsSig = COUNTING_SIG;
+      this.opts.accounts.setUsage(acc.id, { source: 'copilot', counting: true, fetchedAt: now });
+      return;
+    }
+    acc.creditsCounted = true;
     const t = this.credits.totals(acc.id, now);
-    if (!t.hasData) {
+    if (!t.hasData && acc.creditLimit === undefined) {
       if (acc.creditsSig) this.opts.accounts.clearUsage(acc.id, 'copilot');
       acc.creditsSig = '';
       return;

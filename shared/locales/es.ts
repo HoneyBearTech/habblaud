@@ -3270,6 +3270,8 @@ export const ES: Readonly<Record<string, string>> = {
   "{0} · answer in Copilot: approvals from the office are not available for Copilot": "{0} · responde en Copilot: las aprobaciones desde la oficina no están disponibles para Copilot",
   "Copilot files": "Archivos de Copilot",
   "on this computer": "en este equipo",
+  "Counting Copilot AI credits…": "Contando los créditos de IA de Copilot…",
+  "counting…": "contando…",
   "No Copilot AI credits used this month": "No se usaron créditos de IA de Copilot este mes",
   "no credits": "sin créditos",
   "{0} AI credits this month · {1} today": "{0} créditos de IA este mes · {1} hoy",
