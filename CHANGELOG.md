@@ -10,6 +10,15 @@ versioning](https://semver.org/): a fix bumps the last number (0.2.**1**), a new
 
 ## [Unreleased]
 
+### Added
+
+- **GitHub Copilot CLI sessions in the office.** Each open Copilot CLI session gets a character in its project room,
+  with activity, title, model, tokens, terminal and history, and raises a hand when Copilot asks for an approval. Habblaud
+  reads only `session-state/<session>/events.jsonl`, `workspace.yaml` and `open-sessions-state.json` from `~/.copilot`
+  (or `COPILOT_HOME`, or the folders in `HABBLAUD_COPILOT_DIRS`); `HABBLAUD_COPILOT=0` turns it off. In Docker only those
+  are mounted, read-only. Not supported: usage bars, messages and approvals from the office, subagents; Copilot agents
+  are not sent to Habblaud World.
+
 ### Changed
 
 - **English is the default language, and the language the texts are written in.** With no language chosen, the

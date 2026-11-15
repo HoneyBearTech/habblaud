@@ -368,6 +368,35 @@ and history sessions carry `provider: 'codex'` (absent = Claude Code). Ids: `<ac
   deliverer (binary found, or helper seen up to 10 s ago). Return 0 = it entered the session's queue (`delivered`);
   Codex consumes the queue every ~10 s, when the session goes idle.
 
+## Copilot
+
+GitHub Copilot CLI source (`sources/copilot/`), registered after Codex in `SourceSet` and `HistorySet`. Agents,
+accounts, sources and history sessions carry `provider: 'copilot'`. Ids: `<account>:<sessionId>` (the session's UUID).
+Only main agents: no subagents, no usage limits, no cost.
+
+- **Accounts** (`sources/copilot/accounts.ts`): `HABBLAUD_COPILOT_DIRS` (replaces; existing folders only) or
+  `COPILOT_HOME`, else `~/.copilot` when it has `session-state/`. Letter from a shell alias (`COPILOT_HOME=... copilot`),
+  the folder suffix or a free one; color not taken by the other accounts. `HABBLAUD_COPILOT=0` turns the source off.
+- **What is read** (`sources/copilot/files.ts`), and nothing else: `session-state/<uuid>/events.jsonl`,
+  `session-state/<uuid>/workspace.yaml` (top-level `key: value` lines only; `cwd` gives the room) and
+  `open-sessions-state.json` (the keys only). Every path is checked with `realpath` to stay inside the folder and be a
+  regular file. Never opened: `config.json`, `permissions-config.json`, `session-store.db*`, `logs/`,
+  `command-history-state.json`, `settings.json`, `hooks/`. Workspace values are never logged.
+- **Presence** (`source.ts`): not shut down AND (listed in `open-sessions-state.json` with the events file changed in
+  the last 12 h, OR the events file changed in the last 30 min). `session.shutdown` is final until new activity.
+- **Events** (`events.ts`): `{type, data, id, timestamp}` lines read with `FileTail` (the end window at boot, the start
+  in the background). `user.message` (except the ones Copilot adds with a `source`) = prompt and title;
+  `assistant.turn_start`/`turn_end` and `assistant.message` without tool requests = idle; `hook.start` `agentStop` and
+  `abort` end the turn; `tool.execution_start`/`complete` = activities (bash, view, edit, create, glob, grep, web_fetch,
+  web_search, task...); `permission.requested`/`completed` = waiting ("approve a command", "approve a file change",
+  "approve reading a file", "approve a web access"); `session.usage_record` sums the tokens (the input already has the
+  cache). Unknown types are ignored.
+- **Not available:** messages (`canMessage` false, `messages are not available for Copilot`), approvals from the office,
+  usage bars. **World:** Copilot agents are left out of the projection (`isWorldProvider`), never reported as another
+  tool; the schema and the protocol stay the same.
+- **Docker:** `docker:up` mounts only `session-state/` and `open-sessions-state.json` (single file, skipped if missing)
+  of each folder at `/copilot/<account>/`, read-only, and passes `HABBLAUD_COPILOT_DIRS` and the accounts.
+
 ## Habblaud World
 
 On by default, pointing at `server.habblaud.com` (`DEFAULT_WORLD_URL` in `config.ts`); nothing leaves the computer
@@ -505,6 +534,8 @@ copy).
 | `HABBLAUD_CODEX` | on | `0` turns off the Codex source |
 | `HABBLAUD_CODEX_DIRS` | — | Codex folders separated by commas; replaces the detection (`CODEX_HOME` and `~/.codex*`) |
 | `HABBLAUD_CODEX_BIN` | `codex` from the PATH | Codex binary for `codex queue` (Node mode and `npm run codex:bridge`) |
+| `HABBLAUD_COPILOT` | on | `0` turns off the Copilot CLI source |
+| `HABBLAUD_COPILOT_DIRS` | — | Copilot CLI folders separated by commas; replaces the detection (`COPILOT_HOME` or `~/.copilot`) |
 | `HABBLAUD_MENSAGENS` | on (with the terminal) | `0`, `false`, `off` or `no` turn off only the messages from the office |
 | `HABBLAUD_CLAUDE_DIRS` | — | config dirs separated by commas; replaces the detection (`~/.claude*` with `projects/` or `sessions/` + `CLAUDE_CONFIG_DIR`) |
 | `HABBLAUD_DATA_DIR` | `~/.habblaud` (Docker: `/data`) | Habblaud state (names and characters of the projects persisted in `names.json`, timeline in `timeline/`, My day statistics in `stats/`, last version check in `updates.json`) |

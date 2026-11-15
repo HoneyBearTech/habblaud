@@ -608,6 +608,27 @@ Codex account chip is hollow and carries the **CODEX** tag.
   little while to leave after you close the terminal.
 - ChatGPT cloud conversations (with no file on the computer) don't show up. `HABBLAUD_CODEX=0` turns Codex off.
 
+### Copilot
+
+GitHub Copilot CLI sessions show up in the office too: character, project room, activity, title, model, tokens,
+terminal and history. The Copilot account chip is round and hollow and carries the **COPILOT** tag.
+
+- **Without installing anything**, Habblaud reads only what Copilot CLI writes for each session in `~/.copilot` (or
+  `COPILOT_HOME`): `session-state/<session>/events.jsonl` (the session's events), `session-state/<session>/workspace.yaml`
+  (the project folder) and `open-sessions-state.json` (only as a hint of which sessions are open). Nothing else in that
+  folder is opened: not `config.json`, `permissions-config.json`, `session-store.db`, `logs/`,
+  `command-history-state.json`, `settings.json` or `hooks/`.
+- **Status:** working while a turn runs, idle after the final answer and **waiting** (raised hand) while Copilot asks you
+  to approve a command, a file change, a read or a web access. When Copilot ends the session, the character leaves.
+- **When the session comes in and leaves:** a session counts while it is listed as open (and was active in the last
+  12 hours) or while its events file changed in the last 30 minutes.
+- **Not supported:** the 5-hour and weekly usage bar (Copilot doesn't write its limits to the session files), messages
+  and approvals from the office (answer in the Copilot terminal), cost and subagents. Copilot agents are not sent to
+  [Habblaud World](#habblaud-world) (they are left out, never shown as another tool); their tokens still count in the
+  building's day and week totals.
+- `HABBLAUD_COPILOT_DIRS` (comma-separated) replaces the detection and `HABBLAUD_COPILOT=0` turns Copilot off. In Docker,
+  `npm run docker:up` mounts only `session-state/` and `open-sessions-state.json` of each folder, read-only.
+
 ### GitHub in the office
 
 What the agents do on GitHub livens up the project's room, with no token and no internet access: Habblaud reads the
@@ -729,13 +750,15 @@ Everything works without configuring anything. If you need to adjust something, 
 | `HABBLAUD_CODEX` | on | `0` turns off Codex in the office. |
 | `HABBLAUD_CODEX_DIRS` | automatic detection | Codex folders, comma-separated (instead of `~/.codex*` and `CODEX_HOME`). |
 | `HABBLAUD_CODEX_BIN` | `codex` from PATH (on Windows, `codex.exe`) | The Codex binary that delivers the messages (`codex queue`), in Node mode or in `npm run codex:bridge`. |
+| `HABBLAUD_COPILOT` | on | `0` turns off Copilot CLI in the office. |
+| `HABBLAUD_COPILOT_DIRS` | automatic detection | Copilot CLI folders, comma-separated (instead of `COPILOT_HOME` or `~/.copilot`). |
 | `HABBLAUD_UPDATE_CHECK` | on | `0` turns off the new-version check (a request to the repository's releases on GitHub every 6 h). |
 | `HABBLAUD_LANG` | system language, otherwise `en` | Language of the texts the server builds (activities, notices, logs): `pt-BR`, `en`, `es` or `fr`. The interface follows the browser or the choice in Settings › Language. See [Languages](#languages). |
 | `HABBLAUD_ACCOUNTS` | — | JSON to customize name, letter or color, matched by the account folder name. E.g. `[{"id":".claude-conta2","name":"Trabalho","short":"T","color":"#5cc97b"}]`. |
 
 **In Docker**, `HABBLAUD_PORT`, `HABBLAUD_BIND`, `HABBLAUD_ALLOWED_HOSTS`, `HABBLAUD_DEMO`, `HABBLAUD_TERMINAL`,
-`HABBLAUD_MENSAGENS`, `HABBLAUD_CODEX`, `HABBLAUD_UPDATE_CHECK`, `HABBLAUD_LANG`, `HABBLAUD_PTY`, the `HABBLAUD_WORLD*` and the
-`HABBLAUD_REMOTE_*` apply (in `.env` or in the environment), as do `HABBLAUD_CLAUDE_DIRS`, `HABBLAUD_CODEX_DIRS`, `HABBLAUD_USAGE_DIR` and
+`HABBLAUD_MENSAGENS`, `HABBLAUD_CODEX`, `HABBLAUD_COPILOT`, `HABBLAUD_UPDATE_CHECK`, `HABBLAUD_LANG`, `HABBLAUD_PTY`, the `HABBLAUD_WORLD*` and the
+`HABBLAUD_REMOTE_*` apply (in `.env` or in the environment), as do `HABBLAUD_CLAUDE_DIRS`, `HABBLAUD_CODEX_DIRS`, `HABBLAUD_COPILOT_DIRS`, `HABBLAUD_USAGE_DIR` and
 `HABBLAUD_ACCOUNTS` (read by `docker:up` on the host); the rest are fixed inside the container. Options: `npm run docker:up -- --no-build` (starts without rebuilding),
 `npm run docker:down` (stops) and `npm run docker:logs` (follows the logs).
 
