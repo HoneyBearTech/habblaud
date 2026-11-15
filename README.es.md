@@ -655,6 +655,15 @@ modelo, tokens, terminal e historial. El chip de la cuenta de Copilot es redondo
   termina la sesión, el personaje se va.
 - **Cuándo entra y sale la sesión:** una sesión cuenta mientras figura como abierta (y tuvo actividad en las últimas
   12 horas) o mientras su archivo de eventos cambió en los últimos 30 minutos.
+- **Créditos de IA:** la tarjeta de uso de la cuenta cuenta los créditos de IA que usaron este mes y hoy las sesiones de
+  Copilot CLI de este equipo. Salen del total acumulado `totalNanoAiu` que Copilot escribe en `session.usage_checkpoint`
+  y `session.shutdown`, en todas las carpetas de sesión de `session-state/` (abiertas o no); las premium requests por
+  prompt no se usan. Se toma una unidad como un crédito de IA. Solo cuentan las sesiones del CLI en este equipo: los
+  créditos usados en otros equipos, en el editor o en el sitio web no están en estos archivos. Se toma que el mes empieza
+  el día 1 a las 00:00 UTC (GitHub puede renovar en tu fecha de facturación) y "hoy" es el día UTC. La barra necesita tu
+  asignación mensual: define `HABBLAUD_COPILOT_CREDIT_LIMIT` (p. ej. `1500` en Pro) para todas las cuentas de Copilot, o
+  `creditLimit` en la entrada de la cuenta en `HABBLAUD_ACCOUNTS`; sin ella la tarjeta muestra solo los números. Los
+  créditos no se envían a Habblaud World.
 - **Sin soporte:** la barra de uso de 5 horas y semanal (Copilot no guarda sus límites en los archivos de sesión), los
   mensajes y aprobaciones desde la oficina (responde en la terminal de Copilot), el costo y los subagentes. Los agentes
   de Copilot no se envían a [Habblaud World](#habblaud-world) (se dejan fuera, nunca aparecen como otra herramienta), ni
@@ -787,12 +796,13 @@ Todo funciona sin configurar nada. Si necesitas ajustar algo, usa variables de e
 | `HABBLAUD_CODEX_BIN` | `codex` del PATH (en Windows, `codex.exe`) | El binario de Codex que entrega los mensajes (`codex queue`), en modo Node o en `npm run codex:bridge`. |
 | `HABBLAUD_COPILOT` | activada | `0` desactiva Copilot CLI en la oficina. |
 | `HABBLAUD_COPILOT_DIRS` | detección automática | Carpetas de Copilot CLI, separadas por comas (en lugar de `COPILOT_HOME` o `~/.copilot`). |
+| `HABBLAUD_COPILOT_CREDIT_LIMIT` | — | Asignación mensual de créditos de IA de Copilot (un número positivo, p. ej. `1500` en Pro) para la barra de la tarjeta de uso. Sin ella la tarjeta muestra solo los créditos usados. |
 | `HABBLAUD_UPDATE_CHECK` | activada | `0` desactiva la comprobación de versión nueva (una consulta a las releases del repositorio en GitHub cada 6 h). |
 | `HABBLAUD_LANG` | idioma del sistema; si no, `en` | Idioma de los textos que arma el servidor (actividades, avisos, logs): `pt-BR`, `en`, `es` o `fr`. La interfaz sigue al navegador o la elección en Configuración › Idioma. Consulta [Idiomas](#idiomas). |
 | `HABBLAUD_ACCOUNTS` | — | JSON para personalizar el nombre, la letra o el color, emparejado por el nombre de la carpeta de la cuenta. P. ej.: `[{"id":".claude-conta2","name":"Trabalho","short":"T","color":"#5cc97b"}]`. |
 
 **En Docker**, valen `HABBLAUD_PORT`, `HABBLAUD_BIND`, `HABBLAUD_ALLOWED_HOSTS`, `HABBLAUD_DEMO`, `HABBLAUD_TERMINAL`,
-`HABBLAUD_MENSAGENS`, `HABBLAUD_CODEX`, `HABBLAUD_COPILOT`, `HABBLAUD_UPDATE_CHECK`, `HABBLAUD_LANG`, `HABBLAUD_PTY`, las `HABBLAUD_WORLD*` y las
+`HABBLAUD_MENSAGENS`, `HABBLAUD_CODEX`, `HABBLAUD_COPILOT`, `HABBLAUD_COPILOT_CREDIT_LIMIT`, `HABBLAUD_UPDATE_CHECK`, `HABBLAUD_LANG`, `HABBLAUD_PTY`, las `HABBLAUD_WORLD*` y las
 `HABBLAUD_REMOTE_*` (en el `.env` o en el entorno) y `HABBLAUD_CLAUDE_DIRS`, `HABBLAUD_CODEX_DIRS`, `HABBLAUD_COPILOT_DIRS`, `HABBLAUD_USAGE_DIR` y
 `HABBLAUD_ACCOUNTS` (leídas por `docker:up` en el host); las demás quedan fijas dentro del contenedor. Opciones: `npm run docker:up -- --no-build` (inicia sin reconstruir),
 `npm run docker:down` (detiene) y `npm run docker:logs` (sigue los logs).
