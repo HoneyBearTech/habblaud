@@ -92,11 +92,14 @@ describe('Copilot folder files', () => {
     expect(sessionFile(h.dir, '../../etc', 'events.jsonl')).toBeUndefined();
   });
 
-  it('readOpenSessions: the UUID keys; null when the file is missing; empty when it is broken', () => {
+  it('readOpenSessions: the UUID keys with their refreshedAt; null when the file is missing; empty when it is broken', () => {
     const h = home();
     expect(readOpenSessions(h.dir)).toBeNull();
     h.open([S, 'junk']);
-    expect([...readOpenSessions(h.dir)!]).toEqual([S]);
+    expect([...readOpenSessions(h.dir)!.keys()]).toEqual([S]);
+    expect(readOpenSessions(h.dir)!.get(S)).toBe(Date.parse('2026-11-01T10:00:00.000Z'));
+    writeFileSync(join(h.dir, 'open-sessions-state.json'), JSON.stringify({ [S]: { refreshedAt: 'not a date' } }));
+    expect(readOpenSessions(h.dir)!.get(S)).toBeUndefined();
     writeFileSync(join(h.dir, 'open-sessions-state.json'), '{broken');
     expect(readOpenSessions(h.dir)!.size).toBe(0);
   });

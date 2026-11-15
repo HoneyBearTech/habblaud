@@ -8,7 +8,7 @@ import { setQuiet } from '../../log';
 import { NameStore } from '../../model/names';
 import { Office } from '../../model/office';
 import { copilotHome, E, sessionId } from '../../test/copilot-fixtures';
-import { QUIET_WINDOW_MS, STALE_OPEN_MS, CopilotSource } from './source';
+import { QUIET_WINDOW_MS, STALE_OPEN_MS, WAITING_QUIET_MS, CopilotSource } from './source';
 
 setQuiet(true);
 
@@ -287,3 +287,44 @@ describe('Copilot source: the "needs you" line', () => {
     expect(ctx.agent()?.activity?.text).not.toContain('Needs you');
   });
 });
+
+describe('Copilot source: a killed process', () => {
+  const waitingSession = (ctx: ReturnType<typeof setup>) => {
+    const t0 = ctx.now();
+    ctx.home.session(S, [E.start(S, { at: t0 - 10_000 }), E.user('Deploy', t0 - 9_000), E.turnStart(t0 - 8_000), E.permission('r1', { kind: 'shell', fullCommandText: 'deploy' }, t0 - 7_000)], { cwd: '/home/user/project' });
+  };
+
+  it('waiting with no write for an hour (no shutdown, still listed): the "needs you" goes, the character stays idle', () => {
+    const ctx = setup();
+    waitingSession(ctx);
+    ctx.home.open([S]);
+    ctx.source.boot();
+    expect(ctx.agent()).toMatchObject({ status: 'waiting', waitingFor: 'approve a command' });
+    ctx.advance(WAITING_QUIET_MS - 60_000);
+    ctx.poll();
+    expect(ctx.agent()?.status).toBe('waiting');
+    ctx.advance(2 * 60_000);
+    ctx.poll();
+    const a = ctx.agent()!;
+    expect(a.status).toBe('idle');
+    expect(a.waitingFor).toBeUndefined();
+    expect(a.activity?.text ?? '').not.toContain('Needs you');
+  });
+
+  it('an open-sessions refreshedAt newer than the last write counts as activity; an older one does not', () => {
+    const ctx = setup();
+    waitingSession(ctx);
+    ctx.home.open([S]);
+    ctx.source.boot();
+    ctx.advance(50 * 60_000);
+    ctx.home.open([S], { refreshedAt: ctx.now() });
+    ctx.poll();
+    ctx.advance(30 * 60_000); // 80 min since the write, 30 since the refresh
+    ctx.poll();
+    expect(ctx.agent()?.status).toBe('waiting');
+    ctx.advance(31 * 60_000);
+    ctx.poll();
+    expect(ctx.agent()?.status).toBe('idle');
+  });
+});
+

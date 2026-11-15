@@ -86,10 +86,11 @@ export function copilotHome(name = '.copilot') {
     append(path: string, lines: string[]): void {
       appendLines(path, lines);
     },
-    /** Writes open-sessions-state.json listing these sessions. */
-    open(ids: string[]): void {
+    /** Writes open-sessions-state.json listing these sessions (refreshedAt: epoch ms, default an old fixed date). */
+    open(ids: string[], o: { refreshedAt?: number } = {}): void {
       const body: Record<string, unknown> = {};
-      for (const id of ids) body[id] = { schemaVersion: 1, openedAt: '2026-11-01T10:00:00.000Z', refreshedAt: '2026-11-01T10:00:00.000Z', working: false };
+      const refreshedAt = o.refreshedAt === undefined ? '2026-11-01T10:00:00.000Z' : ts(o.refreshedAt);
+      for (const id of ids) body[id] = { schemaVersion: 1, openedAt: '2026-11-01T10:00:00.000Z', refreshedAt, working: false };
       writeFileSync(join(dir, 'open-sessions-state.json'), JSON.stringify(body));
     },
   };

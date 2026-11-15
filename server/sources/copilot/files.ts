@@ -157,19 +157,27 @@ export function readWorkspace(home: string, sessionId: string): WorkspaceInfo {
 // ------------------------------------------------------------------ open-sessions-state.json
 
 /**
- * Sessions listed in open-sessions-state.json (`{<uuid>: {schemaVersion, openedAt, refreshedAt, working}}`); null =
- * missing or unreadable. Only a hint: the file can still list sessions that already shut down (and, in Docker, a
- * single-file mount can go stale).
+ * Sessions listed in open-sessions-state.json (`{<uuid>: {schemaVersion, openedAt, refreshedAt, working}}`), id (lower
+ * case) → `refreshedAt` in epoch ms (undefined when missing or invalid); null = missing or unreadable. Only a hint: the
+ * file can still list sessions that already shut down (and, in Docker, a single-file mount can go stale), and
+ * `refreshedAt` moves on activity, not on a timer, so it never proves that the process is alive.
  */
-export function readOpenSessions(home: string): Set<string> | null {
+export function readOpenSessions(home: string): Map<string, number | undefined> | null {
   const path = insideHome(home, join(home, OPEN_SESSIONS_FILE));
   const text = path ? readSmall(path, OPEN_SESSIONS_MAX) : undefined;
   if (text === undefined) return null;
+  const out = new Map<string, number | undefined>();
   try {
     const j = JSON.parse(text) as unknown;
-    if (!j || typeof j !== 'object' || Array.isArray(j)) return new Set();
-    return new Set(Object.keys(j).filter(isSessionId).map((k) => k.toLowerCase()));
+    if (!j || typeof j !== 'object' || Array.isArray(j)) return out;
+    for (const [k, v] of Object.entries(j as Record<string, unknown>)) {
+      if (!isSessionId(k)) continue;
+      const raw = v && typeof v === 'object' ? (v as Record<string, unknown>).refreshedAt : undefined;
+      const at = typeof raw === 'string' ? Date.parse(raw) : NaN;
+      out.set(k.toLowerCase(), Number.isNaN(at) ? undefined : at);
+    }
+    return out;
   } catch {
-    return new Set();
+    return out;
   }
 }

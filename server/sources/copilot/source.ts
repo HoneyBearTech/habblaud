@@ -9,8 +9,10 @@
 // without events.jsonl is skipped. The room is the `cwd` of workspace.yaml (or, without it, of session.start).
 //
 // Status: derived from the events (events.ts): open permission prompt = 'waiting', running turn = 'working', else
-// 'idle'; 'working' with no write for WORKING_QUIET_MS (a dead turn) becomes 'idle'. Messages and approvals from the
-// office are not supported for Copilot, and Copilot writes no usage limits: there is no usage bar.
+// 'idle'; 'working' with no write for WORKING_QUIET_MS (a dead turn) becomes 'idle', and so does 'waiting' with no
+// write for WAITING_QUIET_MS (a process killed on a permission prompt: no "needs you" for hours). The open-sessions
+// `refreshedAt` counts as activity there only when newer than the last write; it is no heartbeat. Messages and
+// approvals from the office are not supported for Copilot, and Copilot writes no usage limits: there is no usage bar.
 // Subagents are not shown (they stay inside the main session's events). Short and synchronous boot (only the end
 // window of large files; the start is read later, in the background), with endBoot in a `finally`.
 import { createReadStream, statSync, watch, type FSWatcher } from 'node:fs';
@@ -35,6 +37,8 @@ export const QUIET_WINDOW_MS = 30 * 60_000;
 export const STALE_OPEN_MS = 12 * 3600_000;
 /** 'working' with no write to the events file for this long: the turn died. */
 export const WORKING_QUIET_MS = 30 * 60_000;
+/** 'waiting' with no write to the events file (nor a newer open-sessions refreshedAt) for this long: the process died. */
+export const WAITING_QUIET_MS = 3600_000;
 /** Full rescan of session-state/ (stat of every events.jsonl), at most this often. */
 const RESCAN_MS = 10_000;
 /** Activities recovered from the start of a large file for the long timeline. */
@@ -87,6 +91,8 @@ interface SessionTracker {
   waitingFor?: string;
   /** mtime of the events file at the last read. */
   lastWriteAt?: number;
+  /** `refreshedAt` of the session in open-sessions-state.json (while listed). */
+  refreshedAt?: number;
   watcher?: FSWatcher;
   /**
    * While the start of a large file is read in the background: every line read since the window start, in order, to
@@ -212,7 +218,7 @@ export class CopilotSource implements AgentSource {
       if (boot || now - acc.scanAt >= RESCAN_MS) this.rescan(acc, now);
       const open = readOpenSessions(acc.dir);
       const candidates = new Set(acc.recent.keys());
-      if (open) for (const id of open) candidates.add(id);
+      if (open) for (const id of open.keys()) candidates.add(id);
       for (const t of this.sessions.values()) if (t.acc === acc) candidates.add(t.sessionId);
       for (const id of candidates) {
         const key = `${acc.id}:${id}`;
@@ -274,7 +280,7 @@ export class CopilotSource implements AgentSource {
    * One cycle of a candidate session: reads what is new and decides whether it is (or stays) in the office. Returns
    * false when the tracker can be dropped (no events file, or no longer a candidate for presence).
    */
-  private sync(t: SessionTracker, open: Set<string> | null, now: number, boot: boolean): boolean {
+  private sync(t: SessionTracker, open: Map<string, number | undefined> | null, now: number, boot: boolean): boolean {
     if (t.inOffice && !this.opts.office.has(t.key)) t.inOffice = false; // left the office (grace ended)
     this.pump(t, boot);
     if (!t.tail) {
@@ -282,6 +288,7 @@ export class CopilotSource implements AgentSource {
       return false;
     }
     const listed = !!open?.has(t.sessionId.toLowerCase());
+    t.refreshedAt = listed ? open?.get(t.sessionId.toLowerCase()) : undefined;
     const last = t.lastWriteAt ?? 0;
     const present = !t.state.shutdown && (listed ? now - last <= STALE_OPEN_MS : now - last <= QUIET_WINDOW_MS);
     if (!present) {
@@ -341,11 +348,14 @@ export class CopilotSource implements AgentSource {
     t.inOffice = false;
   }
 
-  /** Status from the events, with the dead-turn rule. */
+  /** Status from the events, with the dead-turn and dead-prompt rules. */
   private refreshStatus(t: SessionTracker, now: number): void {
     const s = copilotStatus(t.state);
     let status: AgentStatus = s.status;
-    if (status === 'working' && now - Math.max(t.lastWriteAt ?? 0, t.state.statusAt) > WORKING_QUIET_MS) status = 'idle';
+    const wrote = t.lastWriteAt ?? 0;
+    if (status === 'working' && now - Math.max(wrote, t.state.statusAt) > WORKING_QUIET_MS) status = 'idle';
+    // refreshedAt only adds activity newer than the last write (it moves on activity, it proves nothing alive).
+    else if (status === 'waiting' && now - Math.max(wrote, t.refreshedAt ?? 0) > WAITING_QUIET_MS) status = 'idle';
     t.status = status;
     if (s.waitingFor && status === 'waiting') t.waitingFor = s.waitingFor;
     else delete t.waitingFor;
