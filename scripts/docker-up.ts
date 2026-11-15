@@ -21,7 +21,8 @@
 //    turns it off): ONLY session-state/ (folder) and open-sessions-state.json (single file, skipped if missing) of
 //    each one, read-only, at /copilot/<account>/... — never config.json, permissions-config.json, session-store.db*,
 //    logs/, command-history-state.json, settings.json or hooks/. They go in HABBLAUD_COPILOT_DIRS and, with
-//    `provider: 'copilot'` and the HOST folder, in HABBLAUD_ACCOUNTS.
+//    `provider: 'copilot'` and the HOST folder (and the account's `creditLimit`, when set), in HABBLAUD_ACCOUNTS.
+//    HABBLAUD_COPILOT_CREDIT_LIMIT (the monthly AI-credit allowance for the usage bar) goes in too, when valid.
 // 3. Migrates what is left of the old name (CodeTown, up to 0.3.2): ~/.codetown becomes ~/.habblaud, the
 //    `codetown` container and the codetown_default network are removed and, if the new volume doesn't exist yet,
 //    the data from codetown_codetown-data is copied into it (the old one stays, to delete by hand). Warns about
@@ -47,7 +48,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import type { AccountInfo, SourceInfo } from '../shared/types';
 import { codexDirsRefused, detectAccounts, discoverClaudeDirs, type DetectedAccount } from '../server/accounts/detect';
 import { detectCodexAccounts, discoverCodexDirs } from '../server/sources/codex/accounts';
-import { detectCopilotAccounts, discoverCopilotDirs } from '../server/sources/copilot/accounts';
+import { CREDIT_LIMIT_ENV, detectCopilotAccounts, discoverCopilotDirs, parseCreditLimit } from '../server/sources/copilot/accounts';
 import { describeStateMigration, LEGACY_NAME, legacyEnvWarning, migrateLegacyStateDir } from '../server/legacy';
 import { makeClaudeRunner, MIN_CLAUDE_VERSION, readPackageVersion, updateInstalledMods, type ModUpdateResult } from './mod-install';
 import { tr } from '../shared/i18n';
@@ -191,6 +192,8 @@ export interface AccountPayload {
   plan?: string;
   color: string;
   cachedUsage?: CachedUsage;
+  /** Copilot only: the account's monthly AI-credit allowance (from the host's HABBLAUD_ACCOUNTS). */
+  creditLimit?: number;
 }
 
 /** Real path of an existing folder, or undefined. */
@@ -295,7 +298,19 @@ export function planCopilotMounts(
 
 /** Metadata of the Copilot accounts for HABBLAUD_ACCOUNTS: `provider: 'copilot'` and the HOST folder in `configDir`. */
 export function copilotAccountsPayload(mounts: AccountMount[]): AccountPayload[] {
-  return mounts.map(({ account: a, hostDir, mountDir }) => ({ id: a.id, provider: 'copilot', configDir: hostDir, mountDir, short: a.short, name: a.name, color: a.color }));
+  return mounts.map(({ account: a, hostDir, mountDir }) => {
+    const payload: AccountPayload = { id: a.id, provider: 'copilot', configDir: hostDir, mountDir, short: a.short, name: a.name, color: a.color };
+    if (a.creditLimit !== undefined) payload.creditLimit = a.creditLimit;
+    return payload;
+  });
+}
+
+/**
+ * HABBLAUD_COPILOT_CREDIT_LIMIT of whoever runs docker:up, checked: a positive number goes into the container;
+ * anything else is left out (`invalid`: docker:up warns once).
+ */
+export function copilotCreditLimit(env: NodeJS.ProcessEnv): { limit?: number; invalid: boolean } {
+  return parseCreditLimit(env[CREDIT_LIMIT_ENV]);
 }
 
 /** HABBLAUD_COPILOT turned off (0, false, off, no) in the environment of whoever runs docker:up. */
@@ -381,7 +396,8 @@ export function hostTimeZone(env: NodeJS.ProcessEnv = process.env): string | und
 /**
  * `usageDir`: host folder with the usage captured by the statusline tap (already existing; real path),
  * mounted read-only at /usage. `timeZone`: the host's time zone, passed on as TZ. `codex`: mounts of the Codex
- * accounts (planCodexMounts). `copilot`: mounts of the Copilot accounts (planCopilotMounts).
+ * accounts (planCodexMounts). `copilot`: mounts of the Copilot accounts (planCopilotMounts). `copilotCreditLimit`:
+ * HABBLAUD_COPILOT_CREDIT_LIMIT, already checked (copilotCreditLimit).
  */
 export function renderOverride(
   mounts: AccountMount[],
@@ -392,6 +408,7 @@ export function renderOverride(
   remoteTlsDir?: string,
   extraPorts: string[] = [],
   copilot: AccountMount[] = [],
+  copilotCreditLimit?: number,
 ): string {
   const env: Array<[string, string]> = [
     ['HABBLAUD_CLAUDE_DIRS', mounts.map((m) => m.mountDir).join(',')],
@@ -399,6 +416,7 @@ export function renderOverride(
   ];
   if (codex.length) env.push(['HABBLAUD_CODEX_DIRS', codex.map((m) => m.mountDir).join(',')]);
   if (copilot.length) env.push(['HABBLAUD_COPILOT_DIRS', copilot.map((m) => m.mountDir).join(',')]);
+  if (copilot.length && copilotCreditLimit !== undefined) env.push([CREDIT_LIMIT_ENV, String(copilotCreditLimit)]);
   if (usageDir) env.push(['HABBLAUD_USAGE_DIR', CONTAINER_USAGE_DIR]);
   if (timeZone) env.push(['TZ', timeZone]);
   const lines = [
@@ -812,7 +830,9 @@ async function up(opts: Options, port: number): Promise<void> {
   const remoteTlsDir = prepareRemoteTls();
   const remotePorts = remoteTlsDir || remoteInsecure() ? remotePortsToPublish() : [];
   const tmp = `${OVERRIDE_FILE}.tmp`;
-  writeFileSync(tmp, renderOverride(mounts, new Date(), usageDir, hostTimeZone(), codexMounts, remoteTlsDir, remotePorts, copilotMounts), { mode: 0o600 });
+  const creditLimit = copilotCreditLimit(process.env);
+  if (creditLimit.invalid) warn(tr('{0} must be a positive number (e.g. 1500); ignored.', [CREDIT_LIMIT_ENV]));
+  writeFileSync(tmp, renderOverride(mounts, new Date(), usageDir, hostTimeZone(), codexMounts, remoteTlsDir, remotePorts, copilotMounts, creditLimit.limit), { mode: 0o600 });
   chmodSync(tmp, 0o600);
   renameSync(tmp, OVERRIDE_FILE);
   say(tr('docker-compose.override.yml generated.'));
