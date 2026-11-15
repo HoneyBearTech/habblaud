@@ -32,7 +32,7 @@
 
 **Count AI credits, not premium requests.** Copilot Pro bills in AI credits: 1,500 a month, $0.01 each, charged by model and tokens. The per-prompt premium-request count (`cost` with `initiator: "user"`) comes to 1 per session, so it can't show use against that allowance. The first version of the plan counted premium requests. It was revised before any code landed.
 
-**Source of the number.** Each session's running `totalNanoAiu` on `session.usage_checkpoint` and `session.shutdown` is followed, and every rise counts at that event's time. The running total is divided by 1e9 and taken as AI credits. That 1 unit = 1 credit still has to be checked once against GitHub's billing page.
+**Source of the number.** Each session's running `totalNanoAiu` on `session.usage_checkpoint` and `session.shutdown` is followed, and every rise counts at that event's time. The running total is divided by 1e9 and taken as AI credits. That 1 unit = 1 credit was confirmed on 2026-11-15 against GitHub's billing page: 254 credits for the CLI there, 253.7 from the session files. Editor (VS Code) use shows on the billing page but never in these files.
 - A checkpoint and its shutdown with the same total count once.
 - A drop that follows a new `session.start` or `session.resume` is a new counter and counts in full. Any other drop only resets the baseline.
 - Neither kind of drop has been seen in real data yet.
