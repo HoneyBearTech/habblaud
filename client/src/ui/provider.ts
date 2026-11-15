@@ -84,10 +84,11 @@ export function accountChipLabel(account: Pick<AccountInfo, 'name' | 'email' | '
 /**
  * Text of the empty office. The shortcuts ("shortcuts c or d") are only for the Claude Code accounts, which come
  * from shell aliases (the letter of a Codex account is not a shortcut); Codex only comes in when there is an
- * account of its own.
+ * account of its own, and Copilot when it has the only accounts.
  */
 export function emptyOfficeHint(accounts: readonly Pick<AccountInfo, 'short' | 'provider'>[]): string {
   const keys = shortcutHint(accounts.filter(isDefaultProvider));
+  if (accounts.length && accounts.every(isCopilot)) return tr('Open {0} or Copilot in any project and watch your agent arrive.', [PROVIDER_NAME[DEFAULT_PROVIDER]]);
   if (!accounts.some(isCodex)) return tr('Open Claude Code in any project{0} and watch your agent arrive.', [keys ? ` (${keys})` : '']);
   return tr('Open Claude Code{0} or Codex in any project and watch your agent arrive.', [keys ? ` (${keys})` : '']);
 }

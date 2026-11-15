@@ -118,5 +118,9 @@ describe('Copilot accounts and agents', () => {
     expect(accountChipLabel(undefined, '.copilot', 'copilot')).toBe('.copilot · Copilot');
     // The letter of a Copilot account is not a shell shortcut.
     expect(emptyOfficeHint([{ short: 'P', provider: 'copilot' }])).not.toContain('P');
+    // Only Copilot accounts: Copilot is named, after the default tool (as Codex is).
+    expect(emptyOfficeHint([{ short: 'P', provider: 'copilot' }])).toMatch(/^Open \S.* or Copilot in any project and watch your agent arrive\.$/);
+    expect(emptyOfficeHint([{ short: 'P', provider: 'copilot' }, { short: 'Q', provider: 'copilot' }])).toContain(' or Copilot ');
+    expect(emptyOfficeHint([{ short: 'C' }, { short: 'P', provider: 'copilot' }])).not.toContain('Copilot');
   });
 });

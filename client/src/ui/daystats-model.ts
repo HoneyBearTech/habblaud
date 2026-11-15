@@ -14,6 +14,7 @@ import {
   type WaitDayStats,
 } from '../../../shared/daystats';
 import { formatInt, formatTokens, formatUSD } from './format';
+import { DEFAULT_PROVIDER, PROVIDER_NAME } from './provider';
 import { intlLocale, tr } from '../../../shared/i18n';
 
 /** Labels of the statuses in the panel (the same vocabulary as the office, from the point of view of who waits). */
@@ -89,10 +90,22 @@ export interface Highlights {
 }
 
 /**
- * `codex` = some Codex account worked during the day: the cost is only that of Claude Code (Codex doesn't record
- * cost, only tokens), and the hint says so.
+ * Hint of the cost card when Copilot has tokens in the day (`codex`: Codex has some too). Copilot records tokens but
+ * no cost, as Codex.
  */
-export function highlights(stats: DayStats, clock: (t: number) => string, codex = false): Highlights {
+function copilotCostHint(costUSD: number, codex: boolean): string {
+  if (costUSD > 0) {
+    const name = PROVIDER_NAME[DEFAULT_PROVIDER];
+    return codex ? tr("{0} only: Codex and Copilot don't record cost, only tokens", [name]) : tr("{0} only: Copilot doesn't record cost, only tokens", [name]);
+  }
+  return codex ? tr("Codex and Copilot don't record cost, only tokens") : tr("Copilot doesn't record cost, only tokens");
+}
+
+/**
+ * `codex` = some Codex account worked during the day: the cost is only that of Claude Code (Codex doesn't record
+ * cost, only tokens), and the hint says so. `copilot` = the same for Copilot (copilotCostHint).
+ */
+export function highlights(stats: DayStats, clock: (t: number) => string, codex = false, copilot = false): Highlights {
   const t = stats.totals;
   const c = t.counts;
   const top = stats.waits[0];
@@ -110,7 +123,9 @@ export function highlights(stats: DayStats, clock: (t: number) => string, codex 
     tokensDetail: tr('{0} in · {1} out', [formatTokens(c.tokensIn), formatTokens(c.tokensOut)]),
     cost: c.costUSD > 0 ? formatUSD(c.costUSD) : '—',
     costHint:
-      c.costUSD > 0
+      copilot && (c.costUSD > 0 || c.tokensIn + c.tokensOut > 0)
+        ? copilotCostHint(c.costUSD, codex)
+        : c.costUSD > 0
         ? codex
           ? tr("Claude Code only: Codex doesn't record cost, only tokens")
           : tr('Cost calculated by Claude Code itself')

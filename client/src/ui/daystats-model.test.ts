@@ -43,6 +43,15 @@ describe('My day with Codex', () => {
     expect(accountCards([acc('.codex', { ms: ms({ working: H }) })])[0]).toMatchObject({ codex: false, cost: '—' });
   });
 
+  it('cost hint says Copilot does not record cost (and Codex, when both have tokens)', () => {
+    const day = (c: Partial<DayStats['totals']['counts']>) => ({ totals: { ...totals(), counts: counts(c), waitWallMs: 0 }, waits: [] }) as unknown as DayStats;
+    expect(highlights(day({ tokensIn: 5, costUSD: 2 }), clock, false, true).costHint).toMatch(/^\S.* only: Copilot doesn't record cost, only tokens$/);
+    expect(highlights(day({ tokensIn: 5 }), clock, false, true).costHint).toBe("Copilot doesn't record cost, only tokens");
+    expect(highlights(day({ tokensIn: 5, costUSD: 2 }), clock, true, true).costHint).toMatch(/^\S.* only: Codex and Copilot don't record cost, only tokens$/);
+    expect(highlights(day({ tokensIn: 5 }), clock, true, true).costHint).toBe("Codex and Copilot don't record cost, only tokens");
+    expect(highlights(day({}), clock, false, true).costHint).toBe('No spending recorded');
+  });
+
   it('cost hint says Codex does not record cost', () => {
     const day = (c: Partial<DayStats['totals']['counts']>) => ({ totals: { ...totals(), counts: counts(c), waitWallMs: 0 }, waits: [] }) as unknown as DayStats;
     expect(highlights(day({ tokensIn: 5, costUSD: 2 }), clock, true).costHint).toBe("Claude Code only: Codex doesn't record cost, only tokens");

@@ -330,7 +330,8 @@ export class DayPanel implements UiComponent {
   private sections(res: DayStatsResponse): HTMLElement[] {
     const stats = res.stats;
     const clock = (t: number) => formatClock(t, false);
-    const hl = highlights(stats, clock, stats.accounts.some((a) => this.isCodexAccount(a.id) && a.counts.tokensIn + a.counts.tokensOut > 0));
+    const tokensOf = (is: (id: string) => boolean) => stats.accounts.some((a) => is(a.id) && a.counts.tokensIn + a.counts.tokensOut > 0);
+    const hl = highlights(stats, clock, tokensOf((id) => this.isCodexAccount(id)), tokensOf((id) => this.isCopilotAccount(id)));
     const out: HTMLElement[] = [this.kpis(hl)];
     if (isEmptyDay(stats)) {
       const today = stats.day === res.today;
@@ -659,6 +660,11 @@ export class DayPanel implements UiComponent {
   /** Codex account: the one in the snapshot says so; an account that already left, the shape of the id (".codex"). */
   private isCodexAccount(id: string): boolean {
     return accountProvider(this.ctx.account(id), id) === 'codex';
+  }
+
+  /** Copilot account, the same way as isCodexAccount (an account that already left: the shape of the id). */
+  private isCopilotAccount(id: string): boolean {
+    return accountProvider(this.ctx.account(id), id) === 'copilot';
   }
 
   // ---------------------------------------------------------------- tooltip (hover and focus)
