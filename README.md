@@ -624,8 +624,8 @@ terminal and history. The Copilot account chip is round and hollow and carries t
   12 hours) or while its events file changed in the last 30 minutes.
 - **Not supported:** the 5-hour and weekly usage bar (Copilot doesn't write its limits to the session files), messages
   and approvals from the office (answer in the Copilot terminal), cost and subagents. Copilot agents are not sent to
-  [Habblaud World](#habblaud-world) (they are left out, never shown as another tool); their tokens still count in the
-  building's day and week totals.
+  [Habblaud World](#habblaud-world) (they are left out, never shown as another tool), and neither are their tokens: they
+  don't count in the building's day and week totals.
 - `HABBLAUD_COPILOT_DIRS` (comma-separated) replaces the detection and `HABBLAUD_COPILOT=0` turns Copilot off. In Docker,
   `npm run docker:up` mounts only `session-state/` and `open-sessions-state.json` of each folder, read-only.
 

@@ -17,7 +17,7 @@ versioning](https://semver.org/): a fix bumps the last number (0.2.**1**), a new
   reads only `session-state/<session>/events.jsonl`, `workspace.yaml` and `open-sessions-state.json` from `~/.copilot`
   (or `COPILOT_HOME`, or the folders in `HABBLAUD_COPILOT_DIRS`); `HABBLAUD_COPILOT=0` turns it off. In Docker only those
   are mounted, read-only. Not supported: usage bars, messages and approvals from the office, subagents; Copilot agents
-  are not sent to Habblaud World.
+  are not sent to Habblaud World, and their tokens don't count in the building's totals.
 
 ### Changed
 

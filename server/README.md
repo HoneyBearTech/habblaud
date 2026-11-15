@@ -393,7 +393,8 @@ Only main agents: no subagents, no usage limits, no cost.
   cache). Unknown types are ignored.
 - **Not available:** messages (`canMessage` false, `messages are not available for Copilot`), approvals from the office,
   usage bars. **World:** Copilot agents are left out of the projection (`isWorldProvider`), never reported as another
-  tool; the schema and the protocol stay the same.
+  tool, and their tokens are left out of the building totals (`world/tokens.ts` sums only the "My day" accounts whose
+  tool `isWorldProvider` accepts; `AccountDayStats.provider`); the schema and the protocol stay the same.
 - **Docker:** `docker:up` mounts only `session-state/` and `open-sessions-state.json` (single file, skipped if missing)
   of each folder at `/copilot/<account>/`, read-only, and passes `HABBLAUD_COPILOT_DIRS` and the accounts.
 
@@ -453,7 +454,7 @@ before the person creates the account and signs in, and `HABBLAUD_WORLD=0` turns
   each with a life of 24 h ± 6 h drawn at random per id; whoever disappears and comes back (or Habblaud restarted)
   gets a new id.
 - `tokens.ts`: the building's tokens (input + output) for today and for the 7 running days, from "My day" with the
-  `real` source (the demo never enters), rounded to 2 digits; the past days stay stored, today's is reread every 15 s.
+  `real` source (the demo never enters), only from the accounts of tools World accepts (not Copilot), rounded to 2 digits; the past days stay stored, today's is reread every 15 s.
 - `theme.ts`: the chosen theme resolved for the packet (the automatic one follows the office calendar, by the local
   date of the server: in Docker, UTC). `signals.ts`: tasks completed in the day per agent and new compactions
   (`/clear` doesn't count).

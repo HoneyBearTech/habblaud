@@ -657,8 +657,8 @@ modelo, tokens, terminal e historial. El chip de la cuenta de Copilot es redondo
   12 horas) o mientras su archivo de eventos cambió en los últimos 30 minutos.
 - **Sin soporte:** la barra de uso de 5 horas y semanal (Copilot no guarda sus límites en los archivos de sesión), los
   mensajes y aprobaciones desde la oficina (responde en la terminal de Copilot), el costo y los subagentes. Los agentes
-  de Copilot no se envían a [Habblaud World](#habblaud-world) (se dejan fuera, nunca aparecen como otra herramienta); sus
-  tokens siguen contando en los totales del día y de la semana del edificio.
+  de Copilot no se envían a [Habblaud World](#habblaud-world) (se dejan fuera, nunca aparecen como otra herramienta), ni
+  sus tokens: no cuentan en los totales del día y de la semana del edificio.
 - `HABBLAUD_COPILOT_DIRS` (separadas por comas) reemplaza la detección y `HABBLAUD_COPILOT=0` desactiva Copilot. En
   Docker, `npm run docker:up` monta solo `session-state/` y `open-sessions-state.json` de cada carpeta, en solo lectura.
 

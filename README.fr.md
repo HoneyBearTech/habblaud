@@ -657,7 +657,7 @@ modèle, tokens, terminal et historique. La puce du compte Copilot est ronde et 
 - **Non pris en charge :** la barre d'utilisation 5 heures et hebdomadaire (Copilot n'écrit pas ses limites dans les
   fichiers de session), les messages et approbations depuis le bureau (répondez dans le terminal Copilot), le coût et les
   sous-agents. Les agents Copilot ne sont pas envoyés à [Habblaud World](#habblaud-world) (ils sont laissés de côté, jamais
-  présentés comme un autre outil) ; leurs tokens comptent toujours dans les totaux du jour et de la semaine de
+  présentés comme un autre outil), ni leurs tokens : ils ne comptent pas dans les totaux du jour et de la semaine de
   l'immeuble.
 - `HABBLAUD_COPILOT_DIRS` (séparés par des virgules) remplace la détection et `HABBLAUD_COPILOT=0` désactive Copilot. Dans
   Docker, `npm run docker:up` monte seulement `session-state/` et `open-sessions-state.json` de chaque dossier, en
