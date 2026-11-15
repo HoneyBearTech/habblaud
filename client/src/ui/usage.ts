@@ -12,7 +12,7 @@ import type { UiContext } from './context';
 import { h, KeyedList, setAttr, setHidden, setStyleVar, setText, setTitle, setVariant } from './dom';
 import { FIVE_HOURS_MS, relativeTime, usageLevel, usageWindowView, WEEK_MS, type UsageWindowView } from './format';
 import { ICONS } from './icons';
-import { isCodex } from './provider';
+import { isCodex, isCopilot, isDefaultProvider, PROVIDER_NAME, providerOf, showsProviderTag } from './provider';
 import { usageRowFits } from './usage-row';
 import { createAccountChip, createProviderTag, updateAccountChip, updateProviderTag } from './widgets';
 import { tr } from '../../../shared/i18n';
@@ -186,7 +186,14 @@ export function usageMessage(a: Pick<AccountInfo, 'usage' | 'usageStatus' | 'pro
   const state = cardState(a);
   if (state === 'noquota') return [tr('no quota'), tr('no quota')];
   if (isCodex(a)) return [tr('no data yet'), tr('no data')];
+  if (isCopilot(a)) return [tr('Copilot shares no usage limits'), tr('no limits')];
   return [tr('no usage data'), tr('no data')];
+}
+
+/** Explanation of the card of a Copilot account (tooltip); '' on the others. */
+export function copilotUsageNote(a: Pick<AccountInfo, 'provider'>): string {
+  if (!isCopilot(a)) return '';
+  return tr("Copilot doesn't write its usage limits to its session files, so there is no usage bar. Each session's token counts still show on its agent.");
 }
 
 /** Explanation of the card of a Codex account (tooltip); '' on the others. */
@@ -338,12 +345,13 @@ export class UsageCards {
     const r = this.refs.get(card)!;
     const now = this.ctx.now();
     const codex = isCodex(a);
+    const copilot = isCopilot(a);
     updateAccountChip(r.chip, a);
     setStyleVar(card, '--acc', a.color);
     setText(r.name, a.name);
-    updateProviderTag(r.prov, codex ? 'codex' : 'claude', a.name);
+    updateProviderTag(r.prov, providerOf(a), a.name);
     setText(r.email, usageSubtitle(a));
-    setAttr(card, 'aria-label', tr('{0}{1}: plan usage', [a.name, codex ? ' (Codex)' : '']));
+    setAttr(card, 'aria-label', tr('{0}{1}: plan usage', [a.name, isDefaultProvider(a) ? '' : ` (${PROVIDER_NAME[providerOf(a)]})`]));
 
     const usage = a.usage;
     const state = cardState(a);
@@ -382,9 +390,10 @@ export class UsageCards {
     setText(r.msgLong, msgLong);
     setText(r.msgShort, msgShort);
     setHidden(r.msg, state !== 'empty' && state !== 'noquota');
-    setHidden(r.how, state === 'noquota');
+    // Copilot: nothing to enable (it writes no usage limits).
+    setHidden(r.how, state === 'noquota' || copilot);
     r.msg.classList.toggle('is-noquota', state === 'noquota');
-    setTitle(r.msg, state === 'noquota' ? codexUsageNote(a, now) : '');
+    setTitle(r.msg, state === 'noquota' ? codexUsageNote(a, now) : copilotUsageNote(a));
     setText(r.howLong, codex ? tr('How it works') : tr('How to enable'));
     setText(r.howShort, codex ? tr('Learn more') : tr('Enable'));
     r.how.dataset.help = codex ? 'codex' : 'usage';
@@ -394,9 +403,10 @@ export class UsageCards {
 
   private updateTip(r: CardRefs, a: AccountInfo, state: CardState, five: UsageWindowView | null, week: UsageWindowView | null, now: number): void {
     const codex = isCodex(a);
-    setText(r.tipTitle, `${a.name}${codex && !/codex/i.test(a.name) ? ' · Codex' : ''}${a.plan ? tr(' · {0} plan', [a.plan]) : ''}`);
+    const tool = isDefaultProvider(a) ? undefined : PROVIDER_NAME[providerOf(a)];
+    setText(r.tipTitle, `${a.name}${showsProviderTag(providerOf(a), a.name) ? ` · ${tool}` : ''}${a.plan ? tr(' · {0} plan', [a.plan]) : ''}`);
     const rows: [string, string][] = [];
-    if (codex) rows.push([tr('Tool'), 'Codex']);
+    if (tool) rows.push([tr('Tool'), tool]);
     if (a.email) rows.push(['E-mail', a.email]);
     if (a.organization) rows.push([tr('Organization'), a.organization]);
     if (a.plan) rows.push([tr('Plan'), a.plan]);
@@ -420,6 +430,13 @@ export class UsageCards {
     syncRows(r.tipRows, rows);
 
     // Codex: its own explanation, without the Claude Code step by step (there is nothing to install for the usage).
+    if (isCopilot(a)) {
+      // Copilot: no usage limits at all; only the explanation.
+      setText(r.tipNote, copilotUsageNote(a));
+      setHidden(r.tipNote, false);
+      setHidden(r.tipSetup, true);
+      return;
+    }
     if (codex) {
       const note = codexUsageNote(a, now);
       setText(r.tipNote, note);

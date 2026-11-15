@@ -576,7 +576,8 @@ export class DayPanel implements UiComponent {
       const acc = accounts.get(w.account);
       const chip = h('span', { class: 'ui-acc-chip', text: acc?.short ?? '?', title: acc?.name ?? w.account });
       setStyleVar(chip, '--acc', acc?.color ?? '#8b98b3');
-      if (this.isCodexAccount(w.account)) chip.dataset.provider = 'codex';
+      const tool = this.chipProvider(w.account);
+      if (tool) chip.dataset.provider = tool;
       list.append(
         h(
           'li',
@@ -618,7 +619,7 @@ export class DayPanel implements UiComponent {
     }
     const grid = h('div', { class: 'ui-day__accounts' });
     for (const a of cards) {
-      const chip = h('span', { class: 'ui-acc-chip ui-acc-chip--md', text: a.short, attrs: { 'aria-hidden': 'true', ...(a.codex ? { 'data-provider': 'codex' } : {}) } });
+      const chip = h('span', { class: 'ui-acc-chip ui-acc-chip--md', text: a.short, attrs: { 'aria-hidden': 'true', 'data-provider': this.chipProvider(a.id) } });
       setStyleVar(chip, '--acc', a.color);
       const meter = h(
         'span',
@@ -647,6 +648,12 @@ export class DayPanel implements UiComponent {
     }
     c.body.append(grid);
     return c.el;
+  }
+
+  /** Chip style of the account's tool: 'codex' or 'copilot' (hollow chips), undefined for the default one. */
+  private chipProvider(id: string): 'codex' | 'copilot' | undefined {
+    const p = accountProvider(this.ctx.account(id), id);
+    return p === 'codex' || p === 'copilot' ? p : undefined;
   }
 
   /** Codex account: the one in the snapshot says so; an account that already left, the shape of the id (".codex"). */

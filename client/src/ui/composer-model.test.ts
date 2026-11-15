@@ -6,6 +6,7 @@ import {
   CODEX_TIMEOUT_ERROR,
   composerMode,
   composerTip,
+  COPILOT_NO_MESSAGES,
   DELIVERED_SHOW_MS,
   enterSends,
   isSettled,
@@ -127,5 +128,14 @@ describe('message box (pure pieces)', () => {
     expect(pollDelay(0)).toBeLessThan(1_000);
     expect(pollDelay(20_000)).toBeGreaterThan(pollDelay(0));
     expect(pollDelay(60_000)).toBeGreaterThanOrEqual(pollDelay(20_000));
+  });
+});
+
+describe('message box: Copilot', () => {
+  it('is always off for a Copilot agent, with a plain reason (no plugin hint)', () => {
+    expect(composerMode(agent({ provider: 'copilot' }), ON)).toEqual({ kind: 'off', text: COPILOT_NO_MESSAGES });
+    expect(composerMode(agent({ provider: 'copilot', canMessage: false }), ON)).toEqual({ kind: 'off', text: COPILOT_NO_MESSAGES });
+    expect(COPILOT_NO_MESSAGES).toContain('not available for Copilot');
+    expect(COPILOT_NO_MESSAGES).not.toContain('mod:install');
   });
 });

@@ -323,8 +323,9 @@ export interface RoomGroup {
 
 function accountText(account: AccountInfo | undefined): string {
   if (!account) return '';
-  // The tool goes into the search: "codex" finds the Codex agents.
-  return [account.short, account.name, account.email ?? '', account.id, account.provider === 'codex' ? 'Codex' : ''].join(' ');
+  // The tool goes into the search: "codex" finds the Codex agents, "copilot" the Copilot ones.
+  const tool = account.provider === 'codex' ? 'Codex' : account.provider === 'copilot' ? 'Copilot' : '';
+  return [account.short, account.name, account.email ?? '', account.id, tool].join(' ');
 }
 
 /** True if the agent matches the text search (no accents, case-insensitive). */

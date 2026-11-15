@@ -9,6 +9,8 @@ import { tr } from '../../../shared/i18n';
 
 /** Hint for those who have the feature on, but the agent's session doesn't have the plugin connected. */
 export const PLUGIN_HINT = tr('To send messages from here: npm run mod:install (plugin habblaud-mensagens)');
+/** Copilot agents: no way to deliver from the office (Habblaud only reads Copilot's files). */
+export const COPILOT_NO_MESSAGES = tr('Messages are not available for Copilot: reply in the Copilot terminal');
 /** The same hint for a Codex agent with no deliverer (in Node mode the server itself delivers). */
 export const CODEX_BRIDGE_HINT = tr('To send messages to Codex: with Habblaud in Docker, keep npm run codex:bridge running; in Node mode it works on its own');
 
@@ -32,6 +34,7 @@ export function composerMode(agent: AgentInfo | undefined, env: ComposerEnv): Co
   if (env.replaying) return { kind: 'off', text: tr('No messages in timelapse: the office shown is from another moment') };
   if (agent?.kind === 'sub') return { kind: 'off', text: tr("Subagents don't receive messages: write to the main agent") };
   if (!agent || agent.status === 'offline' || agent.status === 'done') return { kind: 'off', text: tr('Session ended') };
+  if (agent.provider === 'copilot') return { kind: 'off', text: COPILOT_NO_MESSAGES };
   const codex = agent.provider === 'codex';
   if (!env.enabled) return { kind: 'off', text: codex ? tr('To reply, use Codex') : tr('To reply, use the Claude Code terminal') };
   if (!env.local) return { kind: 'off', text: tr('To send messages from here, open Habblaud at http://localhost (or 127.0.0.1)') };
