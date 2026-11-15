@@ -7,7 +7,7 @@
 #     (5h/weekly usage captured by the statusline tap) at /usage;
 #   - from Codex, ONLY <folder>/sessions, <folder>/archived_sessions and <folder>/thread-writer-locks at
 #     /codex/<account>/... (never auth.json, config.toml, history.jsonl, logs or the SQLite databases);
-#   - HABBLAUD_CLAUDE_DIRS, HABBLAUD_CODEX_DIRS, HABBLAUD_ACCOUNTS and HABBLAUD_USAGE_DIR.
+#   - HABBLAUD_CLAUDE_DIRS, HABBLAUD_CODEX_DIRS, HABBLAUD_COPILOT_DIRS, HABBLAUD_ACCOUNTS and HABBLAUD_USAGE_DIR.
 # Compose merges the override automatically into any `docker compose ...` run in this folder.
 name: habblaud
 
@@ -40,6 +40,7 @@ services:
       HABBLAUD_LANG: ${HABBLAUD_LANG:-}
       # 0 turns off the Codex sessions in the office.
       HABBLAUD_CODEX: ${HABBLAUD_CODEX:-}
+      HABBLAUD_COPILOT: ${HABBLAUD_COPILOT:-}
       # 1 turns on New agent from the office (in Docker, what starts the session is the host helper, npm run
       # codex:bridge; the interactive terminal itself doesn't run in the container).
       HABBLAUD_PTY: ${HABBLAUD_PTY:-}

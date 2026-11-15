@@ -7,12 +7,17 @@ import {
   CODEX_MOUNTED_SUBDIRS,
   codexAccountsPayload,
   codexDisabled,
+  COPILOT_MOUNTED_FILES,
+  COPILOT_MOUNTED_SUBDIRS,
+  copilotAccountsPayload,
+  copilotDisabled,
   copyVolumeArgs,
   type DockerState,
   envFileKeys,
   hostTimeZone,
   parseArgs,
   planCodexMounts,
+  planCopilotMounts,
   planMounts,
   planUp,
   renderOverride,
@@ -130,6 +135,47 @@ describe('docker-up', () => {
     expect(codexDisabled({ HABBLAUD_CODEX: 'off' })).toBe(true);
     expect(codexDisabled({ HABBLAUD_CODEX: '1' })).toBe(false);
     expect(codexDisabled({})).toBe(false);
+  });
+
+  it('Copilot: mounts ONLY session-state/ and the open-sessions-state.json file (read-only), skipping a missing file', () => {
+    expect([...COPILOT_MOUNTED_SUBDIRS]).toEqual(['session-state']);
+    expect([...COPILOT_MOUNTED_FILES]).toEqual(['open-sessions-state.json']);
+    const host = '/Users/fulano/.copilot';
+    const other = '/Users/fulano/.copilot-work';
+    // The host also has config.json, permissions-config.json, session-store.db, logs/, settings.json and hooks/.
+    const dirs = new Set([`${host}/session-state`, `${other}/session-state`, `${host}/logs`, `${host}/hooks`]);
+    const files = new Set([`${host}/open-sessions-state.json`, `${host}/config.json`, `${host}/permissions-config.json`, `${host}/session-store.db`, `${host}/settings.json`]);
+    const cop: DetectedAccount = { id: '.copilot', provider: 'copilot', configDir: host, short: 'P', name: 'Copilot P', color: '#4aa8e8' };
+    const mounts = planCopilotMounts(
+      [host, other, '/Users/fulano/.copilot-empty'],
+      [cop, { ...cop, id: '.copilot-work', configDir: other, short: 'W', name: 'Copilot W' }, { ...cop, id: '.copilot-empty' }],
+      (p) => (dirs.has(slash(p)) ? `/real${slash(p)}` : undefined),
+      (p) => (files.has(slash(p)) ? `/real${slash(p)}` : undefined),
+    );
+    expect(mounts.map((m) => m.binds)).toEqual([
+      [
+        { source: `/real${host}/session-state`, target: '/copilot/.copilot/session-state' },
+        { source: `/real${host}/open-sessions-state.json`, target: '/copilot/.copilot/open-sessions-state.json' },
+      ],
+      [{ source: `/real${other}/session-state`, target: '/copilot/.copilot-work/session-state' }],
+    ]);
+    expect(copilotAccountsPayload(mounts)[0]).toEqual({ id: '.copilot', provider: 'copilot', configDir: host, mountDir: '/copilot/.copilot', short: 'P', name: 'Copilot P', color: '#4aa8e8' });
+    const yml = renderOverride([], new Date(0), undefined, undefined, [], undefined, [], mounts);
+    expect(yml).toContain('HABBLAUD_COPILOT_DIRS: "/copilot/.copilot,/copilot/.copilot-work"');
+    expect(yml).toContain(`source: "/real${host}/open-sessions-state.json"\n        target: "/copilot/.copilot/open-sessions-state.json"\n        read_only: true\n        bind:\n          create_host_path: false`);
+    expect(yml.match(/read_only: true/g)).toHaveLength(3);
+    for (const secret of ['config.json', 'permissions-config', 'session-store', 'logs', 'settings.json', 'hooks', 'command-history']) expect(yml).not.toContain(secret);
+    const accounts = JSON.parse(JSON.parse(/HABBLAUD_ACCOUNTS: (".*")/.exec(yml)![1]) as string) as Array<Record<string, unknown>>;
+    expect(accounts.map((a) => [a.id, a.provider, a.configDir])).toEqual([
+      ['.copilot', 'copilot', host],
+      ['.copilot-work', 'copilot', other],
+    ]);
+    // Without Copilot: no HABBLAUD_COPILOT_DIRS.
+    expect(renderOverride([])).not.toContain('HABBLAUD_COPILOT_DIRS');
+    expect(copilotDisabled({ HABBLAUD_COPILOT: '0' })).toBe(true);
+    expect(copilotDisabled({ HABBLAUD_COPILOT: 'no' })).toBe(true);
+    expect(copilotDisabled({ HABBLAUD_COPILOT: 'on' })).toBe(false);
+    expect(copilotDisabled({})).toBe(false);
   });
 
   it('host time zone goes to the container as TZ', () => {
