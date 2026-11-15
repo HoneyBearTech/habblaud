@@ -3,8 +3,10 @@ import {
   calendarDayDiff,
   clampPercent,
   compactDuration,
+  daysUntil,
   FIVE_HOURS_MS,
   formatCountdown,
+  formatCredits,
   formatDuration,
   formatElapsed,
   formatInt,
@@ -92,6 +94,19 @@ describe('numbers', () => {
     expect(formatUSD(1.234)).toBe('$1.23');
     expect(formatUSD(0)).toBe('$0.00');
     expect(formatInt(12345)).toBe('12,345');
+  });
+  it('formatCredits: at most 1 decimal, with thousands separator', () => {
+    expect(formatCredits(140)).toBe('140');
+    expect(formatCredits(49.21047)).toBe('49.2');
+    expect(formatCredits(1500)).toBe('1,500');
+    expect(formatCredits(12345.67)).toBe('12,345.7');
+    expect(formatCredits(-2)).toBe('0');
+    expect(formatCredits(Number.NaN)).toBe('0');
+  });
+  it('daysUntil rounds up and never goes below 0', () => {
+    expect(daysUntil(16 * D, 0)).toBe(16);
+    expect(daysUntil(3 * H, 0)).toBe(1);
+    expect(daysUntil(0, 5)).toBe(0);
   });
   it('plural', () => {
     expect(plural(1, 'agent', 'agents')).toBe('1 agent');

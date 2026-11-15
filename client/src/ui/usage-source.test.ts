@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { AccountInfo } from '../../../shared/types';
-import { cardState, codexUsageNote, copilotUsageNote, showsUsageAge, sourceLabel, usageMessage, usageSubtitle } from './usage';
+import type { AccountInfo, CreditUsage } from '../../../shared/types';
+import { cardState, codexUsageNote, copilotCredits, copilotUsageNote, creditsBar, creditsResetText, showsUsageAge, sourceLabel, usageMessage, usageSubtitle } from './usage';
 
 const MIN = 60_000;
 type Acc = Pick<AccountInfo, 'usage' | 'usageStatus' | 'provider' | 'email' | 'plan' | 'configDir'>;
@@ -52,13 +52,42 @@ describe('usage card of a Codex account', () => {
 });
 
 describe('usage card of a Copilot account', () => {
-  it('no bar and no setup: Copilot shares no usage limits', () => {
-    const cop: Acc = { provider: 'copilot', usageStatus: 'disabled', configDir: '~/.copilot' };
-    expect(cardState(cop)).toBe('empty');
-    expect(usageMessage(cop)).toEqual(['Copilot shares no usage limits', 'no limits']);
-    expect(copilotUsageNote(cop)).toMatch(/no usage bar/);
+  const DAY = 24 * 60 * MIN;
+  const cop = (credits?: Partial<CreditUsage>): Acc =>
+    credits
+      ? { provider: 'copilot', usageStatus: 'ok', configDir: '~/.copilot', usage: { source: 'copilot', credits: { month: 140, today: 35, resetsAt: 16 * DAY, ...credits }, fetchedAt: 0 } }
+      : { provider: 'copilot', usageStatus: 'disabled', configDir: '~/.copilot' };
+
+  it('no AI credits this month: a message, no bar and nothing to set up', () => {
+    expect(cardState(cop())).toBe('empty');
+    expect(usageMessage(cop())).toEqual(['No Copilot AI credits used this month', 'no credits']);
+    expect(copilotCredits(cop())).toBeUndefined();
+    expect(copilotUsageNote(cop())).toMatch(/on this computer/);
+    expect(copilotUsageNote(cop())).toMatch(/Set HABBLAUD_COPILOT_CREDIT_LIMIT to show a bar\.$/);
     expect(copilotUsageNote(codex())).toBe('');
-    expect(codexUsageNote(cop, 0)).toBe('');
-    expect(showsUsageAge(cop)).toBe(false);
+    expect(codexUsageNote(cop(), 0)).toBe('');
+    expect(showsUsageAge(cop())).toBe(false);
+    expect(usageSubtitle(cop())).toBe('on this computer');
+  });
+
+  it('without an allowance: the month and today in a line, and the hint to get a bar', () => {
+    const a = cop({ month: 1234.56, today: 35.04 });
+    expect(cardState(a)).toBe('ok');
+    expect(usageMessage(a)).toEqual(['1,234.6 AI credits this month · 35 today', '1,234.6 credits']);
+    expect(creditsBar(copilotCredits(a)!)).toBeUndefined();
+    expect(copilotUsageNote(a)).toMatch(/1 unit = 1 credit; the month starts on the 1st, UTC/);
+    expect(copilotUsageNote(a)).toMatch(/Set HABBLAUD_COPILOT_CREDIT_LIMIT to show a bar/);
+    expect(showsUsageAge(a)).toBe(false);
+    expect(sourceLabel(a.usage!)).toBe('Copilot files');
+  });
+
+  it('with an allowance: "{0} of {1} AI credits", the percent used and "resets in N days"', () => {
+    const a = cop({ limit: 1500 });
+    expect(cardState(a)).toBe('ok');
+    expect(creditsBar(copilotCredits(a)!)).toEqual({ line: '140 of 1,500 AI credits', short: '140/1,500', pct: 9 });
+    expect(creditsBar({ month: 1650, today: 0, limit: 1500, resetsAt: 0 })?.pct).toBe(110);
+    expect(creditsResetText(copilotCredits(a)!, 0)).toBe('resets in 16 days');
+    expect(creditsResetText(copilotCredits(a)!, 15.5 * DAY)).toBe('resets in 1 day');
+    expect(copilotUsageNote(a)).not.toMatch(/HABBLAUD_COPILOT_CREDIT_LIMIT/);
   });
 });
