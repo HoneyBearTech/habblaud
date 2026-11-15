@@ -58,6 +58,37 @@ describe('Copilot events: turns and status', () => {
     expect(r.activities.at(-1)?.kind).toBe('wait');
   });
 
+  it('an open tool call (a subagent running) keeps it working through an inner final reply and turn_end', () => {
+    const s = createCopilotState();
+    feed([E.user('Review the code', T0), E.turnStart(T0 + 1), E.message('', T0 + 2, [{ toolCallId: 'c1', name: 'task' }]), E.toolStart('c1', 'task', { description: 'Review' }, T0 + 3)], s);
+    // The subagent's own model call, in the same file: a reply without tool requests, then its turn_end.
+    feed([E.turnStart(T0 + 4), E.message('Inner review done.', T0 + 5), E.turnEnd(T0 + 6)], s);
+    expect(copilotStatus(s).status).toBe('working');
+    expect(s.tools.size).toBe(1);
+    // The outer call completes and the outer reply finishes with no tool open: idle.
+    feed([E.toolEnd('c1', T0 + 7), E.turnStart(T0 + 8), E.message('All reviewed.', T0 + 9), E.turnEnd(T0 + 10)], s);
+    expect(copilotStatus(s).status).toBe('idle');
+    expect(s.tools.size).toBe(0);
+  });
+
+  it('a tool call that never completes is dropped on abort, on agentStop and on shutdown', () => {
+    for (const end of [E.abort(T0 + 3), E.agentStop(T0 + 3), E.shutdown(T0 + 3)]) {
+      const s = createCopilotState();
+      feed([E.turnStart(T0), E.toolStart('c1', 'bash', { command: 'sleep 999' }, T0 + 1)], s);
+      expect(copilotStatus(s).status).toBe('working');
+      feed([end], s);
+      expect(s.tools.size).toBe(0);
+      expect(copilotStatus(s).status).toBe('idle');
+    }
+  });
+
+  it('an open tool call alone (its turn_start before the read) is working', () => {
+    const s = createCopilotState();
+    feed([E.toolStart('c1', 'bash', { command: 'npm test' }, T0)], s);
+    expect(s.busy).toBe(false);
+    expect(copilotStatus(s).status).toBe('working');
+  });
+
   it('permission prompt = waiting with a short reason and the masked command as detail, until completed', () => {
     const s = createCopilotState();
     const r = feed([E.turnStart(T0), E.permission('r1', { kind: 'shell', fullCommandText: 'deploy --token=ghp_abcdefghijklmnopqrstuvwxyz0123456789', intention: 'Deploy' }, T0 + 1)], s);

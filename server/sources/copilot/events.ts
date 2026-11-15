@@ -4,8 +4,10 @@
 // character is doing).
 //
 // Turns: `assistant.turn_start`/`assistant.turn_end` wrap EVERY model call, not a whole user turn. The agent is idle
-// only after an `assistant.message` without tool requests followed by `assistant.turn_end` (or the `agentStop`
-// hook, or `abort`). A message with tool requests keeps it working (the next model call follows).
+// only after an `assistant.message` without tool requests followed by `assistant.turn_end` with no tool call still
+// open (or the `agentStop` hook, or `abort`). A message with tool requests keeps it working (the next model call
+// follows). Subagent events go in the same file: while a tool call (e.g. `task`) is open, the inner replies and
+// turn ends don't end the turn. The open tool calls are dropped when the turn really ends, on abort and on shutdown.
 // Permission prompts: `permission.requested` until the `permission.completed` with the same requestId = "needs you".
 // The prompt goes to the history; the "Needs you" line itself follows the status (Office.setStatus).
 // Tokens: `session.usage_record` is per model call; its `inputTokens` already includes the cache reads (it is not
@@ -158,10 +160,10 @@ export function createCopilotState(): CopilotState {
   };
 }
 
-/** Status the state points to: 'waiting' (open permission prompt), 'working' or 'idle'. */
+/** Status the state points to: 'waiting' (open permission prompt), 'working' (a turn or a tool call running) or 'idle'. */
 export function copilotStatus(s: CopilotState): { status: 'working' | 'waiting' | 'idle'; waitingFor?: string } {
   if (s.permissions.size) return { status: 'waiting', waitingFor: [...s.permissions.values()].pop() };
-  return { status: s.busy ? 'working' : 'idle' };
+  return { status: s.busy || s.tools.size > 0 ? 'working' : 'idle' };
 }
 
 export interface CopilotLineResult {
@@ -277,14 +279,14 @@ class EventLineParser {
         return;
       }
       case 'assistant.turn_end':
-        if (this.s.finalAnswer) this.endTurn();
+        // With a tool call still open this was an inner (subagent) model call: the outer turn goes on.
+        if (this.s.finalAnswer && !this.s.tools.size) this.endTurn();
         return;
       case 'hook.start':
         if (d.hookType === 'agentStop') this.endTurn();
         return;
       case 'abort':
         this.s.permissions.clear();
-        this.s.tools.clear();
         this.endTurn();
         this.push(SPECIAL.interrupted(), { key: this.key(':int') });
         return;
@@ -340,8 +342,13 @@ class EventLineParser {
     }
   }
 
+  /** The user turn ended: nothing runs any more (an open tool call left behind can't keep the status working). */
   private endTurn(): void {
     this.s.finalAnswer = false;
+    if (this.s.tools.size) {
+      this.s.tools.clear();
+      this.s.statusAt = this.at;
+    }
     if (this.s.busy) this.setBusy(false);
   }
 
