@@ -1,8 +1,8 @@
 // Copilot AI credits from the session files: made-up sessions only (server/test/copilot-fixtures.ts).
 import { statSync, utimesSync, writeFileSync } from 'node:fs';
 import { afterEach, describe, expect, it } from 'vitest';
-import { copilotHome, E, sessionId } from '../../test/copilot-fixtures';
-import { CopilotCredits, NANO_AIU_PER_CREDIT, parseCreditLine, utcDayStart, utcMonthStart, utcNextMonthStart, type CreditFileStat } from './credits';
+import { copilotHome, E, ev, sessionId } from '../../test/copilot-fixtures';
+import { CopilotCredits, NANO_AIU_PER_CREDIT, parseCreditEvent, parseCreditLine, utcDayStart, utcMonthStart, utcNextMonthStart, type CreditFileStat } from './credits';
 
 const HOUR = 3_600_000;
 /** 15 Nov 2026, 12:00 UTC. */
@@ -60,6 +60,14 @@ describe('parseCreditLine', () => {
     expect(parseCreditLine(JSON.stringify({ type: 'session.usage_checkpoint', data: { totalNanoAiu: 5 } }))).toBeUndefined();
     expect(parseCreditLine('{"type":"session.usage_checkpoint","data":{"totalNanoAiu":5')).toBeUndefined();
     expect(parseCreditLine('totalNanoAiu')).toBeUndefined();
+  });
+
+  it('session.start and session.resume are restarts; other events are nothing', () => {
+    expect(parseCreditEvent(E.start(sessionId(1), { at: NOW }))).toBe('start');
+    expect(parseCreditEvent(ev('session.resume', { sessionId: sessionId(1) }, NOW))).toBe('start');
+    expect(parseCreditEvent(E.user('session.start', NOW))).toBeUndefined();
+    expect(parseCreditEvent(E.checkpoint(5, NOW))).toEqual({ at: NOW, nano: 5 });
+    expect(parseCreditLine(E.start(sessionId(1), { at: NOW }))).toBeUndefined();
   });
 
   it('UTC month, next month and day', () => {
@@ -126,6 +134,45 @@ describe('CopilotCredits', () => {
     const ctx = setup();
     ctx.write(sessionId(1), [E.checkpoint(u(40), NOW - 3 * HOUR), E.checkpoint(u(10), NOW - 2 * HOUR), E.checkpoint(u(15), NOW - HOUR)]);
     const c = new CopilotCredits();
+    c.update('.copilot', ctx.list(), NOW);
+    expect(c.totals('.copilot', NOW).month).toBe(45);
+  });
+
+  it('a total that goes down after a new session.start or session.resume is a new counter, counted in full', () => {
+    const ctx = setup();
+    const s1 = sessionId(1);
+    const s2 = sessionId(2);
+    // 40 -> start -> 3 -> 45: 40 + 3 (the new counter) + 42 = 85.
+    ctx.write(s1, [E.start(s1, { at: NOW - 5 * HOUR }), E.checkpoint(u(40), NOW - 4 * HOUR), E.start(s1, { at: NOW - 3 * HOUR }), E.checkpoint(u(3), NOW - 2 * HOUR), E.checkpoint(u(45), NOW - HOUR)]);
+    // A resume: 10, then the 7 counts at its own timestamp (yesterday, UTC) and the 2 after it today = 19.
+    ctx.write(s2, [E.checkpoint(u(10), NOW - 40 * HOUR), ev('session.resume', { sessionId: s2 }, NOW - 30 * HOUR), E.checkpoint(u(7), NOW - 29 * HOUR), E.shutdown(NOW - HOUR, u(9))]);
+    const c = new CopilotCredits();
+    c.update('.copilot', ctx.list(), NOW);
+    expect(c.totals('.copilot', NOW)).toEqual({ month: 85 + 19, today: 85 + 2, hasData: true });
+  });
+
+  it('a drop with no new start/resume in between only starts the baseline again, also when the start came earlier', () => {
+    const ctx = setup();
+    const s1 = sessionId(1);
+    // The start is before the 40, not between the 40 and the 10: the 10 is only the new baseline.
+    ctx.write(s1, [E.start(s1, { at: NOW - 5 * HOUR }), E.checkpoint(u(40), NOW - 4 * HOUR), E.user('hi', NOW - 3 * HOUR), E.checkpoint(u(10), NOW - 2 * HOUR), E.checkpoint(u(15), NOW - HOUR)]);
+    const c = new CopilotCredits();
+    c.update('.copilot', ctx.list(), NOW);
+    expect(c.totals('.copilot', NOW).month).toBe(45);
+  });
+
+  it('a restart in a later read of a growing file still counts the new counter in full', () => {
+    const ctx = setup();
+    const s1 = sessionId(1);
+    ctx.write(s1, [E.checkpoint(u(40), NOW - 4 * HOUR)], NOW - 4 * HOUR);
+    const c = new CopilotCredits();
+    c.update('.copilot', ctx.list(), NOW);
+    ctx.append(s1, [E.start(s1, { at: NOW - 3 * HOUR })], NOW - 3 * HOUR);
+    c.update('.copilot', ctx.list(), NOW);
+    ctx.append(s1, [E.checkpoint(u(3), NOW - 2 * HOUR)], NOW - 2 * HOUR);
+    c.update('.copilot', ctx.list(), NOW);
+    // A start followed by a HIGHER total is the same counter going on: only the rise.
+    ctx.append(s1, [E.start(s1, { at: NOW - HOUR }), E.checkpoint(u(5), NOW - HOUR)]);
     c.update('.copilot', ctx.list(), NOW);
     expect(c.totals('.copilot', NOW).month).toBe(45);
   });

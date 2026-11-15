@@ -6,7 +6,10 @@
 // Rules, per session (one events file):
 // - each rise of the running total is counted at that event's top-level `timestamp`, in its UTC day; a checkpoint and
 //   the shutdown that follows it usually carry the same total, which adds nothing;
-// - a total that goes down starts the session's baseline again (nothing is counted for it: no double counting);
+// - a total that goes down right after a `session.start` or `session.resume` later in the file than the previous total
+//   is a new counter (a resumed process whose count started again): its value counts in full, at its timestamp;
+// - any other total that goes down only starts the session's baseline again (nothing is counted for it: no double
+//   counting);
 // - a file that shrinks or is replaced is counted again from the start, and its old contribution is dropped;
 // - events without a finite, non-negative totalNanoAiu or without a valid timestamp are ignored, and so are broken
 //   lines (lines over MAX_LINE_BYTES are skipped by FileTail, like everywhere else).
@@ -20,6 +23,8 @@ import { FileTail } from '../tail';
 export const NANO_AIU_PER_CREDIT = 1_000_000_000;
 /** Event types that carry the running total. */
 const TOTAL_EVENTS = new Set(['session.usage_checkpoint', 'session.shutdown']);
+/** Event types that start a session's process (a resumed process may start its running total again). */
+const START_EVENTS = new Set(['session.start', 'session.resume']);
 /** Bytes read from all the files in one call (update or pump); the rest waits for the next call. */
 export const READ_BUDGET_BYTES = 16 * 1024 * 1024;
 /** Bytes read from a file in one go. */
@@ -51,8 +56,18 @@ export interface CreditReading {
 
 /** The running total of one line, or undefined (another event, a broken line, an invalid total or timestamp). */
 export function parseCreditLine(line: string): CreditReading | undefined {
+  const r = parseCreditEvent(line);
+  return r && r !== 'start' ? r : undefined;
+}
+
+/**
+ * What one line means for the count: a running total, 'start' (a `session.start` or `session.resume`: the process may
+ * have started its total again), or undefined (anything else).
+ */
+export function parseCreditEvent(line: string): CreditReading | 'start' | undefined {
   // Cheap filter first: most lines are other events.
-  if (!line.includes('totalNanoAiu')) return undefined;
+  const total = line.includes('totalNanoAiu');
+  if (!total && !line.includes('session.start') && !line.includes('session.resume')) return undefined;
   let j: unknown;
   try {
     j = JSON.parse(line);
@@ -61,7 +76,9 @@ export function parseCreditLine(line: string): CreditReading | undefined {
   }
   if (!j || typeof j !== 'object') return undefined;
   const r = j as Record<string, unknown>;
-  if (typeof r.type !== 'string' || !TOTAL_EVENTS.has(r.type)) return undefined;
+  if (typeof r.type !== 'string') return undefined;
+  if (START_EVENTS.has(r.type)) return 'start';
+  if (!total || !TOTAL_EVENTS.has(r.type)) return undefined;
   const data = r.data && typeof r.data === 'object' ? (r.data as Record<string, unknown>) : undefined;
   const nano = data?.totalNanoAiu;
   if (typeof nano !== 'number' || !Number.isFinite(nano) || nano < 0) return undefined;
@@ -91,6 +108,8 @@ interface FileCount {
   tail: FileTail;
   /** Last running total of the session (billionths): the baseline of the next rise. */
   last?: number;
+  /** A session.start/resume came after `last`: a lower next total is a new counter (counted in full). */
+  restarted: boolean;
   /** Rises this month by UTC day (00:00 UTC → billionths). A 0 entry = an event of this month with no rise. */
   days: Map<number, number>;
   /** size and mtime at the last read (the cache key). */
@@ -130,7 +149,7 @@ export class CopilotCredits {
       let f = this.files.get(key);
       if (f && f.tail.path !== s.path) f = undefined;
       if (!f) {
-        f = { account, tail: new FileTail(s.path, { maxChunk: this.chunkBytes }), days: new Map(), size: -1, mtimeMs: -1, pending: true };
+        f = { account, tail: new FileTail(s.path, { maxChunk: this.chunkBytes }), restarted: false, days: new Map(), size: -1, mtimeMs: -1, pending: true };
         this.files.set(key, f);
       } else if (s.size !== f.size || s.mtimeMs !== f.mtimeMs) f.pending = true;
       if (f.pending && this.budget > 0) this.read(key, f, monthStart);
@@ -203,6 +222,7 @@ export class CopilotCredits {
       if (r.reset) {
         // Rewritten or shrunk: this session is counted again from the start.
         delete f.last;
+        f.restarted = false;
         f.days.clear();
       }
       for (const line of r.lines) this.apply(f, line, monthStart);
@@ -221,11 +241,18 @@ export class CopilotCredits {
   }
 
   private apply(f: FileCount, line: string, monthStart: number): void {
-    const r = parseCreditLine(line);
+    const r = parseCreditEvent(line);
     if (!r) return;
-    const rise = r.nano - (f.last ?? 0);
-    // A total that goes down is the new baseline: nothing is counted for it.
+    if (r === 'start') {
+      if (f.last !== undefined) f.restarted = true;
+      return;
+    }
+    const last = f.last ?? 0;
+    // A total that goes down after a new start/resume is a new counter: all of it is new. Any other total that goes
+    // down is only the new baseline: nothing is counted for it.
+    const rise = r.nano < last && f.restarted ? r.nano : r.nano - last;
     f.last = r.nano;
+    f.restarted = false;
     if (r.at < monthStart) return;
     const day = utcDayStart(r.at);
     f.days.set(day, (f.days.get(day) ?? 0) + Math.max(0, rise));

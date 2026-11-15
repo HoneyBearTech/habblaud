@@ -395,7 +395,9 @@ Only main agents: no subagents, no 5 h/weekly usage limits, no cost; the account
   and `session.shutdown`, in every session folder of `session-state/` (open or not; the same checked paths), never
   `session.usage_record` (`cost`/`initiator` = premium requests). Each rise of a session's total counts at that event's
   top-level `timestamp`, in its UTC day; a checkpoint and the shutdown with the same total add nothing; a total that
-  goes down only resets the baseline; a file that shrinks or is replaced is counted again from the start. Events without
+  goes down after a new `session.start` or `session.resume` (later in the file than the previous total) is a new
+  counter and counts in full, at its timestamp; any other total that goes down only resets the baseline; a file that
+  shrinks or is replaced is counted again from the start. Events without
   a finite, non-negative total or a valid timestamp and broken lines are skipped (lines over `MAX_LINE_BYTES` too). One
   unit = one credit (`NANO_AIU_PER_CREDIT`, the single scale to change). Each file is read once and then only its new
   bytes (cache by size and mtime, at the 10 s rescan; a 16 MB read budget per poll for the first pass); files last
