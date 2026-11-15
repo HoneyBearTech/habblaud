@@ -421,7 +421,9 @@ Only main agents: no subagents, no 5 h/weekly usage limits, no cost; the account
   tool `isWorldProvider` accepts; `AccountDayStats.provider`); the schema and the protocol stay the same.
 - **Docker:** `docker:up` mounts only `session-state/` and `open-sessions-state.json` (single file, skipped if missing)
   of each folder at `/copilot/<account>/`, read-only, and passes `HABBLAUD_COPILOT_DIRS` and the accounts (with each
-  one's `creditLimit`) and, when valid, `HABBLAUD_COPILOT_CREDIT_LIMIT`.
+  one's `creditLimit`) and, when valid, `HABBLAUD_COPILOT_CREDIT_LIMIT`; an invalid one is written empty (so compose's
+  `${...:-}` pass-through can't hand the raw value in), and an invalid value or account `creditLimit` in the host's
+  `HABBLAUD_ACCOUNTS` gets one warning each.
 
 ## Habblaud World
 

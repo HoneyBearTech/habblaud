@@ -14,6 +14,7 @@ import {
   COPILOT_MOUNTED_SUBDIRS,
   copilotAccountsPayload,
   copilotCreditLimit,
+  copilotCreditWarnings,
   copilotDisabled,
   copyVolumeArgs,
   type DockerState,
@@ -193,13 +194,31 @@ describe('docker-up', () => {
     expect(copilotCreditLimit({ HABBLAUD_COPILOT_CREDIT_LIMIT: '1500' })).toEqual({ limit: 1500, invalid: false });
     expect(copilotCreditLimit({ HABBLAUD_COPILOT_CREDIT_LIMIT: 'abc' })).toEqual({ invalid: true });
     expect(copilotCreditLimit({})).toEqual({ invalid: false });
-    const yml = renderOverride([], new Date(0), undefined, undefined, [], undefined, [], mounts, 1500);
+    const yml = renderOverride([], new Date(0), undefined, undefined, [], undefined, [], mounts, { limit: 1500 });
     expect(yml).toContain('HABBLAUD_COPILOT_CREDIT_LIMIT: "1500"');
     const accounts = JSON.parse(JSON.parse(/HABBLAUD_ACCOUNTS: (".*")/.exec(yml)![1]) as string) as Array<Record<string, unknown>>;
     expect(accounts[0].creditLimit).toBe(300);
     // Not set, or without Copilot accounts: left out.
     expect(renderOverride([], new Date(0), undefined, undefined, [], undefined, [], mounts)).not.toContain('HABBLAUD_COPILOT_CREDIT_LIMIT');
-    expect(renderOverride([], new Date(0), undefined, undefined, [], undefined, [], [], 1500)).not.toContain('HABBLAUD_COPILOT_CREDIT_LIMIT');
+    expect(renderOverride([], new Date(0), undefined, undefined, [], undefined, [], [], { limit: 1500 })).not.toContain('HABBLAUD_COPILOT_CREDIT_LIMIT');
+    // Invalid: written EMPTY (compose's `${...:-}` would hand the raw string in), with or without Copilot accounts.
+    for (const copilot of [mounts, []]) {
+      expect(renderOverride([], new Date(0), undefined, undefined, [], undefined, [], copilot, copilotCreditLimit({ HABBLAUD_COPILOT_CREDIT_LIMIT: 'abc' }))).toContain('HABBLAUD_COPILOT_CREDIT_LIMIT: ""');
+    }
+  });
+
+  it('Copilot: one warning for an invalid HABBLAUD_COPILOT_CREDIT_LIMIT and one for invalid account creditLimits', () => {
+    expect(copilotCreditWarnings({})).toEqual([]);
+    expect(copilotCreditWarnings({ HABBLAUD_COPILOT_CREDIT_LIMIT: '1500', HABBLAUD_ACCOUNTS: JSON.stringify([{ id: '.copilot', provider: 'copilot', creditLimit: 300 }]) })).toEqual([]);
+    expect(copilotCreditWarnings({ HABBLAUD_COPILOT_CREDIT_LIMIT: '-5' })).toEqual(['HABBLAUD_COPILOT_CREDIT_LIMIT must be a positive number (e.g. 1500); ignored.']);
+    const raw = JSON.stringify([
+      { id: '.copilot', provider: 'copilot', creditLimit: 'lots' },
+      { id: '.copilot-work', provider: 'copilot', creditLimit: -1 },
+      // Not a Copilot account: not checked here.
+      { id: '.codex', provider: 'codex', creditLimit: 'x' },
+    ]);
+    expect(copilotCreditWarnings({ HABBLAUD_ACCOUNTS: raw })).toEqual(['HABBLAUD_ACCOUNTS: a Copilot creditLimit must be a positive number (e.g. 1500); ignored.']);
+    expect(copilotCreditWarnings({ HABBLAUD_COPILOT_CREDIT_LIMIT: 'abc', HABBLAUD_ACCOUNTS: raw })).toHaveLength(2);
   });
 
   it('Copilot: a symlink that leads outside the home (after realpath) is not mounted, with a warning', () => {
