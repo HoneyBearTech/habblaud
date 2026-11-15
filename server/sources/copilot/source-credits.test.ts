@@ -183,6 +183,20 @@ describe('Copilot source: AI credits as account usage', () => {
     expect(two.account().usage?.credits?.limit).toBe(300);
   });
 
+  it('an invalid account creditLimit falls back to HABBLAUD_COPILOT_CREDIT_LIMIT; hex and exponents are invalid', () => {
+    vi.spyOn(log, 'warnOnce').mockImplementation(() => {});
+    const raw = JSON.stringify([{ id: '.copilot', provider: 'copilot', creditLimit: '0x10' }]);
+    const one = setup({ HABBLAUD_COPILOT_CREDIT_LIMIT: ' 1500 ', HABBLAUD_ACCOUNTS: raw });
+    one.home.session(sessionId(1), [E.checkpoint(u(1), NOW - HOUR)], { mtime: NOW - HOUR });
+    one.make().boot();
+    expect(one.account().usage?.credits?.limit).toBe(1500);
+    const two = setup({ HABBLAUD_COPILOT_CREDIT_LIMIT: '1e3' });
+    two.home.session(sessionId(1), [E.checkpoint(u(1), NOW - HOUR)], { mtime: NOW - HOUR });
+    two.make().boot();
+    expect(two.account().usage?.credits).toMatchObject({ month: 1 });
+    expect(two.account().usage?.credits?.limit).toBeUndefined();
+  });
+
   it('an invalid allowance is ignored with one warning', () => {
     const warn = vi.spyOn(log, 'warnOnce').mockImplementation(() => {});
     const raw = JSON.stringify([{ id: '.copilot', provider: 'copilot', creditLimit: 'lots' }]);

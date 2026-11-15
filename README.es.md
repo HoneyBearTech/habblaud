@@ -663,7 +663,9 @@ modelo, tokens, terminal e historial. El chip de la cuenta de Copilot es redondo
   el día 1 a las 00:00 UTC (GitHub puede renovar en tu fecha de facturación) y "hoy" es el día UTC. La barra necesita tu
   asignación mensual: define `HABBLAUD_COPILOT_CREDIT_LIMIT` (p. ej. `1500` en Pro) para todas las cuentas de Copilot, o
   `creditLimit` en la entrada de la cuenta en `HABBLAUD_ACCOUNTS`; sin ella la tarjeta muestra solo los números. Los
-  créditos no se envían a Habblaud World.
+  dos tienen que ser un número decimal simple (dígitos y como mucho un punto decimal, p. ej. `1500` o `1500.5`); cualquier
+  otra cosa (`0x10`, `1e3`, `+5`, `1,500`) se ignora con un aviso, y una cuenta con un `creditLimit` no válido usa
+  `HABBLAUD_COPILOT_CREDIT_LIMIT` en su lugar. Los créditos no se envían a Habblaud World.
 - **Sin soporte:** la barra de uso de 5 horas y semanal (Copilot no guarda sus límites en los archivos de sesión), los
   mensajes y aprobaciones desde la oficina (responde en la terminal de Copilot), el costo y los subagentes. Los agentes
   de Copilot no se envían a [Habblaud World](#habblaud-world) (se dejan fuera, nunca aparecen como otra herramienta), ni

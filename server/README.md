@@ -411,8 +411,11 @@ Only main agents: no subagents, no 5 h/weekly usage limits, no cost; the account
   credits…", never 0); a later re-read that is not finished keeps the last numbers. With an allowance the numbers are
   always pushed (0 right after the 1st: "0 of 1,500"); without one, no event with a total this month = no usage
   (`disabled`, "No Copilot AI credits used this month").
-  Allowance: `HABBLAUD_COPILOT_CREDIT_LIMIT` (positive number) for every Copilot account, or `creditLimit` of the
-  account's `HABBLAUD_ACCOUNTS` entry (wins); anything else is ignored with one warning. Only this computer's CLI
+  Allowance: `HABBLAUD_COPILOT_CREDIT_LIMIT` for every Copilot account, or `creditLimit` of the account's
+  `HABBLAUD_ACCOUNTS` entry (wins), each a positive plain decimal number (`parseCreditLimit`: digits with at most one
+  decimal point, spaces around are fine; a JSON number for `creditLimit` too); anything else (hex such as `0x10`,
+  exponents such as `1e3`, signs, commas, `Infinity`) is ignored with one warning, and an account whose `creditLimit`
+  is invalid falls back to `HABBLAUD_COPILOT_CREDIT_LIMIT`. Only this computer's CLI
   sessions count (not the editor, the website or other machines), and the reset is taken as the 1st (UTC), not the
   billing date.
 - **Not available:** messages (`canMessage` false, `messages are not available for Copilot`), approvals from the office,

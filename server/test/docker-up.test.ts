@@ -193,6 +193,7 @@ describe('docker-up', () => {
     expect(copilotAccountsPayload(planCopilotMounts([host], [{ ...cop, creditLimit: undefined }], resolveDir, () => undefined))[0]).not.toHaveProperty('creditLimit');
     expect(copilotCreditLimit({ HABBLAUD_COPILOT_CREDIT_LIMIT: '1500' })).toEqual({ limit: 1500, invalid: false });
     expect(copilotCreditLimit({ HABBLAUD_COPILOT_CREDIT_LIMIT: 'abc' })).toEqual({ invalid: true });
+    for (const bad of ['0x10', '1e3', '+5', '1,500', 'Infinity']) expect(copilotCreditLimit({ HABBLAUD_COPILOT_CREDIT_LIMIT: bad })).toEqual({ invalid: true });
     expect(copilotCreditLimit({})).toEqual({ invalid: false });
     const yml = renderOverride([], new Date(0), undefined, undefined, [], undefined, [], mounts, { limit: 1500 });
     expect(yml).toContain('HABBLAUD_COPILOT_CREDIT_LIMIT: "1500"');

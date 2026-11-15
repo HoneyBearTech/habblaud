@@ -9,7 +9,8 @@
 // neither to the session files).
 //
 // AI-credit allowance (for the usage bar): HABBLAUD_COPILOT_CREDIT_LIMIT for every Copilot account, or `creditLimit`
-// of the account's HABBLAUD_ACCOUNTS entry (it wins). A positive number; anything else is ignored (the source warns once).
+// of the account's HABBLAUD_ACCOUNTS entry (it wins). A positive plain decimal number; anything else is ignored (the
+// source warns once), and an account whose creditLimit is invalid falls back to HABBLAUD_COPILOT_CREDIT_LIMIT.
 //
 // Privacy: only `session-state/` is checked here (by existence); from the shell files, only the
 // `alias X='... copilot ...'` lines. In Docker the host sends everything ready in HABBLAUD_ACCOUNTS
@@ -68,13 +69,17 @@ export function discoverCopilotDirs(env: NodeJS.ProcessEnv = process.env, home: 
 /** Environment variable with the monthly AI-credit allowance of every Copilot account. */
 export const CREDIT_LIMIT_ENV = 'HABBLAUD_COPILOT_CREDIT_LIMIT';
 
+/** A plain decimal number: digits with at most one decimal point (no sign, exponent, hex, comma or Infinity). */
+const PLAIN_DECIMAL = /^(?:\d+(?:\.\d*)?|\.\d+)$/;
+
 /**
- * A monthly AI-credit allowance: a positive finite number (or a string with one). `limit` undefined with `invalid`
- * false = not set (absent or blank); `invalid` true = set to something else, to be ignored with a warning.
+ * A monthly AI-credit allowance: a positive finite number, or a string with a positive plain decimal number (spaces
+ * around are fine). `limit` undefined with `invalid` false = not set (absent or blank); `invalid` true = set to
+ * something else (e.g. `0x10`, `1e3`, `+5`, `1,500`, `Infinity`), to be ignored with a warning.
  */
 export function parseCreditLimit(raw: unknown): { limit?: number; invalid: boolean } {
   if (raw === undefined || raw === null || (typeof raw === 'string' && !raw.trim())) return { invalid: false };
-  const n = typeof raw === 'number' ? raw : typeof raw === 'string' ? Number(raw.trim()) : NaN;
+  const n = typeof raw === 'number' ? raw : typeof raw === 'string' && PLAIN_DECIMAL.test(raw.trim()) ? Number(raw.trim()) : NaN;
   return Number.isFinite(n) && n > 0 ? { limit: n, invalid: false } : { invalid: true };
 }
 

@@ -662,8 +662,10 @@ modèle, tokens, terminal et historique. La puce du compte Copilot est ronde et 
   site web ne sont pas dans ces fichiers. Le mois est censé commencer le 1er à 00:00 UTC (GitHub peut renouveler à votre
   date de facturation) et « aujourd'hui » est le jour UTC. La barre a besoin de votre forfait mensuel : définissez
   `HABBLAUD_COPILOT_CREDIT_LIMIT` (p. ex. `1500` pour Pro) pour tous les comptes Copilot, ou `creditLimit` dans l'entrée
-  du compte dans `HABBLAUD_ACCOUNTS` ; sans lui, la carte n'affiche que les chiffres. Les crédits ne sont pas envoyés à
-  Habblaud World.
+  du compte dans `HABBLAUD_ACCOUNTS` ; sans lui, la carte n'affiche que les chiffres. Les deux doivent être un nombre
+  décimal simple (des chiffres et au plus un point décimal, p. ex. `1500` ou `1500.5`) ; tout le reste (`0x10`, `1e3`,
+  `+5`, `1,500`) est ignoré avec un avertissement, et un compte dont le `creditLimit` est invalide utilise
+  `HABBLAUD_COPILOT_CREDIT_LIMIT` à la place. Les crédits ne sont pas envoyés à Habblaud World.
 - **Non pris en charge :** la barre d'utilisation 5 heures et hebdomadaire (Copilot n'écrit pas ses limites dans les
   fichiers de session), les messages et approbations depuis le bureau (répondez dans le terminal Copilot), le coût et les
   sous-agents. Les agents Copilot ne sont pas envoyés à [Habblaud World](#habblaud-world) (ils sont laissés de côté, jamais

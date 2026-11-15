@@ -629,8 +629,10 @@ terminal and history. The Copilot account chip is round and hollow and carries t
   computers, in the editor or on the website aren't in these files. The month is taken to start on the 1st at 00:00
   UTC (GitHub may reset on your billing date instead) and "today" is the UTC day. The bar needs your monthly allowance:
   set `HABBLAUD_COPILOT_CREDIT_LIMIT` (e.g. `1500` for Pro) for every Copilot account, or `creditLimit` in an
-  account's `HABBLAUD_ACCOUNTS` entry; without it the card shows only the numbers. The credits are not sent to
-  Habblaud World.
+  account's `HABBLAUD_ACCOUNTS` entry; without it the card shows only the numbers. Either one must be a plain decimal
+  number (digits and at most one decimal point, e.g. `1500` or `1500.5`); anything else (`0x10`, `1e3`, `+5`, `1,500`)
+  is ignored with a warning, and an account whose `creditLimit` is invalid uses `HABBLAUD_COPILOT_CREDIT_LIMIT`
+  instead. The credits are not sent to Habblaud World.
 - **Not supported:** the 5-hour and weekly usage bar (Copilot doesn't write its limits to the session files), messages
   and approvals from the office (answer in the Copilot terminal), cost and subagents. Copilot agents are not sent to
   [Habblaud World](#habblaud-world) (they are left out, never shown as another tool), and neither are their tokens: they

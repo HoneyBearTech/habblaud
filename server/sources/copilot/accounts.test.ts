@@ -77,10 +77,14 @@ describe('Copilot accounts: AI-credit allowance', () => {
     expect(parseCreditLimit(300)).toEqual({ limit: 300, invalid: false });
     expect(parseCreditLimit(undefined)).toEqual({ invalid: false });
     expect(parseCreditLimit('  ')).toEqual({ invalid: false });
-    for (const bad of ['0', '-5', 'lots', 'Infinity', '1e999', 0, -1, Number.NaN, true, {}, []]) expect(parseCreditLimit(bad)).toEqual({ invalid: true });
+    expect(parseCreditLimit('1500.')).toEqual({ limit: 1500, invalid: false });
+    expect(parseCreditLimit('.5')).toEqual({ limit: 0.5, invalid: false });
+    expect(parseCreditLimit('\t0042 ')).toEqual({ limit: 42, invalid: false });
+    const bad = ['0', '0.0', '-5', '+5', 'lots', 'Infinity', '-Infinity', '1e999', '1e3', '1E3', '0x10', '0b11', '0o7', '1,500', '1_500', '1.2.3', '.', '15 00', 0, -1, Number.NaN, Infinity, true, {}, []];
+    for (const b of bad) expect(parseCreditLimit(b)).toEqual({ invalid: true });
   });
 
-  it('creditLimit of the HABBLAUD_ACCOUNTS entry goes into the account; an invalid one is left out', () => {
+  it('creditLimit of the HABBLAUD_ACCOUNTS entry goes into the account; an invalid one is left out (falls back to the env)', () => {
     const raw = JSON.stringify([
       { id: '.copilot', provider: 'copilot', mountDir: '/copilot/.copilot', creditLimit: 1500 },
       { id: '.copilot-work', provider: 'copilot', mountDir: '/copilot/.copilot-work', creditLimit: 'lots' },
