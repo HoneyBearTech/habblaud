@@ -7,6 +7,7 @@
 // only after an `assistant.message` without tool requests followed by `assistant.turn_end` (or the `agentStop`
 // hook, or `abort`). A message with tool requests keeps it working (the next model call follows).
 // Permission prompts: `permission.requested` until the `permission.completed` with the same requestId = "needs you".
+// The prompt goes to the history; the "Needs you" line itself follows the status (Office.setStatus).
 // Tokens: `session.usage_record` is per model call; its `inputTokens` already includes the cache reads (it is not
 // added again), as in Codex.
 // `session.shutdown` = the session ended (the character leaves). Unknown types, invalid lines and missing fields are
@@ -301,7 +302,9 @@ class EventLineParser {
         const desc = SPECIAL.waiting(why);
         const detail = permissionDetail(req);
         if (detail) desc.detail = truncate(maskSecrets(detail.slice(0, 1_200)), 300);
-        this.push(desc, { key: this.key(':p') });
+        // History only: the "Needs you" line comes from the status (the office puts it up while waiting and, when the
+        // wait ends, brings back what it was doing), as for Codex.
+        this.push(desc, { key: this.key(':p'), current: false });
         return;
       }
       case 'permission.completed': {

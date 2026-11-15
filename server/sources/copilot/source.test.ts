@@ -265,3 +265,25 @@ describe('Copilot source: presence and status', () => {
     expect(ctx.agent()).toMatchObject({ title: 'The very first prompt', startedAt: created });
   });
 });
+
+describe('Copilot source: the "needs you" line', () => {
+  it('after permission.completed the character works again and the line goes back to what it was doing', () => {
+    const ctx = setup();
+    const t0 = ctx.now();
+    const path = ctx.home.session(S, [E.start(S, { at: t0 - 10_000 }), E.user('Clean up', t0 - 9_000), E.turnStart(t0 - 8_000), E.toolStart('c1', 'bash', { command: 'rm -rf build', description: 'Removing the build' }, t0 - 7_000)], { cwd: '/home/user/project' });
+    ctx.home.open([S]);
+    ctx.source.boot();
+    const before = ctx.agent()!.activity?.text;
+    expect(ctx.agent()?.status).toBe('working');
+    ctx.advance(1_000);
+    ctx.home.append(path, [E.permission('r1', { kind: 'shell', fullCommandText: 'rm -rf build' }, ctx.now())]);
+    ctx.poll();
+    expect(ctx.agent()).toMatchObject({ status: 'waiting', activity: { text: 'Needs you: approve a command' } });
+    ctx.advance(1_000);
+    ctx.home.append(path, [E.permissionDone('r1', ctx.now())]);
+    ctx.poll();
+    expect(ctx.agent()?.status).toBe('working');
+    expect(ctx.agent()?.activity?.text).toBe(before);
+    expect(ctx.agent()?.activity?.text).not.toContain('Needs you');
+  });
+});
