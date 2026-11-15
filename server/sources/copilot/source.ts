@@ -5,8 +5,10 @@
 // Presence: a session is in the office when its events.jsonl does not end in `session.shutdown` (authoritative) AND
 // it is listed in open-sessions-state.json OR the events file changed within QUIET_WINDOW_MS. The open-sessions
 // file is only a hint: it can still list sessions that already shut down, and in Docker a single-file mount can go
-// stale; a session listed there with no new event for STALE_OPEN_MS is taken as a crash and leaves. A session folder
-// without events.jsonl is skipped. The room is the `cwd` of workspace.yaml (or, without it, of session.start).
+// stale; a session listed there with no new event for STALE_OPEN_MS is taken as a crash and leaves. After
+// session.shutdown only the cheap check of every poll stays (no fs.watch, no backlog, no read of the start of the
+// file); new events after it (a resumed session) bring all of that back. A session folder without events.jsonl is
+// skipped. The room is the `cwd` of workspace.yaml (or, without it, of session.start).
 //
 // Status: derived from the events (events.ts): open permission prompt = 'waiting', running turn = 'working', else
 // 'idle'; 'working' with no write for WORKING_QUIET_MS (a dead turn) becomes 'idle', and so does 'waiting' with no
@@ -93,6 +95,10 @@ interface SessionTracker {
   lastWriteAt?: number;
   /** `refreshedAt` of the session in open-sessions-state.json (while listed). */
   refreshedAt?: number;
+  /** session.shutdown handled: no fs.watch, no backlog, no read of the start (until new events). */
+  ended?: boolean;
+  /** End of the start of the file still to read, put off by the shutdown (read if the session is resumed). */
+  prefixEnd?: number;
   watcher?: FSWatcher;
   /**
    * While the start of a large file is read in the background: every line read since the window start, in order, to
@@ -398,6 +404,7 @@ export class CopilotSource implements AgentSource {
         this.apply(t, parseEventLine(t.state, line, { idPrefix: t.key, now: this.now() }), !boot);
       }
       if (r.lines.length) {
+        this.followShutdown(t);
         this.refreshStatus(t, this.now());
         this.statusToOffice(t);
         this.applySummary(t);
@@ -415,6 +422,8 @@ export class CopilotSource implements AgentSource {
     t.path = path;
     t.state = createCopilotState();
     t.backlog = [];
+    t.ended = false;
+    delete t.prefixEnd;
     t.workspace = readWorkspace(t.acc.dir, t.sessionId);
     if (start > 0) t.replay = { lines: [], chars: 0 };
     else delete t.replay;
@@ -435,8 +444,37 @@ export class CopilotSource implements AgentSource {
       this.statusToOffice(t);
     }
     this.applySummary(t);
+    if (t.state.shutdown) {
+      // Ended: no watch and nothing kept; the start is read only if the session is resumed (followShutdown).
+      t.ended = true;
+      t.backlog = [];
+      delete t.replay;
+      if (start > 0) t.prefixEnd = start;
+      return;
+    }
     this.watchFile(t, path);
     if (start > 0) this.queuePrefix(t, path, start);
+  }
+
+  /**
+   * After session.shutdown: closes the fs.watch, drops the backlog and the replay and puts off the read of the start
+   * (the poll's cheap check of the file stays). New events after it (resumed): the watch and the start come back.
+   */
+  private followShutdown(t: SessionTracker): void {
+    const ended = t.state.shutdown;
+    if (ended === !!t.ended) return;
+    t.ended = ended;
+    if (ended) {
+      this.unwatch(t);
+      t.backlog = [];
+      delete t.replay;
+      return;
+    }
+    if (!t.path) return;
+    this.watchFile(t, t.path);
+    const end = t.prefixEnd;
+    delete t.prefixEnd;
+    if (end !== undefined) this.queuePrefix(t, t.path, end);
   }
 
   /** Keeps a line for the status replay while the start of the file is still being read. */
@@ -452,6 +490,7 @@ export class CopilotSource implements AgentSource {
   private apply(t: SessionTracker, r: CopilotLineResult, live: boolean): void {
     if (!r.activities.length) return;
     if (!live || !t.inOffice) {
+      if (t.state.shutdown) return; // shut down: nothing to keep for later
       t.backlog.push(r);
       if (t.backlog.length > BACKLOG_MAX) t.backlog.splice(0, t.backlog.length - BACKLOG_MAX);
       return;
@@ -485,7 +524,12 @@ export class CopilotSource implements AgentSource {
     const state = t.state;
     this.prefixChain = this.prefixChain
       .then(async () => {
-        if (this.stopped) return;
+        if (this.stopped || this.sessions.get(t.key) !== t || t.state !== state) return;
+        if (state.shutdown) {
+          // Shut down before its turn came: read only if the session is resumed.
+          t.prefixEnd = end;
+          return;
+        }
         const prefix = await scanPrefix(path, end, t.key, PREFIX_HISTORY);
         if (this.sessions.get(t.key) !== t || t.state !== state) return;
         const replay = t.replay;

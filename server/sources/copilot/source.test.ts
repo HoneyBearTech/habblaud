@@ -21,7 +21,7 @@ afterEach(() => {
   cleanups = [];
 });
 
-function setup(opts: { tailBytes?: number } = {}) {
+function setup(opts: { tailBytes?: number; watch?: boolean } = {}) {
   const home = copilotHome();
   cleanups.push(home.cleanup);
   let clock = Date.now();
@@ -38,7 +38,7 @@ function setup(opts: { tailBytes?: number } = {}) {
     now,
   });
   late.office = office;
-  const source = new CopilotSource({ accounts, office, dirs: [home.dir], env: {}, home: home.home, now, watch: false, tailBytes: opts.tailBytes });
+  const source = new CopilotSource({ accounts, office, dirs: [home.dir], env: {}, home: home.home, now, watch: opts.watch ?? false, tailBytes: opts.tailBytes });
   cleanups.unshift(() => source.stop());
   return {
     home,
@@ -328,3 +328,53 @@ describe('Copilot source: a killed process', () => {
   });
 });
 
+describe('Copilot source: after session.shutdown', () => {
+  type Internals = { sessions: Map<string, { watcher?: unknown; backlog: unknown[]; prefixEnd?: number }> };
+  const tracker = (ctx: ReturnType<typeof setup>) => (ctx.source as unknown as Internals).sessions.get(KEY)!;
+
+  it('no watch, no backlog and no read of the start; new events (resumed) bring them back', async () => {
+    const ctx = setup({ tailBytes: 2_000, watch: true });
+    const t0 = ctx.now();
+    const lines = [E.start(S, { at: t0 - 100_000 }), E.user('The very first prompt', t0 - 99_000)];
+    for (let i = 0; i < 60; i++) lines.push(E.usage({ input: 100, output: 10, at: t0 - 90_000 + i }));
+    lines.push(E.user('A later prompt', t0 - 2_000), E.shutdown(t0 - 1_000));
+    const path = ctx.home.session(S, lines, { cwd: '/home/user/project' });
+    ctx.home.open([S]);
+    ctx.source.boot();
+    await ctx.source.idle();
+    expect(ctx.agent()).toBeUndefined();
+    expect(tracker(ctx).watcher).toBeUndefined();
+    expect(tracker(ctx).backlog).toEqual([]);
+    expect(tracker(ctx).prefixEnd).toBeGreaterThan(0);
+
+    ctx.advance(1_000);
+    ctx.home.append(path, [E.user('Back again', ctx.now())]);
+    ctx.poll();
+    await ctx.source.idle();
+    ctx.office.tick();
+    expect(ctx.agent()).toMatchObject({ status: 'working', title: 'The very first prompt' });
+    expect(ctx.agent()?.stats).toMatchObject({ tokensIn: 6_000, tokensOut: 600 });
+    expect(tracker(ctx).watcher).toBeDefined();
+    expect(tracker(ctx).prefixEnd).toBeUndefined();
+  });
+
+  it('a live shutdown closes the watch and a later resume opens it again', () => {
+    const ctx = setup({ watch: true });
+    const t0 = ctx.now();
+    const path = ctx.home.session(S, [E.start(S, { at: t0 - 5_000 }), E.user('hi', t0 - 4_000)], { cwd: '/home/user/project' });
+    ctx.home.open([S]);
+    ctx.source.boot();
+    expect(tracker(ctx).watcher).toBeDefined();
+    ctx.advance(1_000);
+    ctx.home.append(path, [E.shutdown(ctx.now())]);
+    ctx.poll();
+    expect(ctx.agent()?.status).toBe('offline');
+    expect(tracker(ctx).watcher).toBeUndefined();
+    expect(tracker(ctx).backlog).toEqual([]);
+    ctx.advance(1_000);
+    ctx.home.append(path, [E.user('again', ctx.now())]);
+    ctx.poll();
+    expect(ctx.agent()?.status).toBe('working');
+    expect(tracker(ctx).watcher).toBeDefined();
+  });
+});
