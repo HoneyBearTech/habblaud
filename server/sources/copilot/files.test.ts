@@ -43,6 +43,17 @@ describe('workspace.yaml reader', () => {
     expect(workspaceInfo(text)).toEqual({ id: S, cwd: '/home/user/my project', createdAt: Date.parse('2026-11-01T10:00:00.000Z'), clientName: 'test-client' });
   });
 
+  it('a " #" inside quotes is part of the value; outside quotes it starts a comment', () => {
+    const text = [
+      "cwd: '/home/user/odd # folder' # where it runs",
+      'client_name: "a # b \\"c\\"" # trailing',
+      "summary: 'it''s here'",
+      'plain: /home/user/x#y # comment',
+    ].join('\n');
+    expect(parseWorkspaceYaml(text)).toEqual({ cwd: '/home/user/odd # folder', client_name: 'a # b "c"', summary: "it's here", plain: '/home/user/x#y' });
+    expect(workspaceInfo('cwd: "/home/user/odd # folder"\n').cwd).toBe('/home/user/odd # folder');
+  });
+
   it('the first top-level value wins; Windows line ends and odd text do not break it', () => {
     expect(parseWorkspaceYaml('cwd: /a\r\ncwd: /b\r\n:::\n')).toEqual({ cwd: '/a' });
     expect(workspaceInfo('id: not-a-uuid\ncreated_at: soon\n')).toEqual({});

@@ -87,15 +87,40 @@ export interface WorkspaceInfo {
   clientName?: string;
 }
 
-function unquote(v: string): string {
-  const s = v.trim();
-  if (s.length >= 2 && ((s[0] === '"' && s.endsWith('"')) || (s[0] === "'" && s.endsWith("'")))) return s.slice(1, -1);
-  return s;
+/**
+ * Value of a `key: value` line. Quoted ('…' or "…"): what is between the quotes, with the quote escapes ('' in single
+ * quotes, \" and \\ in double quotes) undone and a ` #` inside kept; after the closing quote only a comment may
+ * follow. Plain: a comment starts at a `#` after a space (as in YAML). A quote that never closes counts as plain text.
+ */
+function scalar(raw: string): string {
+  const v = raw.trim();
+  const q = v[0];
+  if (q === "'" || q === '"') {
+    let out = '';
+    for (let i = 1; i < v.length; i++) {
+      const c = v[i];
+      if (q === "'" && c === "'") {
+        if (v[i + 1] === "'") {
+          out += "'";
+          i++;
+          continue;
+        }
+        return out;
+      }
+      if (q === '"' && c === '\\' && (v[i + 1] === '"' || v[i + 1] === '\\')) {
+        out += v[++i];
+        continue;
+      }
+      if (q === '"' && c === '"') return out;
+      out += c;
+    }
+  }
+  return v.replace(/\s+#.*$/, '').trim();
 }
 
 /**
  * Tiny reader of workspace.yaml: only top-level `key: value` lines. Indented lines (nested maps), comments, list
- * items and keys without a value are skipped; matching single or double quotes around the value are removed. Not a
+ * items and keys without a value are skipped; quotes around the value are removed (a ` #` comment is stripped only outside them). Not a
  * YAML parser: the server has no runtime dependencies and only needs a handful of plain fields.
  */
 export function parseWorkspaceYaml(text: string): Record<string, string> {
@@ -104,7 +129,7 @@ export function parseWorkspaceYaml(text: string): Record<string, string> {
     if (!raw || /^\s/.test(raw) || raw.startsWith('#') || raw.startsWith('-')) continue;
     const m = /^([A-Za-z_][\w.-]*):(?:\s+(.*))?$/.exec(raw);
     if (!m || m[2] === undefined) continue;
-    const value = unquote(m[2].replace(/\s+#.*$/, ''));
+    const value = scalar(m[2]);
     if (value && !(m[1] in out)) out[m[1]] = value;
   }
   return out;
