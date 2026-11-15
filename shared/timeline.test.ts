@@ -127,6 +127,19 @@ describe('timeline: tool (provider)', () => {
   });
 });
 
+describe('timeline: Copilot AI credits', () => {
+  it('the summary keeps the credits, so the time-lapse card shows them', () => {
+    const credits = { month: 140.5, today: 35, limit: 1500, resetsAt: T0 + 86_400_000 };
+    const acc: AccountInfo = { ...account('.copilot'), provider: 'copilot', usage: { source: 'copilot', fetchedAt: T0, credits } };
+    const f = compactSnapshot(snap([], [], [acc]));
+    expect(f.accounts.get('.copilot')!.usage).toEqual({ source: 'copilot', credits });
+    const back = toAccountInfo(f.accounts.get('.copilot')!, T0 + 5);
+    expect(back.usage).toEqual({ source: 'copilot', fetchedAt: T0 + 5, credits });
+    // A copy, not the same object.
+    expect(back.usage!.credits).not.toBe(credits);
+  });
+});
+
 describe('timeline: deltas', () => {
   it('difference applied over the previous state rebuilds the new one', () => {
     const before = compactSnapshot(
