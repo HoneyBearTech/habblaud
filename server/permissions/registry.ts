@@ -174,6 +174,14 @@ function isQuestion(info: { tool: string; provider?: string }): boolean {
   return info.tool === ASK_TOOL && info.provider !== 'codex';
 }
 
+/**
+ * Agent of the tool whose PermissionRequest hook is this route's default (not Codex, which comes with
+ * `provider: "codex"`, nor Copilot, which has no approvals from the office).
+ */
+function ownHookAgent(a: AgentInfo): boolean {
+  return a.provider !== 'codex' && a.provider !== 'copilot';
+}
+
 /** Codex does not accept interrupting or "always allow" (its hook only approves or denies with a reason). */
 function unsupportedByCodex(info: PermissionRequestInfo, d: PermissionDecision): boolean {
   return info.provider === 'codex' && (d.interrupt === true || d.suggestion !== undefined);
@@ -575,9 +583,9 @@ export class PermissionRegistry {
     if (agentId) {
       const subId = `${sessionId}:${agentId}`;
       const sub = office.get(subId);
-      if (present(sub) && sub.provider !== 'codex') return { id: subId };
+      if (present(sub) && ownHookAgent(sub)) return { id: subId };
     }
-    const main = office.list().find((a) => a.kind === 'main' && a.provider !== 'codex' && a.sessionId === sessionId && a.status !== 'offline');
+    const main = office.list().find((a) => a.kind === 'main' && ownHookAgent(a) && a.sessionId === sessionId && a.status !== 'offline');
     if (!main) return undefined;
     return agentId ? { id: main.id, subagent: agentType ?? tr('subagent') } : { id: main.id };
   }

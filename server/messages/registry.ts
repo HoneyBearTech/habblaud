@@ -49,6 +49,8 @@ export const ERR_REFUSED = tr("the session didn't accept the message");
 export const ERR_SESSION_CHANGED = tr("the agent's conversation changed (/clear or /resume) before delivery");
 export const ERR_CODEX_UNAVAILABLE =
   tr('no way to deliver to Codex right now: run Habblaud outside Docker with `codex` in PATH (or HABBLAUD_CODEX_BIN) or, in Docker, keep npm run codex:bridge running on the Mac');
+/** Copilot agents never receive messages from the office (no plugin and no deliverer). */
+export const ERR_COPILOT_UNAVAILABLE = tr('messages are not available for Copilot');
 export const ERR_CODEX_NOT_FETCHED = tr("the Codex helper didn't fetch the message: is npm run codex:bridge running on the Mac?");
 export const ERR_CODEX_SLOW = tr('Codex took too long with the previous messages to this agent');
 export const ERR_CODEX_NOT_CONFIRMED = tr("the Codex helper didn't confirm delivery");
@@ -153,6 +155,7 @@ const isFinal = (e: Entry) => e.msg.status === 'delivered' || e.msg.status === '
 function unavailableReason(a: AgentInfo, reachable: boolean): string | undefined {
   if (a.kind !== 'main') return tr("subagents don't receive messages: send it to the main agent");
   if (!present(a)) return tr('the agent has already left the office');
+  if (a.provider === 'copilot') return ERR_COPILOT_UNAVAILABLE;
   if (!reachable) return a.provider === 'codex' ? ERR_CODEX_UNAVAILABLE : tr("the session doesn't have the habblaud-mensagens plugin connected (npm run mod:install)");
   return undefined;
 }
@@ -241,6 +244,8 @@ export class MessageRegistry {
   canMessage(agentId: string): boolean {
     const a = this.opts.office.get(agentId);
     if (a?.provider === 'codex') return this.codexAvailable() && present(a) && a.kind === 'main';
+    // Copilot: Habblaud only reads its files; there is no way to deliver a message.
+    if (a?.provider === 'copilot') return false;
     const at = this.seen.get(agentId);
     if (at === undefined || this.now() - at >= this.presenceMs) return false;
     return present(a) && a.kind === 'main';
@@ -298,7 +303,7 @@ export class MessageRegistry {
     // The plugin is Claude Code's: Codex agents never receive through here.
     const agent = this.opts.office
       .list()
-      .find((a) => a.kind === 'main' && a.provider !== 'codex' && a.sessionId === session && (!account || a.account === account) && present(a));
+      .find((a) => a.kind === 'main' && a.provider !== 'codex' && a.provider !== 'copilot' && a.sessionId === session && (!account || a.account === account) && present(a));
     if (!agent) return [];
 
     const now = this.now();

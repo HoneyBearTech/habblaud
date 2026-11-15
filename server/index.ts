@@ -37,6 +37,9 @@ import { ClaudeWatcher } from './sources/watcher';
 import { discoverCodexDirs } from './sources/codex/accounts';
 import { CodexHistory } from './sources/codex/history';
 import { CodexSource } from './sources/codex/source';
+import { discoverCopilotDirs } from './sources/copilot/accounts';
+import { CopilotHistory } from './sources/copilot/history';
+import { CopilotSource } from './sources/copilot/source';
 import { createBuildReader, readBuildInfo } from './build';
 import { UpdateChecker } from './updates/checker';
 import { getLocale, tr } from '../shared/i18n';
@@ -142,6 +145,10 @@ if (codex) agents.add(codex);
 // Events from the Codex hooks (POST /api/codex/events, mod/habblaud-codex/hook.mjs): they go to the live Codex source
 // (CodexLive); without it (no Codex folder or HABBLAUD_CODEX=0) the route answers {ok: false}.
 const codexLive: CodexLive | undefined = codex;
+// Copilot CLI (sources/copilot/): read-only from its session files, after Codex (HABBLAUD_COPILOT=0 turns it off).
+const copilotDirs = config.copilot ? discoverCopilotDirs(process.env, config.home) : [];
+const copilot = copilotDirs.length ? new CopilotSource({ accounts, office, dirs: copilotDirs, env: process.env, home: config.home }) : undefined;
+if (copilot) agents.add(copilot);
 late.office = office;
 late.agents = agents;
 // Page that can answer for the office: local Host on the local port; on the remote one, only with permissions allowed.
@@ -199,6 +206,7 @@ const history = config.terminal
   ? new HistorySet([new SessionHistory({ accounts: () => accounts.entries(), openAgentOf: (acc, sid) => openMainAgent(office.list(), acc, sid) })])
   : undefined;
 if (history && codex) history.add(new CodexHistory({ accounts: () => accounts.entriesOf('codex'), openAgentOf: (acc, sid) => openMainAgent(office.list(), acc, sid) }));
+if (history && copilot) history.add(new CopilotHistory({ accounts: () => accounts.entriesOf('copilot'), openAgentOf: (acc, sid) => openMainAgent(office.list(), acc, sid) }));
 // Deliveries: the end of each request, read from the history transcripts (same lock as the terminal). The delivered
 // files are read here (Node, or account folder mounted in Docker) or by the host helper.
 const deliveries = history
@@ -493,6 +501,14 @@ server.listen(config.port, config.host, () => {
     }
   } else {
     log.info(tr('   Codex: {0}.', [config.codex ? tr('no Codex folder found (set HABBLAUD_CODEX_DIRS)') : tr('off (HABBLAUD_CODEX=0)')]));
+  }
+  if (copilot) {
+    const copilotAccounts = copilot.accountEntries();
+    const open = copilot.sources().reduce((n, s) => n + s.sessions, 0);
+    log.info(tr('   Copilot: {0} account(s), {1} open session(s).', [copilotAccounts.length, open]));
+    for (const a of copilotAccounts) log.info(tr('   Copilot account {0} ({1}): {2}', [a.detected.short, a.id, a.detected.configDir]));
+  } else {
+    log.info(tr('   Copilot: {0}.', [config.copilot ? tr('no Copilot folder found (set HABBLAUD_COPILOT_DIRS)') : tr('off (HABBLAUD_COPILOT=0)')]));
   }
   if (office.isDemo()) log.info(tr('   Demo mode on (simulated agents mixed in with the real ones).'));
   if (config.terminal) log.info(tr('   Terminal: on (local access only).'));

@@ -52,6 +52,8 @@ export interface ServerConfig {
   updateCheck: boolean;
   /** Watches the Codex sessions (sources/codex/); HABBLAUD_CODEX=0 turns it off. */
   codex: boolean;
+  /** Watches the Copilot CLI sessions (sources/copilot/); HABBLAUD_COPILOT=0 turns it off. */
+  copilot: boolean;
   /** Second port, with login, for the phone on the local network (http/remote.ts); absent = off. */
   remote?: RemoteConfig;
   /** Why remote access stayed off when the variables are incomplete. */
@@ -250,6 +252,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, argv: string[] 
     repo: pkg.repo,
     updateCheck: !env.HABBLAUD_UPDATE_CHECK?.trim() || isTruthy(env.HABBLAUD_UPDATE_CHECK),
     codex: !env.HABBLAUD_CODEX?.trim() || isTruthy(env.HABBLAUD_CODEX),
+    copilot: !env.HABBLAUD_COPILOT?.trim() || isTruthy(env.HABBLAUD_COPILOT),
     remote: remote.config,
     remoteWarning: remote.warning,
     world: parseWorldConfig(env, argv),
