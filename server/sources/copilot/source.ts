@@ -41,6 +41,8 @@ const RESCAN_MS = 10_000;
 const PREFIX_HISTORY = 120;
 /** Results kept when reading a file before the agent enters the office. */
 const BACKLOG_MAX = 400;
+/** Lines kept (in characters) for the status replay after the start of a large file is read; above it, no replay. */
+const REPLAY_MAX_CHARS = 8 * 1024 * 1024;
 const MAIN_ROLE = tr('Main agent (Copilot)');
 
 export interface CopilotSourceOptions {
@@ -86,6 +88,11 @@ interface SessionTracker {
   /** mtime of the events file at the last read. */
   lastWriteAt?: number;
   watcher?: FSWatcher;
+  /**
+   * While the start of a large file is read in the background: every line read since the window start, in order, to
+   * replay on top of the start and re-derive the status (a turn or a permission prompt opened before the window).
+   */
+  replay?: { lines: string[]; chars: number };
 }
 
 export class CopilotSource implements AgentSource {
@@ -289,6 +296,11 @@ export class CopilotSource implements AgentSource {
     return true;
   }
 
+  /** Start of the session: session.start, else the workspace.yaml created_at, else the first event read. */
+  private startedAtOf(t: SessionTracker): number | undefined {
+    return t.state.startedAt ?? t.workspace.createdAt ?? t.state.firstAt;
+  }
+
   /** Room of the session: the workspace.yaml cwd, else the session.start one. */
   private cwdOf(t: SessionTracker): string | undefined {
     return t.workspace.cwd ?? t.state.cwd;
@@ -306,7 +318,7 @@ export class CopilotSource implements AgentSource {
       sessionId: t.sessionId,
       cwd,
       role: MAIN_ROLE,
-      startedAt: t.state.startedAt ?? t.workspace.createdAt ?? t.state.firstAt ?? now,
+      startedAt: this.startedAtOf(t) ?? now,
       status: t.status,
       waitingFor: t.waitingFor,
     });
@@ -368,7 +380,10 @@ export class CopilotSource implements AgentSource {
         this.load(t, t.tail.path);
         return;
       }
-      for (const line of r.lines) this.apply(t, parseEventLine(t.state, line, { idPrefix: t.key, now: this.now() }), !boot);
+      for (const line of r.lines) {
+        this.keepForReplay(t, line);
+        this.apply(t, parseEventLine(t.state, line, { idPrefix: t.key, now: this.now() }), !boot);
+      }
       if (r.lines.length) {
         this.refreshStatus(t, this.now());
         this.statusToOffice(t);
@@ -388,9 +403,14 @@ export class CopilotSource implements AgentSource {
     t.state = createCopilotState();
     t.backlog = [];
     t.workspace = readWorkspace(t.acc.dir, t.sessionId);
+    if (start > 0) t.replay = { lines: [], chars: 0 };
+    else delete t.replay;
     for (let i = 0; i < 64; i++) {
       const r = tail.read();
-      for (const line of r.lines) this.apply(t, parseEventLine(t.state, line, { idPrefix: t.key, now: this.now() }), false);
+      for (const line of r.lines) {
+        this.keepForReplay(t, line);
+        this.apply(t, parseEventLine(t.state, line, { idPrefix: t.key, now: this.now() }), false);
+      }
       if (!r.more) break;
     }
     t.lastWriteAt = tail.mtimeMs;
@@ -404,6 +424,15 @@ export class CopilotSource implements AgentSource {
     this.applySummary(t);
     this.watchFile(t, path);
     if (start > 0) this.queuePrefix(t, path, start);
+  }
+
+  /** Keeps a line for the status replay while the start of the file is still being read. */
+  private keepForReplay(t: SessionTracker, line: string): void {
+    const replay = t.replay;
+    if (!replay) return;
+    replay.chars += line.length;
+    if (replay.chars > REPLAY_MAX_CHARS) delete t.replay; // too much: the status from the window stays
+    else replay.lines.push(line);
   }
 
   /** Applies a line result: live, it goes straight to the office; in the initial load, it stays in the backlog. */
@@ -429,10 +458,16 @@ export class CopilotSource implements AgentSource {
     if (s.model) summary.model = s.model;
     if (s.firstAt !== undefined) summary.firstAt = s.firstAt;
     if (s.lastAt !== undefined) summary.lastAt = s.lastAt;
+    const startedAt = this.startedAtOf(t);
+    if (startedAt !== undefined) summary.startedAt = startedAt;
     this.opts.office.applyTranscript(t.key, summary);
   }
 
-  /** Start of a large events file (before the window read): numbers, title, model and the long timeline. */
+  /**
+   * Start of a large events file (before the window read): numbers, title, start, model and the long timeline. The
+   * first prompt and the start come from the start of the file; the status is derived again from the whole file, in
+   * order (the start, then every line read since), so nothing older overrides something newer.
+   */
   private queuePrefix(t: SessionTracker, path: string, end: number): void {
     const state = t.state;
     this.prefixChain = this.prefixChain
@@ -440,16 +475,38 @@ export class CopilotSource implements AgentSource {
         if (this.stopped) return;
         const prefix = await scanPrefix(path, end, t.key, PREFIX_HISTORY);
         if (this.sessions.get(t.key) !== t || t.state !== state) return;
+        const replay = t.replay;
+        delete t.replay;
         state.stats.toolCalls += prefix.state.stats.toolCalls;
         state.stats.tokensIn += prefix.state.stats.tokensIn;
         state.stats.tokensOut += prefix.state.stats.tokensOut;
-        state.title ??= prefix.state.title;
+        if (prefix.state.title !== undefined) state.title = prefix.state.title;
         state.model ??= prefix.state.model;
         state.cwd ??= prefix.state.cwd;
         if (prefix.state.startedAt !== undefined && (state.startedAt === undefined || prefix.state.startedAt < state.startedAt)) state.startedAt = prefix.state.startedAt;
         if (prefix.state.firstAt !== undefined && (state.firstAt === undefined || prefix.state.firstAt < state.firstAt)) state.firstAt = prefix.state.firstAt;
-        this.applySummary(t);
-        if (t.inOffice) this.opts.office.mergeHistory(t.key, prefix.activities);
+        if (replay) {
+          const full = prefix.state;
+          const ctx = { idPrefix: t.key, now: this.now(), activities: false };
+          for (const line of replay.lines) parseEventLine(full, line, ctx);
+          state.busy = full.busy;
+          state.finalAnswer = full.finalAnswer;
+          state.statusAt = full.statusAt;
+          state.permissions = full.permissions;
+          state.tools = full.tools;
+          state.shutdown = full.shutdown;
+          this.refreshStatus(t, this.now());
+        }
+        // Like the boot: what was already true before the window is not news (no notice).
+        const office = this.opts.office;
+        office.beginBoot();
+        try {
+          this.statusToOffice(t);
+          this.applySummary(t);
+        } finally {
+          office.endBoot();
+        }
+        if (t.inOffice) office.mergeHistory(t.key, prefix.activities);
       })
       .catch((err) => log.warnOnce(`copilot-prefix:${path}`, tr("Copilot: couldn't read the start of an events file ({0}).", [errMsg(err)])));
   }

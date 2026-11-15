@@ -188,4 +188,80 @@ describe('Copilot source: presence and status', () => {
     expect(ctx.agent()).toMatchObject({ title: 'The very first prompt', status: 'working' });
     expect(ctx.agent()?.stats).toMatchObject({ tokensIn: 6_000, tokensOut: 600 });
   });
+
+  /** Filler after the given lines, so that a 2 KB end window starts after them. */
+  const filler = (t0: number) => Array.from({ length: 60 }, (_, i) => E.usage({ input: 100, output: 10, at: t0 - 90_000 + i }));
+  const NO_CREATED_AT = `id: ${S}\ncwd: /home/user/project\n`;
+
+  it('large file: a turn started before the window is working once the start is read', async () => {
+    const ctx = setup({ tailBytes: 2_000 });
+    const t0 = ctx.now();
+    const lines = [E.start(S, { at: t0 - 100_000 }), E.user('Build it', t0 - 99_000), E.turnStart(t0 - 98_000), E.toolStart('c1', 'bash', { command: 'npm run build' }, t0 - 97_000), ...filler(t0)];
+    ctx.home.session(S, lines, { workspace: NO_CREATED_AT });
+    ctx.home.open([S]);
+    ctx.source.boot();
+    expect(ctx.agent()?.status).toBe('idle');
+    await ctx.source.idle();
+    ctx.office.tick();
+    expect(ctx.agent()?.status).toBe('working');
+  });
+
+  it('large file: a permission prompt opened before the window is waiting once the start is read, until completed', async () => {
+    const ctx = setup({ tailBytes: 2_000 });
+    const t0 = ctx.now();
+    const lines = [E.start(S, { at: t0 - 100_000 }), E.user('Deploy', t0 - 99_000), E.turnStart(t0 - 98_000), E.permission('r1', { kind: 'shell', fullCommandText: 'deploy' }, t0 - 97_000), ...filler(t0)];
+    const path = ctx.home.session(S, lines, { workspace: NO_CREATED_AT });
+    ctx.home.open([S]);
+    ctx.source.boot();
+    expect(ctx.agent()?.status).toBe('idle');
+    await ctx.source.idle();
+    ctx.office.tick();
+    expect(ctx.agent()).toMatchObject({ status: 'waiting', waitingFor: 'approve a command' });
+    ctx.home.append(path, [E.permissionDone('r1', ctx.now())]);
+    ctx.poll();
+    expect(ctx.agent()?.status).toBe('working');
+  });
+
+  it('large file: newer events in the window win over the start (the turn ended, the prompt was answered)', async () => {
+    const ctx = setup({ tailBytes: 2_000 });
+    const t0 = ctx.now();
+    const lines = [E.start(S, { at: t0 - 100_000 }), E.user('Fix it', t0 - 99_000), E.turnStart(t0 - 98_000), E.permission('r1', { kind: 'shell' }, t0 - 97_000), ...filler(t0)];
+    lines.push(E.permissionDone('r1', t0 - 3_000), E.turnStart(t0 - 2_500), E.message('Fixed.', t0 - 2_000), E.turnEnd(t0 - 1_500));
+    ctx.home.session(S, lines, { workspace: NO_CREATED_AT });
+    ctx.home.open([S]);
+    ctx.source.boot();
+    expect(ctx.agent()?.status).toBe('idle');
+    await ctx.source.idle();
+    ctx.office.tick();
+    expect(ctx.agent()?.status).toBe('idle');
+    expect(ctx.agent()?.waitingFor).toBeUndefined();
+  });
+
+  it('large file: once the start is read, the first prompt is the title and session.start is the start time', async () => {
+    const ctx = setup({ tailBytes: 2_000 });
+    const t0 = ctx.now();
+    const lines = [E.start(S, { at: t0 - 100_000 }), E.user('The very first prompt', t0 - 99_000), ...filler(t0), E.user('A later prompt', t0 - 1_000)];
+    ctx.home.session(S, lines, { workspace: NO_CREATED_AT });
+    ctx.home.open([S]);
+    ctx.source.boot();
+    expect(ctx.agent()?.title).toBe('A later prompt');
+    expect(ctx.agent()?.startedAt).toBeGreaterThan(t0 - 100_000);
+    await ctx.source.idle();
+    ctx.office.tick();
+    expect(ctx.agent()).toMatchObject({ title: 'The very first prompt', startedAt: t0 - 100_000 });
+  });
+
+  it('large file without session.start in the start: the workspace.yaml created_at stays the start time', async () => {
+    const ctx = setup({ tailBytes: 2_000 });
+    const t0 = ctx.now();
+    const lines = [E.user('The very first prompt', t0 - 99_000), ...filler(t0), E.user('A later prompt', t0 - 1_000)];
+    ctx.home.session(S, lines, { cwd: '/home/user/project' });
+    ctx.home.open([S]);
+    ctx.source.boot();
+    const created = Date.parse('2026-11-01T10:00:00.000Z');
+    expect(ctx.agent()?.startedAt).toBe(created);
+    await ctx.source.idle();
+    ctx.office.tick();
+    expect(ctx.agent()).toMatchObject({ title: 'The very first prompt', startedAt: created });
+  });
 });
