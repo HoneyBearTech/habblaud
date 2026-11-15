@@ -5,7 +5,6 @@
 // it has one.
 import { statSync } from 'node:fs';
 import { open, stat } from 'node:fs/promises';
-import { join } from 'node:path';
 import type { RecentSession } from '../../../shared/types';
 import { errMsg, log } from '../../log';
 import { HISTORY_LIMIT, HISTORY_MAX_AGE_MS } from '../history';
@@ -122,7 +121,9 @@ export class CopilotHistory implements HistoryProvider {
   private async candidates(acc: CopilotHistoryAccount, now: number): Promise<Candidate[]> {
     const out: Candidate[] = [];
     for (const id of listSessionIds(acc.dir)) {
-      const path = join(acc.dir, SESSION_STATE_DIR, id, EVENTS_FILE);
+      // Only the checked path is stat-ed: a link out of the Copilot folder is never followed.
+      const path = sessionFile(acc.dir, id, EVENTS_FILE);
+      if (!path) continue;
       try {
         const st = await stat(path);
         if (!st.isFile() || now - st.mtimeMs > this.maxAgeMs) continue;

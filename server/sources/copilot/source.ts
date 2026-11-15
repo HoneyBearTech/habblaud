@@ -242,8 +242,11 @@ export class CopilotSource implements AgentSource {
     acc.scanAt = now;
     const recent = new Map<string, number>();
     for (const id of listSessionIds(acc.dir)) {
+      // Only the checked path is stat-ed: a link out of the Copilot folder is never followed.
+      const path = sessionFile(acc.dir, id, EVENTS_FILE);
+      if (!path) continue;
       try {
-        const mtime = statSync(join(acc.dir, SESSION_STATE_DIR, id, EVENTS_FILE)).mtimeMs;
+        const mtime = statSync(path).mtimeMs;
         if (now - mtime <= QUIET_WINDOW_MS) recent.set(id, mtime);
       } catch {
         // folder without events.jsonl (yet): skipped

@@ -65,4 +65,14 @@ describe('Copilot history', () => {
     symlinkSync(join(outside.dir, 'events.jsonl'), join(ctx.home.dir, 'session-state', S, 'events.jsonl'));
     expect(ctx.history.resolve('.copilot', S)).toMatchObject({ status: 404 });
   });
+
+  it('the list never takes a session whose events file links outside the Copilot folder, even an open one', async () => {
+    const ctx = setup({ [`.copilot:${S}`]: `.copilot:${S}` });
+    const outside = tempDir();
+    cleanups.push(outside.cleanup);
+    writeFileSync(join(outside.dir, 'events.jsonl'), `${E.start(S, { at: Date.now() })}\n`);
+    mkdirSync(join(ctx.home.dir, 'session-state', S));
+    symlinkSync(join(outside.dir, 'events.jsonl'), join(ctx.home.dir, 'session-state', S, 'events.jsonl'));
+    expect(await ctx.history.list()).toEqual([]);
+  });
 });
