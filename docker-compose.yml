@@ -41,6 +41,8 @@ services:
       # 0 turns off the Codex sessions in the office.
       HABBLAUD_CODEX: ${HABBLAUD_CODEX:-}
       HABBLAUD_COPILOT: ${HABBLAUD_COPILOT:-}
+      # Monthly Copilot AI-credit allowance (e.g. 1500 for Pro) for the usage bar; without it, only the count.
+      HABBLAUD_COPILOT_CREDIT_LIMIT: ${HABBLAUD_COPILOT_CREDIT_LIMIT:-}
       # 1 turns on New agent from the office (in Docker, what starts the session is the host helper, npm run
       # codex:bridge; the interactive terminal itself doesn't run in the container).
       HABBLAUD_PTY: ${HABBLAUD_PTY:-}

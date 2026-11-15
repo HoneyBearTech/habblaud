@@ -27,3 +27,25 @@
 - *The replay buffer can grow while background reads queue up.* It is capped at 8 MB of text per session and drains on its own.
 - *Time-of-check/time-of-use gap between the realpath check and the open.* This needs a local attacker racing file swaps inside the user's own Copilot home. That is acceptable for a read-only local viewer.
 - *Filesystem error messages in the log can contain session file paths.* This matches the Codex reader. No session content reaches the logs.
+
+## 2026-11-15: Copilot AI-credit usage ([PR #11](https://github.com/HoneyBearTech/habblaud/pull/11))
+
+**Count AI credits, not premium requests.** Copilot Pro bills in AI credits: 1,500 a month, $0.01 each, charged by model and tokens. The per-prompt premium-request count (`cost` with `initiator: "user"`) comes to 1 per session, so it can't show use against that allowance. The first version of the plan counted premium requests. It was revised before any code landed.
+
+**Source of the number.** Each session's running `totalNanoAiu` on `session.usage_checkpoint` and `session.shutdown` is followed, and every rise counts at that event's time. The running total is divided by 1e9 and taken as AI credits. That 1 unit = 1 credit still has to be checked once against GitHub's billing page.
+- A checkpoint and its shutdown with the same total count once.
+- A drop that follows a new `session.start` or `session.resume` is a new counter and counts in full. Any other drop only resets the baseline.
+- Neither kind of drop has been seen in real data yet.
+
+**The allowance is a setting.** Copilot's files have no allowance, reset date or remaining figure, so the allowance comes from `HABBLAUD_COPILOT_CREDIT_LIMIT` or `creditLimit` per account. It takes plain decimal numbers only. An invalid per-account value falls back to the env value. Credits are taken to reset on the 1st, UTC, and "today" is the UTC day, shown as such on the card.
+
+**States.**
+- While the files are first read, the card says "counting" instead of claiming zero.
+- With an allowance, the card always shows the bar, even at 0.
+- With no allowance and no credits this month, Copilot usage stays off.
+
+**One read budget per poll** (16 MiB, shared by every account), so a large first pass can't block the server.
+
+**Review findings rejected:**
+- *Memory can grow with the number of session folders, up to the 8 MiB partial-line cap each.* This needs someone writing hostile files into the user's own Copilot home. Normal session files end every line.
+- *Credits refresh only every 10 s (the rescan).* That is fine for a monthly allowance.

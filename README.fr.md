@@ -654,6 +654,18 @@ modèle, tokens, terminal et historique. La puce du compte Copilot est ronde et 
   Copilot termine la session, le personnage s'en va.
 - **Quand la session entre et sort :** une session compte tant qu'elle est listée comme ouverte (et a été active dans
   les 12 dernières heures) ou tant que son fichier d'événements a changé dans les 30 dernières minutes.
+- **Crédits IA :** la carte d'utilisation du compte compte les crédits IA utilisés ce mois-ci et aujourd'hui par les
+  sessions Copilot CLI de cet ordinateur. Ils viennent du total cumulé `totalNanoAiu` que Copilot écrit dans
+  `session.usage_checkpoint` et `session.shutdown`, dans tous les dossiers de session de `session-state/` (ouverts ou
+  non) ; les premium requests par prompt ne sont pas utilisées. Une unité est prise pour un crédit IA. Seules les
+  sessions du CLI sur cet ordinateur comptent : les crédits utilisés sur d'autres ordinateurs, dans l'éditeur ou sur le
+  site web ne sont pas dans ces fichiers. Le mois est censé commencer le 1er à 00:00 UTC (GitHub peut renouveler à votre
+  date de facturation) et « aujourd'hui » est le jour UTC. La barre a besoin de votre forfait mensuel : définissez
+  `HABBLAUD_COPILOT_CREDIT_LIMIT` (p. ex. `1500` pour Pro) pour tous les comptes Copilot, ou `creditLimit` dans l'entrée
+  du compte dans `HABBLAUD_ACCOUNTS` ; sans lui, la carte n'affiche que les chiffres. Les deux doivent être un nombre
+  décimal simple (des chiffres et au plus un point décimal, p. ex. `1500` ou `1500.5`) ; tout le reste (`0x10`, `1e3`,
+  `+5`, `1,500`) est ignoré avec un avertissement, et un compte dont le `creditLimit` est invalide utilise
+  `HABBLAUD_COPILOT_CREDIT_LIMIT` à la place. Les crédits ne sont pas envoyés à Habblaud World.
 - **Non pris en charge :** la barre d'utilisation 5 heures et hebdomadaire (Copilot n'écrit pas ses limites dans les
   fichiers de session), les messages et approbations depuis le bureau (répondez dans le terminal Copilot), le coût et les
   sous-agents. Les agents Copilot ne sont pas envoyés à [Habblaud World](#habblaud-world) (ils sont laissés de côté, jamais
@@ -792,12 +804,13 @@ Tout fonctionne sans rien configurer. Si vous avez besoin d'ajuster quelque chos
 | `HABBLAUD_CODEX_BIN` | `codex` du PATH (sous Windows, `codex.exe`) | Le binaire de Codex qui remet les messages (`codex queue`), en mode Node ou dans `npm run codex:bridge`. |
 | `HABBLAUD_COPILOT` | activé | `0` désactive Copilot CLI dans le bureau. |
 | `HABBLAUD_COPILOT_DIRS` | détection automatique | Dossiers de Copilot CLI, séparés par des virgules (à la place de `COPILOT_HOME` ou `~/.copilot`). |
+| `HABBLAUD_COPILOT_CREDIT_LIMIT` | — | Forfait mensuel de crédits IA de Copilot (un nombre positif, p. ex. `1500` pour Pro) pour la barre de la carte d'utilisation. Sans lui, la carte n'affiche que les crédits utilisés. |
 | `HABBLAUD_UPDATE_CHECK` | activé | `0` désactive la vérification de nouvelle version (une requête aux releases du dépôt sur GitHub toutes les 6 h). |
 | `HABBLAUD_LANG` | langue du système, sinon `en` | Langue des textes générés par le serveur (activités, alertes, journaux) : `pt-BR`, `en`, `es` ou `fr`. L'interface suit le navigateur ou le choix fait dans Réglages › Langue. Voir [Langues](#langues). |
 | `HABBLAUD_ACCOUNTS` | — | JSON pour personnaliser le nom, la lettre ou la couleur, associé par le nom du dossier du compte. Ex. : `[{"id":".claude-conta2","name":"Trabalho","short":"T","color":"#5cc97b"}]`. |
 
 **Dans Docker**, sont prises en compte `HABBLAUD_PORT`, `HABBLAUD_BIND`, `HABBLAUD_ALLOWED_HOSTS`, `HABBLAUD_DEMO`, `HABBLAUD_TERMINAL`,
-`HABBLAUD_MENSAGENS`, `HABBLAUD_CODEX`, `HABBLAUD_COPILOT`, `HABBLAUD_UPDATE_CHECK`, `HABBLAUD_LANG`, `HABBLAUD_PTY`, les `HABBLAUD_WORLD*` et les
+`HABBLAUD_MENSAGENS`, `HABBLAUD_CODEX`, `HABBLAUD_COPILOT`, `HABBLAUD_COPILOT_CREDIT_LIMIT`, `HABBLAUD_UPDATE_CHECK`, `HABBLAUD_LANG`, `HABBLAUD_PTY`, les `HABBLAUD_WORLD*` et les
 `HABBLAUD_REMOTE_*` (dans le `.env` ou dans l'environnement) ainsi que `HABBLAUD_CLAUDE_DIRS`, `HABBLAUD_CODEX_DIRS`, `HABBLAUD_COPILOT_DIRS`, `HABBLAUD_USAGE_DIR` et
 `HABBLAUD_ACCOUNTS` (lues par `docker:up` sur l'hôte) ; les autres sont fixées à l'intérieur du conteneur. Options : `npm run docker:up -- --no-build` (démarre sans reconstruire),
 `npm run docker:down` (arrête) et `npm run docker:logs` (suit les journaux).

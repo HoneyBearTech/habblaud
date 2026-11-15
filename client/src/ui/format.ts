@@ -179,6 +179,16 @@ export function formatInt(n: number): string {
   return integerFmt.format(n);
 }
 
+/** AI credits: at most 1 decimal, with thousands separator ("1,234.5", "140"). */
+export function formatCredits(n: number): string {
+  return numberFmt1.format(Number.isFinite(n) ? Math.max(0, n) : 0);
+}
+
+/** Whole days until `target`, rounded up (a few hours left = 1); 0 when it already passed. */
+export function daysUntil(target: number, now: number): number {
+  return Math.max(0, Math.ceil((target - now) / DAY));
+}
+
 /** Cost in dollars: "US$ 1,23". */
 export function formatUSD(n: number): string {
   return usdFmt.format(n).replace(/ /g, ' ');

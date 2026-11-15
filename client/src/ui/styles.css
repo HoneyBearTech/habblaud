@@ -1085,6 +1085,34 @@
   background: repeating-linear-gradient(90deg, rgba(163, 171, 189, 0.55) 0 4px, transparent 4px 5px);
 }
 
+/* Copilot with an allowance: "140 of 1,500 AI credits" under the credit bar, on the row of the second meter. */
+.ui-usage-card__credits {
+  grid-column: 1 / -1;
+  height: 15px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10.5px;
+  line-height: 15px;
+  color: var(--ui-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-usage-card__credits-short {
+  display: none;
+}
+
+@container usage-card (max-width: 206px) {
+  .ui-usage-card__credits-long {
+    display: none;
+  }
+
+  .ui-usage-card__credits-short {
+    display: inline;
+  }
+}
+
 .ui-meter {
   --lv: var(--ui-faint);
   grid-column: 1 / -1;

@@ -372,7 +372,7 @@ and history sessions carry `provider: 'codex'` (absent = Claude Code). Ids: `<ac
 
 GitHub Copilot CLI source (`sources/copilot/`), registered after Codex in `SourceSet` and `HistorySet`. Agents,
 accounts, sources and history sessions carry `provider: 'copilot'`. Ids: `<account>:<sessionId>` (the session's UUID).
-Only main agents: no subagents, no usage limits, no cost.
+Only main agents: no subagents, no 5 h/weekly usage limits, no cost; the account usage is its AI credits.
 
 - **Accounts** (`sources/copilot/accounts.ts`): `HABBLAUD_COPILOT_DIRS` (replaces; existing folders only) or
   `COPILOT_HOME`, else `~/.copilot` when it has `session-state/`. Letter from a shell alias (`COPILOT_HOME=... copilot`),
@@ -391,12 +391,42 @@ Only main agents: no subagents, no usage limits, no cost.
   web_search, task...); `permission.requested`/`completed` = waiting ("approve a command", "approve a file change",
   "approve reading a file", "approve a web access"); `session.usage_record` sums the tokens (the input already has the
   cache). Unknown types are ignored.
+- **AI credits** (`credits.ts`): the running `data.totalNanoAiu` (billionths of a unit) of `session.usage_checkpoint`
+  and `session.shutdown`, in every session folder of `session-state/` (open or not; the same checked paths), never
+  `session.usage_record` (`cost`/`initiator` = premium requests). Each rise of a session's total counts at that event's
+  top-level `timestamp`, in its UTC day; a checkpoint and the shutdown with the same total add nothing; a total that
+  goes down after a new `session.start` or `session.resume` (later in the file than the previous total) is a new
+  counter and counts in full, at its timestamp; any other total that goes down only resets the baseline; a file that
+  shrinks or is replaced is counted again from the start. Events without
+  a finite, non-negative total or a valid timestamp and broken lines are skipped (lines over `MAX_LINE_BYTES` too). One
+  unit = one credit (`NANO_AIU_PER_CREDIT`, the single scale to change). Each file is read once and then only its new
+  bytes (cache by size and mtime, at the 10 s rescan; one 16 MiB read budget per poll, shared by the pump of the
+  files left halfway and the rescan of every account, so the first pass, the boot included, goes on over the next
+  polls); files last
+  changed before this month are not read, and only the per-day sums of the current UTC month are kept. Pushed with
+  `accounts.setUsage` as the `'copilot'` usage source (`AccountUsage.credits`: `month`, `today`, optional `limit`,
+  `resetsAt` = the 1st of next month 00:00 UTC) once every file was read to the end and whenever a number or the UTC
+  day/month changes; it never turns `stale` (`usage.ts`). Until every file of the account was read to the end for the
+  first time, the usage is `{ source: 'copilot', counting: true }` with no numbers (the card says "Counting Copilot AI
+  credits…", never 0); a later re-read that is not finished keeps the last numbers. With an allowance the numbers are
+  always pushed (0 right after the 1st: "0 of 1,500"); without one, no event with a total this month = no usage
+  (`disabled`, "No Copilot AI credits used this month").
+  Allowance: `HABBLAUD_COPILOT_CREDIT_LIMIT` for every Copilot account, or `creditLimit` of the account's
+  `HABBLAUD_ACCOUNTS` entry (wins), each a positive plain decimal number (`parseCreditLimit`: digits with at most one
+  decimal point, spaces around are fine; a JSON number for `creditLimit` too); anything else (hex such as `0x10`,
+  exponents such as `1e3`, signs, commas, `Infinity`) is ignored with one warning, and an account whose `creditLimit`
+  is invalid falls back to `HABBLAUD_COPILOT_CREDIT_LIMIT`. Only this computer's CLI
+  sessions count (not the editor, the website or other machines), and the reset is taken as the 1st (UTC), not the
+  billing date.
 - **Not available:** messages (`canMessage` false, `messages are not available for Copilot`), approvals from the office,
-  usage bars. **World:** Copilot agents are left out of the projection (`isWorldProvider`), never reported as another
+  5 h/weekly usage bars. **World:** Copilot agents are left out of the projection (`isWorldProvider`), never reported as another
   tool, and their tokens are left out of the building totals (`world/tokens.ts` sums only the "My day" accounts whose
   tool `isWorldProvider` accepts; `AccountDayStats.provider`); the schema and the protocol stay the same.
 - **Docker:** `docker:up` mounts only `session-state/` and `open-sessions-state.json` (single file, skipped if missing)
-  of each folder at `/copilot/<account>/`, read-only, and passes `HABBLAUD_COPILOT_DIRS` and the accounts.
+  of each folder at `/copilot/<account>/`, read-only, and passes `HABBLAUD_COPILOT_DIRS` and the accounts (with each
+  one's `creditLimit`) and, when valid, `HABBLAUD_COPILOT_CREDIT_LIMIT`; an invalid one is written empty (so compose's
+  `${...:-}` pass-through can't hand the raw value in), and an invalid value or account `creditLimit` in the host's
+  `HABBLAUD_ACCOUNTS` gets one warning each.
 
 ## Habblaud World
 
@@ -537,6 +567,7 @@ copy).
 | `HABBLAUD_CODEX_BIN` | `codex` from the PATH | Codex binary for `codex queue` (Node mode and `npm run codex:bridge`) |
 | `HABBLAUD_COPILOT` | on | `0` turns off the Copilot CLI source |
 | `HABBLAUD_COPILOT_DIRS` | — | Copilot CLI folders separated by commas; replaces the detection (`COPILOT_HOME` or `~/.copilot`) |
+| `HABBLAUD_COPILOT_CREDIT_LIMIT` | — | Monthly Copilot AI-credit allowance (positive number, e.g. `1500`) for the usage bar of every Copilot account; `creditLimit` in `HABBLAUD_ACCOUNTS` overrides it per account |
 | `HABBLAUD_MENSAGENS` | on (with the terminal) | `0`, `false`, `off` or `no` turn off only the messages from the office |
 | `HABBLAUD_CLAUDE_DIRS` | — | config dirs separated by commas; replaces the detection (`~/.claude*` with `projects/` or `sessions/` + `CLAUDE_CONFIG_DIR`) |
 | `HABBLAUD_DATA_DIR` | `~/.habblaud` (Docker: `/data`) | Habblaud state (names and characters of the projects persisted in `names.json`, timeline in `timeline/`, My day statistics in `stats/`, last version check in `updates.json`) |

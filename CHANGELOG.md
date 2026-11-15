@@ -18,6 +18,13 @@ versioning](https://semver.org/): a fix bumps the last number (0.2.**1**), a new
   (or `COPILOT_HOME`, or the folders in `HABBLAUD_COPILOT_DIRS`); `HABBLAUD_COPILOT=0` turns it off. In Docker only those
   are mounted, read-only. Not supported: usage bars, messages and approvals from the office, subagents; Copilot agents
   are not sent to Habblaud World, and their tokens don't count in the building's totals.
+- **Copilot AI credits on the usage card.** The Copilot account's card shows the AI credits that this computer's
+  Copilot CLI sessions used this month and today, counted from the running total in every session file (one unit is
+  taken as one credit; the month starts on the 1st, UTC). Set `HABBLAUD_COPILOT_CREDIT_LIMIT` to your monthly allowance
+  (e.g. `1500` for Pro), or `creditLimit` for one account in `HABBLAUD_ACCOUNTS`, to get a bar with the percent used
+  and the days until the reset; `docker:up` passes both into the container. Credits used in the editor, on the website
+  or on other computers are not counted, and they are not sent to Habblaud World. This replaces "Copilot shares no
+  usage limits".
 
 ### Changed
 

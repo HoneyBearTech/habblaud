@@ -25,6 +25,8 @@ export interface DetectedAccount {
   plan?: string;
   color: string;
   cachedUsage?: unknown;
+  /** Copilot only: the monthly AI-credit allowance of this account (`creditLimit` in HABBLAUD_ACCOUNTS). */
+  creditLimit?: number;
 }
 
 /** Fixed and clearly distinct palette, assigned in the stable order of the accounts. */
@@ -46,6 +48,8 @@ export interface AccountOverride {
   plan?: string;
   color?: string;
   cachedUsage?: unknown;
+  /** Copilot only: monthly AI-credit allowance (a positive number; anything else is ignored with a warning). */
+  creditLimit?: unknown;
 }
 
 export interface ClaudeAlias {

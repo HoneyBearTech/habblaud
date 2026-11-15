@@ -7,10 +7,14 @@
 // Codex account: the numbers come from its session files, which only renew while some session is running; that is why
 // the age ("12 min ago") is always on display. No quota or credits ("no quota") never becomes 0%. There is nothing to
 // install for the usage: "How it works" opens the help at the Codex section. No Opus/Sonnet or email (only the plan).
-import type { AccountInfo } from '../../../shared/types';
+// Copilot account: the AI credits counted from its session files on this computer ('copilot' usage). With an allowance
+// (HABBLAUD_COPILOT_CREDIT_LIMIT), a bar "140 of 1,500 AI credits" with the percent and "resets in N days"; without
+// one, the month's and today's credits in a line (the tooltip says how to get a bar); with none this month, a message.
+// While the session files are still being read for the first time ('counting'), "Counting Copilot AI credits…", never 0.
+import type { AccountInfo, CreditUsage } from '../../../shared/types';
 import type { UiContext } from './context';
 import { h, KeyedList, setAttr, setHidden, setStyleVar, setText, setTitle, setVariant } from './dom';
-import { FIVE_HOURS_MS, relativeTime, usageLevel, usageWindowView, WEEK_MS, type UsageWindowView } from './format';
+import { daysUntil, FIVE_HOURS_MS, formatCredits, relativeTime, usageLevel, usageWindowView, WEEK_MS, type UsageWindowView } from './format';
 import { ICONS } from './icons';
 import { isCodex, isCopilot, isDefaultProvider, PROVIDER_NAME, providerOf, showsProviderTag } from './provider';
 import { usageRowFits } from './usage-row';
@@ -21,6 +25,7 @@ export const SOURCE_LABEL: Record<NonNullable<AccountInfo['usage']>['source'], s
   cache: tr('Claude Code /usage cache'),
   statusline: tr('live (Claude Code statusline)'),
   codex: tr('Codex files'),
+  copilot: tr('Copilot files'),
 };
 
 /** Source to show: the live file may have been written by the Habblaud mod or by the tap. */
@@ -70,6 +75,11 @@ interface CardRefs {
   meters: HTMLElement;
   five: Meter;
   week: Meter;
+  /** Copilot with an allowance: the credit bar and the "140 of 1,500 AI credits" line under it. */
+  credits: Meter;
+  creditsLine: HTMLElement;
+  creditsLong: HTMLElement;
+  creditsShort: HTMLElement;
   msg: HTMLElement;
   msgLong: HTMLElement;
   msgShort: HTMLElement;
@@ -162,6 +172,8 @@ function hasWindows(a: Pick<AccountInfo, 'usage'>): boolean {
 export function cardState(a: Pick<AccountInfo, 'usage' | 'usageStatus'>): CardState {
   // "No quota" comes first: the reading brings no windows, but it isn't "no data".
   if (a.usage?.noQuota) return 'noquota';
+  // Copilot: its AI credits are the numbers (no windows).
+  if (copilotCredits(a)) return a.usageStatus === 'stale' ? 'stale' : 'ok';
   // A reading with none of the windows (e.g. /usage cache with no numbers) counts as "no data".
   if (!hasWindows(a)) return 'empty';
   return a.usageStatus === 'ok' ? 'ok' : 'stale';
@@ -178,6 +190,7 @@ export function showsUsageAge(a: Pick<AccountInfo, 'usage' | 'usageStatus' | 'pr
 export function usageSubtitle(a: Pick<AccountInfo, 'email' | 'plan' | 'configDir' | 'provider'>): string {
   if (a.email) return a.email;
   if (isCodex(a)) return a.plan ? tr('{0} plan', [a.plan]) : 'Codex';
+  if (isCopilot(a)) return tr('on this computer');
   return a.configDir;
 }
 
@@ -186,14 +199,45 @@ export function usageMessage(a: Pick<AccountInfo, 'usage' | 'usageStatus' | 'pro
   const state = cardState(a);
   if (state === 'noquota') return [tr('no quota'), tr('no quota')];
   if (isCodex(a)) return [tr('no data yet'), tr('no data')];
-  if (isCopilot(a)) return [tr('Copilot shares no usage limits'), tr('no limits')];
+  if (isCopilot(a)) {
+    // Still reading the session files for the first time: no numbers yet, but not "none used" either.
+    if (copilotCounting(a)) return [tr('Counting Copilot AI credits…'), tr('counting…')];
+    const c = copilotCredits(a);
+    if (!c) return [tr('No Copilot AI credits used this month'), tr('no credits')];
+    return [tr('{0} AI credits this month · {1} today (UTC)', [formatCredits(c.month), formatCredits(c.today)]), tr('{0} credits', [formatCredits(c.month)])];
+  }
   return [tr('no usage data'), tr('no data')];
 }
 
+/** AI credits of a Copilot account (its 'copilot' usage), or undefined. */
+export function copilotCredits(a: Pick<AccountInfo, 'usage'>): CreditUsage | undefined {
+  return a.usage?.source === 'copilot' ? a.usage.credits : undefined;
+}
+
+/** Is a Copilot account still counting its AI credits (first read of its session files)? */
+export function copilotCounting(a: Pick<AccountInfo, 'usage'>): boolean {
+  return a.usage?.source === 'copilot' && !!a.usage.counting;
+}
+
+/** "resets in 16 days" (a few hours left = 1 day). */
+export function creditsResetText(c: Pick<CreditUsage, 'resetsAt'>, now: number): string {
+  const days = daysUntil(c.resetsAt, now);
+  return days === 1 ? tr('resets in 1 day') : tr('resets in {0} days', [days]);
+}
+
+/** Bar of a Copilot account with an allowance: "140 of 1,500 AI credits", its short form and the percent used. */
+export function creditsBar(c: CreditUsage): { line: string; short: string; pct: number } | undefined {
+  if (c.limit === undefined || !(c.limit > 0)) return undefined;
+  const used = formatCredits(c.month);
+  const limit = formatCredits(c.limit);
+  return { line: tr('{0} of {1} AI credits', [used, limit]), short: `${used}/${limit}`, pct: Math.round((c.month / c.limit) * 100) };
+}
+
 /** Explanation of the card of a Copilot account (tooltip); '' on the others. */
-export function copilotUsageNote(a: Pick<AccountInfo, 'provider'>): string {
+export function copilotUsageNote(a: Pick<AccountInfo, 'provider' | 'usage'>): string {
   if (!isCopilot(a)) return '';
-  return tr("Copilot doesn't write its usage limits to its session files, so there is no usage bar. Each session's token counts still show on its agent.");
+  const note = tr('AI credits used by the Copilot CLI sessions on this computer, counted from their session files (1 unit = 1 credit; the month starts on the 1st, UTC). Credits used on other computers, in the editor or on the website are not included.');
+  return copilotCredits(a)?.limit === undefined && !copilotCounting(a) ? `${note} ${tr('Set HABBLAUD_COPILOT_CREDIT_LIMIT to show a bar')}.` : note;
 }
 
 /** Explanation of the card of a Codex account (tooltip); '' on the others. */
@@ -285,7 +329,12 @@ export class UsageCards {
     const state = h('span', { class: 'ui-usage-card__state' }, stateIcon, stateText);
     const five = createMeter('5h', '5h', tr('5-hour session'));
     const week = createMeter(tr('Week'), tr('Wk.'), tr('Weekly limit'));
-    const meters = h('div', { class: 'ui-usage-card__meters' }, five.el, week.el);
+    const credits = createMeter(tr('Month'), tr('Mo.'), tr('AI credits this month'));
+    const creditsLong = h('span', { class: 'ui-usage-card__credits-long' });
+    const creditsShort = h('span', { class: 'ui-usage-card__credits-short', attrs: { 'aria-hidden': 'true' } });
+    const creditsLine = h('div', { class: 'ui-usage-card__credits', hidden: true }, creditsLong, creditsShort);
+    setHidden(credits.el, true);
+    const meters = h('div', { class: 'ui-usage-card__meters' }, five.el, week.el, credits.el, creditsLine);
     const msgLong = h('span', { class: 'ui-usage-card__msg-long', text: tr('no usage data') });
     const msgShort = h('span', { class: 'ui-usage-card__msg-short', text: tr('no data'), attrs: { 'aria-hidden': 'true' } });
     const howLong = h('span', { class: 'ui-usage-card__how-long', text: tr('How to enable') });
@@ -326,6 +375,10 @@ export class UsageCards {
       meters,
       five,
       week,
+      credits,
+      creditsLine,
+      creditsLong,
+      creditsShort,
       msg,
       msgLong,
       msgShort,
@@ -358,9 +411,19 @@ export class UsageCards {
     setVariant(card, 'is-', state);
     const five = usage ? usageWindowView(usage.fiveHour, usage.fetchedAt, now, FIVE_HOURS_MS) : null;
     const week = usage ? usageWindowView(usage.sevenDay, usage.fetchedAt, now, WEEK_MS) : null;
-    const showMeters = hasWindows(a);
+    const bar = copilot ? creditsBar(copilotCredits(a) ?? { month: 0, today: 0, resetsAt: 0 }) : undefined;
+    const showMeters = hasWindows(a) || !!bar;
     setHidden(r.meters, !showMeters);
-    if (usage && showMeters) {
+    setHidden(r.five.el, !!bar);
+    setHidden(r.week.el, !!bar);
+    setHidden(r.credits.el, !bar);
+    setHidden(r.creditsLine, !bar);
+    const credits = copilotCredits(a);
+    if (bar && credits) {
+      this.updateCredits(r, credits, bar, now);
+      setTitle(r.creditsLine, copilotUsageNote(a));
+    }
+    else if (usage && showMeters) {
       updateMeter(r.five, five, tr('5-hour session'));
       updateMeter(r.week, week, tr('Week'));
     }
@@ -389,8 +452,9 @@ export class UsageCards {
     const [msgLong, msgShort] = usageMessage(a);
     setText(r.msgLong, msgLong);
     setText(r.msgShort, msgShort);
-    setHidden(r.msg, state !== 'empty' && state !== 'noquota');
-    // Copilot: nothing to enable (it writes no usage limits).
+    // Copilot: the message is the credits line (or "none this month") whenever there is no bar.
+    setHidden(r.msg, copilot ? !!bar : state !== 'empty' && state !== 'noquota');
+    // Copilot: nothing to enable (its credits are counted from the session files).
     setHidden(r.how, state === 'noquota' || copilot);
     r.msg.classList.toggle('is-noquota', state === 'noquota');
     setTitle(r.msg, state === 'noquota' ? codexUsageNote(a, now) : copilotUsageNote(a));
@@ -399,6 +463,24 @@ export class UsageCards {
     r.how.dataset.help = codex ? 'codex' : 'usage';
     setTitle(r.how, codex ? tr('How Codex usage reaches Habblaud (opens help at “Codex”)') : tr("How to show this account's usage (opens help at “Accounts and usage”)"));
     this.updateTip(r, a, state, five, week, now);
+  }
+
+  /** Copilot credit bar: the month's credits against the allowance (the percent may pass 100; the bar stops full). */
+  private updateCredits(r: CardRefs, c: CreditUsage, bar: { line: string; short: string; pct: number }, now: number): void {
+    const m = r.credits;
+    const reset = creditsResetText(c, now);
+    m.el.classList.remove('is-renewed');
+    setVariant(m.el, 'is-', usageLevel(bar.pct));
+    m.el.classList.toggle('is-zero', bar.pct === 0);
+    setStyleVar(m.bar, '--pct', String(Math.min(100, bar.pct)));
+    setText(m.pct, `${bar.pct}%`);
+    setText(m.resetLong, reset);
+    setText(m.resetShort, `↻${daysUntil(c.resetsAt, now)}d`);
+    const summary = tr('{0} · {1}% used · {2}', [bar.line, bar.pct, reset]);
+    setAttr(m.el, 'aria-label', summary);
+    setTitle(m.el, summary);
+    setText(r.creditsLong, bar.line);
+    setText(r.creditsShort, bar.short);
   }
 
   private updateTip(r: CardRefs, a: AccountInfo, state: CardState, five: UsageWindowView | null, week: UsageWindowView | null, now: number): void {
@@ -423,15 +505,24 @@ export class UsageCards {
       if (sonnet) rows.push([tr('Sonnet (week)'), sonnet.summary]);
     }
     if (u && state === 'noquota') rows.push([tr('Quota'), tr('no quota or credits right now')]);
+    const credits = copilotCredits(a);
+    if (credits) {
+      rows.push([tr('This month'), tr('{0} AI credits', [formatCredits(credits.month)])]);
+      rows.push([tr('Today (UTC)'), tr('{0} AI credits', [formatCredits(credits.today)])]);
+      const bar = creditsBar(credits);
+      if (bar && credits.limit !== undefined) rows.push([tr('Allowance'), tr('{0} AI credits ({1}% used)', [formatCredits(credits.limit), bar.pct])]);
+      rows.push([tr('Monthly count'), creditsResetText(credits, now)]);
+    }
     if (u && (state !== 'empty' || codex)) {
       rows.push([tr('Source'), sourceLabel(u)]);
-      rows.push([tr('Updated'), relativeTime(u.fetchedAt, now)]);
+      // Copilot: a running count kept up to date, not a reading that ages.
+      if (!credits) rows.push([tr('Updated'), relativeTime(u.fetchedAt, now)]);
     }
     syncRows(r.tipRows, rows);
 
     // Codex: its own explanation, without the Claude Code step by step (there is nothing to install for the usage).
     if (isCopilot(a)) {
-      // Copilot: no usage limits at all; only the explanation.
+      // Copilot: what is counted (this computer only) and, without an allowance, how to get a bar.
       setText(r.tipNote, copilotUsageNote(a));
       setHidden(r.tipNote, false);
       setHidden(r.tipSetup, true);
