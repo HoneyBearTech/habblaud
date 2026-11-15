@@ -254,8 +254,38 @@ describe('CopilotCredits', () => {
     c.update('.copilot', ctx.list(), NOW);
     expect(c.ready('.copilot')).toBe(false);
     expect(c.hasPending()).toBe(true);
-    for (let i = 0; i < 20 && c.hasPending(); i++) c.pump(NOW);
+    // Without a new poll the budget stays spent: nothing more is read.
+    c.pump(NOW);
+    expect(c.ready('.copilot')).toBe(false);
+    for (let i = 0; i < 20 && c.hasPending(); i++) {
+      c.startPoll();
+      c.pump(NOW);
+    }
     expect(c.ready('.copilot')).toBe(true);
     expect(c.totals('.copilot', NOW).month).toBe(9);
+  });
+
+  it('one read budget per poll, shared by the pump and every account', () => {
+    const filler = Array.from({ length: 200 }, (_, i) => E.user(`prompt ${i} ${'x'.repeat(200)}`, NOW - 2 * HOUR));
+    const lines = [E.checkpoint(u(1), NOW - 3 * HOUR), ...filler, E.checkpoint(u(9), NOW - HOUR)];
+    const a = setup();
+    const b = setup();
+    a.write(sessionId(1), lines);
+    b.write(sessionId(2), lines);
+    const size = a.list()[0].size;
+    // A budget a bit larger than one file: the first account reads all of its file, the second almost nothing.
+    const c = new CopilotCredits({ budgetBytes: size + 1024, chunkBytes: 4 * 1024 });
+    c.startPoll();
+    c.update('.copilot', a.list(), NOW);
+    c.update('.copilot-work', b.list(), NOW);
+    expect(c.ready('.copilot')).toBe(true);
+    expect(c.ready('.copilot-work')).toBe(false);
+    // The pump of the same poll gets no new budget either.
+    c.pump(NOW);
+    expect(c.ready('.copilot-work')).toBe(false);
+    c.startPoll();
+    c.pump(NOW);
+    expect(c.ready('.copilot-work')).toBe(true);
+    expect(c.totals('.copilot-work', NOW).month).toBe(9);
   });
 });

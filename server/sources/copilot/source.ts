@@ -18,7 +18,8 @@
 // AI credits counted from every session file of this month (credits.ts), pushed as the 'copilot' usage source at each
 // rescan (with the allowance of HABBLAUD_COPILOT_CREDIT_LIMIT or the account's `creditLimit`, when set).
 // Subagents are not shown (they stay inside the main session's events). Short and synchronous boot (only the end
-// window of large files; the start is read later, in the background), with endBoot in a `finally`.
+// window of large files; the start is read later, in the background; the AI credits read at most one poll's budget,
+// READ_BUDGET_BYTES for all the accounts together, and go on over the next polls), with endBoot in a `finally`.
 import { createReadStream, statSync, watch, type FSWatcher } from 'node:fs';
 import { join } from 'node:path';
 import type { Activity, AgentStatus, CreditUsage, SourceInfo } from '../../../shared/types';
@@ -237,7 +238,9 @@ export class CopilotSource implements AgentSource {
   poll(boot = false): void {
     const now = (this.lastPollAt = this.now());
     const keep = new Set<string>();
-    // A rescan may have left large files halfway (read budget): they go on here, a slice per poll.
+    // AI credits: one read budget for this whole poll (the pump below and every account's rescan share it). A rescan
+    // may have left large files halfway: they go on here, a slice per poll.
+    this.credits.startPoll();
     if (this.credits.hasPending()) this.credits.pump(now);
     for (const acc of this.accs) {
       this.watchDir(join(acc.dir, SESSION_STATE_DIR));

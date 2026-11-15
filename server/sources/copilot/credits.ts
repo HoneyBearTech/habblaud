@@ -15,8 +15,9 @@
 //   lines (lines over MAX_LINE_BYTES are skipped by FileTail, like everywhere else).
 // Only what can matter is kept: the per-day sums of the current UTC month. A file last changed before this month is not
 // read (it can't hold this month's events); when it changes again it is read from the start, so its running total has
-// the right baseline. Each file is read once and then only its new bytes (cached by size and mtime), with a byte budget
-// per call so a first pass over large files never blocks the server for long.
+// the right baseline. Each file is read once and then only its new bytes (cached by size and mtime), within ONE byte
+// budget per poll (startPoll), shared by pump() and the update() of every account, so a first pass over large files
+// never blocks the server for long, however many accounts there are.
 import { FileTail } from '../tail';
 
 /** Billionths of a unit per AI credit (`totalNanoAiu` → credits). 1 unit is taken as 1 AI credit. */
@@ -25,7 +26,7 @@ export const NANO_AIU_PER_CREDIT = 1_000_000_000;
 const TOTAL_EVENTS = new Set(['session.usage_checkpoint', 'session.shutdown']);
 /** Event types that start a session's process (a resumed process may start its running total again). */
 const START_EVENTS = new Set(['session.start', 'session.resume']);
-/** Bytes read from all the files in one call (update or pump); the rest waits for the next call. */
+/** Bytes read from all the files in one poll (pump and every update together); the rest waits for the next poll. */
 export const READ_BUDGET_BYTES = 16 * 1024 * 1024;
 /** Bytes read from a file in one go. */
 const READ_CHUNK_BYTES = 4 * 1024 * 1024;
@@ -124,22 +125,27 @@ export class CopilotCredits {
   private files = new Map<string, FileCount>();
   /** Accounts listed at least once by update(). */
   private listed = new Set<string>();
-  private budget = 0;
+  private budget: number;
   private readonly budgetBytes: number;
   private readonly chunkBytes: number;
 
   constructor(opts: { budgetBytes?: number; chunkBytes?: number } = {}) {
     this.budgetBytes = opts.budgetBytes ?? READ_BUDGET_BYTES;
     this.chunkBytes = opts.chunkBytes ?? READ_CHUNK_BYTES;
+    this.budget = this.budgetBytes;
+  }
+
+  /** A new poll: the read budget is full again (one budget for the pump and every account's update of this poll). */
+  startPoll(): void {
+    this.budget = this.budgetBytes;
   }
 
   /**
-   * The rescan of an account: every session file it found (stat-ed). Reads what is new (within the budget), forgets
-   * the files that are gone or that can no longer matter (last changed before this month).
+   * The rescan of an account: every session file it found (stat-ed). Reads what is new (within what is left of this
+   * poll's budget), forgets the files that are gone or that can no longer matter (last changed before this month).
    */
   update(account: string, list: readonly CreditFileStat[], now: number): void {
     this.listed.add(account);
-    this.budget = this.budgetBytes;
     const monthStart = utcMonthStart(now);
     const keep = new Set<string>();
     for (const s of list) {
@@ -163,9 +169,8 @@ export class CopilotCredits {
     return false;
   }
 
-  /** Goes on reading the files the budget left halfway (each poll). */
+  /** Goes on reading the files the budget left halfway (each poll, within what is left of this poll's budget). */
   pump(now: number): void {
-    this.budget = this.budgetBytes;
     const monthStart = utcMonthStart(now);
     for (const [key, f] of this.files) {
       if (this.budget <= 0) break;

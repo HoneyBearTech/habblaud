@@ -400,7 +400,9 @@ Only main agents: no subagents, no 5 h/weekly usage limits, no cost; the account
   shrinks or is replaced is counted again from the start. Events without
   a finite, non-negative total or a valid timestamp and broken lines are skipped (lines over `MAX_LINE_BYTES` too). One
   unit = one credit (`NANO_AIU_PER_CREDIT`, the single scale to change). Each file is read once and then only its new
-  bytes (cache by size and mtime, at the 10 s rescan; a 16 MB read budget per poll for the first pass); files last
+  bytes (cache by size and mtime, at the 10 s rescan; one 16 MiB read budget per poll, shared by the pump of the
+  files left halfway and the rescan of every account, so the first pass, the boot included, goes on over the next
+  polls); files last
   changed before this month are not read, and only the per-day sums of the current UTC month are kept. Pushed with
   `accounts.setUsage` as the `'copilot'` usage source (`AccountUsage.credits`: `month`, `today`, optional `limit`,
   `resetsAt` = the 1st of next month 00:00 UTC) once every file was read to the end and whenever a number or the UTC
