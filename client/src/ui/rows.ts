@@ -100,6 +100,6 @@ export function updateAgentRow(
   setAttr(
     row,
     'aria-label',
-    `${agent.name}, ${agent.kind === 'main' ? tr('main agent') : tr('subagent {0}', [agent.role])}, ${account?.name ?? agent.account}${agent.provider === 'codex' ? ' (Codex)' : ''}, ${statusLabel(status)}${doing ? `: ${doing}` : ''}`,
+    `${agent.name}, ${agent.kind === 'main' ? tr('main agent') : tr('subagent {0}', [agent.role])}, ${account?.name ?? agent.account}${agent.provider === 'codex' ? ' (Codex)' : agent.provider === 'copilot' ? ' (Copilot)' : ''}, ${statusLabel(status)}${doing ? `: ${doing}` : ''}`,
   );
 }

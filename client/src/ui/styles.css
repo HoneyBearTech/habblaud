@@ -365,6 +365,23 @@
   --step: 3px;
 }
 
+/* Copilot account: round hollow chip (dark background, ring and letter in the account's color), so it reads as a
+   third tool next to the square (default) and stepped (Codex) ones. */
+.ui-acc-chip[data-provider='copilot'] {
+  border-radius: 50%;
+  background: #161b26;
+  color: var(--acc);
+  box-shadow:
+    inset 0 0 0 2px var(--acc),
+    inset 0 -4px 0 rgba(0, 0, 0, 0.3);
+}
+
+.ui-acc-chip--lg[data-provider='copilot'] {
+  box-shadow:
+    inset 0 0 0 3px var(--acc),
+    inset 0 -6px 0 rgba(0, 0, 0, 0.3);
+}
+
 /* "Codex" text badge next to the account name (system font: in Pixelify the "C" looks like an "O"). */
 .ui-prov {
   display: inline-flex;
@@ -384,6 +401,13 @@
 
 .ui-prov[hidden] {
   display: none;
+}
+
+/* "Copilot" badge: the same pill with a cool tint, apart from the "Codex" one. */
+.ui-prov[data-provider='copilot'] {
+  background: rgba(110, 160, 255, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(110, 160, 255, 0.45);
+  color: #cfe0ff;
 }
 
 .ui-prov--xs {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { AccountInfo } from '../../../shared/types';
-import { cardState, codexUsageNote, showsUsageAge, sourceLabel, usageMessage, usageSubtitle } from './usage';
+import { cardState, codexUsageNote, copilotUsageNote, showsUsageAge, sourceLabel, usageMessage, usageSubtitle } from './usage';
 
 const MIN = 60_000;
 type Acc = Pick<AccountInfo, 'usage' | 'usageStatus' | 'provider' | 'email' | 'plan' | 'configDir'>;
@@ -48,5 +48,17 @@ describe('usage card of a Codex account', () => {
     expect(usageSubtitle({ email: 'a@b.c', configDir: '~/.claude' })).toBe('a@b.c');
     expect(usageSubtitle({ configDir: '~/.claude' })).toBe('~/.claude');
     expect(codexUsageNote({ usageStatus: 'ok' }, 0)).toBe('');
+  });
+});
+
+describe('usage card of a Copilot account', () => {
+  it('no bar and no setup: Copilot shares no usage limits', () => {
+    const cop: Acc = { provider: 'copilot', usageStatus: 'disabled', configDir: '~/.copilot' };
+    expect(cardState(cop)).toBe('empty');
+    expect(usageMessage(cop)).toEqual(['Copilot shares no usage limits', 'no limits']);
+    expect(copilotUsageNote(cop)).toMatch(/no usage bar/);
+    expect(copilotUsageNote(codex())).toBe('');
+    expect(codexUsageNote(cop, 0)).toBe('');
+    expect(showsUsageAge(cop)).toBe(false);
   });
 });

@@ -1,18 +1,26 @@
 // Pure functions of scripts/docker-up.ts (importing the module doesn't start anything).
+import { mkdirSync, realpathSync, symlinkSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { DetectedAccount } from '../accounts/detect';
 import { legacyEnvWarning } from '../legacy';
+import { tempDir } from './fixtures';
 import {
   accountsPayload,
   CODEX_MOUNTED_SUBDIRS,
   codexAccountsPayload,
   codexDisabled,
+  COPILOT_MOUNTED_FILES,
+  COPILOT_MOUNTED_SUBDIRS,
+  copilotAccountsPayload,
+  copilotDisabled,
   copyVolumeArgs,
   type DockerState,
   envFileKeys,
   hostTimeZone,
   parseArgs,
   planCodexMounts,
+  planCopilotMounts,
   planMounts,
   planUp,
   renderOverride,
@@ -130,6 +138,91 @@ describe('docker-up', () => {
     expect(codexDisabled({ HABBLAUD_CODEX: 'off' })).toBe(true);
     expect(codexDisabled({ HABBLAUD_CODEX: '1' })).toBe(false);
     expect(codexDisabled({})).toBe(false);
+  });
+
+  it('Copilot: mounts ONLY session-state/ and the open-sessions-state.json file (read-only), skipping a missing file', () => {
+    expect([...COPILOT_MOUNTED_SUBDIRS]).toEqual(['session-state']);
+    expect([...COPILOT_MOUNTED_FILES]).toEqual(['open-sessions-state.json']);
+    const host = '/Users/fulano/.copilot';
+    const other = '/Users/fulano/.copilot-work';
+    // The host also has config.json, permissions-config.json, session-store.db, logs/, settings.json and hooks/.
+    const dirs = new Set([host, other, `${host}/session-state`, `${other}/session-state`, `${host}/logs`, `${host}/hooks`]);
+    const files = new Set([`${host}/open-sessions-state.json`, `${host}/config.json`, `${host}/permissions-config.json`, `${host}/session-store.db`, `${host}/settings.json`]);
+    const cop: DetectedAccount = { id: '.copilot', provider: 'copilot', configDir: host, short: 'P', name: 'Copilot P', color: '#4aa8e8' };
+    const mounts = planCopilotMounts(
+      [host, other, '/Users/fulano/.copilot-empty'],
+      [cop, { ...cop, id: '.copilot-work', configDir: other, short: 'W', name: 'Copilot W' }, { ...cop, id: '.copilot-empty' }],
+      (p) => (dirs.has(slash(p)) ? `/real${slash(p)}` : undefined),
+      (p) => (files.has(slash(p)) ? `/real${slash(p)}` : undefined),
+    );
+    expect(mounts.map((m) => m.binds)).toEqual([
+      [
+        { source: `/real${host}/session-state`, target: '/copilot/.copilot/session-state' },
+        { source: `/real${host}/open-sessions-state.json`, target: '/copilot/.copilot/open-sessions-state.json' },
+      ],
+      [{ source: `/real${other}/session-state`, target: '/copilot/.copilot-work/session-state' }],
+    ]);
+    expect(copilotAccountsPayload(mounts)[0]).toEqual({ id: '.copilot', provider: 'copilot', configDir: host, mountDir: '/copilot/.copilot', short: 'P', name: 'Copilot P', color: '#4aa8e8' });
+    const yml = renderOverride([], new Date(0), undefined, undefined, [], undefined, [], mounts);
+    expect(yml).toContain('HABBLAUD_COPILOT_DIRS: "/copilot/.copilot,/copilot/.copilot-work"');
+    expect(yml).toContain(`source: "/real${host}/open-sessions-state.json"\n        target: "/copilot/.copilot/open-sessions-state.json"\n        read_only: true\n        bind:\n          create_host_path: false`);
+    expect(yml.match(/read_only: true/g)).toHaveLength(3);
+    for (const secret of ['config.json', 'permissions-config', 'session-store', 'logs', 'settings.json', 'hooks', 'command-history']) expect(yml).not.toContain(secret);
+    const accounts = JSON.parse(JSON.parse(/HABBLAUD_ACCOUNTS: (".*")/.exec(yml)![1]) as string) as Array<Record<string, unknown>>;
+    expect(accounts.map((a) => [a.id, a.provider, a.configDir])).toEqual([
+      ['.copilot', 'copilot', host],
+      ['.copilot-work', 'copilot', other],
+    ]);
+    // Without Copilot: no HABBLAUD_COPILOT_DIRS.
+    expect(renderOverride([])).not.toContain('HABBLAUD_COPILOT_DIRS');
+    expect(copilotDisabled({ HABBLAUD_COPILOT: '0' })).toBe(true);
+    expect(copilotDisabled({ HABBLAUD_COPILOT: 'no' })).toBe(true);
+    expect(copilotDisabled({ HABBLAUD_COPILOT: 'on' })).toBe(false);
+    expect(copilotDisabled({})).toBe(false);
+  });
+
+  it('Copilot: a symlink that leads outside the home (after realpath) is not mounted, with a warning', () => {
+    const tmp = tempDir('habblaud-docker-up-');
+    try {
+      const outside = join(tmp.dir, 'outside');
+      mkdirSync(join(outside, 'state'), { recursive: true });
+      writeFileSync(join(outside, 'open.json'), '{}');
+      // Home A: real session-state/, open-sessions-state.json pointing outside. Home B: session-state/ pointing outside.
+      // Home C: the home itself is a symlink (what is inside it still counts as inside).
+      const a = join(tmp.dir, 'home-a');
+      const b = join(tmp.dir, 'home-b');
+      const realC = join(tmp.dir, 'real-c');
+      const c = join(tmp.dir, 'home-c');
+      mkdirSync(join(a, 'session-state'), { recursive: true });
+      symlinkSync(join(outside, 'open.json'), join(a, 'open-sessions-state.json'));
+      mkdirSync(b);
+      symlinkSync(join(outside, 'state'), join(b, 'session-state'), 'dir');
+      mkdirSync(join(realC, 'session-state'), { recursive: true });
+      writeFileSync(join(realC, 'open-sessions-state.json'), '{}');
+      symlinkSync(realC, c, 'dir');
+      const cop: DetectedAccount = { id: 'a', provider: 'copilot', configDir: a, short: 'A', name: 'A', color: '#4aa8e8' };
+      const outsideSeen: Array<[string, string]> = [];
+      const mounts = planCopilotMounts([a, b, c], [cop, { ...cop, id: 'b', configDir: b }, { ...cop, id: 'c', configDir: c }], undefined, undefined, (path, home) =>
+        outsideSeen.push([path, home]),
+      );
+      const real = (p: string) => realpathSync(p);
+      expect(mounts.map((m) => [m.account.id, m.binds])).toEqual([
+        ['a', [{ source: real(join(a, 'session-state')), target: '/copilot/a/session-state' }]],
+        [
+          'c',
+          [
+            { source: real(join(realC, 'session-state')), target: '/copilot/c/session-state' },
+            { source: real(join(realC, 'open-sessions-state.json')), target: '/copilot/c/open-sessions-state.json' },
+          ],
+        ],
+      ]);
+      expect(outsideSeen).toEqual([
+        [join(a, 'open-sessions-state.json'), a],
+        [join(b, 'session-state'), b],
+      ]);
+    } finally {
+      tmp.cleanup();
+    }
   });
 
   it('host time zone goes to the container as TZ', () => {

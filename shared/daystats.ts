@@ -8,7 +8,7 @@
 // (absolute instants), stored by "file day" (the day in the server's time zone). The day the panel shows is
 // only built at query time (queryDay), in the time zone of whoever asks: Docker runs in UTC and the browser in
 // the user's time zone, and the two agree on where the day starts and ends.
-import type { AgentInfo, AgentStatus } from './types';
+import type { AgentInfo, AgentStatus, Provider } from './types';
 import { tr } from './i18n';
 
 export const HOUR_MS = 3_600_000;
@@ -78,6 +78,8 @@ export interface AccountDayStats extends StatsTotals {
   name: string;
   short: string;
   color: string;
+  /** = AccountInfo.provider (absent = the default tool, as everywhere). */
+  provider?: Provider;
 }
 
 export interface HourDayStats {
@@ -370,7 +372,12 @@ export interface AccountMeta {
   name: string;
   short: string;
   color: string;
+  /** The account's tool (absent = the default one; days written before this field existed have none). */
+  provider?: Provider;
 }
+
+/** Tools other than the default one that a stats file may name for an account. */
+const OTHER_PROVIDERS: readonly Provider[] = ['codex', 'copilot'];
 
 /** One episode of waiting on you (continuous 'waiting' status of an agent). */
 export interface WaitRecord {
@@ -549,11 +556,14 @@ export function parseDayFile(raw: unknown, key: string): DayData | null {
       const m = obj(a[1]);
       if (!id || !m) continue;
       const color = text(m.color, 32);
-      d.accounts.set(id, {
+      const meta: AccountMeta = {
         name: text(m.name, LIMITS.name) ?? id,
         short: text(m.short, 3) ?? '?',
         color: color && /^#[0-9a-f]{3,8}$/i.test(color) ? color : '#8b98b3',
-      });
+      };
+      const provider = OTHER_PROVIDERS.find((p) => p === m.provider);
+      if (provider) meta.provider = provider;
+      d.accounts.set(id, meta);
     }
   }
   if (Array.isArray(o.waits)) {
@@ -653,7 +663,7 @@ export class StatsBook {
     if (ref.roomName && day.rooms.get(ref.room) !== ref.roomName) day.rooms.set(ref.room, ref.roomName);
     const m = ref.accountMeta;
     const cur = day.accounts.get(ref.account);
-    if (m && (!cur || cur.name !== m.name || cur.short !== m.short || cur.color !== m.color)) day.accounts.set(ref.account, { ...m });
+    if (m && (!cur || cur.name !== m.name || cur.short !== m.short || cur.color !== m.color || cur.provider !== m.provider)) day.accounts.set(ref.account, { ...m });
   }
 
   /** Adds `ms` of `status` to the hour that starts at `hour` (without splitting: the demo uses it to build whole hours). */
@@ -857,7 +867,9 @@ export function queryDay(datas: readonly DayData[], dayKey: string, tz: string, 
   const accountList: AccountDayStats[] = [...accounts]
     .map(([id, a]) => {
       const m = accMeta.get(id);
-      return { id, name: m?.name ?? id, short: m?.short ?? '?', color: m?.color ?? '#8b98b3', ...finishAgg(a) };
+      const item: AccountDayStats = { id, name: m?.name ?? id, short: m?.short ?? '?', color: m?.color ?? '#8b98b3', ...finishAgg(a) };
+      if (m?.provider) item.provider = m.provider;
+      return item;
     })
     .sort((a, b) => b.ms.working - a.ms.working || totalMs(b.ms) - totalMs(a.ms) || a.name.localeCompare(b.name));
 
@@ -917,7 +929,7 @@ export function fileDaysForQuery(dayKey: string, tz: string, fileTz: string): st
 export interface StatsView {
   agents: readonly AgentInfo[];
   rooms: readonly { id: string; name: string }[];
-  accounts: readonly { id: string; name: string; short: string; color: string }[];
+  accounts: readonly { id: string; name: string; short: string; color: string; provider?: Provider }[];
 }
 
 export interface TrackerOptions {
@@ -998,7 +1010,9 @@ export class StatsTracker {
     const dt = this.lastSample === undefined ? Infinity : now - this.lastSample;
     this.lastSample = now;
     const roomNames = new Map(view.rooms.map((r) => [r.id, r.name]));
-    const accounts = new Map(view.accounts.map((a) => [a.id, { name: a.name, short: a.short, color: a.color }]));
+    const accounts = new Map(
+      view.accounts.map((a): [string, AccountMeta] => [a.id, { name: a.name, short: a.short, color: a.color, ...(a.provider ? { provider: a.provider } : {}) }]),
+    );
     const waiting: Array<[number, number]> = [];
     const present = new Set<string>();
     for (const a of view.agents) {

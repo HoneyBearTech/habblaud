@@ -8,10 +8,11 @@
 //
 // Building tokens for World (`WorldUplink.tokens`): input + output of all the real agents, for today and for the
 // last 7 calendar days (today and the 6 before), read from "My day" (server/history/daystats.ts) always with the
-// `real` source: the demo mode agents never go in. Rounded to 2 significant digits (the world server still converts
+// `real` source: the demo mode agents never go in. Only the accounts of tools World accepts count (isWorldProvider):
+// the agents of the others (Copilot) are left out of the packet, and so are their tokens. Rounded to 2 significant digits (the world server still converts
 // them into a range). Past days do not change: they stay stored; today's is reread every `ttlMs`.
 import { addDays } from '../../shared/daystats';
-import { roundTokens } from '../../shared/world/projection';
+import { isWorldProvider, roundTokens } from '../../shared/world/projection';
 import type { DayStatsService } from '../history/daystats';
 
 export interface BuildingTokensOptions {
@@ -61,7 +62,12 @@ export class BuildingTokens {
   private dayTotal(key: string): number {
     const r = this.o.stats.day(key, this.o.stats.tz, 'real');
     if (!r) return 0;
-    const c = r.stats.totals.counts;
-    return (Number.isFinite(c.tokensIn) ? c.tokensIn : 0) + (Number.isFinite(c.tokensOut) ? c.tokensOut : 0);
+    let sum = 0;
+    for (const acc of r.stats.accounts) {
+      if (!isWorldProvider(acc.provider)) continue;
+      const c = acc.counts;
+      sum += (Number.isFinite(c.tokensIn) ? c.tokensIn : 0) + (Number.isFinite(c.tokensOut) ? c.tokensOut : 0);
+    }
+    return sum;
   }
 }

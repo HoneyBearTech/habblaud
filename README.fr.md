@@ -639,6 +639,30 @@ seulement : Codex n'indique pas le coût). La pastille du compte Codex est évid
   personnage peut donc mettre un peu de temps à partir après la fermeture du terminal.
 - Les conversations du cloud de ChatGPT (sans fichier sur l'ordinateur) n'apparaissent pas. `HABBLAUD_CODEX=0` désactive Codex.
 
+### Copilot
+
+Les sessions de GitHub Copilot CLI apparaissent aussi dans le bureau : personnage, salle du projet, activité, titre,
+modèle, tokens, terminal et historique. La puce du compte Copilot est ronde et creuse et porte le badge **COPILOT**.
+
+- **Sans rien installer**, Habblaud lit seulement ce que Copilot CLI écrit pour chaque session dans `~/.copilot` (ou
+  `COPILOT_HOME`) : `session-state/<session>/events.jsonl` (les événements de la session),
+  `session-state/<session>/workspace.yaml` (le dossier du projet) et `open-sessions-state.json` (seulement comme indice
+  des sessions ouvertes). Rien d'autre de ce dossier n'est ouvert : ni `config.json`, `permissions-config.json`,
+  `session-store.db`, `logs/`, `command-history-state.json`, `settings.json` ni `hooks/`.
+- **Statut :** au travail pendant un tour, inactif après la réponse finale et **en attente** (main levée) pendant que
+  Copilot vous demande d'approuver une commande, une modification de fichier, une lecture ou un accès au web. Quand
+  Copilot termine la session, le personnage s'en va.
+- **Quand la session entre et sort :** une session compte tant qu'elle est listée comme ouverte (et a été active dans
+  les 12 dernières heures) ou tant que son fichier d'événements a changé dans les 30 dernières minutes.
+- **Non pris en charge :** la barre d'utilisation 5 heures et hebdomadaire (Copilot n'écrit pas ses limites dans les
+  fichiers de session), les messages et approbations depuis le bureau (répondez dans le terminal Copilot), le coût et les
+  sous-agents. Les agents Copilot ne sont pas envoyés à [Habblaud World](#habblaud-world) (ils sont laissés de côté, jamais
+  présentés comme un autre outil), ni leurs tokens : ils ne comptent pas dans les totaux du jour et de la semaine de
+  l'immeuble.
+- `HABBLAUD_COPILOT_DIRS` (séparés par des virgules) remplace la détection et `HABBLAUD_COPILOT=0` désactive Copilot. Dans
+  Docker, `npm run docker:up` monte seulement `session-state/` et `open-sessions-state.json` de chaque dossier, en
+  lecture seule.
+
 ### GitHub dans le bureau
 
 Ce que les agents font sur GitHub anime la salle du projet, sans token et sans accès à Internet : Habblaud lit dans les
@@ -766,13 +790,15 @@ Tout fonctionne sans rien configurer. Si vous avez besoin d'ajuster quelque chos
 | `HABBLAUD_CODEX` | activé | `0` désactive Codex dans le bureau. |
 | `HABBLAUD_CODEX_DIRS` | détection automatique | Dossiers de Codex, séparés par des virgules (à la place de `~/.codex*` et `CODEX_HOME`). |
 | `HABBLAUD_CODEX_BIN` | `codex` du PATH (sous Windows, `codex.exe`) | Le binaire de Codex qui remet les messages (`codex queue`), en mode Node ou dans `npm run codex:bridge`. |
+| `HABBLAUD_COPILOT` | activé | `0` désactive Copilot CLI dans le bureau. |
+| `HABBLAUD_COPILOT_DIRS` | détection automatique | Dossiers de Copilot CLI, séparés par des virgules (à la place de `COPILOT_HOME` ou `~/.copilot`). |
 | `HABBLAUD_UPDATE_CHECK` | activé | `0` désactive la vérification de nouvelle version (une requête aux releases du dépôt sur GitHub toutes les 6 h). |
 | `HABBLAUD_LANG` | langue du système, sinon `en` | Langue des textes générés par le serveur (activités, alertes, journaux) : `pt-BR`, `en`, `es` ou `fr`. L'interface suit le navigateur ou le choix fait dans Réglages › Langue. Voir [Langues](#langues). |
 | `HABBLAUD_ACCOUNTS` | — | JSON pour personnaliser le nom, la lettre ou la couleur, associé par le nom du dossier du compte. Ex. : `[{"id":".claude-conta2","name":"Trabalho","short":"T","color":"#5cc97b"}]`. |
 
 **Dans Docker**, sont prises en compte `HABBLAUD_PORT`, `HABBLAUD_BIND`, `HABBLAUD_ALLOWED_HOSTS`, `HABBLAUD_DEMO`, `HABBLAUD_TERMINAL`,
-`HABBLAUD_MENSAGENS`, `HABBLAUD_CODEX`, `HABBLAUD_UPDATE_CHECK`, `HABBLAUD_LANG`, `HABBLAUD_PTY`, les `HABBLAUD_WORLD*` et les
-`HABBLAUD_REMOTE_*` (dans le `.env` ou dans l'environnement) ainsi que `HABBLAUD_CLAUDE_DIRS`, `HABBLAUD_CODEX_DIRS`, `HABBLAUD_USAGE_DIR` et
+`HABBLAUD_MENSAGENS`, `HABBLAUD_CODEX`, `HABBLAUD_COPILOT`, `HABBLAUD_UPDATE_CHECK`, `HABBLAUD_LANG`, `HABBLAUD_PTY`, les `HABBLAUD_WORLD*` et les
+`HABBLAUD_REMOTE_*` (dans le `.env` ou dans l'environnement) ainsi que `HABBLAUD_CLAUDE_DIRS`, `HABBLAUD_CODEX_DIRS`, `HABBLAUD_COPILOT_DIRS`, `HABBLAUD_USAGE_DIR` et
 `HABBLAUD_ACCOUNTS` (lues par `docker:up` sur l'hôte) ; les autres sont fixées à l'intérieur du conteneur. Options : `npm run docker:up -- --no-build` (démarre sans reconstruire),
 `npm run docker:down` (arrête) et `npm run docker:logs` (suit les journaux).
 

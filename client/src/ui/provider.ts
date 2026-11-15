@@ -9,7 +9,7 @@ import { shortcutHint } from './model';
 import { tr } from '../../../shared/i18n';
 
 /** Name of each tool as it appears in the texts. */
-export const PROVIDER_NAME: Record<Provider, string> = { claude: 'Claude Code', codex: 'Codex' };
+export const PROVIDER_NAME: Record<Provider, string> = { claude: 'Claude Code', codex: 'Codex', copilot: 'Copilot' };
 
 /** Tool of an agent, account, session or request (missing = Claude Code). */
 export function providerOf(x: { provider?: Provider } | null | undefined): Provider {
@@ -18,6 +18,23 @@ export function providerOf(x: { provider?: Provider } | null | undefined): Provi
 
 export function isCodex(x: { provider?: Provider } | null | undefined): boolean {
   return x?.provider === 'codex';
+}
+
+export function isCopilot(x: { provider?: Provider } | null | undefined): boolean {
+  return x?.provider === 'copilot';
+}
+
+/** The tool of a thing without `provider` (the protocol default). */
+export const DEFAULT_PROVIDER: Provider = providerOf(undefined);
+
+/** Of the default tool (the one with plugins, shortcuts, messages and approvals); Codex and Copilot are not. */
+export function isDefaultProvider(x: { provider?: Provider } | null | undefined): boolean {
+  return providerOf(x) === DEFAULT_PROVIDER;
+}
+
+/** Copilot CLI folder id (".copilot", ".copilot-work", ".copilot~2", "demo:.copilot"), like looksLikeCodexId. */
+export function looksLikeCopilotId(id: string): boolean {
+  return /(?:^|[:/\\])\.?copilot(?:[-_.~]|$)/i.test(id);
 }
 
 /**
@@ -32,7 +49,7 @@ export function looksLikeCodexId(id: string): boolean {
 /** The account's tool: the one in the snapshot; without it, the caller's hint or the shape of the id. */
 export function accountProvider(account: Pick<AccountInfo, 'provider'> | undefined, fallbackId = '', hint?: Provider): Provider {
   if (account) return providerOf(account);
-  return hint ?? (looksLikeCodexId(fallbackId) ? 'codex' : 'claude');
+  return hint ?? (looksLikeCodexId(fallbackId) ? 'codex' : looksLikeCopilotId(fallbackId) ? 'copilot' : 'claude');
 }
 
 /**
@@ -44,32 +61,34 @@ export function fallbackShort(id: string, provider: Provider = accountProvider(u
   const rest = id
     .replace(/^.*:/, '')
     .replace(/~\d+$/, '')
-    .replace(/^\.?(?:claude|codex)(?=[-_.]|$)[-_.]?/i, '');
+    .replace(/^\.?(?:claude|codex|copilot)(?=[-_.]|$)[-_.]?/i, '');
   const letter = /[\p{L}\p{N}]/u.exec(rest)?.[0];
   if (letter) return letter.toUpperCase();
-  return provider === 'codex' ? 'X' : '?';
+  return provider === 'codex' ? 'X' : provider === 'copilot' ? 'P' : '?';
 }
 
-/** The "Codex" badge next to the account name (not repeated when the name already says "Codex"). */
+/** The "Codex" / "Copilot" badge next to the account name (not repeated when the name already says it). */
 export function showsProviderTag(provider: Provider, accountName = ''): boolean {
-  return provider === 'codex' && !/codex/i.test(accountName);
+  if (provider !== 'codex' && provider !== 'copilot') return false;
+  return !accountName.toLowerCase().includes(PROVIDER_NAME[provider].toLowerCase());
 }
 
 /** Label of the account chip (tooltip and screen readers): "Account C (dev@x.com)", "Codex · Team plan". */
 export function accountChipLabel(account: Pick<AccountInfo, 'name' | 'email' | 'plan' | 'provider'> | undefined, fallbackId: string, provider: Provider): string {
-  if (!account) return fallbackId ? `${fallbackId}${provider === 'codex' ? ' · Codex' : ''}` : tr('Unknown account');
-  if (provider !== 'codex') return `${account.name}${account.email ? ` (${account.email})` : ''}`;
-  const tag = showsProviderTag(provider, account.name) ? ' · Codex' : '';
+  if (!account) return fallbackId ? `${fallbackId}${isDefaultProvider({ provider }) ? '' : ` · ${PROVIDER_NAME[provider]}`}` : tr('Unknown account');
+  if (isDefaultProvider({ provider })) return `${account.name}${account.email ? ` (${account.email})` : ''}`;
+  const tag = showsProviderTag(provider, account.name) ? ` · ${PROVIDER_NAME[provider]}` : '';
   return `${account.name}${tag}${account.plan ? tr(' · {0} plan', [account.plan]) : ''}`;
 }
 
 /**
  * Text of the empty office. The shortcuts ("shortcuts c or d") are only for the Claude Code accounts, which come
  * from shell aliases (the letter of a Codex account is not a shortcut); Codex only comes in when there is an
- * account of its own.
+ * account of its own, and Copilot when it has the only accounts.
  */
 export function emptyOfficeHint(accounts: readonly Pick<AccountInfo, 'short' | 'provider'>[]): string {
-  const keys = shortcutHint(accounts.filter((a) => !isCodex(a)));
+  const keys = shortcutHint(accounts.filter(isDefaultProvider));
+  if (accounts.length && accounts.every(isCopilot)) return tr('Open {0} or Copilot in any project and watch your agent arrive.', [PROVIDER_NAME[DEFAULT_PROVIDER]]);
   if (!accounts.some(isCodex)) return tr('Open Claude Code in any project{0} and watch your agent arrive.', [keys ? ` (${keys})` : '']);
   return tr('Open Claude Code{0} or Codex in any project and watch your agent arrive.', [keys ? ` (${keys})` : '']);
 }

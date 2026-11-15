@@ -94,6 +94,8 @@ export interface TranscriptSummary {
   /** First known event (subagents: the real start, after reading the beginning of the file). */
   firstAt?: number;
   lastAt?: number;
+  /** Start of a main agent's session, when the source learns it only later (it replaces the one from addMain). */
+  startedAt?: number;
 }
 
 export interface MainInput {
@@ -675,6 +677,10 @@ export class Office {
     set('model', t.model);
     set('gitBranch', t.gitBranch);
     set('permissionMode', t.permissionMode);
+    if (info.kind === 'main' && t.startedAt !== undefined && t.startedAt !== info.startedAt) {
+      info.startedAt = t.startedAt;
+      changed = true;
+    }
     if (info.kind === 'sub' && t.firstAt !== undefined && t.firstAt < info.startedAt) {
       info.startedAt = t.firstAt;
       changed = true;

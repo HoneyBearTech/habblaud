@@ -73,14 +73,14 @@ The building packet has these fields and no others (the exact format is in
 | `agents` (of the floor) | One per main agent or subagent working, waiting, idle or watching a shell | The character doing the right thing at the right desk |
 | `id` (of the agent) | Random id (`a_` and 8 characters), with the same changes as the floor id | To know who is who in the packet |
 | `kind` and `parentId` | Main (`main`) or subagent (`sub`) and, on the subagent, the **world** id of the agent that called it (absent if that agent has already left) | The subagent near the one that called it |
-| `provider` | `claude` or `codex` | The tool's look |
+| `provider` | `claude` or `codex`. Copilot agents are not sent at all (Habblaud World does not accept that tool yet), so they never show up under another tool | The tool's look |
 | `status` | `working`, `waiting`, `idle` or `shell`. **No** "since when" | What the character is doing |
 | `look` | The character's visual hint (`f` or `m`) | So the body and the name match |
 | `name` | A name drawn from Habblaud's name list based on the world's random id (never the office name, edited or not) | So the character has a name |
 | `parts` | The colors and styles of the appearance (`skin`, `hair`, `hairStyle`, `eyes`, `top`, `topAccent`, `topStyle`, `bottom`, `bottomStyle`, `shoes`, `accessory`, `accessoryColor`, `facialHair`), drawn based on the world's random id, with the pieces you chose in the editor on top | The character with the right face |
 | `tasksDone` | Tasks completed today by that agent, only the range: `0` (none), `1` (1 or 2), `2` (3 to 5), `3` (6 or more). Never the title | The "+1" over the character's head |
 | `compacted` | Only if you turned on "compactions": `true` when the agent compacted the context since the previous packet (`/clear` does not count) | The room's trash can fills up |
-| `tokens` | Only if "show tokens" is on (it comes on; you can turn it off): `day` (today) and `week` (today and the 6 days before), the building's total (input + output of all agents, from "My day", without demo mode), rounded to 2 digits (e.g. 1,200,000). The others see only the **range** (up to 100 thousand, 1 million, 10 million, 100 million, above) | The facade meter |
+| `tokens` | Only if "show tokens" is on (it comes on; you can turn it off): `day` (today) and `week` (today and the 6 days before), the building's total (input + output of all agents except the Copilot ones, from "My day", without demo mode: Copilot agents and their tokens are not sent), rounded to 2 digits (e.g. 1,200,000). The others see only the **range** (up to 100 thousand, 1 million, 10 million, 100 million, above) | The facade meter |
 
 Nothing else. The packet of an office with 3 projects and 5 agents is about 2 KB. The limits are 64 floors, 64 agents
 per floor, 256 in total and 64 KB (in practice, about 170 agents); above that, Habblaud cuts the last ones and says so

@@ -21,7 +21,7 @@ import { TermActions } from './termactions';
 import { TermTabs } from './termtabs';
 import { renderMarkdown } from './markdown';
 import { roleLabel, shellWaitIn } from './model';
-import { providerOf } from './provider';
+import { isDefaultProvider, providerOf } from './provider';
 import {
   clearHits,
   copyTextOf,
@@ -338,12 +338,12 @@ export function entryTimeTitle(at: number, now: number): string {
 
 /** Footer spinner frames of each tool. */
 export function spinnerFrames(provider: Provider): readonly string[] {
-  return provider === 'codex' ? CODEX_SPINNER : SPINNER;
+  return isDefaultProvider({ provider }) ? SPINNER : CODEX_SPINNER;
 }
 
 /** Still symbol of the footer (no animation, or outside "working"). */
 export function footerGlyph(kind: TerminalFooterKind, provider: Provider): string {
-  if (kind === 'working') return provider === 'codex' ? '•' : '✻';
+  if (kind === 'working') return isDefaultProvider({ provider }) ? '✻' : '•';
   return { waiting: '✋', shell: '⏳', idle: '○', ended: '■' }[kind];
 }
 
@@ -376,6 +376,7 @@ export function terminalFooter(agent: AgentInfo | undefined, agents: readonly Ag
       if (agent.permission) return { kind: 'waiting', text, since: agent.statusSince };
       // Without the request in Habblaud (the hook already handed it back to the session, the session opened without the
       // plugin or there was no page open when it arrived): the buttons don't come, so it says where to answer.
+      if (agent.provider === 'copilot') return { kind: 'waiting', text: tr('{0} · answer in Copilot: approvals from the office are not available for Copilot', [text]), since: agent.statusSince };
       const hint =
         agent.provider === 'codex'
           ? tr("{0} · answer in Codex: this request didn't reach Habblaud or timed out", [text])

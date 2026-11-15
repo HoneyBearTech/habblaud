@@ -41,7 +41,7 @@ import {
 import { access } from '../net/access';
 import { PermissionCard } from './permission';
 import { canRenameRoom } from './roomrename';
-import { accountChipLabel, accountProvider, CODEX_LIVE_HINT, codexApprovalLabel, providerOf } from './provider';
+import { accountChipLabel, accountProvider, CODEX_LIVE_HINT, codexApprovalLabel, isDefaultProvider, PROVIDER_NAME, providerOf } from './provider';
 import { ptyControllable } from './ptyapi';
 import { createAgentRow, updateAgentRow } from './rows';
 import { SocialSection } from './social';
@@ -531,6 +531,7 @@ class AgentView {
     const room = this.ctx.store.room(a.roomId);
     const provider = providerOf(a);
     const codex = provider === 'codex';
+    const ownTool = isDefaultProvider(a);
 
     updateAvatar(this.avatar, a, 'lg');
     setStyleVar(this.avatar, '--acc', account?.color ?? '#8b98b3');
@@ -574,16 +575,20 @@ class AgentView {
     if (waiting) {
       const accName = account?.name ?? a.account;
       // Codex: "Go to Codex (Account X)"; without repeating when the account is already named "Codex".
-      const where = codex ? tr('Codex{0}', [/codex/i.test(accName) ? '' : ` (${accName})`]) : tr('the {0} terminal', [accName]);
+      const where = codex
+        ? tr('Codex{0}', [/codex/i.test(accName) ? '' : ` (${accName})`])
+        : provider === 'copilot'
+          ? tr('Copilot{0}', [/copilot/i.test(accName) ? '' : ` (${accName})`])
+          : tr('the {0} terminal', [accName]);
       setText(this.alertText, tr('Go to {0} in {1} to reply{2}', [where, room?.name ?? tr('your project'), a.waitingFor ? `: ${a.waitingFor}` : '.']));
     }
     // AskUserQuestion questions (read-only): Codex does not ask through the office.
-    const asking = waiting && !codex && a.activity?.kind === 'ask' ? a.activity : undefined;
+    const asking = waiting && ownTool && a.activity?.kind === 'ask' ? a.activity : undefined;
     this.renderQuestions(asking);
     // Without the request in the office: it can be answered from here with the plugin (only with the local lock, like the
     // card). Codex does not answer questions through the office.
     const answerable =
-      !codex && !!asking?.questions?.length && !this.perm.visible && !this.ctx.store.mock && !!this.ctx.store.snapshot?.meta.terminal && access().permissions;
+      ownTool && !!asking?.questions?.length && !this.perm.visible && !this.ctx.store.mock && !!this.ctx.store.snapshot?.meta.terminal && access().permissions;
     setHidden(this.alertAnswerHint, !answerable);
 
     // Waiting on shell.
@@ -721,7 +726,7 @@ class AgentView {
             ? tr('The agent has already left the office.')
             : kind === 'ao vivo'
               ? tr("View this session's conversation as in {0}, live{1} (T)", [
-                  provider === 'codex' ? 'Codex' : tr('the Claude Code terminal'),
+                  !isDefaultProvider({ provider }) ? PROVIDER_NAME[provider] : tr('the Claude Code terminal'),
                   this.pty.enabled && ptyControllable(this.last) ? tr('; "Take over here" continues it here') : '',
                 ])
               : kind === 'interativo'
@@ -747,7 +752,7 @@ class AgentView {
     st.set('branch', a.gitBranch ?? null);
     // Codex: the approval policy (when the server sends it) in place of Claude Code's permission mode.
     st.label('perm', codex ? tr('Approvals') : tr('Permissions'));
-    st.set('perm', a.kind !== 'main' ? null : codex ? (a.permissionMode ? codexApprovalLabel(a.permissionMode) : null) : permissionLabel(a.permissionMode));
+    st.set('perm', a.kind !== 'main' || providerOf(a) === 'copilot' ? null : codex ? (a.permissionMode ? codexApprovalLabel(a.permissionMode) : null) : permissionLabel(a.permissionMode));
 
     setText(this.sessionValue, a.sessionId);
     setTitle(this.sessionValue, a.sessionId);

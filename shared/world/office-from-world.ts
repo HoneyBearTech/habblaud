@@ -25,7 +25,7 @@
 import { PART_KEYS, parseAppearanceParts, parseCharacterName, type AppearanceParts } from '../appearance';
 import { hash32 } from '../hash';
 import { tr } from '../i18n';
-import type { AccountInfo, AgentInfo, AgentStatus, OfficeSnapshot, Provider, RoomInfo } from '../types';
+import type { AccountInfo, AgentInfo, AgentStatus, OfficeSnapshot, RoomInfo } from '../types';
 import { floorLabel } from './floor-labels';
 import { UPLINK_LIMITS, type BuildingPatchMessage, type WorldAgent, type WorldBuildingDetail, type WorldBuildingPublic } from './protocol';
 
@@ -42,12 +42,16 @@ export function isWorldId(id: string): boolean {
   return id.startsWith(WORLD_ID_PREFIX);
 }
 
+/** The tools the world knows (the protocol `provider` of an agent): a local tool outside this list never goes up. */
+export type WorldTool = WorldAgent['provider'];
+
 /** Fictional accounts of the visit, one per tool: only the tool's name, the letter and the color (no email or usage). */
-export const WORLD_TOOL_ACCOUNTS: Readonly<Record<Provider, { short: string; name: string; color: string }>> = {
+export const WORLD_TOOL_ACCOUNTS: Readonly<Record<WorldTool, { short: string; name: string; color: string }>> = {
   claude: { short: 'C', name: 'Claude Code', color: '#f08a3c' },
   codex: { short: 'X', name: 'Codex', color: '#a77bf3' },
 };
-const PROVIDERS: readonly Provider[] = ['claude', 'codex'];
+/** The world tools, the default one first (an agent without `provider` is of the first one). */
+export const WORLD_TOOLS: readonly WorldTool[] = ['claude', 'codex'];
 /** Statuses that exist in the world; one this version does not know becomes 'idle' (strolls, promising nothing). */
 const STATUSES: readonly AgentStatus[] = ['working', 'waiting', 'idle', 'shell'];
 
@@ -172,7 +176,7 @@ function build(floors: WorldBuildingDetail['floors'], hidden: boolean, now: numb
 function agentInfo(a: WorldAgent, roomId: string, now: number, present: ReadonlySet<string>): AgentInfo {
   const id = worldId(a.id);
   const kind = a.kind === 'sub' ? 'sub' : 'main';
-  const provider: Provider = PROVIDERS.includes(a.provider) ? a.provider : 'claude';
+  const provider: WorldTool = WORLD_TOOLS.includes(a.provider) ? a.provider : 'claude';
   const status: AgentStatus = STATUSES.includes(a.status) ? a.status : 'idle';
   const info: AgentInfo = {
     id,
@@ -216,7 +220,7 @@ function partsOf(raw: unknown): AppearanceParts | undefined {
 
 /** One fictional account per tool (both always, in the same order), with the main sessions of each one. */
 function toolAccounts(agents: readonly AgentInfo[]): AccountInfo[] {
-  return PROVIDERS.map((p) => ({
+  return WORLD_TOOLS.map((p) => ({
     id: worldId(p),
     provider: p,
     short: WORLD_TOOL_ACCOUNTS[p].short,

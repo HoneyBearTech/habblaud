@@ -14,8 +14,9 @@ export type AgentKind = 'main' | 'sub';
  * `provider` field is optional and ABSENT means 'claude' (everything that existed before Codex stays the same).
  * - claude: Claude Code;
  * - codex: OpenAI Codex (the `codex` CLI and the desktop app, which write to the same CODEX_HOME).
+ * - copilot: GitHub Copilot CLI (read from its COPILOT_HOME, ~/.copilot; no messages, approvals or usage bar).
  */
-export type Provider = 'claude' | 'codex';
+export type Provider = 'claude' | 'codex' | 'copilot';
 
 /**
  * High-level state of an agent — it is what drives the character's behavior.

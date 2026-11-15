@@ -27,6 +27,7 @@ import {
 import type { UiContext } from './context';
 import { DictationButton, dictationAvailable, insertDictation } from './dictation';
 import { h, setAttr, setHidden, setText, setTitle } from './dom';
+import { DEFAULT_PROVIDER, providerOf } from './provider';
 import { access } from '../net/access';
 import { tr } from '../../../shared/i18n';
 
@@ -133,7 +134,7 @@ export class MessageComposer {
     this.mode = mode;
     const ready = mode.kind === 'ready';
     const term = this.variant === 'terminal';
-    this.provider = agent?.provider === 'codex' ? 'codex' : 'claude';
+    this.provider = agent ? providerOf(agent) : DEFAULT_PROVIDER;
 
     // Agent switch (or the box started or stopped applying): the content comes from the saved draft.
     const shown = `${key}|${ready}`;

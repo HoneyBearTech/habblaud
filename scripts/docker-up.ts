@@ -17,6 +17,11 @@
 //    never auth.json, config.toml, shell_snapshots/, history.jsonl, logs or the SQLite files. They go in
 //    HABBLAUD_CODEX_DIRS and, with `provider: 'codex'` and the HOST folder (where `codex queue` runs), in
 //    HABBLAUD_ACCOUNTS.
+//    Copilot CLI accounts (COPILOT_HOME or ~/.copilot with session-state/, or HABBLAUD_COPILOT_DIRS; HABBLAUD_COPILOT=0
+//    turns it off): ONLY session-state/ (folder) and open-sessions-state.json (single file, skipped if missing) of
+//    each one, read-only, at /copilot/<account>/... — never config.json, permissions-config.json, session-store.db*,
+//    logs/, command-history-state.json, settings.json or hooks/. They go in HABBLAUD_COPILOT_DIRS and, with
+//    `provider: 'copilot'` and the HOST folder, in HABBLAUD_ACCOUNTS.
 // 3. Migrates what is left of the old name (CodeTown, up to 0.3.2): ~/.codetown becomes ~/.habblaud, the
 //    `codetown` container and the codetown_default network are removed and, if the new volume doesn't exist yet,
 //    the data from codetown_codetown-data is copied into it (the old one stays, to delete by hand). Warns about
@@ -37,11 +42,12 @@
 import { spawnSync } from 'node:child_process';
 import { chmodSync, mkdirSync, readFileSync, realpathSync, renameSync, statSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { dirname, join, posix, resolve } from 'node:path';
+import { dirname, isAbsolute, join, posix, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import type { AccountInfo, SourceInfo } from '../shared/types';
 import { codexDirsRefused, detectAccounts, discoverClaudeDirs, type DetectedAccount } from '../server/accounts/detect';
 import { detectCodexAccounts, discoverCodexDirs } from '../server/sources/codex/accounts';
+import { detectCopilotAccounts, discoverCopilotDirs } from '../server/sources/copilot/accounts';
 import { describeStateMigration, LEGACY_NAME, legacyEnvWarning, migrateLegacyStateDir } from '../server/legacy';
 import { makeClaudeRunner, MIN_CLAUDE_VERSION, readPackageVersion, updateInstalledMods, type ModUpdateResult } from './mod-install';
 import { tr } from '../shared/i18n';
@@ -73,6 +79,12 @@ const CODEX_CONTAINER_ROOT = '/codex';
  * auth.json, config.toml, shell_snapshots/, history.jsonl, logs and the SQLite files stay on the host.
  */
 export const CODEX_MOUNTED_SUBDIRS = ['sessions', 'archived_sessions', 'thread-writer-locks'] as const;
+/** Root of the Copilot mounts inside the container: /copilot/<account>/{session-state,open-sessions-state.json}. */
+const COPILOT_CONTAINER_ROOT = '/copilot';
+/** The folder of each Copilot home that goes into the container (the events and workspace.yaml of each session). */
+export const COPILOT_MOUNTED_SUBDIRS = ['session-state'] as const;
+/** The single file of each Copilot home that goes into the container (the open sessions: only a hint). */
+export const COPILOT_MOUNTED_FILES = ['open-sessions-state.json'] as const;
 const DEFAULT_PORT = 4747;
 const HEALTH_TIMEOUT_MS = 120_000;
 /** Image and data volume as Compose names them (`name: habblaud` in docker-compose.yml). */
@@ -86,7 +98,7 @@ const LEGACY_DOCKER = {
   image: `${LEGACY_NAME}:local`,
 } as const;
 
-const USAGE = tr("Usage: npm run docker:up [-- options]\n\nOptions:\n  --no-build   starts without rebuilding the image\n  --down       stops the container (same as npm run docker:down)\n  -h, --help   shows this help\n\nVariables: HABBLAUD_PORT (host port, default {0}), HABBLAUD_CLAUDE_DIRS\n(comma-separated config dirs, if the accounts aren't in ~/.claude*), HABBLAUD_CODEX_DIRS\n(Codex folders, if they aren't in ~/.codex* or CODEX_HOME) and HABBLAUD_CODEX=0 (without Codex).", [DEFAULT_PORT]);
+const USAGE = tr("Usage: npm run docker:up [-- options]\n\nOptions:\n  --no-build   starts without rebuilding the image\n  --down       stops the container (same as npm run docker:down)\n  -h, --help   shows this help\n\nVariables: HABBLAUD_PORT (host port, default {0}), HABBLAUD_CLAUDE_DIRS\n(comma-separated config dirs, if the accounts aren't in ~/.claude*), HABBLAUD_CODEX_DIRS\n(Codex folders, if they aren't in ~/.codex* or CODEX_HOME), HABBLAUD_CODEX=0 (without Codex),\nHABBLAUD_COPILOT_DIRS (Copilot CLI folders, if they aren't COPILOT_HOME or ~/.copilot) and\nHABBLAUD_COPILOT=0 (without Copilot).", [DEFAULT_PORT]);
 
 // ---------------------------------------------------------------------------------------------
 // Terminal output
@@ -168,8 +180,8 @@ type CachedUsage = { fetchedAtMs: unknown; utilization: Partial<Record<(typeof U
 
 export interface AccountPayload {
   id: string;
-  /** Only on Codex accounts (absent = Claude Code). */
-  provider?: 'codex';
+  /** Only on Codex and Copilot accounts (absent = Claude Code). */
+  provider?: 'codex' | 'copilot';
   configDir: string;
   mountDir: string;
   short: string;
@@ -229,6 +241,67 @@ export function planCodexMounts(dirs: string[], accounts: DetectedAccount[], res
     if (binds.length) out.push({ account, hostDir, mountDir, binds });
   });
   return out;
+}
+
+/** `path` is `root` or inside it (both already real paths). */
+function isInside(root: string, path: string): boolean {
+  const rel = relative(root, path);
+  return rel === '' || (!rel.startsWith('..') && !isAbsolute(rel));
+}
+
+/** Real path of an existing regular file, or undefined. */
+function realFile(p: string): string | undefined {
+  try {
+    const real = realpathSync(p);
+    return statSync(real).isFile() ? real : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Mounts only session-state/ (folder) and open-sessions-state.json (single file, skipped if missing) of each Copilot
+ * folder, in /copilot/<id>. `accounts` comes from detectCopilotAccounts(dirs), in the same order as `dirs`; the id
+ * becomes the folder name in the container, so the server in there derives the same id. A home without
+ * session-state/ is not mounted. Each source, after realpath, must still be inside the realpath of the home: one that a
+ * symlink takes outside it is not mounted (`onOutside` gets the path and the home; by default, a warning line).
+ */
+export function planCopilotMounts(
+  dirs: string[],
+  accounts: DetectedAccount[],
+  resolveDir: (p: string) => string | undefined = realDir,
+  resolveFile: (p: string) => string | undefined = realFile,
+  onOutside: (path: string, hostDir: string) => void = (path, hostDir) => warn(tr('{0} points outside {1}; not mounted.', [tildify(path), tildify(hostDir)])),
+): AccountMount[] {
+  const out: AccountMount[] = [];
+  dirs.forEach((hostDir, i) => {
+    const account = accounts[i];
+    const realHome = resolveDir(hostDir);
+    if (!realHome) return;
+    const mountDir = posix.join(COPILOT_CONTAINER_ROOT, account.id);
+    const binds: BindMount[] = [];
+    const add = (path: string, source: string | undefined, target: string) => {
+      if (!source) return;
+      if (isInside(realHome, source)) binds.push({ source, target });
+      else onOutside(path, hostDir);
+    };
+    for (const sub of COPILOT_MOUNTED_SUBDIRS) add(join(hostDir, sub), resolveDir(join(hostDir, sub)), posix.join(mountDir, sub));
+    if (!binds.length) return;
+    for (const file of COPILOT_MOUNTED_FILES) add(join(hostDir, file), resolveFile(join(hostDir, file)), posix.join(mountDir, file));
+    out.push({ account, hostDir, mountDir, binds });
+  });
+  return out;
+}
+
+/** Metadata of the Copilot accounts for HABBLAUD_ACCOUNTS: `provider: 'copilot'` and the HOST folder in `configDir`. */
+export function copilotAccountsPayload(mounts: AccountMount[]): AccountPayload[] {
+  return mounts.map(({ account: a, hostDir, mountDir }) => ({ id: a.id, provider: 'copilot', configDir: hostDir, mountDir, short: a.short, name: a.name, color: a.color }));
+}
+
+/** HABBLAUD_COPILOT turned off (0, false, off, no) in the environment of whoever runs docker:up. */
+export function copilotDisabled(env: NodeJS.ProcessEnv): boolean {
+  const v = env.HABBLAUD_COPILOT?.trim();
+  return !!v && !/^(1|true|yes|sim|on)$/i.test(v);
 }
 
 /** Metadata of the Codex accounts for HABBLAUD_ACCOUNTS: `provider: 'codex'` and the HOST folder in `configDir`. */
@@ -308,7 +381,7 @@ export function hostTimeZone(env: NodeJS.ProcessEnv = process.env): string | und
 /**
  * `usageDir`: host folder with the usage captured by the statusline tap (already existing; real path),
  * mounted read-only at /usage. `timeZone`: the host's time zone, passed on as TZ. `codex`: mounts of the Codex
- * accounts (planCodexMounts).
+ * accounts (planCodexMounts). `copilot`: mounts of the Copilot accounts (planCopilotMounts).
  */
 export function renderOverride(
   mounts: AccountMount[],
@@ -318,12 +391,14 @@ export function renderOverride(
   codex: AccountMount[] = [],
   remoteTlsDir?: string,
   extraPorts: string[] = [],
+  copilot: AccountMount[] = [],
 ): string {
   const env: Array<[string, string]> = [
     ['HABBLAUD_CLAUDE_DIRS', mounts.map((m) => m.mountDir).join(',')],
-    ['HABBLAUD_ACCOUNTS', JSON.stringify([...accountsPayload(mounts), ...codexAccountsPayload(codex)])],
+    ['HABBLAUD_ACCOUNTS', JSON.stringify([...accountsPayload(mounts), ...codexAccountsPayload(codex), ...copilotAccountsPayload(copilot)])],
   ];
   if (codex.length) env.push(['HABBLAUD_CODEX_DIRS', codex.map((m) => m.mountDir).join(',')]);
+  if (copilot.length) env.push(['HABBLAUD_COPILOT_DIRS', copilot.map((m) => m.mountDir).join(',')]);
   if (usageDir) env.push(['HABBLAUD_USAGE_DIR', CONTAINER_USAGE_DIR]);
   if (timeZone) env.push(['TZ', timeZone]);
   const lines = [
@@ -331,6 +406,7 @@ export function renderOverride(
     '# Contains host paths and the emails of the accounts: it stays out of git and has permission 600.',
     '# Mounts: ONLY <account>/projects, <account>/sessions and the statusline usage folder, all read-only.',
     ...(codex.length ? ['# Codex: ONLY <folder>/sessions, <folder>/archived_sessions and <folder>/thread-writer-locks, read-only.'] : []),
+    ...(copilot.length ? ['# Copilot: ONLY <folder>/session-state and <folder>/open-sessions-state.json, read-only.'] : []),
     'services:',
     `  ${SERVICE}:`,
     '    environment:',
@@ -338,7 +414,7 @@ export function renderOverride(
   ];
   // Compose merges these ports with the ones in docker-compose.yml.
   if (extraPorts.length) lines.push('    ports:', ...extraPorts.map((p) => `      - ${yamlString(p)}`));
-  const binds = [...mounts, ...codex].flatMap((m) => m.binds);
+  const binds = [...mounts, ...codex, ...copilot].flatMap((m) => m.binds);
   if (usageDir) binds.push({ source: usageDir, target: CONTAINER_USAGE_DIR });
   // Remote access: ONLY the server certificate's folder (the CA key stays on the host).
   if (remoteTlsDir) binds.push({ source: remoteTlsDir, target: CONTAINER_REMOTE_TLS_DIR });
@@ -711,13 +787,32 @@ async function up(opts: Options, port: number): Promise<void> {
     }
   }
 
+  const copilotDirs = copilotDisabled(process.env) ? [] : discoverCopilotDirs(process.env, HOME);
+  const copilotAccounts = detectCopilotAccounts(copilotDirs, {
+    home: HOME,
+    env: process.env,
+    taken: { shorts: [...accounts, ...codexAccounts].map((a) => a.short), colors: [...accounts, ...codexAccounts].map((a) => a.color) },
+  });
+  const copilotOutside = new Set<string>();
+  const copilotMounts = planCopilotMounts(copilotDirs, copilotAccounts, undefined, undefined, (path, hostDir) => {
+    copilotOutside.add(hostDir);
+    warn(tr('{0} points outside {1}; not mounted.', [tildify(path), tildify(hostDir)]));
+  });
+  for (const m of copilotMounts) {
+    const parts = m.binds.map((b) => posix.basename(b.target)).join(', ');
+    say(tr('Copilot {0} ({1}): mounts {2} from {3}, read-only.', [m.account.short, m.account.id, parts, tildify(m.hostDir)]));
+  }
+  for (const dir of copilotDirs) {
+    if (!copilotMounts.some((m) => m.hostDir === dir) && !copilotOutside.has(dir)) warn(tr("{0} doesn't have session-state/; Copilot account skipped.", [tildify(dir)]));
+  }
+
   migrateStateDir();
   const usageDir = ensureUsageDir();
   if (usageDir) say(tr('Live usage (mod or statusline tap): mounts {0} at {1}, read-only.', [tildify(USAGE_DIR), CONTAINER_USAGE_DIR]));
   const remoteTlsDir = prepareRemoteTls();
   const remotePorts = remoteTlsDir || remoteInsecure() ? remotePortsToPublish() : [];
   const tmp = `${OVERRIDE_FILE}.tmp`;
-  writeFileSync(tmp, renderOverride(mounts, new Date(), usageDir, hostTimeZone(), codexMounts, remoteTlsDir, remotePorts), { mode: 0o600 });
+  writeFileSync(tmp, renderOverride(mounts, new Date(), usageDir, hostTimeZone(), codexMounts, remoteTlsDir, remotePorts, copilotMounts), { mode: 0o600 });
   chmodSync(tmp, 0o600);
   renameSync(tmp, OVERRIDE_FILE);
   say(tr('docker-compose.override.yml generated.'));
@@ -744,6 +839,12 @@ async function up(opts: Options, port: number): Promise<void> {
     const usage = health.accounts?.find((a) => a.id === m.account.id)?.usageStatus;
     const state = src.ok ? plural(src.sessions, tr('open session'), tr('open sessions')) : tr('read error ({0})', [src.error ?? tr('unknown')]);
     say(`  Codex ${m.account.short} (${m.account.id}): ${state}${usage ? ` · ${USAGE_STATUS[usage]}` : ''}`);
+  }
+  for (const m of copilotMounts) {
+    const src = health.sources?.find((s) => s.label === m.account.id && s.provider === 'copilot');
+    if (!src) continue;
+    const state = src.ok ? plural(src.sessions, tr('open session'), tr('open sessions')) : tr('read error ({0})', [src.error ?? tr('unknown')]);
+    say(`  Copilot ${m.account.short} (${m.account.id}): ${state}`);
   }
   for (const line of modHint(updateMods(dirs, accounts))) say(line);
   // With the copy failed, the data only exists in the old volume: no suggesting to delete it.

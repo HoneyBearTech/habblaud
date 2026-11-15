@@ -1,4 +1,4 @@
-// Visual pieces reused by the panels: account chip (and the "Codex" badge), status dot, role badge, progress
+// Visual pieces reused by the panels: account chip (and the "Codex" / "Copilot" badge), status dot, role badge, progress
 // bar.
 import type { AccountInfo, Activity, AgentInfo, AgentStatus, Provider } from '../../../shared/types';
 import { h, setAttr, setHidden, setStyleVar, setText, setTitle, setVariant } from './dom';
@@ -9,7 +9,8 @@ import { tr } from '../../../shared/i18n';
 
 /**
  * Square chip with the account's short letter ("C", "D") in the account's color. Codex account: the chip is hollow (dark
- * background, border and letter in the account's color, stepped corners): `data-provider="codex"`.
+ * background, border and letter in the account's color, stepped corners): `data-provider="codex"`. Copilot account: round
+ * hollow chip, `data-provider="copilot"`.
  */
 export function createAccountChip(size: 'sm' | 'md' | 'lg' = 'sm'): HTMLElement {
   return h('span', { class: `ui-acc-chip ui-acc-chip--${size}` });
@@ -20,7 +21,7 @@ export function updateAccountChip(chip: HTMLElement, account: AccountInfo | unde
   const p = accountProvider(account, fallbackId, provider);
   setText(chip, account?.short ?? fallbackShort(fallbackId, p));
   setStyleVar(chip, '--acc', account?.color ?? '#8b98b3');
-  setAttr(chip, 'data-provider', p === 'codex' ? 'codex' : null);
+  setAttr(chip, 'data-provider', p === 'codex' || p === 'copilot' ? p : null);
   const label = accountChipLabel(account, fallbackId, p);
   setTitle(chip, label);
   setAttr(chip, 'aria-label', label);
@@ -31,9 +32,13 @@ export function createProviderTag(extra = ''): HTMLElement {
   return h('span', { class: `ui-prov${extra ? ` ${extra}` : ''}`, text: 'Codex', hidden: true, title: tr('Codex agent (OpenAI)') });
 }
 
-/** Shows the badge only for Codex (and doesn't repeat it when the account name already says "Codex"). */
+/** Shows the badge only for Codex or Copilot (and doesn't repeat it when the account name already says it). */
 export function updateProviderTag(tag: HTMLElement, provider: Provider, accountName = ''): void {
   setHidden(tag, !showsProviderTag(provider, accountName));
+  const copilot = provider === 'copilot';
+  setText(tag, copilot ? 'Copilot' : 'Codex');
+  setTitle(tag, copilot ? tr('Copilot agent (GitHub)') : tr('Codex agent (OpenAI)'));
+  setAttr(tag, 'data-provider', copilot ? 'copilot' : null);
 }
 
 /** Small status square (pixel), with a pulse when it needs you. */

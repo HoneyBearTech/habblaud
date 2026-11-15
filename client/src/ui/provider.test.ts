@@ -4,11 +4,16 @@ import {
   accountChipLabel,
   accountProvider,
   codexApprovalLabel,
+  DEFAULT_PROVIDER,
   emptyOfficeHint,
   fallbackShort,
   hasCodexPermission,
   isCodex,
+  isCopilot,
+  isDefaultProvider,
   looksLikeCodexId,
+  looksLikeCopilotId,
+  PROVIDER_NAME,
   providerOf,
   showsProviderTag,
 } from './provider';
@@ -86,5 +91,36 @@ describe('tool (Claude Code or Codex)', () => {
     expect(codexApprovalLabel('never')).toBe('Never asks');
     expect(codexApprovalLabel('other')).toBe('other');
     expect(codexApprovalLabel(undefined)).toBe('—');
+  });
+});
+
+describe('Copilot accounts and agents', () => {
+  it('is its own tool: not the default one, with its own name, badge and fallback letter', () => {
+    expect(isCopilot({ provider: 'copilot' })).toBe(true);
+    expect(isCopilot({ provider: 'codex' })).toBe(false);
+    expect(isDefaultProvider({ provider: 'copilot' })).toBe(false);
+    expect(isDefaultProvider({ provider: 'codex' })).toBe(false);
+    expect(isDefaultProvider({})).toBe(true);
+    expect(isDefaultProvider({ provider: DEFAULT_PROVIDER })).toBe(true);
+    expect(PROVIDER_NAME.copilot).toBe('Copilot');
+    for (const id of ['.copilot', 'demo:.copilot', '.copilot-work', '.copilot~2', '/home/user/.copilot']) expect(looksLikeCopilotId(id), id).toBe(true);
+    for (const id of ['.codex', 'mycopilot', '.copiloted', '']) expect(looksLikeCopilotId(id), id).toBe(false);
+    expect(accountProvider(undefined, '.copilot')).toBe('copilot');
+    expect(fallbackShort('.copilot-work')).toBe('W');
+    expect(fallbackShort('.copilot')).toBe('P');
+    expect(showsProviderTag('copilot', 'Work')).toBe(true);
+    expect(showsProviderTag('copilot', 'Copilot W')).toBe(false);
+  });
+
+  it('chip label and the empty-office shortcuts', () => {
+    expect(accountChipLabel({ name: 'Copilot', provider: 'copilot' }, '.copilot', 'copilot')).toBe('Copilot');
+    expect(accountChipLabel({ name: 'Work', provider: 'copilot' }, '.copilot', 'copilot')).toBe('Work · Copilot');
+    expect(accountChipLabel(undefined, '.copilot', 'copilot')).toBe('.copilot · Copilot');
+    // The letter of a Copilot account is not a shell shortcut.
+    expect(emptyOfficeHint([{ short: 'P', provider: 'copilot' }])).not.toContain('P');
+    // Only Copilot accounts: Copilot is named, after the default tool (as Codex is).
+    expect(emptyOfficeHint([{ short: 'P', provider: 'copilot' }])).toMatch(/^Open \S.* or Copilot in any project and watch your agent arrive\.$/);
+    expect(emptyOfficeHint([{ short: 'P', provider: 'copilot' }, { short: 'Q', provider: 'copilot' }])).toContain(' or Copilot ');
+    expect(emptyOfficeHint([{ short: 'C' }, { short: 'P', provider: 'copilot' }])).not.toContain('Copilot');
   });
 });

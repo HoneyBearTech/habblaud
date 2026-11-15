@@ -108,6 +108,13 @@ type Item = Bubble | Label;
 const CODEX_CHIP_BG = '#161b26';
 /** "CODEX" badge of the labels: discreet (light glass), without anyone's color. */
 const CODEX_BADGE = 'CODEX';
+/** "COPILOT" badge of the labels, the same glass with a cool tint. */
+const COPILOT_BADGE = 'COPILOT';
+
+/** Tool badge of a character's label (Codex or Copilot), or undefined. */
+function toolBadge(provider: string | undefined): string | undefined {
+  return provider === 'codex' ? CODEX_BADGE : provider === 'copilot' ? COPILOT_BADGE : undefined;
+}
 
 /** "Stepped" octagon (a square with cut corners, like a rounded pixel). */
 function steppedRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, s: number): void {
@@ -124,13 +131,13 @@ function steppedRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: num
 }
 
 /**
- * Dot of an account (room signs and pills): filled for Claude Code; hollow (ring in the account color) for Codex,
+ * Dot of an account (room signs and pills), hollow also for Copilot: filled for Claude Code; hollow (ring in the account color) for Codex,
  * like the chip in the panels.
  */
 function accountDot(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, acc: { color: string; provider?: string }): void {
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
-  if (acc.provider === 'codex') {
+  if (acc.provider === 'codex' || acc.provider === 'copilot') {
     ctx.fillStyle = CODEX_CHIP_BG;
     ctx.fill();
     ctx.lineWidth = Math.max(1.2, r * 0.55);
@@ -876,7 +883,8 @@ export class Overlay {
     const chipW = acc ? 13 : 0;
     const visitor = ch === this.sim.visitor;
     const badgeW = visitor ? this.measure(BADGE_FONT, visitorBadge()) + 7 : ch.info.kind === 'sub' && !l.compact ? this.measure(BADGE_FONT, 'SUB') + 7 : 0;
-    const codexW = ch.info.provider === 'codex' && !l.compact ? this.measure(BADGE_FONT, CODEX_BADGE) + 7 : 0;
+    const tool = toolBadge(ch.info.provider);
+    const codexW = tool && !l.compact ? this.measure(BADGE_FONT, tool) + 7 : 0;
     return { nameW, chipW, badgeW, codexW };
   }
 
@@ -908,6 +916,7 @@ export class Overlay {
     const acc = this.sim.accounts.get(ch.info.account);
     const sub = ch.info.kind === 'sub';
     const codex = ch.info.provider === 'codex' || acc?.provider === 'codex';
+    const copilot = ch.info.provider === 'copilot' || acc?.provider === 'copilot';
     const { nameW, chipW, badgeW, codexW } = this.labelWidth(l);
     const { x, y, w, h } = l;
     const selected = sel.agent === ch.id;
@@ -924,6 +933,23 @@ export class Overlay {
       ctx.lineWidth = 1.5;
       ctx.strokeStyle = acc.color;
       steppedRect(ctx, cx + 0.75, y + h / 2 - 4.25, 8.5, 8.5, 1.6);
+      ctx.stroke();
+      ctx.font = CHIP_FONT;
+      ctx.textAlign = 'center';
+      ctx.fillStyle = acc.color;
+      ctx.fillText(acc.short.slice(0, 1), cx + 5, y + h / 2 + 0.5);
+      ctx.textAlign = 'left';
+      cx += chipW;
+    } else if (acc && copilot) {
+      // Copilot: round hollow chip (dark background, ring and letter in the account color), as in the panels.
+      ctx.beginPath();
+      ctx.arc(cx + 5, y + h / 2, 5, 0, Math.PI * 2);
+      ctx.fillStyle = CODEX_CHIP_BG;
+      ctx.fill();
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = acc.color;
+      ctx.beginPath();
+      ctx.arc(cx + 5, y + h / 2, 4.25, 0, Math.PI * 2);
       ctx.stroke();
       ctx.font = CHIP_FONT;
       ctx.textAlign = 'center';
@@ -963,14 +989,15 @@ export class Overlay {
       ctx.arc(x + w - 3, y + 3, 2.5, 0, Math.PI * 2);
       ctx.fill();
     }
-    if (codexW) {
-      ctx.fillStyle = 'rgba(255,255,255,0.16)';
+    const tool = toolBadge(ch.info.provider);
+    if (codexW && tool) {
+      ctx.fillStyle = tool === COPILOT_BADGE ? 'rgba(110,160,255,0.22)' : 'rgba(255,255,255,0.16)';
       ctx.beginPath();
       ctx.roundRect(cx, y + 3, codexW, h - 6, 3);
       ctx.fill();
       ctx.font = BADGE_FONT;
-      ctx.fillStyle = '#e8ecf5';
-      ctx.fillText(CODEX_BADGE, cx + 3.5, y + h / 2 + 0.5);
+      ctx.fillStyle = tool === COPILOT_BADGE ? '#dbe7ff' : '#e8ecf5';
+      ctx.fillText(tool, cx + 3.5, y + h / 2 + 0.5);
     }
   }
 }

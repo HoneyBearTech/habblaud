@@ -1,5 +1,5 @@
 // Building tokens (server/world/tokens.ts): sum of input + output of today and of the 7 calendar days, only from the
-// real source (the demo never goes in), rounded to 2 digits.
+// real source (the demo never goes in), only from the accounts of tools World accepts, rounded to 2 digits.
 import { describe, expect, it } from 'vitest';
 import { zeroCounts, type DayStatsResponse, type StatsSource } from '../../shared/daystats';
 import type { AgentInfo, OfficeSnapshot } from '../../shared/types';
@@ -24,7 +24,7 @@ function fakeStats(perDay: Record<string, [number, number]>, today = '2026-10-15
       const v = perDay[day];
       if (!v) return null;
       const counts = { ...zeroCounts(), tokensIn: v[0], tokensOut: v[1] };
-      return { source: 'real', demoAvailable: false, today, serverTime: T0, stats: { totals: { counts } } } as unknown as DayStatsResponse;
+      return { source: 'real', demoAvailable: false, today, serverTime: T0, stats: { totals: { counts }, accounts: [{ id: 'acc', counts }] } } as unknown as DayStatsResponse;
     },
   };
 }
@@ -90,5 +90,58 @@ describe('BuildingTokens', () => {
     expect(svc.day('2026-10-15', 'UTC')?.source).toBe('demo');
     const t = new BuildingTokens({ stats: svc, now: () => now });
     expect(t.read()).toEqual({ day: 42_000, week: 42_000 });
+  });
+
+  it('the tokens of tools World leaves out (Copilot) do not count; the other tools do', () => {
+    const stats = fakeStats({});
+    const counts = (tokensIn: number, tokensOut: number) => ({ ...zeroCounts(), tokensIn, tokensOut });
+    stats.day = (day: string, _tz: string, source?: StatsSource) => {
+      stats.calls.push([day, source]);
+      if (day !== '2026-10-15') return null;
+      const accounts = [
+        { id: 'acc-default', counts: counts(10_000, 1_000) },
+        { id: '.codex', provider: 'codex', counts: counts(20_000, 2_000) },
+        { id: '.copilot', provider: 'copilot', counts: counts(9_000_000, 900_000) },
+      ];
+      return { source: 'real', demoAvailable: false, today: day, serverTime: T0, stats: { totals: { counts: counts(9_030_000, 903_000) }, accounts } } as unknown as DayStatsResponse;
+    };
+    expect(new BuildingTokens({ stats, now: () => T0 }).read()).toEqual({ day: 33_000, week: 33_000 });
+  });
+
+  it('with the real DayStatsService: a Copilot agent in the office adds nothing to the building tokens', () => {
+    let now = T0;
+    const base: AgentInfo = {
+      id: 'acc-a:1', kind: 'main', roomId: '/p/store', name: 'Ana', look: 'f', role: 'Main agent', sessionId: 'sess-1',
+      account: 'acc-a', status: 'working', recent: [], tasks: [], startedAt: T0 - 60_000, lastEventAt: T0, statusSince: T0,
+      stats: { toolCalls: 0, tokensIn: 0, tokensOut: 0, subagents: 0 }, seed: 1,
+    };
+    const copilot: AgentInfo = { ...base, id: '.copilot:2', account: '.copilot', sessionId: 'sess-2', provider: 'copilot' };
+    let agents = [base, copilot];
+    const snap = (): Pick<OfficeSnapshot, 'agents' | 'rooms' | 'accounts' | 'meta'> => ({
+      agents,
+      rooms: [],
+      accounts: [
+        { id: 'acc-a', name: 'A', short: 'A', color: '#123456' },
+        { id: '.copilot', name: 'Copilot', short: 'CP', color: '#654321', provider: 'copilot' },
+      ] as unknown as OfficeSnapshot['accounts'],
+      meta: { demo: false, sources: [], startedAt: 0, version: 'test' },
+    });
+    const svc = new DayStatsService({ dir: null, tz: 'UTC', now: () => now, snapshot: snap });
+    const step = (until: number) => {
+      while (now < until) {
+        now += S;
+        svc.sample(now);
+      }
+    };
+    step(T0 + 120 * S);
+    agents = [
+      { ...base, stats: { ...base.stats, tokensIn: 40_000, tokensOut: 2_000 } },
+      { ...copilot, stats: { ...copilot.stats, tokensIn: 3_000_000, tokensOut: 100_000 } },
+    ];
+    step(T0 + 130 * S);
+    const day = svc.day('2026-10-15', 'UTC', 'real')!;
+    expect(day.stats.totals.counts.tokensIn).toBe(3_040_000);
+    expect(day.stats.accounts.find((a) => a.id === '.copilot')?.provider).toBe('copilot');
+    expect(new BuildingTokens({ stats: svc, now: () => now }).read()).toEqual({ day: 42_000, week: 42_000 });
   });
 });
