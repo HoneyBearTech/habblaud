@@ -322,6 +322,28 @@ describe('projection: rules', () => {
     expect(agentsOf(u).map((a) => a.provider).sort()).toEqual(['claude', 'codex']);
   });
 
+  it('copilot agents are left out (never reported as another tool); a room with only them has no floor', () => {
+    const ids = new FakeIds();
+    const rooms = [room('/p/a'), room('/p/only-copilot')];
+    const agents = [
+      agent('m1', '/p/a'),
+      agent('c1', '/p/a', { provider: 'copilot', name: 'Teodoro', look: 'm' }),
+      agent('c1s', '/p/a', { provider: 'copilot', kind: 'sub', parentId: 'c1' }),
+      agent('c2', '/p/only-copilot', { provider: 'copilot', status: 'waiting' }),
+    ];
+    const r = projectWithReport(input(rooms, agents), ids, NOW);
+    const list = agentsOf(r.uplink);
+    expect(list).toHaveLength(1);
+    expect(list[0].id).toBe(ids.agents.get('m1'));
+    expect(list.map((a) => a.provider)).not.toContain('copilot');
+    expect(list.map((a) => a.provider)).not.toContain('codex');
+    expect(r.uplink.floors).toHaveLength(1);
+    expect(r.truncated).toBeUndefined();
+    // No world id was even drawn for them.
+    expect(ids.agents.has('c1') || ids.agents.has('c1s') || ids.agents.has('c2')).toBe(false);
+    expect(validate(r.uplink)).toEqual([]);
+  });
+
   it('tokens only with tokensVisible, rounded to 2 digits', () => {
     const base = input([room('/p/a')], [agent('m1', '/p/a')], { tokens: { day: 1_234_567, week: 98_765_432.7 } });
     expect(project(base, new FakeIds(), NOW).tokens).toEqual({ day: 1_200_000, week: 99_000_000 });

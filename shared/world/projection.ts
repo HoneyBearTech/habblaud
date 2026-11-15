@@ -28,6 +28,7 @@ import { NAME_POOL, pickName } from '../names';
 import { isDemoId } from '../timeline';
 import type { AgentInfo } from '../types';
 import { flattenAppearance } from './appearance-flat';
+import { WORLD_TOOLS } from './office-from-world';
 import { UPLINK_LIMITS, type WorldAgent, type WorldAgentStatus, type WorldFloor, type WorldTheme, type WorldUplink } from './protocol';
 
 /** Random world ids, per room and per agent of the office (server/world/ids.ts). Never derived from anything. */
@@ -70,6 +71,11 @@ export interface ProjectionResult {
 export const WORLD_STATUSES: readonly WorldAgentStatus[] = ['working', 'waiting', 'idle', 'shell'];
 
 const isWorldStatus = (s: string): s is WorldAgentStatus => (WORLD_STATUSES as readonly string[]).includes(s);
+
+/** A tool the world knows (absent = the default one). Agents of any other tool (Copilot) stay out of the packet. */
+export function isWorldProvider(p: AgentInfo['provider']): boolean {
+  return p === undefined || (WORLD_TOOLS as readonly string[]).includes(p);
+}
 
 /** Range of the tasks completed in the day: 0, 1–2, 3–5, 6+ → 0..3. */
 export function tasksBand(n: number): 0 | 1 | 2 | 3 {
@@ -134,6 +140,9 @@ export function projectWithReport(input: ProjectionInput, ids: WorldIdSource, no
   for (const a of input.agents) {
     if (isDemoId(a.id) || isDemoId(a.roomId) || !roomIds.has(a.roomId)) continue;
     if ((a.kind !== 'main' && a.kind !== 'sub') || !isWorldStatus(a.status)) continue;
+    // The world only knows its two tools (protocol `provider`): a Copilot agent is left out, never reported as
+    // another tool.
+    if (!isWorldProvider(a.provider)) continue;
     const list = byRoom.get(a.roomId);
     if (list) list.push(a);
     else byRoom.set(a.roomId, [a]);
