@@ -42,7 +42,7 @@
 import { spawnSync } from 'node:child_process';
 import { chmodSync, mkdirSync, readFileSync, realpathSync, renameSync, statSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { dirname, join, posix, resolve } from 'node:path';
+import { dirname, isAbsolute, join, posix, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import type { AccountInfo, SourceInfo } from '../shared/types';
 import { codexDirsRefused, detectAccounts, discoverClaudeDirs, type DetectedAccount } from '../server/accounts/detect';
@@ -243,6 +243,12 @@ export function planCodexMounts(dirs: string[], accounts: DetectedAccount[], res
   return out;
 }
 
+/** `path` is `root` or inside it (both already real paths). */
+function isInside(root: string, path: string): boolean {
+  const rel = relative(root, path);
+  return rel === '' || (!rel.startsWith('..') && !isAbsolute(rel));
+}
+
 /** Real path of an existing regular file, or undefined. */
 function realFile(p: string): string | undefined {
   try {
@@ -257,28 +263,31 @@ function realFile(p: string): string | undefined {
  * Mounts only session-state/ (folder) and open-sessions-state.json (single file, skipped if missing) of each Copilot
  * folder, in /copilot/<id>. `accounts` comes from detectCopilotAccounts(dirs), in the same order as `dirs`; the id
  * becomes the folder name in the container, so the server in there derives the same id. A home without
- * session-state/ is not mounted.
+ * session-state/ is not mounted. Each source, after realpath, must still be inside the realpath of the home: one that a
+ * symlink takes outside it is not mounted (`onOutside` gets the path and the home; by default, a warning line).
  */
 export function planCopilotMounts(
   dirs: string[],
   accounts: DetectedAccount[],
   resolveDir: (p: string) => string | undefined = realDir,
   resolveFile: (p: string) => string | undefined = realFile,
+  onOutside: (path: string, hostDir: string) => void = (path, hostDir) => warn(tr('{0} points outside {1}; not mounted.', [tildify(path), tildify(hostDir)])),
 ): AccountMount[] {
   const out: AccountMount[] = [];
   dirs.forEach((hostDir, i) => {
     const account = accounts[i];
+    const realHome = resolveDir(hostDir);
+    if (!realHome) return;
     const mountDir = posix.join(COPILOT_CONTAINER_ROOT, account.id);
     const binds: BindMount[] = [];
-    for (const sub of COPILOT_MOUNTED_SUBDIRS) {
-      const source = resolveDir(join(hostDir, sub));
-      if (source) binds.push({ source, target: posix.join(mountDir, sub) });
-    }
+    const add = (path: string, source: string | undefined, target: string) => {
+      if (!source) return;
+      if (isInside(realHome, source)) binds.push({ source, target });
+      else onOutside(path, hostDir);
+    };
+    for (const sub of COPILOT_MOUNTED_SUBDIRS) add(join(hostDir, sub), resolveDir(join(hostDir, sub)), posix.join(mountDir, sub));
     if (!binds.length) return;
-    for (const file of COPILOT_MOUNTED_FILES) {
-      const source = resolveFile(join(hostDir, file));
-      if (source) binds.push({ source, target: posix.join(mountDir, file) });
-    }
+    for (const file of COPILOT_MOUNTED_FILES) add(join(hostDir, file), resolveFile(join(hostDir, file)), posix.join(mountDir, file));
     out.push({ account, hostDir, mountDir, binds });
   });
   return out;
@@ -784,13 +793,17 @@ async function up(opts: Options, port: number): Promise<void> {
     env: process.env,
     taken: { shorts: [...accounts, ...codexAccounts].map((a) => a.short), colors: [...accounts, ...codexAccounts].map((a) => a.color) },
   });
-  const copilotMounts = planCopilotMounts(copilotDirs, copilotAccounts);
+  const copilotOutside = new Set<string>();
+  const copilotMounts = planCopilotMounts(copilotDirs, copilotAccounts, undefined, undefined, (path, hostDir) => {
+    copilotOutside.add(hostDir);
+    warn(tr('{0} points outside {1}; not mounted.', [tildify(path), tildify(hostDir)]));
+  });
   for (const m of copilotMounts) {
     const parts = m.binds.map((b) => posix.basename(b.target)).join(', ');
     say(tr('Copilot {0} ({1}): mounts {2} from {3}, read-only.', [m.account.short, m.account.id, parts, tildify(m.hostDir)]));
   }
   for (const dir of copilotDirs) {
-    if (!copilotMounts.some((m) => m.hostDir === dir)) warn(tr("{0} doesn't have session-state/; Copilot account skipped.", [tildify(dir)]));
+    if (!copilotMounts.some((m) => m.hostDir === dir) && !copilotOutside.has(dir)) warn(tr("{0} doesn't have session-state/; Copilot account skipped.", [tildify(dir)]));
   }
 
   migrateStateDir();

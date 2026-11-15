@@ -3285,4 +3285,5 @@ export const ES: Readonly<Record<string, string>> = {
   "Copilot: couldn't read the start of an events file ({0}).": "Copilot: no se pudo leer el inicio de un archivo de eventos ({0}).",
   "Copilot {0} ({1}): mounts {2} from {3}, read-only.": "Copilot {0} ({1}): monta {2} desde {3}, solo lectura.",
   "{0} doesn't have session-state/; Copilot account skipped.": "{0} no tiene session-state/; cuenta de Copilot omitida.",
+  "{0} points outside {1}; not mounted.": "{0} apunta fuera de {1}; no se monta.",
 };

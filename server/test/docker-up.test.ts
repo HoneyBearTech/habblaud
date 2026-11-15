@@ -1,7 +1,10 @@
 // Pure functions of scripts/docker-up.ts (importing the module doesn't start anything).
+import { mkdirSync, realpathSync, symlinkSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { DetectedAccount } from '../accounts/detect';
 import { legacyEnvWarning } from '../legacy';
+import { tempDir } from './fixtures';
 import {
   accountsPayload,
   CODEX_MOUNTED_SUBDIRS,
@@ -143,7 +146,7 @@ describe('docker-up', () => {
     const host = '/Users/fulano/.copilot';
     const other = '/Users/fulano/.copilot-work';
     // The host also has config.json, permissions-config.json, session-store.db, logs/, settings.json and hooks/.
-    const dirs = new Set([`${host}/session-state`, `${other}/session-state`, `${host}/logs`, `${host}/hooks`]);
+    const dirs = new Set([host, other, `${host}/session-state`, `${other}/session-state`, `${host}/logs`, `${host}/hooks`]);
     const files = new Set([`${host}/open-sessions-state.json`, `${host}/config.json`, `${host}/permissions-config.json`, `${host}/session-store.db`, `${host}/settings.json`]);
     const cop: DetectedAccount = { id: '.copilot', provider: 'copilot', configDir: host, short: 'P', name: 'Copilot P', color: '#4aa8e8' };
     const mounts = planCopilotMounts(
@@ -176,6 +179,50 @@ describe('docker-up', () => {
     expect(copilotDisabled({ HABBLAUD_COPILOT: 'no' })).toBe(true);
     expect(copilotDisabled({ HABBLAUD_COPILOT: 'on' })).toBe(false);
     expect(copilotDisabled({})).toBe(false);
+  });
+
+  it('Copilot: a symlink that leads outside the home (after realpath) is not mounted, with a warning', () => {
+    const tmp = tempDir('habblaud-docker-up-');
+    try {
+      const outside = join(tmp.dir, 'outside');
+      mkdirSync(join(outside, 'state'), { recursive: true });
+      writeFileSync(join(outside, 'open.json'), '{}');
+      // Home A: real session-state/, open-sessions-state.json pointing outside. Home B: session-state/ pointing outside.
+      // Home C: the home itself is a symlink (what is inside it still counts as inside).
+      const a = join(tmp.dir, 'home-a');
+      const b = join(tmp.dir, 'home-b');
+      const realC = join(tmp.dir, 'real-c');
+      const c = join(tmp.dir, 'home-c');
+      mkdirSync(join(a, 'session-state'), { recursive: true });
+      symlinkSync(join(outside, 'open.json'), join(a, 'open-sessions-state.json'));
+      mkdirSync(b);
+      symlinkSync(join(outside, 'state'), join(b, 'session-state'), 'dir');
+      mkdirSync(join(realC, 'session-state'), { recursive: true });
+      writeFileSync(join(realC, 'open-sessions-state.json'), '{}');
+      symlinkSync(realC, c, 'dir');
+      const cop: DetectedAccount = { id: 'a', provider: 'copilot', configDir: a, short: 'A', name: 'A', color: '#4aa8e8' };
+      const outsideSeen: Array<[string, string]> = [];
+      const mounts = planCopilotMounts([a, b, c], [cop, { ...cop, id: 'b', configDir: b }, { ...cop, id: 'c', configDir: c }], undefined, undefined, (path, home) =>
+        outsideSeen.push([path, home]),
+      );
+      const real = (p: string) => realpathSync(p);
+      expect(mounts.map((m) => [m.account.id, m.binds])).toEqual([
+        ['a', [{ source: real(join(a, 'session-state')), target: '/copilot/a/session-state' }]],
+        [
+          'c',
+          [
+            { source: real(join(realC, 'session-state')), target: '/copilot/c/session-state' },
+            { source: real(join(realC, 'open-sessions-state.json')), target: '/copilot/c/open-sessions-state.json' },
+          ],
+        ],
+      ]);
+      expect(outsideSeen).toEqual([
+        [join(a, 'open-sessions-state.json'), a],
+        [join(b, 'session-state'), b],
+      ]);
+    } finally {
+      tmp.cleanup();
+    }
   });
 
   it('host time zone goes to the container as TZ', () => {
