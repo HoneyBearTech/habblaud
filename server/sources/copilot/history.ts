@@ -18,6 +18,8 @@ import { tr } from '../../../shared/i18n';
 /** Start of each events file where the session.start and the first prompt are looked for. */
 const HEAD_BYTES = 128 * 1024;
 const TAIL_BYTES = 64 * 1024;
+/** Longest end line parsed for its time (a longer one is skipped, not parsed). */
+const LINE_MAX = 16 * 1024;
 const READ_CONCURRENCY = 8;
 
 export interface CopilotHistoryAccount {
@@ -175,9 +177,8 @@ export async function readEventsSummary(path: string, size: number): Promise<Eve
     const tail = (await read(tailStart, TAIL_BYTES)).toString('utf8').split('\n');
     if (tailStart > 0) tail.shift(); // cut
     for (const line of tail) {
-      const at = /"timestamp":"([^"]+)"/.exec(line)?.[1];
-      const ms = at ? Date.parse(at) : NaN;
-      if (!Number.isNaN(ms) && (summary.lastAt === undefined || ms > summary.lastAt)) summary.lastAt = ms;
+      const ms = lineTime(line);
+      if (ms !== undefined && (summary.lastAt === undefined || ms > summary.lastAt)) summary.lastAt = ms;
     }
     const first = state.startedAt ?? state.firstAt;
     if (first !== undefined) summary.firstAt = first;
@@ -188,6 +189,21 @@ export async function readEventsSummary(path: string, size: number): Promise<Eve
   } finally {
     await fh.close();
   }
+}
+
+/** The top-level `timestamp` of an events line (never one nested in `data`); undefined = none, invalid or too long. */
+export function lineTime(line: string): number | undefined {
+  if (!line.trim() || line.length > LINE_MAX) return undefined;
+  let j: unknown;
+  try {
+    j = JSON.parse(line);
+  } catch {
+    return undefined;
+  }
+  if (!j || typeof j !== 'object' || Array.isArray(j)) return undefined;
+  const at = (j as Record<string, unknown>).timestamp;
+  const ms = typeof at === 'string' ? Date.parse(at) : NaN;
+  return Number.isNaN(ms) ? undefined : ms;
 }
 
 /** Async map() with at most `limit` tasks at the same time (keeps the order). */

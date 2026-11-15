@@ -1,9 +1,9 @@
-import { mkdirSync, realpathSync, symlinkSync, writeFileSync } from 'node:fs';
+import { mkdirSync, realpathSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { copilotHome, E, sessionId } from '../../test/copilot-fixtures';
+import { copilotHome, E, ev, sessionId } from '../../test/copilot-fixtures';
 import { tempDir } from '../../test/fixtures';
-import { CopilotHistory } from './history';
+import { CopilotHistory, lineTime, readEventsSummary } from './history';
 
 const S = sessionId(1);
 const OLD = sessionId(2);
@@ -74,5 +74,20 @@ describe('Copilot history', () => {
     mkdirSync(join(ctx.home.dir, 'session-state', S));
     symlinkSync(join(outside.dir, 'events.jsonl'), join(ctx.home.dir, 'session-state', S, 'events.jsonl'));
     expect(await ctx.history.list()).toEqual([]);
+  });
+
+  it('last activity comes from each line\'s top-level timestamp, never from one nested in data', async () => {
+    const now = Date.now();
+    const ctx = setup();
+    const nested = ev('tool.execution_complete', { toolCallId: 'c1', success: true, result: { content: 'ok', timestamp: new Date(now + 86_400_000).toISOString() } }, now - 2_000);
+    const raw = JSON.stringify({ type: 'tool.execution_complete', data: { timestamp: new Date(now + 86_400_000).toISOString() }, id: 'x' });
+    const path = ctx.home.session(S, [E.start(S, { at: now - 60_000 }), E.user('Go', now - 59_000), nested, raw], { cwd: '/home/user/project' });
+    expect(lineTime(nested)).toBe(new Date(now - 2_000).getTime());
+    expect(lineTime(raw)).toBeUndefined();
+    expect(lineTime('{"timestamp":"' + new Date(now).toISOString() + '"')).toBeUndefined();
+    expect(lineTime(JSON.stringify({ timestamp: new Date(now).toISOString(), pad: 'x'.repeat(20_000) }))).toBeUndefined();
+    const summary = await readEventsSummary(realpathSync(path), statSync(path).size);
+    expect(summary.lastAt).toBe(now - 2_000);
+    expect((await ctx.history.list())[0]?.lastAt).toBe(now - 2_000);
   });
 });
