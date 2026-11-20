@@ -34,6 +34,10 @@ versioning](https://semver.org/): a fix bumps the last number (0.2.**1**), a new
   `HABBLAUD_LANG`; without it, the system's language if it is one of the four, otherwise English. To keep
   everything as it was, set `HABBLAUD_LANG=pt-BR` (in Docker, in `.env`) and pick **Português** in Settings.
 
+- **Renovate merges dependency updates by itself.** Once every check on its pull request has passed, and three days
+  after a new version's release, Renovate squash-merges the update, majors included. Node.js and `@types/node`
+  majors stay manual, as Dependabot's settings had them; `.github/dependabot.yml` is gone.
+
 ## [1.0.3] - 2026-10-16
 
 ### Fixed
