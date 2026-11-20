@@ -1,6 +1,33 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Renovate proposes every dependency update and merges it once every check on the pull request has passed (nothing here requires a check, so Renovate waits for them itself: platformAutomerge is off and it merges on its next run). A new version waits three days after its release (minimumReleaseAge); fixes for vulnerability alerts skip the wait by Renovate's default. timestamp-optional lets an update from a registry that reports no release date through. See https://docs.renovatebot.com/configuration-options/#minimumreleaseage",
   "extends": [
     "config:recommended"
+  ],
+  "automerge": true,
+  "automergeType": "pr",
+  "automergeStrategy": "squash",
+  "platformAutomerge": false,
+  "minimumReleaseAge": "3 days",
+  "minimumReleaseAgeBehaviour": "timestamp-optional",
+  "packageRules": [
+    {
+      "description": "An image rebuild (a new digest under the same tag) doesn't wait: Docker Hub dates a rebuild by the tag's last push, so a tag rebuilt about weekly would restart the clock each time and never clear the wait.",
+      "matchDatasources": ["docker"],
+      "matchUpdateTypes": ["digest"],
+      "minimumReleaseAge": null
+    },
+    {
+      "description": "Node.js stays on the LTS line the project supports (engines >=22.12, the Dockerfile image, CI): a new major is chosen by hand, together with engines and CI, so it is proposed but never merged automatically.",
+      "matchDepNames": ["node"],
+      "matchUpdateTypes": ["major"],
+      "automerge": false
+    },
+    {
+      "description": "The Node typings follow the oldest Node the project supports (engines >=22.12): with those of a newer major, the typecheck would let through APIs that don't exist there. A new major is chosen by hand, so it is proposed but never merged automatically.",
+      "matchPackageNames": ["@types/node"],
+      "matchUpdateTypes": ["major"],
+      "automerge": false
+    }
   ]
 }
