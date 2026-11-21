@@ -11,7 +11,7 @@
 # ---------------------------------------------------------------------------------------------
 # The base image is pinned by digest (the same in both stages), so the build is reproducible; Renovate
 # (renovate.json) changes the tag and the digest together when a new version comes out.
-FROM node:24-alpine@sha256:116b800c3754b440ee0aa3ed2f20f5bf3d99a554bfd9adeea09ea8017f6e85f5 AS builder
+FROM node:26-alpine@sha256:6bd9ab43c0ec0190ca7b2d193906cb8b7edf6e7f4afa43ddeccd6452710bffb5 AS builder
 WORKDIR /app
 
 # Dependencies first: the layer stays cached as long as the lockfile doesn't change.
@@ -25,7 +25,7 @@ RUN npm run build
 # Stage 2: lean runtime. The server has no runtime dependencies (only node:* modules),
 # so dist/ and package.json (name, version and "type": "module") are enough.
 # ---------------------------------------------------------------------------------------------
-FROM node:24-alpine@sha256:116b800c3754b440ee0aa3ed2f20f5bf3d99a554bfd9adeea09ea8017f6e85f5 AS runtime
+FROM node:26-alpine@sha256:6bd9ab43c0ec0190ca7b2d193906cb8b7edf6e7f4afa43ddeccd6452710bffb5 AS runtime
 
 # HABBLAUD_USAGE_DIR: where docker-up mounts (read-only) the usage captured by the statusline tap.
 ENV NODE_ENV=production \
